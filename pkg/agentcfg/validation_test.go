@@ -12,6 +12,13 @@ func TestValidation_Valid(t *testing.T) {
 			Name:  "empty",
 			Valid: &AgentConfiguration{},
 		},
+		{
+			Name: "empty CiAccessGroup.DefaultNamespace",
+			Valid: &CiAccessGroup{
+				Id:               "abc",
+				DefaultNamespace: "", // empty is ok
+			},
+		},
 	}
 	testhelpers.AssertValid(t, tests)
 }
@@ -30,6 +37,13 @@ func TestValidation_Invalid(t *testing.T) {
 			ErrString: "invalid PathCF.Glob: value length must be at least 1 bytes",
 			Invalid: &PathCF{
 				Glob: "",
+			},
+		},
+		{
+			Name:      "empty CiAccessGroup.Id",
+			ErrString: "invalid CiAccessGroup.Id: value length must be at least 1 bytes",
+			Invalid: &CiAccessGroup{
+				Id: "", // empty id is not ok
 			},
 		},
 	}
