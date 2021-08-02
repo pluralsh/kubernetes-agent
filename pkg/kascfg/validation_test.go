@@ -306,6 +306,14 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
+			Name:      "empty string RedisSentinelCF.Addresses",
+			ErrString: "invalid RedisSentinelCF.Addresses[0]: value length must be at least 1 runes",
+			Invalid: &RedisSentinelCF{
+				MasterName: "bla",
+				Addresses:  []string{""},
+			},
+		},
+		{
 			Name:      "zero ListenAgentCF.MaxConnectionAge",
 			ErrString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
 			Invalid: &ListenAgentCF{

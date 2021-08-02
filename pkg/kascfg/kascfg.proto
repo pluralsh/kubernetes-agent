@@ -287,7 +287,7 @@ message RedisSentinelCF {
   // The name of the sentinel master.
   string master_name = 1 [json_name = "master_name", (validate.rules).string.min_len = 1];
   // The host:port addresses of the sentinels.
-  repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
+  repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
   // Sentinel password from "requirepass <password>" (if enabled) in Sentinel configuration
   string sentinel_password_file = 3 [json_name = "sentinel_password_file"];
 }

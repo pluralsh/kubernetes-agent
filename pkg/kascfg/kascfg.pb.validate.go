@@ -2077,6 +2077,18 @@ func (m *RedisSentinelCF) Validate() error {
 		}
 	}
 
+	for idx, item := range m.GetAddresses() {
+		_, _ = idx, item
+
+		if utf8.RuneCountInString(item) < 1 {
+			return RedisSentinelCFValidationError{
+				field:  fmt.Sprintf("Addresses[%v]", idx),
+				reason: "value length must be at least 1 runes",
+			}
+		}
+
+	}
+
 	// no validation rules for SentinelPasswordFile
 
 	return nil
