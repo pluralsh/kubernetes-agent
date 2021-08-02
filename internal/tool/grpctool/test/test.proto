@@ -16,7 +16,7 @@ enum enum1 {
 }
 
 message Request {
-  string s1 = 1 [(validate.rules).string.min_len = 1];
+  string s1 = 1 [(validate.rules).string.min_bytes = 1];
 }
 
 message Response {

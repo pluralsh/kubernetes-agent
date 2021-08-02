@@ -40,10 +40,10 @@ func (m *Method) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetName()) < 1 {
+	if len(m.GetName()) < 1 {
 		return MethodValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -111,10 +111,10 @@ func (m *Service) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetName()) < 1 {
+	if len(m.GetName()) < 1 {
 		return ServiceValidationError{
 			field:  "Name",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

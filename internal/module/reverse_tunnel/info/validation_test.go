@@ -10,12 +10,12 @@ func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
 		{
 			Name:      "empty Service.Name",
-			ErrString: "invalid Service.Name: value length must be at least 1 runes",
+			ErrString: "invalid Service.Name: value length must be at least 1 bytes",
 			Invalid:   &Service{},
 		},
 		{
 			Name:      "empty Method.Name",
-			ErrString: "invalid Method.Name: value length must be at least 1 runes",
+			ErrString: "invalid Method.Name: value length must be at least 1 bytes",
 			Invalid:   &Method{},
 		},
 	}

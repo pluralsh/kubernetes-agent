@@ -41,10 +41,10 @@ func (m *HeaderExtra) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetModuleName()) < 1 {
+	if len(m.GetModuleName()) < 1 {
 		return HeaderExtraValidationError{
 			field:  "ModuleName",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

@@ -15,11 +15,11 @@ message Values {
 
 message HttpRequest {
   // HTTP method.
-  string method = 1 [(validate.rules).string.min_len = 1];
+  string method = 1 [(validate.rules).string.min_bytes = 1];
   // HTTP header.
   map<string, Values> header = 2;
   // URL path. Should start with a slash.
-  string url_path = 3 [(validate.rules).string.min_len = 1];
+  string url_path = 3 [(validate.rules).string.min_bytes = 1];
   // query is the URL query part without the leading question mark.
   map<string, Values> query = 4;
 }

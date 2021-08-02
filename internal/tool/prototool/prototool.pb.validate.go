@@ -105,10 +105,10 @@ func (m *HttpRequest) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetMethod()) < 1 {
+	if len(m.GetMethod()) < 1 {
 		return HttpRequestValidationError{
 			field:  "Method",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -129,10 +129,10 @@ func (m *HttpRequest) Validate() error {
 
 	}
 
-	if utf8.RuneCountInString(m.GetUrlPath()) < 1 {
+	if len(m.GetUrlPath()) < 1 {
 		return HttpRequestValidationError{
 			field:  "UrlPath",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
