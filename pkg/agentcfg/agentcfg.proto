@@ -19,14 +19,14 @@ message PathCF {
   // See https://github.com/bmatcuk/doublestar#about and
   // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for
   // globbing rules.
-  string glob = 1 [json_name = "glob", (validate.rules).string.min_len = 1];
+  string glob = 1 [json_name = "glob", (validate.rules).string.min_bytes = 1];
 }
 
 // Project with Kubernetes object manifests.
 message ManifestProjectCF {
   // Project id.
   // e.g. gitlab-org/cluster-integration/gitlab-agent
-  string id = 1 [json_name = "id", (validate.rules).string.min_len = 1];
+  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   reserved 2, 3;
   // Namespace to use if not set explicitly in object manifest.
   string default_namespace = 4 [json_name = "default_namespace"];
@@ -87,7 +87,7 @@ message LoggingCF {
 }
 
 message CiliumCF {
-  string hubble_relay_address = 1 [json_name = "hubble_relay_address", (validate.rules).string.min_len = 1];
+  string hubble_relay_address = 1 [json_name = "hubble_relay_address", (validate.rules).string.min_bytes = 1];
 }
 
 // ConfigurationFile represents user-facing configuration file.

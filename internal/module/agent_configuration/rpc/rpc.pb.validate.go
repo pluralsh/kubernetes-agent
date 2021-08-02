@@ -130,10 +130,10 @@ func (m *ConfigurationResponse) Validate() error {
 		}
 	}
 
-	if utf8.RuneCountInString(m.GetCommitId()) < 1 {
+	if len(m.GetCommitId()) < 1 {
 		return ConfigurationResponseValidationError{
 			field:  "CommitId",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

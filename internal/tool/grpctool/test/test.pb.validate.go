@@ -40,10 +40,10 @@ func (m *Request) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetS1()) < 1 {
+	if len(m.GetS1()) < 1 {
 		return RequestValidationError{
 			field:  "S1",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

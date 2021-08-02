@@ -408,10 +408,10 @@ func (m *GitLabCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetAddress()) < 1 {
+	if len(m.GetAddress()) < 1 {
 		return GitLabCFValidationError{
 			field:  "Address",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -428,10 +428,10 @@ func (m *GitLabCF) Validate() error {
 		}
 	}
 
-	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
+	if len(m.GetAuthenticationSecretFile()) < 1 {
 		return GitLabCFValidationError{
 			field:  "AuthenticationSecretFile",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -1991,10 +1991,10 @@ func (m *RedisServerCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetAddress()) < 1 {
+	if len(m.GetAddress()) < 1 {
 		return RedisServerCFValidationError{
 			field:  "Address",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -2063,10 +2063,10 @@ func (m *RedisSentinelCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetMasterName()) < 1 {
+	if len(m.GetMasterName()) < 1 {
 		return RedisSentinelCFValidationError{
 			field:  "MasterName",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -2080,10 +2080,10 @@ func (m *RedisSentinelCF) Validate() error {
 	for idx, item := range m.GetAddresses() {
 		_, _ = idx, item
 
-		if utf8.RuneCountInString(item) < 1 {
+		if len(item) < 1 {
 			return RedisSentinelCFValidationError{
 				field:  fmt.Sprintf("Addresses[%v]", idx),
-				reason: "value length must be at least 1 runes",
+				reason: "value length must be at least 1 bytes",
 			}
 		}
 
@@ -2160,10 +2160,10 @@ func (m *ListenApiCF) Validate() error {
 
 	// no validation rules for Address
 
-	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
+	if len(m.GetAuthenticationSecretFile()) < 1 {
 		return ListenApiCFValidationError{
 			field:  "AuthenticationSecretFile",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

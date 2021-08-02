@@ -40,10 +40,10 @@ func (m *PathCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetGlob()) < 1 {
+	if len(m.GetGlob()) < 1 {
 		return PathCFValidationError{
 			field:  "Glob",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -112,10 +112,10 @@ func (m *ManifestProjectCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetId()) < 1 {
+	if len(m.GetId()) < 1 {
 		return ManifestProjectCFValidationError{
 			field:  "Id",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -491,10 +491,10 @@ func (m *CiliumCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetHubbleRelayAddress()) < 1 {
+	if len(m.GetHubbleRelayAddress()) < 1 {
 		return CiliumCFValidationError{
 			field:  "HubbleRelayAddress",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 

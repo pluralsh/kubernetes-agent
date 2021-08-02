@@ -288,12 +288,12 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty RedisServerCF.Address",
-			ErrString: "invalid RedisServerCF.Address: value length must be at least 1 runes",
+			ErrString: "invalid RedisServerCF.Address: value length must be at least 1 bytes",
 			Invalid:   &RedisServerCF{},
 		},
 		{
 			Name:      "empty RedisSentinelCF.MasterName",
-			ErrString: "invalid RedisSentinelCF.MasterName: value length must be at least 1 runes",
+			ErrString: "invalid RedisSentinelCF.MasterName: value length must be at least 1 bytes",
 			Invalid: &RedisSentinelCF{
 				Addresses: []string{"1:2"},
 			},
@@ -307,7 +307,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty string RedisSentinelCF.Addresses",
-			ErrString: "invalid RedisSentinelCF.Addresses[0]: value length must be at least 1 runes",
+			ErrString: "invalid RedisSentinelCF.Addresses[0]: value length must be at least 1 bytes",
 			Invalid: &RedisSentinelCF{
 				MasterName: "bla",
 				Addresses:  []string{""},
@@ -329,7 +329,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty GitLabCF.Address",
-			ErrString: "invalid GitLabCF.Address: value length must be at least 1 runes",
+			ErrString: "invalid GitLabCF.Address: value length must be at least 1 bytes",
 			Invalid: &GitLabCF{
 				AuthenticationSecretFile: "/some/file",
 			},
@@ -344,7 +344,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty GitLabCF.AuthenticationSecretFile",
-			ErrString: "invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 runes",
+			ErrString: "invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 bytes",
 			Invalid: &GitLabCF{
 				Address: "http://localhost:8080",
 			},
@@ -367,7 +367,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty ListenApiCF.AuthenticationSecretFile",
-			ErrString: "invalid ListenApiCF.AuthenticationSecretFile: value length must be at least 1 runes",
+			ErrString: "invalid ListenApiCF.AuthenticationSecretFile: value length must be at least 1 bytes",
 			Invalid:   &ListenApiCF{},
 		},
 		{

@@ -75,9 +75,9 @@ message LoggingCF {
 }
 
 message GitLabCF {
-  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
+  string address = 1 [json_name = "address", (validate.rules).string.min_bytes = 1, (validate.rules).string.uri = true];
   // Secret to generate JWT tokens to authenticate with GitLab.
-  string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_len = 1];
+  string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_bytes = 1];
   // Optional X.509 certificate for TLS in PEM format.
   // Should be set for self-signed certificates.
   string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
@@ -280,14 +280,14 @@ message RedisTLSCF {
 
 message RedisServerCF {
   // The host:port address of the node.
-  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1];
+  string address = 1 [json_name = "address", (validate.rules).string.min_bytes = 1];
 }
 
 message RedisSentinelCF {
   // The name of the sentinel master.
-  string master_name = 1 [json_name = "master_name", (validate.rules).string.min_len = 1];
+  string master_name = 1 [json_name = "master_name", (validate.rules).string.min_bytes = 1];
   // The host:port addresses of the sentinels.
-  repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
+  repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
   // Sentinel password from "requirepass <password>" (if enabled) in Sentinel configuration
   string sentinel_password_file = 3 [json_name = "sentinel_password_file"];
 }
@@ -298,7 +298,7 @@ message ListenApiCF {
   // Address to listen on.
   string address = 2 [json_name = "address"];
   // Secret to verify JWT tokens.
-  string authentication_secret_file = 3 [json_name = "authentication_secret_file", (validate.rules).string.min_len = 1];
+  string authentication_secret_file = 3 [json_name = "authentication_secret_file", (validate.rules).string.min_bytes = 1];
   // X.509 certificate for TLS in PEM format.
   // TLS is enabled iff both certificate_file and key_file are provided.
   string certificate_file = 4 [json_name = "certificate_file"];

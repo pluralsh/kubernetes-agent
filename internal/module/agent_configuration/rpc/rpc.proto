@@ -25,7 +25,7 @@ message ConfigurationResponse {
   agentcfg.AgentConfiguration configuration = 1;
   // Commit id of the configuration repository.
   // Can be used to resume connection from where it dropped.
-  string commit_id = 2 [(validate.rules).string.min_len = 1];
+  string commit_id = 2 [(validate.rules).string.min_bytes = 1];
 }
 
 service AgentConfiguration {

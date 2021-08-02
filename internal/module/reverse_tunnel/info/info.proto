@@ -10,11 +10,11 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/
 import "validate/validate.proto";
 
 message Method {
-  string name = 1 [(validate.rules).string.min_len = 1];
+  string name = 1 [(validate.rules).string.min_bytes = 1];
 }
 
 message Service {
-  string name = 1 [(validate.rules).string.min_len = 1];
+  string name = 1 [(validate.rules).string.min_bytes = 1];
   repeated Method methods = 2;
 }
 

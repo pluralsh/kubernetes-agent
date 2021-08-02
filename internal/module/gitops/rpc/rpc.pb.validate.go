@@ -41,10 +41,10 @@ func (m *ObjectsToSynchronizeRequest) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetProjectId()) < 1 {
+	if len(m.GetProjectId()) < 1 {
 		return ObjectsToSynchronizeRequestValidationError{
 			field:  "ProjectId",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -254,10 +254,10 @@ func (m *ObjectsToSynchronizeResponse_Header) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetCommitId()) < 1 {
+	if len(m.GetCommitId()) < 1 {
 		return ObjectsToSynchronizeResponse_HeaderValidationError{
 			field:  "CommitId",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
@@ -331,10 +331,10 @@ func (m *ObjectsToSynchronizeResponse_Object) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetSource()) < 1 {
+	if len(m.GetSource()) < 1 {
 		return ObjectsToSynchronizeResponse_ObjectValidationError{
 			field:  "Source",
-			reason: "value length must be at least 1 runes",
+			reason: "value length must be at least 1 bytes",
 		}
 	}
 
