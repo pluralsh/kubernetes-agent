@@ -59,7 +59,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, "Config: repository poll failed", err)
+			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "Config: repository poll failed", err)
 			return nil, retry.Backoff
 		}
 		if !info.UpdateAvailable {
@@ -69,7 +69,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		log.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, "Config: failed to fetch", err)
+			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "Config: failed to fetch", err)
 			var ue errz.UserError
 			if errors.As(err, &ue) {
 				// return the error to the client because it's a user error

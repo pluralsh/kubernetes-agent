@@ -6,6 +6,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,7 +25,7 @@ func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAg
 		var infos agent_tracker.ConnectedAgentInfoCollector
 		err := s.agentQuerier.GetConnectionsByAgentId(ctx, v.AgentId, infos.Collect)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, "GetConnectionsByAgentId() failed", err)
+			s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "GetConnectionsByAgentId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByAgentId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{
@@ -34,7 +35,7 @@ func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAg
 		var infos agent_tracker.ConnectedAgentInfoCollector
 		err := s.agentQuerier.GetConnectionsByProjectId(ctx, v.ProjectId, infos.Collect)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, "GetConnectionsByProjectId() failed", err)
+			s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "GetConnectionsByProjectId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByProjectId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{

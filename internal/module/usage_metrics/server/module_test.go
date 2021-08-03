@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab"
@@ -89,7 +90,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			CloneUsageData().
 			Return(ud1),
 		mockApi.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", matcher.ErrorEq("error kind: 0; status: 500")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "Failed to send usage data", matcher.ErrorEq("error kind: 0; status: 500")),
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud2),

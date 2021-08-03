@@ -236,7 +236,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 					Return(nil, gitalyErr),
 				mockApi.EXPECT().
-					HandleProcessingError(gomock.Any(), gomock.Any(), "Config: failed to fetch",
+					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "Config: failed to fetch",
 						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr)),
 					),
 			)

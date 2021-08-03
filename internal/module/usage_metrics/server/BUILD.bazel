@@ -14,6 +14,7 @@ go_library(
         "//internal/gitlab",
         "//internal/gitlab/api",
         "//internal/module/modserver",
+        "//internal/module/modshared",
         "//internal/module/usage_metrics",
         "//internal/tool/errz",
         "//internal/tool/prototool",
@@ -29,6 +30,7 @@ go_custom_test(
     deps = [
         "//internal/gitlab/api",
         "//internal/module/modserver",
+        "//internal/module/modshared",
         "//internal/module/usage_metrics",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",

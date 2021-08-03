@@ -116,7 +116,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 			log.Debug("Forbidden: CI job token")
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			p.api.HandleProcessingError(ctx, log, "Failed to get allowed agents for CI job token", err)
+			p.api.HandleProcessingError(ctx, log, agentId, "Failed to get allowed agents for CI job token", err)
 		}
 		return
 	}
@@ -169,11 +169,11 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md)) // must use context from errgroup
 	if err != nil {
-		return false, p.handleProcessingError(ctx, log, "Proxy failed to make outbound request", err)
+		return false, p.handleProcessingError(ctx, log, agentId, "Proxy failed to make outbound request", err)
 	}
 	// Pipe client -> remote
 	g.Go(func() error {
-		errFuncRet := p.pipeClientToRemote(ctx, log, mkClient, r)
+		errFuncRet := p.pipeClientToRemote(ctx, log, agentId, mkClient, r)
 		if errFuncRet != nil {
 			return errFuncRet
 		}
@@ -183,7 +183,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	headerWritten := false
 	g.Go(func() error {
 		var errFuncRet errFunc
-		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, w, mkClient)
+		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, agentId, w, mkClient)
 		if errFuncRet != nil {
 			return errFuncRet
 		}
@@ -196,7 +196,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	return false, nil
 }
 
-func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, w http.ResponseWriter, mkClient rpc.KubernetesApi_MakeRequestClient) (bool /* headerWritten */, errFunc) {
+func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, w http.ResponseWriter, mkClient rpc.KubernetesApi_MakeRequestClient) (bool, errFunc) {
 	writeFailed := false
 	headerWritten := false
 	err := p.streamVisitor.Visit(mkClient,
@@ -225,14 +225,14 @@ func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Lo
 	if err != nil {
 		if writeFailed {
 			// there is likely a connection problem so the client will likely not receive this
-			return headerWritten, p.handleProcessingError(ctx, log, "Proxy failed to write response to client", err)
+			return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to write response to client", err)
 		}
-		return headerWritten, p.handleProcessingError(ctx, log, "Proxy failed to read response from agent", err)
+		return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to read response from agent", err)
 	}
 	return headerWritten, nil
 }
 
-func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Logger, mkClient rpc.KubernetesApi_MakeRequestClient, r *http.Request) errFunc {
+func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, r *http.Request) errFunc {
 	err := mkClient.Send(&grpctool.HttpRequest{
 		Message: &grpctool.HttpRequest_Header_{
 			Header: &grpctool.HttpRequest_Header{
@@ -255,7 +255,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		n, err = r.Body.Read(buffer)
 		if err != nil && !errors.Is(err, io.EOF) {
 			// There is likely a connection problem so the client will likely not receive this
-			return p.handleProcessingError(ctx, log, "Proxy failed to read request body from client", err)
+			return p.handleProcessingError(ctx, log, agentId, "Proxy failed to read request body from client", err)
 		}
 		if n > 0 { // handle n=0, err=io.EOF case
 			sendErr := mkClient.Send(&grpctool.HttpRequest{
@@ -360,8 +360,8 @@ func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err er
 	return writeError(msg, err)
 }
 
-func (p *kubernetesApiProxy) handleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) errFunc {
-	p.api.HandleProcessingError(ctx, log, msg, err)
+func (p *kubernetesApiProxy) handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) errFunc {
+	p.api.HandleProcessingError(ctx, log, agentId, msg, err)
 	return writeError(msg, err)
 }
 

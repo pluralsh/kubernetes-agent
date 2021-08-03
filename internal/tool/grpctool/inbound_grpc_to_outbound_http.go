@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ type InboundGrpcToOutboundHttpStream interface {
 // API is a reduced version on modshared.API.
 // It's here to avoid the dependency.
 type API interface {
-	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
+	HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error)
 	HandleSendError(log *zap.Logger, msg string, err error) error
 }
 
@@ -96,7 +97,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(server InboundGrpcToOutboundHttpStream)
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
-		x.api.HandleProcessingError(ctx, log, "gRPC -> HTTP", err)
+		x.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "gRPC -> HTTP", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err

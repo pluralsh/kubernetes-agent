@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -52,13 +54,13 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	case errz.ContextDone(err):
 		err = status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
-		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
+		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
-		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
+		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
+		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return nil, err
@@ -74,7 +76,7 @@ func (a *serverAPI) PollWithBackoff(stream grpc.ServerStream, cfg retry.PollConf
 	return err
 }
 
-func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	if grpctool.RequestCanceled(err) {
 		// An error caused by context signalling done
 		return
@@ -86,7 +88,7 @@ func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 		// Log at Info for now.
 		log.Info(msg, logz.Error(err))
 	} else {
-		a.logAndCapture(ctx, log, msg, err)
+		a.logAndCapture(ctx, log, agentId, msg, err)
 	}
 }
 
@@ -99,10 +101,14 @@ func (a *serverAPI) HandleSendError(log *zap.Logger, msg string, err error) erro
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
-func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
-	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
+func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
+	// don't add logz.CorrelationIdFromContext() or logz.AgentId() here as they've been added to the logger already
 	log.Error(msg, logz.Error(err))
-	a.Capture(fmt.Errorf("%s: %w", msg, err), errortracking.WithContext(ctx))
+	opts := []errortracking.CaptureOption{errortracking.WithContext(ctx)}
+	if agentId != modshared.NoAgentId {
+		opts = append(opts, errortracking.WithField(modshared.AgentIdErrTrackingField, strconv.FormatInt(agentId, 10)))
+	}
+	a.Capture(fmt.Errorf("%s: %w", msg, err), opts...)
 }
 
 func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
