@@ -555,6 +555,159 @@ var _ interface {
 	ErrorName() string
 } = CiliumCFValidationError{}
 
+// Validate checks the field values on CiAccess with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *CiAccess) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	for idx, item := range m.GetGroups() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CiAccessValidationError{
+					field:  fmt.Sprintf("Groups[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// CiAccessValidationError is the validation error returned by
+// CiAccess.Validate if the designated constraints aren't met.
+type CiAccessValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessValidationError) ErrorName() string { return "CiAccessValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CiAccessValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccess.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessValidationError{}
+
+// Validate checks the field values on CiAccessGroup with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *CiAccessGroup) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetId()) < 1 {
+		return CiAccessGroupValidationError{
+			field:  "Id",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	// no validation rules for DefaultNamespace
+
+	return nil
+}
+
+// CiAccessGroupValidationError is the validation error returned by
+// CiAccessGroup.Validate if the designated constraints aren't met.
+type CiAccessGroupValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessGroupValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessGroupValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessGroupValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessGroupValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessGroupValidationError) ErrorName() string { return "CiAccessGroupValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CiAccessGroupValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccessGroup.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessGroupValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessGroupValidationError{}
+
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
@@ -587,6 +740,16 @@ func (m *ConfigurationFile) Validate() error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "Cilium",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetCiAccess()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "CiAccess",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -693,6 +856,16 @@ func (m *AgentConfiguration) Validate() error {
 	// no validation rules for AgentId
 
 	// no validation rules for ProjectId
+
+	if v, ok := interface{}(m.GetCiAccess()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
+				field:  "CiAccess",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	return nil
 }

@@ -103,6 +103,7 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			Cilium:        configFile.Cilium,
 			AgentId:       agentInfo.Id,
 			ProjectId:     agentInfo.ProjectId,
+			CiAccess:      configFile.CiAccess,
 		},
 		CommitId: commitId,
 	})

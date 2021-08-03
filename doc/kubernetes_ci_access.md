@@ -39,7 +39,10 @@ ci_access:
             - group1
             - group2
           extra:
-            key1: [val1, val2]
+            - key: key1
+              val: ["val1", "val2"]
+            - key: key2
+              val: ["x"]
         ci_job: {}
         ci_user: {}
   # This agent is accessible from CI jobs in projects in these groups

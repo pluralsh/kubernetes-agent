@@ -90,6 +90,55 @@ message CiliumCF {
   string hubble_relay_address = 1 [json_name = "hubble_relay_address", (validate.rules).string.min_bytes = 1];
 }
 
+// https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
+message CiAccess {
+  // TODO repeated CiAccessProject projects = 1 [json_name = "projects"];
+  repeated CiAccessGroup groups = 2 [json_name = "groups"];
+}
+
+//message CiAccessProject {
+//  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+//  string default_namespace = 2  [json_name = "default_namespace"];
+//// TODO CiAccessAs access_as = 3  [json_name = "access_as"];
+//}
+
+message CiAccessGroup {
+  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+  string default_namespace = 2  [json_name = "default_namespace"];
+// TODO CiAccessAs access_as = 3  [json_name = "access_as"];
+}
+
+//message CiAccessAs {
+//  oneof as {
+//    option (validate.required) = true;
+//
+//    CiAccessAsAgent agent = 1 [json_name = "agent"];
+//    CiAccessAsImpersonate impersonate = 2 [json_name = "impersonate"];
+//    CiAccessAsCiJob ci_job = 3 [json_name = "ci_job"];
+//    CiAccessAsCiUser ci_user = 4 [json_name = "ci_user"];
+//  }
+//}
+//
+//message CiAccessAsAgent {
+//}
+//
+//message CiAccessAsCiJob {
+//}
+//
+//message CiAccessAsCiUser {
+//}
+//
+//message CiAccessAsImpersonate {
+//  string name = 1 [json_name = "name", (validate.rules).string.min_bytes = 1];
+//  repeated string groups = 2 [json_name = "groups", (validate.rules).repeated.items.string.min_bytes = 1];
+//  repeated ExtraKeyVal extra = 3 [json_name = "extra"];
+//}
+//
+//message ExtraKeyVal {
+//  string key = 1 [json_name = "key", (validate.rules).string.min_bytes = 1];
+//  repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
+//}
+
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
   GitopsCF gitops = 1 [json_name = "gitops"];
@@ -97,6 +146,7 @@ message ConfigurationFile {
   // agent itself, not any observability-related features.
   ObservabilityCF observability = 2 [json_name = "observability"];
   CiliumCF cilium = 3 [json_name = "cilium"];
+  CiAccess ci_access = 4 [json_name = "ci_access"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -111,4 +161,5 @@ message AgentConfiguration {
   int64 agent_id = 4;
   // Id of the configuration project.
   int64 project_id = 5;
+  CiAccess ci_access = 6;
 }
