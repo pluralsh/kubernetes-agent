@@ -35,9 +35,11 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			return http.ErrUseLastResponse
 		},
 	}
-	m := newModule(config.Api, userAgent, client, baseUrl)
-	rpc.RegisterKubernetesApiServer(config.Server, m)
-	return m, nil
+	s := newServer(config.Api, userAgent, client, baseUrl)
+	rpc.RegisterKubernetesApiServer(config.Server, s)
+	return &module{
+		api: config.Api,
+	}, nil
 }
 
 func (f *Factory) Name() string {

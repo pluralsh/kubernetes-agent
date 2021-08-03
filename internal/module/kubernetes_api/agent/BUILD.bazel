@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "factory.go",
         "module.go",
+        "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/agent",
     visibility = ["//:__subpackages__"],
