@@ -134,7 +134,7 @@ func TestProxy_ServerError(t *testing.T) {
 		w.WriteHeader(http.StatusBadGateway) // pretend there is some weird error
 	})
 	api.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), matcher.ErrorEq("error kind: 0; status: 502"))
+		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("error kind: 0; status: 502"))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -316,7 +316,7 @@ func TestProxy_RecvHeaderError(t *testing.T) {
 			RecvMsg(gomock.Any()).
 			Return(errors.New("expected error 2")),
 		api.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), matcher.ErrorEq("expected error 2")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error 2")),
 	)
 	_, err := client.Do(req)               // nolint: bodyclose
 	assert.True(t, errors.Is(err, io.EOF)) // dropped connection is io.EOF
@@ -349,7 +349,7 @@ func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
 			RecvMsg(gomock.Any()).
 			Return(errors.New("expected error 2")),
 		api.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), matcher.ErrorEq("expected error 2")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error 2")),
 	)
 	resp, err := client.Do(req)
 	require.NoError(t, err)

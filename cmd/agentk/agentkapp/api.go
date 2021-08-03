@@ -36,7 +36,7 @@ type agentAPI struct {
 	featureTracker  *featureTracker
 }
 
-func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	if grpctool.RequestCanceled(err) {
 		// An error caused by context signalling done
 		return

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
@@ -44,7 +45,7 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 		//Features: nil, // TODO
 	})
 	if err != nil {
-		s.api.HandleProcessingError(ctx, log, "PathFetcher", err)
+		s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}
 	r := &gitalypb.Repository{
@@ -59,7 +60,7 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 	err = pf.Visit(ctx, r, []byte("HEAD"), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
 		log = log.With(logz.ProjectId(req.Repository.GlProjectPath))
-		s.api.HandleProcessingError(ctx, log, "PathFetcher", err)
+		s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}
 	return &rpc.ListAgentConfigFilesResponse{

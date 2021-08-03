@@ -72,15 +72,15 @@ func (mr *MockAPIMockRecorder) GetAgentInfo(arg0, arg1, arg2 interface{}) *gomoc
 }
 
 // HandleProcessingError mocks base method.
-func (m *MockAPI) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, arg2 string, arg3 error) {
+func (m *MockAPI) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, arg2 int64, arg3 string, arg4 error) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "HandleProcessingError", arg0, arg1, arg2, arg3)
+	m.ctrl.Call(m, "HandleProcessingError", arg0, arg1, arg2, arg3, arg4)
 }
 
 // HandleProcessingError indicates an expected call of HandleProcessingError.
-func (mr *MockAPIMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockAPI)(nil).HandleProcessingError), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockAPI)(nil).HandleProcessingError), arg0, arg1, arg2, arg3, arg4)
 }
 
 // HandleSendError mocks base method.

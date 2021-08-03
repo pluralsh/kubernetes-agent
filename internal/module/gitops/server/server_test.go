@@ -153,7 +153,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	mockApi.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), "GetProjectInfo()", matcher.ErrorEq("error kind: 0; status: 500"))
+		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "GetProjectInfo()", matcher.ErrorEq("error kind: 0; status: 500"))
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
@@ -421,7 +421,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					},
 				}))
 			mockApi.EXPECT().
-				HandleProcessingError(gomock.Any(), gomock.Any(), "GitOps: failed to get objects to synchronize",
+				HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "GitOps: failed to get objects to synchronize",
 					matcher.ErrorEq(tc.errMsg),
 				)
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)

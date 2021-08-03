@@ -65,7 +65,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		projectInfo, err := s.getProjectInfo(ctx, log, agentToken, req.ProjectId)
+		projectInfo, err := s.getProjectInfo(ctx, log, agentInfo.Id, agentToken, req.ProjectId)
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
@@ -75,7 +75,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := s.poll(ctx, projectInfo, req.CommitId, revision)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, "GitOps: repository poll failed", err)
+			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "GitOps: repository poll failed", err)
 			return nil, retry.Backoff
 		}
 
@@ -92,7 +92,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		if err != nil {
 			return s.api.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
 		}
-		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, req, server, projectInfo, info.CommitId)
+		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, req, server, agentInfo.Id, projectInfo, info.CommitId)
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
@@ -150,13 +150,14 @@ func (s *server) sendObjectsToSynchronizeBody(
 	log *zap.Logger,
 	req *rpc.ObjectsToSynchronizeRequest,
 	server rpc.Gitops_GetObjectsToSynchronizeServer,
+	agentId int64,
 	projectInfo *api.ProjectInfo,
 	commitId string,
 ) (uint32 /* files visited */, uint32 /* files sent */, error) {
 	ctx := server.Context()
 	pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
-		s.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
+		s.api.HandleProcessingError(ctx, log, agentId, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
@@ -181,11 +182,11 @@ func (s *server) sendObjectsToSynchronizeBody(
 			}
 			if isUserError(err) {
 				err = errz.NewUserErrorWithCause(err, "manifest file")
-				s.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				s.api.HandleProcessingError(ctx, log, agentId, "GitOps: failed to get objects to synchronize", err)
 				// return the error to the client because it's a user error
 				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
 			}
-			s.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+			s.api.HandleProcessingError(ctx, log, agentId, "GitOps: failed to get objects to synchronize", err)
 			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 		}
 	}
@@ -201,7 +202,7 @@ func (s *server) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToS
 }
 
 // getProjectInfo returns nil for both error and ProjectInfo if there was a retriable error.
-func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
+func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentId int64, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	projectInfo, err := s.projectInfoClient.GetProjectInfo(ctx, agentToken, projectId)
 	switch {
 	case err == nil:
@@ -213,7 +214,7 @@ func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentToken
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		s.api.HandleProcessingError(ctx, log, "GetProjectInfo()", err)
+		s.api.HandleProcessingError(ctx, log, agentId, "GetProjectInfo()", err)
 		err = nil // no error and no project info
 	}
 	return nil, err
