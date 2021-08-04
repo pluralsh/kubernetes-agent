@@ -179,3 +179,16 @@ container_scanning_agentk:
   variables:
     CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/agentk"
     CI_APPLICATION_TAG: latest
+
+# enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
+container_scan:
+  stage: scan
+  needs: ["test"]
+  image: curlimages/curl:7.78.0
+  script: |
+    curl -fS --request POST --form token="$PIPELINE_TRIGGER_TOKEN" \
+       --form "ref=$CI_COMMIT_BRANCH" \
+       --form "variables[IMAGES]=$CI_REGISTRY_IMAGE/agentk:latest, $CI_REGISTRY_IMAGE/agentk:latest-race, $CI_REGISTRY_IMAGE/kas:latest, $CI_REGISTRY_IMAGE/kas:latest-race" \
+       https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
