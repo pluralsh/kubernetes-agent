@@ -51,14 +51,16 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	switch {
 	case err == nil:
 		return agentInfo, nil
-	case errz.ContextDone(err):
-		err = status.Error(codes.Unavailable, "unavailable")
+	case errors.Is(err, context.Canceled):
+		err = status.Error(codes.Canceled, err.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		err = status.Error(codes.DeadlineExceeded, err.Error())
 	case gitlab.IsForbidden(err):
-		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
-		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
+	case gitlab.IsNotFound(err):
+		err = status.Error(codes.NotFound, "agent not found")
 	default:
 		a.logAndCapture(ctx, log, modshared.NoAgentId, "GetAgentInfo()", err)
 		err = status.Error(codes.Unavailable, "unavailable")

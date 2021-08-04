@@ -90,7 +90,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			CloneUsageData().
 			Return(ud1),
 		mockApi.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "Failed to send usage data", matcher.ErrorEq("error kind: 0; status: 500")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "Failed to send usage data", matcher.ErrorEq("HTTP status code: 500")),
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud2),

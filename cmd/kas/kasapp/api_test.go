@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -23,34 +24,45 @@ import (
 )
 
 var (
-	_ modserver.API = &serverAPI{}
+	_ modserver.API = (*serverAPI)(nil)
 )
 
-func TestGetAgentInfoFailures_Forbidden(t *testing.T) {
-	ctx, log, errTracker, apiObj := setupApi(t, http.StatusForbidden)
-	errTracker.EXPECT().
-		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 1; status: 403"), gomock.Any())
-	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
-	assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	assert.Nil(t, info)
-}
-
-func TestGetAgentInfoFailures_Unauthorized(t *testing.T) {
-	ctx, log, errTracker, apiObj := setupApi(t, http.StatusUnauthorized)
-	errTracker.EXPECT().
-		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 2; status: 401"), gomock.Any())
-	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
-	assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	assert.Nil(t, info)
-}
-
-func TestGetAgentInfoFailures_InternalServerError(t *testing.T) {
-	ctx, log, errTracker, apiObj := setupApi(t, http.StatusInternalServerError)
-	errTracker.EXPECT().
-		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any())
-	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
-	assert.Equal(t, codes.Unavailable, status.Code(err))
-	assert.Nil(t, info)
+func TestGetAgentInfo_Errors(t *testing.T) {
+	tests := []struct {
+		httpStatus int
+		code       codes.Code
+		captureErr string
+	}{
+		{
+			httpStatus: http.StatusForbidden,
+			code:       codes.PermissionDenied,
+		},
+		{
+			httpStatus: http.StatusUnauthorized,
+			code:       codes.Unauthenticated,
+		},
+		{
+			httpStatus: http.StatusNotFound,
+			code:       codes.NotFound,
+		},
+		{
+			httpStatus: http.StatusInternalServerError,
+			code:       codes.Unavailable,
+			captureErr: "HTTP status code: 500",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(strconv.Itoa(tc.httpStatus), func(t *testing.T) {
+			ctx, log, errTracker, apiObj := setupApi(t, tc.httpStatus)
+			if tc.captureErr != "" {
+				errTracker.EXPECT().
+					Capture(matcher.ErrorEq("GetAgentInfo(): "+tc.captureErr), gomock.Any())
+			}
+			info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
+			assert.Equal(t, tc.code, status.Code(err))
+			assert.Nil(t, info)
+		})
+	}
 }
 
 func TestHandleProcessingError_UserError(t *testing.T) {
