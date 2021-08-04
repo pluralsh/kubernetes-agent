@@ -134,7 +134,7 @@ func TestProxy_ServerError(t *testing.T) {
 		w.WriteHeader(http.StatusBadGateway) // pretend there is some weird error
 	})
 	api.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("error kind: 0; status: 502"))
+		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("HTTP status code: 502"))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()

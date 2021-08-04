@@ -57,19 +57,8 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 					return fmt.Errorf("WithJsonResponseHandler: json.Unmarshal: %w", err)
 				}
 				return nil
-			case http.StatusUnauthorized: // No token, invalid token, revoked token
-				return &ClientError{
-					Kind:       ErrorKindUnauthorized,
-					StatusCode: http.StatusUnauthorized,
-				}
-			case http.StatusForbidden: // Access denied
-				return &ClientError{
-					Kind:       ErrorKindForbidden,
-					StatusCode: http.StatusForbidden,
-				}
 			default: // Unexpected status
-				return &ClientError{
-					Kind:       ErrorKindOther,
+				return ClientError{
 					StatusCode: resp.StatusCode,
 				}
 			}
@@ -93,19 +82,8 @@ func NoContentResponseHandler() ResponseHandler {
 					err = nil
 				}
 				return err
-			case http.StatusUnauthorized: // No token, invalid token, revoked token
-				return &ClientError{
-					Kind:       ErrorKindUnauthorized,
-					StatusCode: http.StatusUnauthorized,
-				}
-			case http.StatusForbidden: // Access denied
-				return &ClientError{
-					Kind:       ErrorKindForbidden,
-					StatusCode: http.StatusForbidden,
-				}
 			default: // Unexpected status
-				return &ClientError{
-					Kind:       ErrorKindOther,
+				return ClientError{
 					StatusCode: resp.StatusCode,
 				}
 			}

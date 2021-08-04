@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strings"
 	"time"
@@ -207,12 +208,16 @@ func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentId in
 	switch {
 	case err == nil:
 		return projectInfo, nil
-	case errz.ContextDone(err):
-		err = status.Error(codes.Unavailable, "unavailable")
+	case errors.Is(err, context.Canceled):
+		err = status.Error(codes.Canceled, err.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		err = status.Error(codes.DeadlineExceeded, err.Error())
 	case gitlab.IsForbidden(err):
 		err = status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
+	case gitlab.IsNotFound(err):
+		err = status.Error(codes.NotFound, "project not found")
 	default:
 		s.api.HandleProcessingError(ctx, log, agentId, "GetProjectInfo()", err)
 		err = nil // no error and no project info

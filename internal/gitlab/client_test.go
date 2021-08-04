@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,36 +59,29 @@ func TestRequestOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestJsonResponseHandler_Forbidden(t *testing.T) {
-	c := mock_gitlab.SetupClient(t, "/forbidden", func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequest(t, r)
-		w.WriteHeader(http.StatusForbidden)
-	})
+func TestJsonResponseHandler_Errors(t *testing.T) {
+	tests := map[int]func(error) bool{
+		http.StatusForbidden:    gitlab.IsForbidden,
+		http.StatusUnauthorized: gitlab.IsUnauthorized,
+		http.StatusNotFound:     gitlab.IsNotFound,
+	}
+	for statusCode, f := range tests {
+		t.Run(strconv.Itoa(statusCode), func(t *testing.T) {
+			c := mock_gitlab.SetupClient(t, "/bla", func(w http.ResponseWriter, r *http.Request) {
+				testhelpers.AssertGetJsonRequest(t, r)
+				w.WriteHeader(statusCode)
+			})
 
-	var resp interface{}
+			var resp interface{}
 
-	err := c.Do(context.Background(),
-		gitlab.WithPath("/forbidden"),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&resp)),
-	)
-	require.Error(t, err)
-	assert.True(t, gitlab.IsForbidden(err))
-}
-
-func TestJsonResponseHandler_Unauthorized(t *testing.T) {
-	c := mock_gitlab.SetupClient(t, "/unauthorized", func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequest(t, r)
-		w.WriteHeader(http.StatusUnauthorized)
-	})
-
-	var resp interface{}
-
-	err := c.Do(context.Background(),
-		gitlab.WithPath("/unauthorized"),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&resp)),
-	)
-	require.Error(t, err)
-	assert.True(t, gitlab.IsUnauthorized(err))
+			err := c.Do(context.Background(),
+				gitlab.WithPath("/bla"),
+				gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&resp)),
+			)
+			require.Error(t, err)
+			assert.True(t, f(err))
+		})
+	}
 }
 
 func TestJsonResponseHandler_HappyPath(t *testing.T) {
@@ -127,18 +121,27 @@ func TestJsonResponseHandler_Cancellation(t *testing.T) {
 	assert.True(t, errors.Is(err, context.Canceled))
 }
 
-func TestNoContentResponseHandler_Forbidden(t *testing.T) {
-	c := mock_gitlab.SetupClient(t, "/forbidden", func(w http.ResponseWriter, r *http.Request) {
-		assertNoContentRequest(t, r)
-		w.WriteHeader(http.StatusForbidden)
-	})
+func TestNoContentResponseHandler_Errors(t *testing.T) {
+	tests := map[int]func(error) bool{
+		http.StatusForbidden:    gitlab.IsForbidden,
+		http.StatusUnauthorized: gitlab.IsUnauthorized,
+		http.StatusNotFound:     gitlab.IsNotFound,
+	}
+	for statusCode, f := range tests {
+		t.Run(strconv.Itoa(statusCode), func(t *testing.T) {
+			c := mock_gitlab.SetupClient(t, "/bla", func(w http.ResponseWriter, r *http.Request) {
+				assertNoContentRequest(t, r)
+				w.WriteHeader(statusCode)
+			})
 
-	err := c.Do(context.Background(),
-		gitlab.WithPath("/forbidden"),
-		gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
-	)
-	require.Error(t, err)
-	assert.True(t, gitlab.IsForbidden(err))
+			err := c.Do(context.Background(),
+				gitlab.WithPath("/bla"),
+				gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
+			)
+			require.Error(t, err)
+			assert.True(t, f(err))
+		})
+	}
 }
 
 func TestNoContentResponseHandler_Unauthorized(t *testing.T) {

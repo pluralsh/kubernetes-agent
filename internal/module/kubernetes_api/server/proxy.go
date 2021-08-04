@@ -114,6 +114,9 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		case gitlab.IsForbidden(err):
 			w.WriteHeader(http.StatusForbidden)
 			log.Debug("Forbidden: CI job token")
+		case gitlab.IsNotFound(err):
+			w.WriteHeader(http.StatusNotFound)
+			log.Debug("Not found: agents for CI job token")
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			p.api.HandleProcessingError(ctx, log, agentId, "Failed to get allowed agents for CI job token", err)
