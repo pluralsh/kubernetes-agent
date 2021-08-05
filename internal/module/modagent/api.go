@@ -40,7 +40,7 @@ type Config struct {
 	// It should not be used for logging from gRPC API methods. Use grpctool.LoggerFromContext(ctx) instead.
 	Log       *zap.Logger
 	AgentMeta *modshared.AgentMeta
-	Api       API
+	Api       Api
 	// K8sUtilFactory provides means to interact with the Kubernetes cluster agentk is running in.
 	K8sUtilFactory util.Factory
 	// KasConn is the gRPC connection to gitlab-kas.
@@ -60,8 +60,8 @@ type GitLabResponse struct {
 	Body       io.ReadCloser
 }
 
-// API provides the API for the module to use.
-type API interface {
+// Api provides the API for the module to use.
+type Api interface {
 	modshared.Api
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 	ToggleFeature(feature Feature, enabled bool)

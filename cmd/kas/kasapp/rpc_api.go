@@ -30,10 +30,6 @@ type serverRpcApi struct {
 	AgentInfoCache *cache.CacheWithErr
 }
 
-func (a *serverRpcApi) Capture(err error, opts ...errortracking.CaptureOption) {
-	a.ErrorTracker.Capture(err, opts...)
-}
-
 func (a *serverRpcApi) GetAgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error) {
 	agentToken := api.AgentMDFromContext(a.StreamCtx).Token
 	agentInfo, err := a.getAgentInfoCached(ctx, agentToken)

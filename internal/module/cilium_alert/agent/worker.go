@@ -37,7 +37,7 @@ const (
 
 type worker struct {
 	log                  *zap.Logger
-	api                  modagent.API
+	api                  modagent.Api
 	ciliumClient         versioned.Interface
 	observerClient       observer.ObserverClient
 	pollConfig           retry.PollConfigFactory

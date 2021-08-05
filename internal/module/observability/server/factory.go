@@ -16,8 +16,8 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	return &module{
-		tracker:        config.Api,
 		log:            config.Log,
+		api:            config.Api,
 		cfg:            config.Config.Observability,
 		gatherer:       f.Gatherer,
 		registerer:     config.Registerer,

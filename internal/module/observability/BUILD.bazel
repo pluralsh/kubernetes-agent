@@ -10,11 +10,10 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/module/modshared",
         "//internal/tool/httpz",
-        "//internal/tool/logz",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promhttp",
-        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -24,7 +23,8 @@ go_custom_test(
     srcs = ["metric_server_test.go"],
     embed = [":observability"],
     deps = [
-        "//internal/tool/testing/mock_errtracker",
+        "//internal/module/modshared",
+        "//internal/tool/testing/mock_modserver",
         "@com_github_golang_mock//gomock",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_stretchr_testify//require",

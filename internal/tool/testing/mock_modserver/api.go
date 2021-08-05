@@ -11,7 +11,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
-	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
 	zap "go.uber.org/zap"
 )
 
@@ -36,23 +35,6 @@ func NewMockApi(ctrl *gomock.Controller) *MockApi {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockApi) EXPECT() *MockApiMockRecorder {
 	return m.recorder
-}
-
-// Capture mocks base method.
-func (m *MockApi) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "Capture", varargs...)
-}
-
-// Capture indicates an expected call of Capture.
-func (mr *MockApiMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockApi)(nil).Capture), varargs...)
 }
 
 // HandleProcessingError mocks base method.
@@ -88,23 +70,6 @@ func NewMockRpcApi(ctrl *gomock.Controller) *MockRpcApi {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRpcApi) EXPECT() *MockRpcApiMockRecorder {
 	return m.recorder
-}
-
-// Capture mocks base method.
-func (m *MockRpcApi) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "Capture", varargs...)
-}
-
-// Capture indicates an expected call of Capture.
-func (mr *MockRpcApiMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockRpcApi)(nil).Capture), varargs...)
 }
 
 // GetAgentInfo mocks base method.

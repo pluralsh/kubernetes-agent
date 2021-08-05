@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockAPI) (func(context.Context) error, *grpc.Server) {
+func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockApi) (func(context.Context) error, *grpc.Server) {
 	log := zaptest.NewLogger(t)
 	internalListener := grpctool.NewDialListener()
 	internalServer := agentConstructInternalServer(ctx, log)

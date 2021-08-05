@@ -19,7 +19,7 @@ import (
 
 type module struct {
 	log                  *zap.Logger
-	api                  modagent.API
+	api                  modagent.Api
 	ciliumClient         versioned.Interface
 	pollConfig           retry.PollConfigFactory
 	informerResyncPeriod time.Duration
