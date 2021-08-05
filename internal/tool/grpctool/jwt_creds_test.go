@@ -55,7 +55,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 	})
 	var wg wait.Group
 	defer wg.Wait()
-	defer srv.Stop()
+	defer srv.GracefulStop()
 	wg.Start(func() {
 		assert.NoError(t, srv.Serve(listener))
 	})
@@ -65,6 +65,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 		grpc.WithPerRPCCredentials(c),
 	)
 	require.NoError(t, err)
+	defer conn.Close()
 	client := test.NewTestingClient(conn)
 	_, err = client.RequestResponse(context.Background(), &test.Request{})
 	require.NoError(t, err)

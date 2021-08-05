@@ -460,8 +460,8 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group
 	defer wg.Wait()
-	defer internalServer.Stop()
-	defer privateApiServer.Stop()
+	defer internalServer.GracefulStop()
+	defer privateApiServer.GracefulStop()
 	wg.Start(func() {
 		assert.NoError(t, internalServer.Serve(internalServerListener))
 	})
@@ -479,6 +479,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		),
 	)
 	require.NoError(t, err)
+	defer internalServerConn.Close()
 	client := test.NewTestingClient(internalServerConn)
 	runTest(client)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
@@ -25,6 +26,9 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 	internalServer := agentConstructInternalServer(ctx, log)
 	internalServerConn, err := agentConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, internalServerConn.Close())
+	})
 
 	f := reverse_tunnel_agent.Factory{
 		InternalServerConn: internalServerConn,

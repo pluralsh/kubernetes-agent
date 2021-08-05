@@ -14,7 +14,7 @@ func TestValidator(t *testing.T) {
 	lis := NewDialListener()
 	defer lis.Close()
 	server := grpc.NewServer()
-	defer server.Stop()
+	defer server.GracefulStop()
 	test.RegisterTestingServer(server, &test.GrpcTestingServer{
 		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
 			return &test.Response{
