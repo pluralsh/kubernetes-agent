@@ -15,7 +15,7 @@ import (
 
 type module struct {
 	log                  *zap.Logger
-	api                  modserver.API
+	api                  modserver.Api
 	usageTracker         usage_metrics.UsageTrackerCollector
 	gitLabClient         gitlab.ClientInterface
 	usageReportingPeriod time.Duration

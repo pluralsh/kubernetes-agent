@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -34,12 +33,11 @@ const (
 
 func TestMakeRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockApi := mock_modserver.NewMockAPI(ctrl)
+	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	server := mock_rpc.NewMockGitlabAccess_MakeRequestServer(ctrl)
-	incomingCtx := mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)
 	server.EXPECT().
 		Context().
-		Return(incomingCtx).
+		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
 		MinTimes(1)
 	header := http.Header{
 		"k": []string{"v1", "v2"},
@@ -124,7 +122,7 @@ func TestMakeRequest(t *testing.T) {
 			},
 		},
 	)...)
-	s := newServer(mockApi, mock_gitlab.SetupClient(t, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
+	s := newServer(mock_gitlab.SetupClient(t, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
 		all, errIO := io.ReadAll(r.Body)
 		if !assert.NoError(t, errIO) {
 			return

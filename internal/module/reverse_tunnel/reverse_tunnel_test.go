@@ -265,7 +265,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Construct server and agent components
-	runServer, kasConn, serverInternalServerConn, serverApi, tunnelRegisterer := serverConstructComponents(ctx, t)
+	runServer, kasConn, serverInternalServerConn, serverRpcApi, tunnelRegisterer := serverConstructComponents(ctx, t)
 	defer func() {
 		assert.NoError(t, kasConn.Close())
 		assert.NoError(t, serverInternalServerConn.Close())
@@ -286,8 +286,8 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	runAgent, agentInternalServer := agentConstructComponents(ctx, t, kasConn, agentApi)
 	agentInfo := testhelpers.AgentInfoObj()
 
-	serverApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+	serverRpcApi.EXPECT().
+		GetAgentInfo(gomock.Any(), gomock.Any()).
 		Return(agentInfo, nil).
 		MinTimes(1)
 

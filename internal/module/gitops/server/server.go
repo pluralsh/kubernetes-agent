@@ -36,7 +36,6 @@ var (
 
 type server struct {
 	rpc.UnimplementedGitopsServer
-	api                         modserver.API
 	gitalyPool                  gitaly.PoolInterface
 	projectInfoClient           *projectInfoClient
 	syncCount                   usage_metrics.Counter
@@ -51,8 +50,9 @@ type server struct {
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
 	ctx := server.Context()
 	agentToken := api.AgentTokenFromContext(ctx)
+	rpcApi := grpctool.RpcApiFromContext(server.Context())
 	log := grpctool.LoggerFromContext(ctx)
-	agentInfo, err := s.api.GetAgentInfo(ctx, log, agentToken)
+	agentInfo, err := rpcApi.GetAgentInfo(ctx, log)
 	if err != nil {
 		return err // no wrap
 	}
@@ -62,11 +62,11 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	}
 	var lastPoll time.Time
 	log = log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
-	return s.api.PollWithBackoff(server, s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
+	return rpcApi.PollWithBackoff(s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		projectInfo, err := s.getProjectInfo(ctx, log, agentInfo.Id, agentToken, req.ProjectId)
+		projectInfo, err := s.getProjectInfo(ctx, log, rpcApi, agentInfo.Id, agentToken, req.ProjectId)
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
@@ -76,7 +76,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := s.poll(ctx, projectInfo, req.CommitId, revision)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "GitOps: repository poll failed", err)
+			rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
 			return nil, retry.Backoff
 		}
 
@@ -91,15 +91,15 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		log.Info("GitOps: new commit")
 		err = s.sendObjectsToSynchronizeHeader(server, info.CommitId, projectInfo.ProjectId)
 		if err != nil {
-			return s.api.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
+			return rpcApi.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
 		}
-		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, req, server, agentInfo.Id, projectInfo, info.CommitId)
+		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, info.CommitId)
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
 		err = s.sendObjectsToSynchronizeTrailer(server)
 		if err != nil {
-			return s.api.HandleSendError(log, "GitOps: failed to send trailer for objects to synchronize", err), retry.Done
+			return rpcApi.HandleSendError(log, "GitOps: failed to send trailer for objects to synchronize", err), retry.Done
 		}
 		log.Info("GitOps: fetched files", logz.NumberOfFilesVisited(filesVisited), logz.NumberOfFilesSent(filesSent))
 		s.syncCount.Inc()
@@ -149,6 +149,7 @@ func (s *server) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSy
 
 func (s *server) sendObjectsToSynchronizeBody(
 	log *zap.Logger,
+	rpcApi modserver.RpcApi,
 	req *rpc.ObjectsToSynchronizeRequest,
 	server rpc.Gitops_GetObjectsToSynchronizeServer,
 	agentId int64,
@@ -158,7 +159,7 @@ func (s *server) sendObjectsToSynchronizeBody(
 	ctx := server.Context()
 	pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
-		s.api.HandleProcessingError(ctx, log, agentId, "GitOps: PathFetcher", err)
+		rpcApi.HandleProcessingError(log, agentId, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
@@ -179,15 +180,15 @@ func (s *server) sendObjectsToSynchronizeBody(
 		err = pf.Visit(ctx, projectInfo.Repository, []byte(commitId), repoPath, recursive, vCounting)
 		if err != nil {
 			if v.sendFailed {
-				return vCounting.FilesVisited, vCounting.FilesSent, s.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
+				return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			}
 			if isUserError(err) {
 				err = errz.NewUserErrorWithCause(err, "manifest file")
-				s.api.HandleProcessingError(ctx, log, agentId, "GitOps: failed to get objects to synchronize", err)
+				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
 				// return the error to the client because it's a user error
 				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
 			}
-			s.api.HandleProcessingError(ctx, log, agentId, "GitOps: failed to get objects to synchronize", err)
+			rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
 			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 		}
 	}
@@ -203,7 +204,8 @@ func (s *server) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToS
 }
 
 // getProjectInfo returns nil for both error and ProjectInfo if there was a retriable error.
-func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentId int64, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
+func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
+	agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	projectInfo, err := s.projectInfoClient.GetProjectInfo(ctx, agentToken, projectId)
 	switch {
 	case err == nil:
@@ -219,7 +221,7 @@ func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, agentId in
 	case gitlab.IsNotFound(err):
 		err = status.Error(codes.NotFound, "project not found")
 	default:
-		s.api.HandleProcessingError(ctx, log, agentId, "GetProjectInfo()", err)
+		rpcApi.HandleProcessingError(log, agentId, "GetProjectInfo()", err)
 		err = nil // no error and no project info
 	}
 	return nil, err

@@ -28,6 +28,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -121,13 +122,13 @@ func TestGlobToGitaly(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
-	s, ctrl, _, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
+	s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
+		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
 		MinTimes(1)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 	require.Error(t, err)
@@ -135,13 +136,13 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
-	s, ctrl, _, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
+	s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
+		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
 		MinTimes(1)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 	require.Error(t, err)
@@ -149,31 +150,26 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T) {
-	s, ctrl, mockApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
+	s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
-	mockApi.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "GetProjectInfo()", matcher.ErrorEq("HTTP status code: 500"))
+	mockRpcApi.EXPECT().
+		HandleProcessingError(gomock.Any(), testhelpers.AgentId, "GetProjectInfo()", matcher.ErrorEq("HTTP status code: 500"))
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
+		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
 		MinTimes(1)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 	require.NoError(t, err) // no error here, it keep trying for any other errors
 }
 
 func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
-	ctx, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
 	s.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objs := objectsYAML(t)
 	projInfo := projectInfo()
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-	server.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-		MinTimes(1)
 	gomock.InOrder(
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
@@ -259,16 +255,11 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
-	ctx, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
 	s.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objs := objectsYAML(t)
 	projInfo := projectInfo()
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-	server.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-		MinTimes(1)
 	gomock.InOrder(
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
@@ -342,13 +333,8 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
-	ctx, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
 	projInfo := projectInfo()
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-	server.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-		MinTimes(1)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
@@ -403,14 +389,9 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 	for _, tc := range pathFetcherErrs {
 		t.Run(tc.errMsg, func(t *testing.T) {
-			ctx, _, s, ctrl, gitalyPool, mockApi := setupServer(t)
+			server, _, s, ctrl, gitalyPool, mockRpcApi := setupServer(t)
 
 			projInfo := projectInfo()
-			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-			server.EXPECT().
-				Context().
-				Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-				MinTimes(1)
 			server.EXPECT().
 				Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
@@ -420,10 +401,9 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 						},
 					},
 				}))
-			mockApi.EXPECT().
-				HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "GitOps: failed to get objects to synchronize",
-					matcher.ErrorEq(tc.errMsg),
-				)
+			mockRpcApi.EXPECT().
+				HandleProcessingError(gomock.Any(), testhelpers.AgentId, "GitOps: failed to get objects to synchronize",
+					matcher.ErrorEq(tc.errMsg))
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 			gomock.InOrder(
@@ -484,26 +464,33 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupServer(t *testing.T) (context.Context, context.CancelFunc, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) {
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
-	ctx, cancel := context.WithCancel(ctx)
-	t.Cleanup(cancel)
-	s, ctrl, mockApi, gitalyPool := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
+func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, context.CancelFunc, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockRpcApi) {
+	correlationId := correlation.SafeRandomID()
+	s, ctrl, mockRpcApi, gitalyPool := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
+	ctx := mock_modserver.IncomingCtx(t, mockRpcApi)
+	ctx = correlation.ContextWithCorrelation(ctx, correlationId)
+	ctx, cancel := context.WithCancel(ctx)
 
-	return ctx, cancel, s, ctrl, gitalyPool, mockApi
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
+	server.EXPECT().
+		Context().
+		Return(ctx).
+		MinTimes(1)
+
+	return server, cancel, s, ctrl, gitalyPool, mockRpcApi
 }
 
-func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*server, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface) {
+func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*server, *gomock.Controller, *mock_modserver.MockRpcApi, *mock_internalgitaly.MockPoolInterface) {
 	ctrl := gomock.NewController(t)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
-	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
+	mockRpcApi := mock_modserver.NewMockRpcApiWithMockPoller(ctrl, 1)
 	agentInfo := testhelpers.AgentInfoObj()
-	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+	mockRpcApi.EXPECT().
+		GetAgentInfo(gomock.Any(), gomock.Any()).
 		Return(agentInfo, nil)
 	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
 	usageTracker.EXPECT().
@@ -516,7 +503,6 @@ func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Reque
 	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
 	s, err := newServerFromConfig(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
-		Api:          mockApi,
 		Config:       config,
 		GitLabClient: mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
 		Registerer:   prometheus.NewPedanticRegistry(),
@@ -524,7 +510,7 @@ func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Reque
 		Gitaly:       gitalyPool,
 	})
 	require.NoError(t, err)
-	return s, ctrl, mockApi, gitalyPool
+	return s, ctrl, mockRpcApi, gitalyPool
 }
 
 func objectsYAML(t *testing.T) []byte {

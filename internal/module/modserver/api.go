@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -34,9 +35,9 @@ type ApplyDefaults func(*kascfg.ConfigurationFile)
 // Config holds configuration for a Module.
 type Config struct {
 	// Log can be used for logging from the module.
-	// It should not be used for logging from gRPC API methods. Use grpctool.LoggerFromContext(ctx) instead.
+	// It should not be used for logging from gRPC Api methods. Use grpctool.LoggerFromContext(ctx) instead.
 	Log          *zap.Logger
-	Api          API
+	Api          Api
 	Config       *kascfg.ConfigurationFile
 	GitLabClient gitlab.ClientInterface
 	// Registerer allows to register metrics.
@@ -51,7 +52,7 @@ type Config struct {
 	// This can be used to add endpoints in Factory.New.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	ApiServer *grpc.Server
-	// RegisterAgentApi allows to register a gRPC API endpoint that kas proxies to agentk.
+	// RegisterAgentApi allows to register a gRPC Api endpoint that kas proxies to agentk.
 	RegisterAgentApi func(*grpc.ServiceDesc)
 	// AgentConn is a gRPC connection that can be used to send requests to an agentk instance.
 	// Agent Id must be specified in the request metadata in RoutingAgentIdMetadataKey field.
@@ -65,11 +66,22 @@ type Config struct {
 	CommitId string
 }
 
-// API provides the API for the module to use.
-type API interface {
-	modshared.API
+// Api provides the API for the module to use.
+type Api interface {
+	modshared.Api
+}
+
+// RpcApi provides the API for the module's gRPC handlers to use.
+type RpcApi interface {
+	errortracking.Tracker
 	// GetAgentInfo encapsulates error checking logic.
-	GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken) (*api.AgentInfo, error)
+	GetAgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error)
+	// HandleProcessingError can be used to handle errors occurring while processing a request.
+	// If err is a (or wraps a) errz.UserError, it might be handled specially.
+	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
+	// HandleSendError can be used to handle error produced by gRPC Send() or SendMsg() method.
+	// It returns an error, compatible with gRPC status package.
+	HandleSendError(log *zap.Logger, msg string, err error) error
 	// PollWithBackoff runs f every duration given by BackoffManager.
 	//
 	// PollWithBackoff should be used by the top-level polling, so that it can be gracefully interrupted
@@ -80,7 +92,7 @@ type API interface {
 	// It returns when:
 	// - stream's context is cancelled or max connection age has been reached. nil is returned in this case.
 	// - f returns Done. error from f is returned in this case.
-	PollWithBackoff(stream grpc.ServerStream, cfg retry.PollConfig, f retry.PollWithBackoffFunc) error
+	PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error
 }
 
 type Factory interface {

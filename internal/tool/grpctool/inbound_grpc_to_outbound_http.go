@@ -31,10 +31,10 @@ type InboundGrpcToOutboundHttpStream interface {
 	grpc.ServerStream
 }
 
-// API is a reduced version on modshared.API.
+// RpcApi is a reduced version on modserver.RpcApi.
 // It's here to avoid the dependency.
-type API interface {
-	HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error)
+type RpcApi interface {
+	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
 	HandleSendError(log *zap.Logger, msg string, err error) error
 }
 
@@ -42,23 +42,21 @@ type HttpDo func(ctx context.Context, header *HttpRequest_Header, body io.Reader
 
 type InboundGrpcToOutboundHttp struct {
 	streamVisitor *StreamVisitor
-	api           API
 	httpDo        HttpDo
 }
 
-func NewInboundGrpcToOutboundHttp(api API, httpDo HttpDo) *InboundGrpcToOutboundHttp {
+func NewInboundGrpcToOutboundHttp(httpDo HttpDo) *InboundGrpcToOutboundHttp {
 	sv, err := NewStreamVisitor(&HttpRequest{})
 	if err != nil {
 		panic(err) // this will never panic as long as the proto file is correct
 	}
 	return &InboundGrpcToOutboundHttp{
 		streamVisitor: sv,
-		api:           api,
 		httpDo:        httpDo,
 	}
 }
 
-func (x *InboundGrpcToOutboundHttp) Pipe(server InboundGrpcToOutboundHttpStream) error {
+func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream) error {
 	ctx := server.Context()
 	log := LoggerFromContext(ctx)
 
@@ -85,7 +83,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(server InboundGrpcToOutboundHttpStream)
 			if err != nil {
 				return err
 			}
-			return x.pipeHttpIntoGrpc(log, server, resp)
+			return x.pipeHttpIntoGrpc(log, rpcApi, server, resp)
 		}
 	})
 
@@ -97,7 +95,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(server InboundGrpcToOutboundHttpStream)
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
-		x.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "gRPC -> HTTP", err)
+		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "gRPC -> HTTP", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err
@@ -125,7 +123,7 @@ func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server
 	)
 }
 
-func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grpc.ServerStream, resp *http.Response) error {
+func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, rpcApi RpcApi, server grpc.ServerStream, resp *http.Response) error {
 	err := func() (retErr error) { // closure to close resp.Body ASAP
 		defer errz.SafeClose(resp.Body, &retErr)
 		err := server.SendMsg(&HttpResponse{
@@ -140,7 +138,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 			},
 		})
 		if err != nil {
-			return x.api.HandleSendError(log, "Failed to send HTTP header", err)
+			return rpcApi.HandleSendError(log, "Failed to send HTTP header", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -159,7 +157,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 					},
 				})
 				if sendErr != nil {
-					return x.api.HandleSendError(log, "Failed to send HTTP data", sendErr)
+					return rpcApi.HandleSendError(log, "Failed to send HTTP data", sendErr)
 				}
 			}
 		}
@@ -175,7 +173,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 		},
 	})
 	if err != nil {
-		return x.api.HandleSendError(log, "Failed to send HTTP trailer", err)
+		return rpcApi.HandleSendError(log, "Failed to send HTTP trailer", err)
 	}
 	return nil
 }

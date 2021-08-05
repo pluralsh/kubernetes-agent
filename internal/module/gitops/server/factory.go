@@ -46,7 +46,6 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 	}
 	gitops := config.Config.Agent.Gitops
 	return &server{
-		api:        config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient:     config.GitLabClient,

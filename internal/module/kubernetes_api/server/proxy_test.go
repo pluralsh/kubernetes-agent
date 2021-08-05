@@ -289,16 +289,12 @@ func TestProxy_RecvHeaderError(t *testing.T) {
 			reqCtx = ctx
 			return mrClient, nil
 		})
-	gomock.InOrder(
-		mrClient.EXPECT().
-			Send(gomock.Any()).
-			DoAndReturn(func(*grpctool.HttpRequest) error {
-				<-reqCtx.Done() // wait for the receiving side to return error
-				return errors.New("expected error 1")
-			}),
-		api.EXPECT().
-			HandleSendError(gomock.Any(), gomock.Any(), matcher.ErrorEq("expected error 1")),
-	)
+	mrClient.EXPECT().
+		Send(gomock.Any()).
+		DoAndReturn(func(*grpctool.HttpRequest) error {
+			<-reqCtx.Done() // wait for the receiving side to return error
+			return errors.New("expected error 1")
+		})
 	gomock.InOrder(
 		mrCall,
 		mrClient.EXPECT().
@@ -333,16 +329,12 @@ func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
 			reqCtx = ctx
 			return mrClient, nil
 		})
-	gomock.InOrder(
-		mrClient.EXPECT().
-			Send(gomock.Any()).
-			DoAndReturn(func(*grpctool.HttpRequest) error {
-				<-reqCtx.Done() // wait for the receiving side to return error
-				return errors.New("expected error 1")
-			}),
-		api.EXPECT().
-			HandleSendError(gomock.Any(), gomock.Any(), matcher.ErrorEq("expected error 1")),
-	)
+	mrClient.EXPECT().
+		Send(gomock.Any()).
+		DoAndReturn(func(*grpctool.HttpRequest) error {
+			<-reqCtx.Done() // wait for the receiving side to return error
+			return errors.New("expected error 1")
+		})
 	gomock.InOrder(
 		mrCall,
 		mrClient.EXPECT().
@@ -371,7 +363,7 @@ func assertToken(t *testing.T, r *http.Request) bool {
 	return assert.Equal(t, jobToken, r.Header.Get("Job-Token"))
 }
 
-func setupProxy(t *testing.T) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
+func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
 	return setupProxyWithHandler(t, "/", defaultGitLabHandler(t))
 }
 
@@ -395,11 +387,11 @@ func defaultGitLabHandler(t *testing.T) func(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
+func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
 	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
 	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
-	mockApi := mock_modserver.NewMockAPI(ctrl)
+	mockApi := mock_modserver.NewMockApi(ctrl)
 	k8sClient := mock_kubernetes_api.NewMockKubernetesApiClient(ctrl)
 	requestCount := mock_usage_metrics.NewMockCounter(ctrl)
 

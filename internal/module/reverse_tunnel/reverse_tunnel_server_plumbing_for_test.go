@@ -26,12 +26,12 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAPI, *mock_reverse_tunnel_tracker.MockRegisterer) {
+func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockRpcApi, *mock_reverse_tunnel_tracker.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	serverApi := mock_modserver.NewMockAPI(ctrl)
+	serverRpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	agentServer := serverConstructAgentServer(ctx, log)
+	agentServer := serverConstructAgentServer(ctx, log, serverRpcApi)
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
@@ -47,7 +47,6 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	}
 	serverConfig := &modserver.Config{
 		Log: log,
-		Api: serverApi,
 		Config: &kascfg.ConfigurationFile{
 			Agent: &kascfg.AgentCF{
 				Listen: &kascfg.ListenAgentCF{
@@ -84,7 +83,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 				serverStartInternalServer(stage, internalServer, internalListener)
 			},
 		)
-	}, kasConn, internalServerConn, serverApi, tunnelRegisterer
+	}, kasConn, internalServerConn, serverRpcApi, tunnelRegisterer
 }
 
 func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
@@ -134,8 +133,11 @@ func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, 
 	})
 }
 
-func serverConstructAgentServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+func serverConstructAgentServer(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi) *grpc.Server {
 	kp, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
+	factory := func(ctx context.Context, method string) modserver.RpcApi {
+		return rpcApi
+	}
 	return grpc.NewServer(
 		grpc.StatsHandler(sh),
 		kp,
@@ -143,11 +145,13 @@ func serverConstructAgentServer(ctx context.Context, log *zap.Logger) *grpc.Serv
 			grpctool.StreamServerAgentMDInterceptor(),
 			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
+			grpctool.StreamServerRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerAgentMDInterceptor(),
 			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
+			grpctool.UnaryServerRpcApiInterceptor(factory),
 		),
 	)
 }

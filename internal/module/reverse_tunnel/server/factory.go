@@ -12,7 +12,6 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	rpc.RegisterReverseTunnelServer(config.AgentServer, &server{
-		api:           config.Api,
 		tunnelHandler: f.TunnelHandler,
 	})
 	return &module{}, nil

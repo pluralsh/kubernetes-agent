@@ -29,6 +29,7 @@ go_library(
         "logger.go",
         "max_conn_age.go",
         "raw_codec.go",
+        "rpc_api.go",
         "server_ctx.go",
         "server_limiting.go",
         "stream_visitor.go",
@@ -40,6 +41,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/module/modserver",
         "//internal/module/modshared",
         "//internal/tool/errz",
         "//internal/tool/grpctool/automata",
