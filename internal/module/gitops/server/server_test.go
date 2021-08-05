@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -121,32 +122,27 @@ func TestGlobToGitaly(t *testing.T) {
 	}
 }
 
-func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
-	s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-	})
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-	server.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
-		MinTimes(1)
-	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-	require.Error(t, err)
-	assert.Equal(t, codes.PermissionDenied, status.Code(err))
-}
-
-func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
-	s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	})
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-	server.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
-		MinTimes(1)
-	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-	require.Error(t, err)
-	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+func TestGetObjectsToSynchronize_GetProjectInfo_Errors(t *testing.T) {
+	tests := map[int]codes.Code{
+		http.StatusForbidden:    codes.PermissionDenied,
+		http.StatusUnauthorized: codes.Unauthenticated,
+		http.StatusNotFound:     codes.NotFound,
+	}
+	for httpStatus, grpcCode := range tests {
+		t.Run(strconv.Itoa(httpStatus), func(t *testing.T) {
+			s, ctrl, mockRpcApi, _ := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(httpStatus)
+			})
+			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
+			server.EXPECT().
+				Context().
+				Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+				MinTimes(1)
+			err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
+			require.Error(t, err)
+			assert.Equal(t, grpcCode, status.Code(err))
+		})
+	}
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T) {
@@ -161,7 +157,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
 		MinTimes(1)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-	require.NoError(t, err) // no error here, it keep trying for any other errors
+	require.NoError(t, err) // no error here, it keeps trying for any other errors
 }
 
 func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
