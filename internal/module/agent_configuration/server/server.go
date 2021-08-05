@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -28,7 +27,6 @@ import (
 
 type server struct {
 	rpc.UnimplementedAgentConfigurationServer
-	api                        modserver.API
 	gitaly                     gitaly.PoolInterface
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
@@ -44,13 +42,13 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	defer s.maybeUnregisterAgent(connectedAgentInfo)
 	ctx := server.Context()
 	log := grpctool.LoggerFromContext(ctx)
-	agentToken := api.AgentTokenFromContext(ctx)
+	rpcApi := grpctool.RpcApiFromContext(ctx)
 	lastProcessedCommitId := req.CommitId
-	return s.api.PollWithBackoff(server, s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
+	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		agentInfo, err := s.api.GetAgentInfo(ctx, log, agentToken)
+		agentInfo, err := rpcApi.GetAgentInfo(ctx, log)
 		if err != nil {
 			return err, retry.Done
 		}
@@ -59,7 +57,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "Config: repository poll failed", err)
+			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
 			return nil, retry.Backoff
 		}
 		if !info.UpdateAvailable {
@@ -69,7 +67,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		log.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, agentInfo.Id, "Config: failed to fetch", err)
+			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: failed to fetch", err)
 			var ue errz.UserError
 			if errors.As(err, &ue) {
 				// return the error to the client because it's a user error
@@ -79,7 +77,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		}
 		err = s.sendConfigResponse(server, agentInfo, config, info.CommitId)
 		if err != nil {
-			return s.api.HandleSendError(log, "Config: failed to send config", err), retry.Done
+			return rpcApi.HandleSendError(log, "Config: failed to send config", err), retry.Done
 		}
 		lastProcessedCommitId = info.CommitId
 		return nil, retry.Continue

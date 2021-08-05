@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
@@ -22,15 +21,12 @@ type httpClient interface {
 
 type server struct {
 	rpc.UnimplementedKubernetesApiServer
-	api  modagent.API
 	pipe *grpctool.InboundGrpcToOutboundHttp
 }
 
-func newServer(api modagent.API, userAgent string, client httpClient, baseUrl *url.URL) *server {
+func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 	return &server{
-		api: api,
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			api,
 			func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				u := *baseUrl
 				u.Path = h.Request.UrlPath
@@ -65,5 +61,6 @@ func newServer(api modagent.API, userAgent string, client httpClient, baseUrl *u
 }
 
 func (m *server) MakeRequest(server rpc.KubernetesApi_MakeRequestServer) error {
-	return m.pipe.Pipe(server)
+	rpcApi := grpctool.RpcApiFromContext(server.Context())
+	return m.pipe.Pipe(rpcApi, server)
 }

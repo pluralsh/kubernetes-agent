@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"google.golang.org/grpc/codes"
@@ -14,18 +13,18 @@ import (
 
 type server struct {
 	rpc.UnimplementedAgentTrackerServer
-	api          modserver.API
 	agentQuerier agent_tracker.Querier
 }
 
 func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAgentsRequest) (*rpc.GetConnectedAgentsResponse, error) {
 	log := grpctool.LoggerFromContext(ctx)
+	rpcApi := grpctool.RpcApiFromContext(ctx)
 	switch v := req.Request.(type) {
 	case *rpc.GetConnectedAgentsRequest_AgentId:
 		var infos agent_tracker.ConnectedAgentInfoCollector
 		err := s.agentQuerier.GetConnectionsByAgentId(ctx, v.AgentId, infos.Collect)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "GetConnectionsByAgentId() failed", err)
+			rpcApi.HandleProcessingError(log, modshared.NoAgentId, "GetConnectionsByAgentId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByAgentId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{
@@ -35,7 +34,7 @@ func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAg
 		var infos agent_tracker.ConnectedAgentInfoCollector
 		err := s.agentQuerier.GetConnectionsByProjectId(ctx, v.ProjectId, infos.Collect)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, log, modshared.NoAgentId, "GetConnectionsByProjectId() failed", err)
+			rpcApi.HandleProcessingError(log, modshared.NoAgentId, "GetConnectionsByProjectId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByProjectId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{

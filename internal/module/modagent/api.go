@@ -62,7 +62,7 @@ type GitLabResponse struct {
 
 // API provides the API for the module to use.
 type API interface {
-	modshared.API
+	modshared.Api
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 	ToggleFeature(feature Feature, enabled bool)
 	SubscribeToFeatureStatus(feature Feature, cb SubscribeCb)

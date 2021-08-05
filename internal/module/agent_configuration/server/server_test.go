@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -122,15 +121,8 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 }
 
 func TestGetConfiguration_HappyPath(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	m, agentInfo, ctrl, gitalyPool, _ := setupServer(t)
+	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
 	configFile := sampleConfig()
-	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
-	resp.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &rpc.ConfigurationResponse{
 			Configuration: &agentcfg.AgentConfiguration{
@@ -166,21 +158,14 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 			Return(configToBytes(t, configFile), nil),
 	)
-	err := m.GetConfiguration(&rpc.ConfigurationRequest{
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
 		AgentMeta: agentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
 
 func TestGetConfiguration_ResumeConnection(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	m, agentInfo, ctrl, gitalyPool, _ := setupServer(t)
-	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
-	resp.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-		MinTimes(1)
+	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
@@ -193,7 +178,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 				CommitId:        revision,
 			}, nil),
 	)
-	err := m.GetConfiguration(&rpc.ConfigurationRequest{
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
 		CommitId:  revision, // same commit id
 		AgentMeta: agentMeta(),
 	}, resp)
@@ -208,14 +193,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 	}
 	for _, gitalyErr := range gitalyErrs {
 		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			m, agentInfo, ctrl, gitalyPool, mockApi := setupServer(t)
-			resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
-			resp.EXPECT().
-				Context().
-				Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
-				MinTimes(1)
+			s, agentInfo, ctrl, gitalyPool, resp, mockRpcApi := setupServer(t)
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 			configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
@@ -235,12 +213,11 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 				pf.EXPECT().
 					FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 					Return(nil, gitalyErr),
-				mockApi.EXPECT().
-					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "Config: failed to fetch",
-						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr)),
-					),
+				mockRpcApi.EXPECT().
+					HandleProcessingError(gomock.Any(), testhelpers.AgentId, "Config: failed to fetch",
+						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr))),
 			)
-			err := m.GetConfiguration(&rpc.ConfigurationRequest{
+			err := s.GetConfiguration(&rpc.ConfigurationRequest{
 				AgentMeta: agentMeta(),
 			}, resp)
 			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = Config: agent configuration file: %v", gitalyErr))
@@ -248,13 +225,12 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 	}
 }
 
-func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) {
+func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockRpcApi) {
 	ctrl := gomock.NewController(t)
-	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
+	mockRpcApi := mock_modserver.NewMockRpcApiWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	s := &server{
-		api:                        mockApi,
 		agentRegisterer:            agentTracker,
 		gitaly:                     gitalyPool,
 		getConfigurationPollConfig: testhelpers.NewPollConfig(10 * time.Minute),
@@ -267,15 +243,20 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 		ProjectId: agentInfo.ProjectId,
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
 	gomock.InOrder(
-		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+		mockRpcApi.EXPECT().
+			GetAgentInfo(gomock.Any(), gomock.Any()).
 			Return(agentInfo, nil),
 		agentTracker.EXPECT().
 			RegisterConnection(gomock.Any(), connMatcher),
 	)
 	agentTracker.EXPECT().
 		UnregisterConnection(gomock.Any(), connMatcher)
-	return s, agentInfo, ctrl, gitalyPool, mockApi
+	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
+	resp.EXPECT().
+		Context().
+		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+		MinTimes(1)
+	return s, agentInfo, ctrl, gitalyPool, resp, mockRpcApi
 }
 
 func configToBytes(t *testing.T, configFile *agentcfg.ConfigurationFile) []byte {

@@ -23,19 +23,25 @@ var (
 )
 
 func TestConnectAllowsValidToken(t *testing.T) {
-	ctrl, mockApi, h, s := setupServer(t)
+	ctrl := gomock.NewController(t)
+	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
+	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	s := &server{
+		tunnelHandler: h,
+	}
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
+	ctx = grpctool.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(ctx).
 		MinTimes(1)
 	gomock.InOrder(
-		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+		mockRpcApi.EXPECT().
+			GetAgentInfo(gomock.Any(), gomock.Any()).
 			Return(agentInfo, nil),
 		h.EXPECT().
 			HandleTunnel(gomock.Any(), agentInfo, connectServer),
@@ -45,31 +51,26 @@ func TestConnectAllowsValidToken(t *testing.T) {
 }
 
 func TestConnectRejectsInvalidToken(t *testing.T) {
-	ctrl, mockApi, _, s := setupServer(t)
+	ctrl := gomock.NewController(t)
+	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
+	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	s := &server{
+		tunnelHandler: h,
+	}
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
+	ctx = grpctool.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(ctx).
 		MinTimes(1)
 	gomock.InOrder(
-		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockRpcApi.EXPECT().
+			GetAgentInfo(gomock.Any(), gomock.Any()).
 			Return(nil, errors.New("expected err")),
 	)
 	err := s.Connect(connectServer)
 	assert.EqualError(t, err, "expected err")
-}
-
-func setupServer(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mock_reverse_tunnel.MockTunnelHandler, *server) {
-	ctrl := gomock.NewController(t)
-	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
-	mockApi := mock_modserver.NewMockAPI(ctrl)
-	s := &server{
-		api:           mockApi,
-		tunnelHandler: h,
-	}
-	return ctrl, mockApi, h, s
 }

@@ -67,7 +67,7 @@ func TestMaxConnectionAgeAndMaxPollDuration(t *testing.T) {
 	const maxAge = 3 * time.Second
 	srv := &test.GrpcTestingServer{
 		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
-			<-MaxConnectionAgeContextFromStream(server).Done()
+			<-MaxConnectionAgeContextFromStreamContext(server.Context()).Done()
 			return nil
 		},
 	}
@@ -97,7 +97,7 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedSequential(t *testing.T) {
 	srv := &test.GrpcTestingServer{
 		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
 			select {
-			case <-MaxConnectionAgeContextFromStream(server).Done():
+			case <-MaxConnectionAgeContextFromStreamContext(server.Context()).Done():
 			case <-time.After(time.Duration(rand.Int63nRange(0, int64(maxAge)))):
 			}
 			return nil
@@ -128,7 +128,7 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedParallel(t *testing.T) {
 	srv := &test.GrpcTestingServer{
 		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
 			select {
-			case <-MaxConnectionAgeContextFromStream(server).Done():
+			case <-MaxConnectionAgeContextFromStreamContext(server.Context()).Done():
 			case <-time.After(time.Duration(rand.Int63nRange(0, int64(maxAge)))):
 			}
 			return nil

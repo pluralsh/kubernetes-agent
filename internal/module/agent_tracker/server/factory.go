@@ -12,7 +12,6 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	rpc.RegisterAgentTrackerServer(config.ApiServer, &server{
-		api:          config.Api,
 		agentQuerier: f.AgentQuerier,
 	})
 	return &module{}, nil

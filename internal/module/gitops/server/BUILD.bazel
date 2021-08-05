@@ -68,6 +68,7 @@ go_custom_test(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_labkit//correlation",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/runtime",

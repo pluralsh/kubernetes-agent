@@ -67,20 +67,6 @@ func (mr *MockAPIMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockAPI)(nil).HandleProcessingError), arg0, arg1, arg2, arg3, arg4)
 }
 
-// HandleSendError mocks base method.
-func (m *MockAPI) HandleSendError(arg0 *zap.Logger, arg1 string, arg2 error) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleSendError", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// HandleSendError indicates an expected call of HandleSendError.
-func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockAPI)(nil).HandleSendError), arg0, arg1, arg2)
-}
-
 // MakeGitLabRequest mocks base method.
 func (m *MockAPI) MakeGitLabRequest(arg0 context.Context, arg1 string, arg2 ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 	m.ctrl.T.Helper()

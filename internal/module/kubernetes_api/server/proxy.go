@@ -66,7 +66,7 @@ var (
 
 type kubernetesApiProxy struct {
 	log                 *zap.Logger
-	api                 modserver.API
+	api                 modserver.Api
 	kubernetesApiClient rpc.KubernetesApiClient
 	gitLabClient        gitlab.ClientInterface
 	streamVisitor       *grpctool.StreamVisitor
@@ -359,7 +359,9 @@ func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Value
 }
 
 func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err error) errFunc {
-	_ = p.api.HandleSendError(log, msg, err)
+	if !grpctool.RequestCanceled(err) {
+		log.Debug(msg, logz.Error(err))
+	}
 	return writeError(msg, err)
 }
 

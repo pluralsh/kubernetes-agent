@@ -57,8 +57,8 @@ func maxConnectionAge2GrpcKeepalive(auxCtx context.Context, maxConnectionAge tim
 	return kp, sh
 }
 
-func MaxConnectionAgeContextFromStream(stream grpc.ServerStream) context.Context {
-	return stream.Context().Value(maxConnAgeCtxKey).(context.Context)
+func MaxConnectionAgeContextFromStreamContext(streamCtx context.Context) context.Context {
+	return streamCtx.Value(maxConnAgeCtxKey).(context.Context)
 }
 
 func AddMaxConnectionAgeContext(ctx, ageCtx context.Context) context.Context {

@@ -38,6 +38,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/filez"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -124,14 +125,17 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
+	// RPC API factory
+	rpcApiFactory := a.constructRpcApiFactory(errTracker, gitLabClient)
+
 	// Server for handling agentk requests
-	agentServer, err := a.constructAgentServer(ctx, tracer, redisClient, ssh)
+	agentServer, err := a.constructAgentServer(ctx, tracer, redisClient, ssh, rpcApiFactory)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiServer, err := a.constructApiServer(ctx, tracer, ssh)
+	apiServer, err := a.constructApiServer(ctx, tracer, ssh, rpcApiFactory)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
@@ -207,12 +211,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Construct modules
-	serverApi := newAPI(apiConfig{
-		GitLabClient:           gitLabClient,
-		ErrorTracker:           errTracker,
-		AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
-		AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-	})
+	serverApi := &serverApi{
+		ErrorTracker: errTracker,
+	}
 	poolWrapper := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
 	}
@@ -274,6 +275,19 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			a.startInternalServer(stage, internalServer, internalListener)
 		},
 	)
+}
+
+func (a *ConfiguredApp) constructRpcApiFactory(errTracker errortracking.Tracker, gitLabClient gitlab.ClientInterface) grpctool.RpcApiFactory {
+	aCfg := a.Configuration.Agent
+	agentInfoCache := cache.NewWithError(aCfg.InfoCacheTtl.AsDuration(), aCfg.InfoCacheErrorTtl.AsDuration())
+	return func(ctx context.Context, method string) modserver.RpcApi {
+		return &serverRpcApi{
+			StreamCtx:      ctx,
+			ErrorTracker:   errTracker,
+			GitLabClient:   gitLabClient,
+			AgentInfoCache: agentInfoCache,
+		}
+	}
 }
 
 func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar) (kasRouter, error) {
@@ -399,7 +413,8 @@ func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *
 	})
 }
 
-func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentracing.Tracer, redisClient redis.UniversalClient, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentracing.Tracer,
+	redisClient redis.UniversalClient, ssh stats.Handler, factory grpctool.RpcApiFactory) (*grpc.Server, error) {
 	listenCfg := a.Configuration.Agent.Listen
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -408,8 +423,9 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		grpccorrelation.StreamServerCorrelationInterceptor( // 3. add correlation id
 			grpccorrelation.WithoutPropagation(),
 			grpccorrelation.WithReversePropagation()),
-		grpctool.StreamServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
-		grpc_validator.StreamServerInterceptor(),
+		grpctool.StreamServerLoggerInterceptor(a.Log),   // 4. inject logger with correlation id
+		grpc_validator.StreamServerInterceptor(),        // 5. validate
+		grpctool.StreamServerRpcApiInterceptor(factory), // 6. inject RPC API
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
@@ -418,8 +434,9 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		grpccorrelation.UnaryServerCorrelationInterceptor( // 3. add correlation id
 			grpccorrelation.WithoutPropagation(),
 			grpccorrelation.WithReversePropagation()),
-		grpctool.UnaryServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
-		grpc_validator.UnaryServerInterceptor(),
+		grpctool.UnaryServerLoggerInterceptor(a.Log),   // 4. inject logger with correlation id
+		grpc_validator.UnaryServerInterceptor(),        // 5. validate
+		grpctool.UnaryServerRpcApiInterceptor(factory), // 6. inject RPC API
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 	}
 
@@ -455,7 +472,8 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler,
+	factory grpctool.RpcApiFactory) (*grpc.Server, error) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return grpc.NewServer(), nil
@@ -474,7 +492,8 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 		grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
 		grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.StreamServerInterceptor(),
+		grpc_validator.StreamServerInterceptor(),             // 5. validate
+		grpctool.StreamServerRpcApiInterceptor(factory),      // 6. inject RPC API
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
@@ -482,7 +501,8 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 		grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
 		grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.UnaryServerInterceptor(),
+		grpc_validator.UnaryServerInterceptor(),             // 5. validate
+		grpctool.UnaryServerRpcApiInterceptor(factory),      // 6. inject RPC API
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())

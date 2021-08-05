@@ -29,13 +29,13 @@ const (
 
 func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	ctx := mock_modserver.IncomingCtx(t, mockRpcApi)
 	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
-	ctx := mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)
 	server.EXPECT().
 		Context().
 		Return(ctx).
 		MinTimes(1)
-	mockApi := mock_modserver.NewMockAPI(ctrl)
 	sendHeader := &grpctool.HttpRequest_Header{
 		Request: &prototool.HttpRequest{
 			Method: "BOOM",
@@ -111,7 +111,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			},
 		},
 	)...)
-	p := grpctool.NewInboundGrpcToOutboundHttp(mockApi, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
+	p := grpctool.NewInboundGrpcToOutboundHttp(func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 		assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
 		data, err := io.ReadAll(body)
 		if !assert.NoError(t, err) {
@@ -127,7 +127,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			Body: io.NopCloser(strings.NewReader(responseBodyData)),
 		}, nil
 	})
-	err := p.Pipe(server)
+	err := p.Pipe(mockRpcApi, server)
 	require.NoError(t, err)
 }
 

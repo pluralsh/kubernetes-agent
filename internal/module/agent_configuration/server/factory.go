@@ -25,7 +25,6 @@ type Factory struct {
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	agent := config.Config.Agent
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, &server{
-		api:                      config.Api,
 		gitaly:                   config.Gitaly,
 		agentRegisterer:          f.AgentRegisterer,
 		maxConfigurationFileSize: int64(agent.Configuration.MaxConfigurationFileSize),
