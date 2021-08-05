@@ -5,16 +5,16 @@ import (
 	"net"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
 
 type module struct {
-	tracker        errortracking.Tracker
 	log            *zap.Logger
+	api            modshared.Api
 	cfg            *kascfg.ObservabilityCF
 	gatherer       prometheus.Gatherer
 	registerer     prometheus.Registerer
@@ -38,8 +38,8 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 	)
 
 	metricSrv := observability.MetricServer{
-		Tracker:               m.tracker,
 		Log:                   m.log,
+		Api:                   m.api,
 		Name:                  m.serverName,
 		Listener:              lis,
 		PrometheusUrlPath:     m.cfg.Prometheus.UrlPath,

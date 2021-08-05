@@ -11,7 +11,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_errtracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -29,9 +30,9 @@ func TestMetricServer(t *testing.T) {
 	readinessProbe := func(ctx context.Context) error {
 		return innerReadinessProbe(ctx)
 	}
-	tracker := mock_errtracker.NewMockTracker(ctrl)
-	metricServer := &MetricServer{
-		Tracker:               tracker,
+	mockApi := mock_modserver.NewMockApi(ctrl)
+	metricSrv := MetricServer{
+		Api:                   mockApi,
 		Log:                   logger,
 		Name:                  "test-server",
 		Listener:              listener,
@@ -43,7 +44,7 @@ func TestMetricServer(t *testing.T) {
 		LivenessProbe:         livenessProbe,
 		ReadinessProbe:        readinessProbe,
 	}
-	handler := metricServer.constructHandler()
+	handler := metricSrv.constructHandler()
 
 	httpGet := func(t *testing.T, path string) *httptest.ResponseRecorder {
 		request, err := http.NewRequest("GET", path, nil) // nolint:noctx
@@ -72,7 +73,8 @@ func TestMetricServer(t *testing.T) {
 		innerLivenessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: %w", expectedErr), gomock.Any())
+		mockApi.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "LivenessProbe failed", expectedErr)
 
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
@@ -92,7 +94,8 @@ func TestMetricServer(t *testing.T) {
 		innerReadinessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: %w", expectedErr), gomock.Any())
+		mockApi.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "ReadinessProbe failed", expectedErr)
 
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()

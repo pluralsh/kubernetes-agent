@@ -116,11 +116,11 @@ func flowAlias2Flow(val *flowAlias) *flow.Flow {
 	return (*flow.Flow)(val)
 }
 
-func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
+func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockApi) {
 	ctrl := gomock.NewController(t)
 	flwClient := NewMockObserver_GetFlowsClient(ctrl)
 	obsClient := NewMockObserverClient(ctrl)
-	mAPI := mock_modagent.NewMockAPI(ctrl)
+	mAPI := mock_modagent.NewMockApi(ctrl)
 	worker := &worker{
 		log:            zaptest.NewLogger(t, zaptest.Level(zapcore.DebugLevel)),
 		api:            mAPI,

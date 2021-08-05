@@ -14,7 +14,7 @@ var (
 )
 
 type module struct {
-	api modagent.API
+	api modagent.Api
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {

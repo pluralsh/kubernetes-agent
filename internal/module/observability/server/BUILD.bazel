@@ -11,12 +11,12 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modserver",
+        "//internal/module/modshared",
         "//internal/module/observability",
         "//internal/tool/logz",
         "//internal/tool/prototool",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@org_uber_go_zap//:zap",
     ],
 )

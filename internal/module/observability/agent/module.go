@@ -8,18 +8,18 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
 
 type module struct {
 	log      *zap.Logger
 	logLevel zap.AtomicLevel
-	tracker  errortracking.Tracker
+	api      modshared.Api
 }
 
 const (
@@ -59,8 +59,8 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				)
 
 				metricSrv := observability.MetricServer{
-					Tracker:               m.tracker,
 					Log:                   m.log,
+					Api:                   m.api,
 					Name:                  m.Name(),
 					Listener:              lis,
 					PrometheusUrlPath:     prometheusUrlPath,

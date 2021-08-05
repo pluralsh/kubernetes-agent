@@ -275,7 +275,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	}()
 	defer cancel()
 
-	agentApi := mock_modagent.NewMockAPI(gomock.NewController(t))
+	agentApi := mock_modagent.NewMockApi(gomock.NewController(t))
 	var featureCb modagent.SubscribeCb
 	agentApi.EXPECT().
 		SubscribeToFeatureStatus(modagent.Tunnel, gomock.Any()).

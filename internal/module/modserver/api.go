@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -73,7 +72,6 @@ type Api interface {
 
 // RpcApi provides the API for the module's gRPC handlers to use.
 type RpcApi interface {
-	errortracking.Tracker
 	// GetAgentInfo encapsulates error checking logic.
 	GetAgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error)
 	// HandleProcessingError can be used to handle errors occurring while processing a request.

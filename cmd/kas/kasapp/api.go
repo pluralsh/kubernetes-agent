@@ -18,10 +18,6 @@ type serverApi struct {
 	ErrorTracker errortracking.Tracker
 }
 
-func (a *serverApi) Capture(err error, opts ...errortracking.CaptureOption) {
-	a.ErrorTracker.Capture(err, opts...)
-}
-
 func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	handleProcessingError(ctx, a.ErrorTracker, log, agentId, msg, err)
 }
