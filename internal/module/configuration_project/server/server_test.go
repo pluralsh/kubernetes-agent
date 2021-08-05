@@ -83,6 +83,7 @@ func TestAsClient(t *testing.T) {
 		t.SkipNow()
 	}
 	conn := constructKasConnection(t, kasAddress, kasSecretFile)
+	defer conn.Close()
 	gitLabC := constructGitLabClient(t, gitLabAddress, kasSecretFile)
 	agentToken, err := os.ReadFile(agentTokenFile)
 	require.NoError(t, err)
