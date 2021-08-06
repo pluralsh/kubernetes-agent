@@ -145,13 +145,13 @@ func serverConstructAgentServer(ctx context.Context, log *zap.Logger, rpcApi mod
 			grpctool.StreamServerAgentMDInterceptor(),
 			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
-			grpctool.StreamServerRpcApiInterceptor(factory),
+			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerAgentMDInterceptor(),
 			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
-			grpctool.UnaryServerRpcApiInterceptor(factory),
+			modserver.UnaryRpcApiInterceptor(factory),
 		),
 	)
 }

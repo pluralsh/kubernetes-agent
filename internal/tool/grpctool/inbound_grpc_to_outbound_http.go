@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
@@ -31,7 +30,7 @@ type InboundGrpcToOutboundHttpStream interface {
 	grpc.ServerStream
 }
 
-// RpcApi is a reduced version on modserver.RpcApi.
+// RpcApi is a reduced version on modshared.RpcApi.
 // It's here to avoid the dependency.
 type RpcApi interface {
 	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
@@ -56,7 +55,7 @@ func NewInboundGrpcToOutboundHttp(httpDo HttpDo) *InboundGrpcToOutboundHttp {
 	}
 }
 
-func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream) error {
+func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream, agentId int64) error {
 	ctx := server.Context()
 	log := LoggerFromContext(ctx)
 
@@ -95,7 +94,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
-		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "gRPC -> HTTP", err)
+		rpcApi.HandleProcessingError(log, agentId, "gRPC -> HTTP", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err

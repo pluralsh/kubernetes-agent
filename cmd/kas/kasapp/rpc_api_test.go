@@ -57,9 +57,9 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 			log, errTracker, rpcApi := setupRpcApi(t, tc.httpStatus)
 			if tc.captureErr != "" {
 				errTracker.EXPECT().
-					Capture(matcher.ErrorEq("GetAgentInfo(): "+tc.captureErr), gomock.Any())
+					Capture(matcher.ErrorEq("AgentInfo(): "+tc.captureErr), gomock.Any())
 			}
-			info, err := rpcApi.GetAgentInfo(rpcApi.StreamCtx, log)
+			info, err := rpcApi.AgentInfo(rpcApi.StreamCtx, log)
 			assert.Equal(t, tc.code, status.Code(err))
 			assert.Nil(t, info)
 		})
@@ -101,7 +101,9 @@ func setupRpcApi(t *testing.T, statusCode int) (*zap.Logger, *mock_errtracker.Mo
 		Token: testhelpers.AgentkToken,
 	})
 	rpcApi := &serverRpcApi{
-		StreamCtx:      ctx,
+		RpcApiStub: modshared.RpcApiStub{
+			StreamCtx: ctx,
+		},
 		GitLabClient:   gitLabClient,
 		ErrorTracker:   errTracker,
 		AgentInfoCache: cache.NewWithError(0, 0), // no cache!

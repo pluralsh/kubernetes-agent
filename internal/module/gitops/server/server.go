@@ -49,10 +49,10 @@ type server struct {
 
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
 	ctx := server.Context()
-	agentToken := api.AgentTokenFromContext(ctx)
-	rpcApi := grpctool.RpcApiFromContext(server.Context())
+	rpcApi := modserver.RpcApiFromContext(server.Context())
+	agentToken := rpcApi.AgentToken()
 	log := grpctool.LoggerFromContext(ctx)
-	agentInfo, err := rpcApi.GetAgentInfo(ctx, log)
+	agentInfo, err := rpcApi.AgentInfo(ctx, log)
 	if err != nil {
 		return err // no wrap
 	}

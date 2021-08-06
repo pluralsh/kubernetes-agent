@@ -19,7 +19,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server"
@@ -31,6 +30,7 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
@@ -141,7 +141,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiServer, err := a.constructPrivateApiServer(ctx, tracer, ssh)
+	privateApiServer, err := a.constructPrivateApiServer(ctx, tracer, ssh, rpcApiFactory)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -166,7 +166,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(ctx, tracer)
+	internalServer := a.constructInternalServer(ctx, tracer, rpcApiFactory)
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
@@ -277,12 +277,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(errTracker errortracking.Tracker, gitLabClient gitlab.ClientInterface) grpctool.RpcApiFactory {
+func (a *ConfiguredApp) constructRpcApiFactory(errTracker errortracking.Tracker, gitLabClient gitlab.ClientInterface) modserver.RpcApiFactory {
 	aCfg := a.Configuration.Agent
 	agentInfoCache := cache.NewWithError(aCfg.InfoCacheTtl.AsDuration(), aCfg.InfoCacheErrorTtl.AsDuration())
 	return func(ctx context.Context, method string) modserver.RpcApi {
 		return &serverRpcApi{
-			StreamCtx:      ctx,
+			RpcApiStub: modshared.RpcApiStub{
+				StreamCtx: ctx,
+			},
 			ErrorTracker:   errTracker,
 			GitLabClient:   gitLabClient,
 			AgentInfoCache: agentInfoCache,
@@ -414,7 +416,7 @@ func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *
 }
 
 func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentracing.Tracer,
-	redisClient redis.UniversalClient, ssh stats.Handler, factory grpctool.RpcApiFactory) (*grpc.Server, error) {
+	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.RpcApiFactory) (*grpc.Server, error) {
 	listenCfg := a.Configuration.Agent.Listen
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -423,10 +425,10 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		grpccorrelation.StreamServerCorrelationInterceptor( // 3. add correlation id
 			grpccorrelation.WithoutPropagation(),
 			grpccorrelation.WithReversePropagation()),
-		grpctool.StreamServerLoggerInterceptor(a.Log),   // 4. inject logger with correlation id
-		grpc_validator.StreamServerInterceptor(),        // 5. validate
-		grpctool.StreamServerRpcApiInterceptor(factory), // 6. inject RPC API
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.StreamServerLoggerInterceptor(a.Log),                                 // 4. inject logger with correlation id
+		modserver.StreamRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.StreamServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,   // 1. measure all invocations
@@ -434,10 +436,10 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		grpccorrelation.UnaryServerCorrelationInterceptor( // 3. add correlation id
 			grpccorrelation.WithoutPropagation(),
 			grpccorrelation.WithReversePropagation()),
-		grpctool.UnaryServerLoggerInterceptor(a.Log),   // 4. inject logger with correlation id
-		grpc_validator.UnaryServerInterceptor(),        // 5. validate
-		grpctool.UnaryServerRpcApiInterceptor(factory), // 6. inject RPC API
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.UnaryServerLoggerInterceptor(a.Log),                                 // 4. inject logger with correlation id
+		modserver.UnaryRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.UnaryServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 
 	if redisClient != nil {
@@ -446,7 +448,7 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 			redisClient,
 			a.Configuration.Redis.KeyPrefix+":agent_limit",
 			uint64(listenCfg.ConnectionsPerTokenPerMinute),
-			func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
+			func(ctx context.Context) string { return string(modserver.RpcApiFromContext(ctx).AgentToken()) },
 		)
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
@@ -473,7 +475,7 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 }
 
 func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler,
-	factory grpctool.RpcApiFactory) (*grpc.Server, error) {
+	factory modserver.RpcApiFactory) (*grpc.Server, error) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return grpc.NewServer(), nil
@@ -488,22 +490,22 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
-		grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.StreamServerInterceptor(),             // 5. validate
-		grpctool.StreamServerRpcApiInterceptor(factory),      // 6. inject RPC API
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.StreamServerLoggerInterceptor(a.Log),                                 // 3. inject logger with correlation id
+		jwtAuther.StreamServerInterceptor,                                             // 4. auth and maybe log
+		modserver.StreamRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.StreamServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
-		grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.UnaryServerInterceptor(),             // 5. validate
-		grpctool.UnaryServerRpcApiInterceptor(factory),      // 6. inject RPC API
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.UnaryServerLoggerInterceptor(a.Log),                                 // 3. inject logger with correlation id
+		jwtAuther.UnaryServerInterceptor,                                             // 4. auth and maybe log
+		modserver.UnaryRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.UnaryServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
@@ -526,7 +528,8 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler,
+	factory modserver.RpcApiFactory) (*grpc.Server, error) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return grpc.NewServer(), nil
@@ -541,20 +544,22 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
-		grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.StreamServerInterceptor(),
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.StreamServerLoggerInterceptor(a.Log),                                 // 3. inject logger with correlation id
+		jwtAuther.StreamServerInterceptor,                                             // 4. auth and maybe log
+		modserver.StreamRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.StreamServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
-		grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
-		grpc_validator.UnaryServerInterceptor(),
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.UnaryServerLoggerInterceptor(a.Log),                                 // 3. inject logger with correlation id
+		jwtAuther.UnaryServerInterceptor,                                             // 4. auth and maybe log
+		modserver.UnaryRpcApiInterceptor(factory),                                    // 5. inject RPC API
+		grpc_validator.UnaryServerInterceptor(),                                      // x. wrap with validator
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
@@ -577,19 +582,22 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructInternalServer(ctx context.Context, tracer opentracing.Tracer) *grpc.Server {
+func (a *ConfiguredApp) constructInternalServer(auxCtx context.Context, tracer opentracing.Tracer,
+	factory modserver.RpcApiFactory) *grpc.Server {
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(ctx, 0)),
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(auxCtx, 0)),
 		grpc.ChainStreamInterceptor(
-			grpccorrelation.StreamServerCorrelationInterceptor(), // 1. add correlation id
-			grpctool.StreamServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
-			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 1. add correlation id
+			grpctool.StreamServerLoggerInterceptor(a.Log),                                 // 2. inject logger with correlation id
+			modserver.StreamRpcApiInterceptor(factory),                                    // 3. inject RPC API
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 		),
 		grpc.ChainUnaryInterceptor(
-			grpccorrelation.UnaryServerCorrelationInterceptor(), // 1. add correlation id
-			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
-			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 1. add correlation id
+			grpctool.UnaryServerLoggerInterceptor(a.Log),                                 // 2. inject logger with correlation id
+			modserver.UnaryRpcApiInterceptor(factory),                                    // 3. inject RPC API
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
 		),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)

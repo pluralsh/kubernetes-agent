@@ -244,7 +244,7 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
 	gomock.InOrder(
 		mockRpcApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any()).
+			AgentInfo(gomock.Any(), gomock.Any()).
 			Return(agentInfo, nil),
 		agentTracker.EXPECT().
 			RegisterConnection(gomock.Any(), connMatcher),

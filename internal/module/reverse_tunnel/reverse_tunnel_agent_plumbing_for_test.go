@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
@@ -59,9 +58,8 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 }
 
 func agentConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
-	_, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	return grpc.NewServer(
-		grpc.StatsHandler(sh),
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(ctx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
