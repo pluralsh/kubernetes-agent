@@ -68,6 +68,11 @@ type Api interface {
 	SubscribeToFeatureStatus(feature Feature, cb SubscribeCb)
 }
 
+// RpcApi provides the API for the module's gRPC handlers to use.
+type RpcApi interface {
+	modshared.RpcApi
+}
+
 type Factory interface {
 	// New creates a new instance of a Module.
 	New(*Config) (Module, error)

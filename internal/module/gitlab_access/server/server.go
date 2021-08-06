@@ -8,6 +8,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
@@ -28,6 +30,7 @@ func newServer(gitLabClient gitlab.ClientInterface) *server {
 				return gapi.MakeModuleRequest(
 					ctx,
 					gitLabClient,
+					modserver.RpcApiFromContext(ctx).AgentToken(),
 					extra.ModuleName,
 					header.Request.Method,
 					header.Request.UrlPath,
@@ -41,6 +44,6 @@ func newServer(gitLabClient gitlab.ClientInterface) *server {
 }
 
 func (s *server) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
-	rpcApi := grpctool.RpcApiFromContext(server.Context())
-	return s.pipe.Pipe(rpcApi, server)
+	rpcApi := modserver.RpcApiFromContext(server.Context())
+	return s.pipe.Pipe(rpcApi, server, modshared.NoAgentId)
 }

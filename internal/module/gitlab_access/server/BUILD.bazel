@@ -16,6 +16,7 @@ go_library(
         "//internal/module/gitlab_access",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/modserver",
+        "//internal/module/modshared",
         "//internal/tool/grpctool",
     ],
 )

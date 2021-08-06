@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -42,13 +43,13 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	defer s.maybeUnregisterAgent(connectedAgentInfo)
 	ctx := server.Context()
 	log := grpctool.LoggerFromContext(ctx)
-	rpcApi := grpctool.RpcApiFromContext(ctx)
+	rpcApi := modserver.RpcApiFromContext(ctx)
 	lastProcessedCommitId := req.CommitId
 	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		agentInfo, err := rpcApi.GetAgentInfo(ctx, log)
+		agentInfo, err := rpcApi.AgentInfo(ctx, log)
 		if err != nil {
 			return err, retry.Done
 		}

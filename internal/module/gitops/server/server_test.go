@@ -486,7 +486,7 @@ func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Reque
 	mockRpcApi := mock_modserver.NewMockRpcApiWithMockPoller(ctrl, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	mockRpcApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any()).
+		AgentInfo(gomock.Any(), gomock.Any()).
 		Return(agentInfo, nil)
 	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
 	usageTracker.EXPECT().

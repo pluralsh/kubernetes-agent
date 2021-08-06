@@ -11,12 +11,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -29,8 +31,8 @@ const (
 
 func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
-	ctx := mock_modserver.IncomingCtx(t, mockRpcApi)
+	mockRpcApi := mock_modshared.NewMockRpcApi(ctrl)
+	ctx := grpctool.InjectLogger(context.Background(), zaptest.NewLogger(t))
 	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
 	server.EXPECT().
 		Context().
@@ -127,7 +129,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			Body: io.NopCloser(strings.NewReader(responseBodyData)),
 		}, nil
 	})
-	err := p.Pipe(mockRpcApi, server)
+	err := p.Pipe(mockRpcApi, server, modshared.NoAgentId)
 	require.NoError(t, err)
 }
 

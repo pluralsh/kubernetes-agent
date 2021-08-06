@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -24,15 +23,18 @@ var (
 )
 
 type serverRpcApi struct {
-	StreamCtx      context.Context
+	modshared.RpcApiStub
 	ErrorTracker   errortracking.Tracker
 	GitLabClient   gitlab.ClientInterface
 	AgentInfoCache *cache.CacheWithErr
 }
 
-func (a *serverRpcApi) GetAgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error) {
-	agentToken := api.AgentMDFromContext(a.StreamCtx).Token
-	agentInfo, err := a.getAgentInfoCached(ctx, agentToken)
+func (a *serverRpcApi) AgentToken() api.AgentToken {
+	return api.AgentTokenFromContext(a.StreamCtx)
+}
+
+func (a *serverRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error) {
+	agentInfo, err := a.getAgentInfoCached(ctx)
 	switch {
 	case err == nil:
 		return agentInfo, nil
@@ -47,7 +49,7 @@ func (a *serverRpcApi) GetAgentInfo(ctx context.Context, log *zap.Logger) (*api.
 	case gitlab.IsNotFound(err):
 		err = status.Error(codes.NotFound, "agent not found")
 	default:
-		logAndCapture(ctx, a.ErrorTracker, log, modshared.NoAgentId, "GetAgentInfo()", err)
+		logAndCapture(ctx, a.ErrorTracker, log, modshared.NoAgentId, "AgentInfo()", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return nil, err
@@ -66,17 +68,8 @@ func (a *serverRpcApi) HandleSendError(log *zap.Logger, msg string, err error) e
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
-func (a *serverRpcApi) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
-	// this context must only be used here, not inside of f() - connection should be closed only when idle.
-	ageCtx := grpctool.MaxConnectionAgeContextFromStreamContext(a.StreamCtx)
-	err := retry.PollWithBackoff(ageCtx, cfg, f)
-	if errors.Is(err, retry.ErrWaitTimeout) {
-		return nil // all good, ctx is done
-	}
-	return err
-}
-
-func (a *serverRpcApi) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
+func (a *serverRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
+	agentToken := a.AgentToken()
 	agentInfo, err := a.AgentInfoCache.GetItem(ctx, agentToken, func() (interface{}, error) {
 		return gapi.GetAgentInfo(ctx, a.GitLabClient, agentToken)
 	})

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
@@ -33,7 +34,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
-	ctx = grpctool.InjectRpcApi(ctx, mockRpcApi)
+	ctx = modserver.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -41,7 +42,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 		MinTimes(1)
 	gomock.InOrder(
 		mockRpcApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any()).
+			AgentInfo(gomock.Any(), gomock.Any()).
 			Return(agentInfo, nil),
 		h.EXPECT().
 			HandleTunnel(gomock.Any(), agentInfo, connectServer),
@@ -60,7 +61,7 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
-	ctx = grpctool.InjectRpcApi(ctx, mockRpcApi)
+	ctx = modserver.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -68,7 +69,7 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 		MinTimes(1)
 	gomock.InOrder(
 		mockRpcApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any()).
+			AgentInfo(gomock.Any(), gomock.Any()).
 			Return(nil, errors.New("expected err")),
 	)
 	err := s.Connect(connectServer)

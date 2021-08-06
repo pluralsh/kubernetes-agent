@@ -287,7 +287,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	agentInfo := testhelpers.AgentInfoObj()
 
 	serverRpcApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any()).
+		AgentInfo(gomock.Any(), gomock.Any()).
 		Return(agentInfo, nil).
 		MinTimes(1)
 

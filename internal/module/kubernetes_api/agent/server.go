@@ -8,6 +8,8 @@ import (
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
@@ -61,6 +63,6 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 }
 
 func (m *server) MakeRequest(server rpc.KubernetesApi_MakeRequestServer) error {
-	rpcApi := grpctool.RpcApiFromContext(server.Context())
-	return m.pipe.Pipe(rpcApi, server)
+	rpcApi := modagent.RpcApiFromContext(server.Context())
+	return m.pipe.Pipe(rpcApi, server, modshared.NoAgentId)
 }

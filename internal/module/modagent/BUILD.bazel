@@ -2,12 +2,16 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "modagent",
-    srcs = ["api.go"],
+    srcs = [
+        "api.go",
+        "rpc_api.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modshared",
         "//pkg/agentcfg",
+        "@com_github_grpc_ecosystem_go_grpc_middleware//:go-grpc-middleware",
         "@io_k8s_kubectl//pkg/cmd/util",
         "@org_golang_google_grpc//:grpc",
         "@org_uber_go_zap//:zap",

@@ -11,10 +11,13 @@ go_library(
     srcs = [
         "api.go",
         "modshared.pb.go",
+        "rpc_api_stub.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/tool/grpctool",
+        "//internal/tool/retry",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
         "@org_uber_go_zap//:zap",

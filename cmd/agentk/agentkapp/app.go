@@ -87,7 +87,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	internalListener := grpctool.NewDialListener()
 
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer()
+	internalServer := a.constructInternalServer(ctx)
 
 	// Construct connection to internal gRPC server
 	internalServerConn, err := a.constructInternalServerConn(ctx, internalListener.DialContext)
@@ -265,19 +265,29 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	return conn, nil
 }
 
-func (a *App) constructInternalServer() *grpc.Server {
+func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
+	factory := func(ctx context.Context, method string) modagent.RpcApi {
+		return &agentRpcApi{
+			RpcApiStub: modshared.RpcApiStub{
+				StreamCtx: ctx,
+			},
+		}
+	}
 	return grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(auxCtx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
 			grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-			grpc_validator.StreamServerInterceptor(),
+			modagent.StreamRpcApiInterceptor(factory),            // 4. inject RPC API
+			grpc_validator.StreamServerInterceptor(),             // x. wrap with validator
 		),
 		grpc.ChainUnaryInterceptor(
 			grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
 			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-			grpc_validator.UnaryServerInterceptor(),
+			modagent.UnaryRpcApiInterceptor(factory),            // 4. inject RPC API
+			grpc_validator.UnaryServerInterceptor(),             // x. wrap with validator
 		),
 	)
 }

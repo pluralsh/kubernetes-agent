@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -37,7 +38,7 @@ type server struct {
 
 func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentConfigFilesRequest) (*rpc.ListAgentConfigFilesResponse, error) {
 	log := grpctool.LoggerFromContext(ctx)
-	rpcApi := grpctool.RpcApiFromContext(ctx)
+	rpcApi := modserver.RpcApiFromContext(ctx)
 	pf, err := s.gitaly.PathFetcher(ctx, &api.GitalyInfo{
 		Address: req.GitalyAddress.Address,
 		Token:   req.GitalyAddress.Token,
