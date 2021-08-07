@@ -199,6 +199,9 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 							"Content-Length": { // added by the Go client
 								Value: []string{strconv.Itoa(len(requestPayload))},
 							},
+							"Via": {
+								Value: []string{"gRPC/1.0 sv1"},
+							},
 						},
 						UrlPath: requestPath,
 						Query: map[string]*prototool.Values{
@@ -274,7 +277,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 		"Resp-Header":    {"a1", "a2"},
 		"Content-Length": {"31"},
 		"Content-Type":   {"application/octet-stream"},
-		"Server":         {"sv1"},
+		"Via":            {"gRPC/1.0 sv1"},
 	}, (map[string][]string)(resp.Header)))
 }
 

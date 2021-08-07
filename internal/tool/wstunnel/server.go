@@ -15,7 +15,8 @@ import (
 type ListenerWrapper struct {
 	AcceptOptions websocket.AcceptOptions
 	// ReadLimit. Optional. See websocket.Conn.SetReadLimit().
-	ReadLimit int64
+	ReadLimit  int64
+	ServerName string
 
 	// Fields below are directly passed to the constructed http.Server.
 	// All of them are optional.
@@ -55,6 +56,7 @@ func (w *ListenerWrapper) Wrap(source net.Listener) Listener {
 	s.server = &http.Server{
 		Handler: &HttpHandler{
 			Ctx:           ctx,
+			ServerName:    w.ServerName,
 			AcceptOptions: options,
 			Sink:          accepted,
 			ReadLimit:     w.ReadLimit,
@@ -111,6 +113,7 @@ func (s *wrapperServer) Addr() net.Addr {
 
 type HttpHandler struct {
 	Ctx           context.Context
+	ServerName    string
 	AcceptOptions websocket.AcceptOptions
 	Sink          chan<- net.Conn
 	// ReadLimit. Optional. See websocket.Conn.SetReadLimit().
@@ -118,6 +121,7 @@ type HttpHandler struct {
 }
 
 func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Server", h.ServerName)
 	conn, err := websocket.Accept(w, r, &h.AcceptOptions)
 	if err != nil {
 		return

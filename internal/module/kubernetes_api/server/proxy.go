@@ -91,14 +91,13 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 }
 
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Server", p.serverName) // This might be overwritten by remote (e.g. if there is no error)
-
 	ctx := r.Context()
 	correlationId := correlation.ExtractFromContext(ctx)
 	log := p.log.With(logz.CorrelationId(correlationId))
 
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
 	if err != nil {
+		w.Header().Set("Server", p.serverName)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		log.Debug("Unauthorized: header", logz.Error(err))
 		return
@@ -107,6 +106,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	allowedForJob, err := p.getAllowedAgentsForJob(ctx, jobToken)
 	if err != nil {
+		w.Header().Set("Server", p.serverName)
 		switch {
 		case gitlab.IsUnauthorized(err):
 			w.WriteHeader(http.StatusUnauthorized)
@@ -126,21 +126,25 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	aa := findAllowedAgent(agentId, allowedForJob)
 	if aa == nil {
+		w.Header().Set("Server", p.serverName)
 		w.WriteHeader(http.StatusForbidden)
 		log.Debug("Forbidden: agentId is not allowed")
 		return
 	}
 
 	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
+		w.Header().Set("Server", p.serverName)
 		w.WriteHeader(http.StatusBadRequest)
 		log.Debug("Bad request: URL does not start with expected prefix", logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
 		return
 	}
+
+	p.requestCount.Inc() // Count only authenticated and authorized requests
+
 	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
-
-	p.requestCount.Inc() // Count only authenticated and authorized requests
+	r.Header.Add("Via", "gRPC/1.0 "+p.serverName)
 
 	headerWritten, errF := p.pipeStreams(ctx, log, w, r, agentId)
 	if errF != nil {
@@ -152,6 +156,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 			// If we try to write the status again here, http package would log a warning, which is not nice.
 			panic(http.ErrAbortHandler)
 		} else {
+			w.Header().Set("Server", p.serverName)
 			errF(w)
 		}
 	}
@@ -210,6 +215,7 @@ func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Lo
 			for k, vals := range httpH {
 				h[k] = vals
 			}
+			h.Add("Via", "gRPC/1.0 "+p.serverName)
 			w.WriteHeader(int(header.Response.StatusCode))
 			headerWritten = true
 			return nil

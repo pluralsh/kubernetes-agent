@@ -17,9 +17,10 @@ import (
 )
 
 type module struct {
-	log      *zap.Logger
-	logLevel zap.AtomicLevel
-	api      modshared.Api
+	log        *zap.Logger
+	logLevel   zap.AtomicLevel
+	api        modshared.Api
+	serverName string
 }
 
 const (
@@ -61,7 +62,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				metricSrv := observability.MetricServer{
 					Log:                   m.log,
 					Api:                   m.api,
-					Name:                  m.Name(),
+					Name:                  m.serverName,
 					Listener:              lis,
 					PrometheusUrlPath:     prometheusUrlPath,
 					LivenessProbeUrlPath:  livenessProbeUrlPath,
