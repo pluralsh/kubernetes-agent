@@ -191,7 +191,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %w", err)
 	}
-	userAgent := fmt.Sprintf("agentk/%s/%s", a.AgentMeta.Version, a.AgentMeta.CommitId)
+	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 		grpc.WithUserAgent(userAgent),

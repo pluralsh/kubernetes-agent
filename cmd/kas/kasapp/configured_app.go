@@ -363,7 +363,8 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 		if listenCfg.Websocket {
 			wsWrapper := wstunnel.ListenerWrapper{
 				// TODO set timeouts
-				ReadLimit: defaultMaxMessageSize,
+				ReadLimit:  defaultMaxMessageSize,
+				ServerName: kasServerName(),
 			}
 			lis = wsWrapper.Wrap(lis)
 		}
@@ -658,7 +659,7 @@ func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 	a.Log.Debug("Initializing Sentry error tracking", logz.SentryDSN(s.Dsn), logz.SentryEnv(s.Environment))
 	tracker, err := errortracking.NewTracker(
 		errortracking.WithSentryDSN(s.Dsn),
-		errortracking.WithVersion(kasUserAgent()),
+		errortracking.WithVersion(kasServerName()),
 		errortracking.WithSentryEnvironment(s.Environment),
 	)
 	if err != nil {
@@ -699,7 +700,7 @@ func (a *ConfiguredApp) constructGitLabClient(tracer opentracing.Tracer) (*gitla
 		gitLabUrl,
 		decodedAuthSecret,
 		gitlab.WithCorrelationClientName(kasName),
-		gitlab.WithUserAgent(kasUserAgent()),
+		gitlab.WithUserAgent(kasServerName()),
 		gitlab.WithTracer(tracer),
 		gitlab.WithLogger(a.Log),
 		gitlab.WithTLSConfig(clientTLSConfig),
@@ -718,7 +719,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracin
 	)
 	return client.NewPoolWithOptions(
 		client.WithDialOptions(
-			grpc.WithUserAgent(kasUserAgent()),
+			grpc.WithUserAgent(kasServerName()),
 			grpc.WithStatsHandler(csh),
 			// Don't put interceptors here as order is important. Put them below.
 		),
@@ -862,8 +863,8 @@ func maybeTlsCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {
 	}
 }
 
-func kasUserAgent() string {
-	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
+func kasServerName() string {
+	return fmt.Sprintf("%s/%s/%s", kasName, cmd.Version, cmd.Commit)
 }
 
 var (

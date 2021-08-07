@@ -13,10 +13,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
-const (
-	userAgentHeaderName = "User-Agent"
-)
-
 type httpClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
@@ -27,6 +23,7 @@ type server struct {
 }
 
 func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
+	via := "gRPC/1.0 " + userAgent
 	return &server{
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
 			func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
@@ -39,13 +36,7 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 					return nil, err
 				}
 				req.Header = h.Request.HttpHeader()
-				ua := req.Header.Get(userAgentHeaderName)
-				if ua == "" {
-					ua = userAgent
-				} else {
-					ua = fmt.Sprintf("%s via %s", ua, userAgent)
-				}
-				req.Header.Set(userAgentHeaderName, ua)
+				req.Header.Add("Via", via)
 
 				resp, err := client.Do(req)
 				if err != nil {
@@ -56,6 +47,7 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 						return nil, err
 					}
 				}
+				resp.Header.Add("Via", fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, userAgent))
 				return resp, nil
 			},
 		),
