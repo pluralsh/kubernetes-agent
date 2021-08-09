@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -22,11 +22,11 @@ type JwtCredentials struct {
 func (c *JwtCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	now := time.Now()
 	claims := jwt.StandardClaims{
-		Audience:  jwt.ClaimStrings{c.Audience},
-		ExpiresAt: jwt.At(now.Add(jwtValidFor)),
-		IssuedAt:  jwt.At(now),
+		Audience:  c.Audience,
+		ExpiresAt: now.Add(jwtValidFor).Unix(),
+		IssuedAt:  now.Unix(),
 		Issuer:    c.Issuer,
-		NotBefore: jwt.At(now.Add(-jwtNotBefore)),
+		NotBefore: now.Add(-jwtNotBefore).Unix(),
 	}
 	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(c.Secret)

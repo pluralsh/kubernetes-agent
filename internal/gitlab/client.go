@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/golang-jwt/jwt/v4"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tracing"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -89,11 +89,11 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	if o.withJWT {
 		now := time.Now()
 		claims := jwt.StandardClaims{
-			Audience:  jwt.ClaimStrings{jwtGitLabAudience},
-			ExpiresAt: jwt.At(now.Add(jwtValidFor)),
-			IssuedAt:  jwt.At(now),
+			Audience:  jwtGitLabAudience,
+			ExpiresAt: now.Add(jwtValidFor).Unix(),
+			IssuedAt:  now.Unix(),
 			Issuer:    jwtIssuer,
-			NotBefore: jwt.At(now.Add(-jwtNotBefore)),
+			NotBefore: now.Add(-jwtNotBefore).Unix(),
 		}
 		signedClaims, claimsErr := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 			SignedString(c.AuthSecret)

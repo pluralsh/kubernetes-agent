@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
@@ -30,7 +29,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 		Issuer:   issuer,
 		Insecure: true,
 	}
-	auther := NewJWTAuther([]byte(secret), jwt.WithAudience(audience), jwt.WithIssuer(issuer))
+	auther := NewJWTAuther([]byte(secret), issuer, audience)
 	listener := NewDialListener()
 
 	srv := grpc.NewServer(

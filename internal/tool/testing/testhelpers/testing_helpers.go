@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
@@ -96,13 +96,18 @@ func AssertCommonRequestParams(t *testing.T, r *http.Request, correlationId stri
 }
 
 func AssertJWTSignature(t *testing.T, r *http.Request) {
-	_, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(AuthSecretKey), nil
-	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer))
-	assert.NoError(t, err)
+	})
+	if !assert.NoError(t, err) {
+		return
+	}
+	mapClaims := token.Claims.(jwt.MapClaims)
+	assert.True(t, mapClaims.VerifyAudience(jwtGitLabAudience, true))
+	assert.True(t, mapClaims.VerifyIssuer(jwtIssuer, true))
 }
 
 func CtxWithCorrelation(t *testing.T) (context.Context, string) {

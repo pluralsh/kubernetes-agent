@@ -11,7 +11,7 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/tool/retry",
-        "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
+        "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_stretchr_testify//assert",
         "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
