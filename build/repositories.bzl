@@ -688,13 +688,6 @@ def go_repositories():
         version = "v3.2.0+incompatible",
     )
     go_repository(
-        name = "com_github_dgrijalva_jwt_go_v4",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/dgrijalva/jwt-go/v4",
-        sum = "h1:BXgXhYJInnV2k1BbHUI4tRoAYEDQevlS1e0ifEzAMrU=",
-        version = "v4.0.0-preview1.0.20200107205605-c66185887605",
-    )
-    go_repository(
         name = "com_github_dgryski_go_farm",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/dgryski/go-farm",
@@ -1387,6 +1380,13 @@ def go_repositories():
         importpath = "github.com/golang/groupcache",
         sum = "h1:oI5xCqsCo564l8iNU+DwB5epxmsaqB+rhGL0m5jtYqE=",
         version = "v0.0.0-20210331224755-41bb18bfe9da",
+    )
+    go_repository(
+        name = "com_github_golang_jwt_jwt_v4",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/golang-jwt/jwt/v4",
+        sum = "h1:RAqyYixv1p7uEnocuy8P1nru5wprCh/MH2BIlW5z5/o=",
+        version = "v4.0.0",
     )
     go_repository(
         name = "com_github_golang_lint",

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/golang-jwt/jwt/v4"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"google.golang.org/grpc"
@@ -13,14 +13,16 @@ import (
 )
 
 type JWTAuther struct {
-	jwtParser *jwt.Parser
-	secret    []byte
+	jwtIssuer   string
+	jwtAudience string
+	secret      []byte
 }
 
-func NewJWTAuther(secret []byte, opts ...jwt.ParserOption) *JWTAuther {
+func NewJWTAuther(secret []byte, jwtIssuer, jwtAudience string) *JWTAuther {
 	return &JWTAuther{
-		jwtParser: jwt.NewParser(opts...),
-		secret:    secret,
+		jwtIssuer:   jwtIssuer,
+		jwtAudience: jwtAudience,
+		secret:      secret,
 	}
 }
 
@@ -45,7 +47,7 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 	if err != nil {
 		return err // returns gRPC status error
 	}
-	_, err = a.jwtParser.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -55,5 +57,17 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 		LoggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
+	claims := parsedToken.Claims.(jwt.MapClaims) // jwt.Parse() uses jwt.MapClaims
+	if a.jwtAudience != "" {
+		if !claims.VerifyAudience(a.jwtAudience, true) {
+			return status.Error(codes.Unauthenticated, "JWT audience validation failed")
+		}
+	}
+	if a.jwtIssuer != "" {
+		if !claims.VerifyIssuer(a.jwtIssuer, true) {
+			return status.Error(codes.Unauthenticated, "JWT issuer validation failed")
+		}
+	}
+
 	return nil
 }

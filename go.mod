@@ -7,11 +7,11 @@ require (
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
-	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.6.1
 	github.com/go-logr/zapr v0.4.0
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/go-redis/redismock/v8 v8.0.6
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
