@@ -7,7 +7,16 @@ go_library(
         "rpc_api.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent",
-    visibility = ["//:__subpackages__"],
+    visibility = [
+        "//cmd/agentk:__subpackages__",
+        "//internal/module/cilium_alert/agent:__subpackages__",
+        "//internal/module/gitops/agent:__subpackages__",
+        "//internal/module/kubernetes_api/agent:__subpackages__",
+        "//internal/module/observability/agent:__subpackages__",
+        "//internal/module/reverse_tunnel/agent:__subpackages__",
+        "//internal/module/reverse_tunnel/test:__subpackages__",
+        "//internal/tool/testing/mock_modagent:__subpackages__",
+    ],
     deps = [
         "//internal/module/modshared",
         "//pkg/agentcfg",

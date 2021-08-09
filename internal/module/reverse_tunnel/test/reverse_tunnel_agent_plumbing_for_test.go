@@ -1,4 +1,4 @@
-package reverse_tunnel_test
+package test
 
 import (
 	"context"
