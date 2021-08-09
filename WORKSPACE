@@ -207,12 +207,12 @@ gazelle_dependencies()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-# Latest images as of 2020-02-10
+# Latest images as of 2020-08-09
 
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:565adbedbfed0048c30dd819fdf0cc0d8fd9c2ca466a32b6a9367ff156058a8e",
+    digest = "sha256:59c28ab04d4e855511de684942355bb07b84ca31a1bebc37e75ee79df03009f4",
     registry = "gcr.io",
     repository = "distroless/base-debian10",
 )
@@ -220,7 +220,7 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
 container_pull(
     name = "go_image_static",
-    digest = "sha256:8f3b47c7984464f417f9d5f5e232ac3fae6453e84f053724fef457c4ba67ceaf",
+    digest = "sha256:b871bb2b01374c0a9ed93fdeaa2cdb25b515cd1999170b5ec816ed6c2fd85aca",
     registry = "gcr.io",
     repository = "distroless/static-debian10",
 )
