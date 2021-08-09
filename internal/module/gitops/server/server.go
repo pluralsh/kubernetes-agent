@@ -15,7 +15,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
@@ -51,7 +50,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	ctx := server.Context()
 	rpcApi := modserver.RpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
-	log := grpctool.LoggerFromContext(ctx)
+	log := rpcApi.Log()
 	agentInfo, err := rpcApi.AgentInfo(ctx, log)
 	if err != nil {
 		return err // no wrap

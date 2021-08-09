@@ -11,7 +11,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 	"google.golang.org/grpc/codes"
@@ -37,7 +36,6 @@ type server struct {
 }
 
 func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentConfigFilesRequest) (*rpc.ListAgentConfigFilesResponse, error) {
-	log := grpctool.LoggerFromContext(ctx)
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	pf, err := s.gitaly.PathFetcher(ctx, &api.GitalyInfo{
 		Address: req.GitalyAddress.Address,
@@ -45,7 +43,7 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 		//Features: nil, // TODO
 	})
 	if err != nil {
-		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)
+		rpcApi.HandleProcessingError(rpcApi.Log(), modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}
 	r := &gitalypb.Repository{
@@ -59,7 +57,7 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 	v := &configVisitor{}
 	err = pf.Visit(ctx, r, []byte("HEAD"), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
-		log = log.With(logz.ProjectId(req.Repository.GlProjectPath))
+		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
 		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}

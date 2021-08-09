@@ -14,7 +14,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
@@ -42,8 +41,8 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	}
 	defer s.maybeUnregisterAgent(connectedAgentInfo)
 	ctx := server.Context()
-	log := grpctool.LoggerFromContext(ctx)
 	rpcApi := modserver.RpcApiFromContext(ctx)
+	log := rpcApi.Log()
 	lastProcessedCommitId := req.CommitId
 	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:

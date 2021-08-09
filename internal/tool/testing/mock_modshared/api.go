@@ -61,6 +61,20 @@ func (mr *MockRpcApiMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockRpcApi)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
+// Log mocks base method.
+func (m *MockRpcApi) Log() *zap.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Log")
+	ret0, _ := ret[0].(*zap.Logger)
+	return ret0
+}
+
+// Log indicates an expected call of Log.
+func (mr *MockRpcApiMockRecorder) Log() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Log", reflect.TypeOf((*MockRpcApi)(nil).Log))
+}
+
 // PollWithBackoff mocks base method.
 func (m *MockRpcApi) PollWithBackoff(arg0 retry.PollConfig, arg1 retry.PollWithBackoffFunc) error {
 	m.ctrl.T.Helper()

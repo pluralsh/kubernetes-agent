@@ -29,6 +29,10 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	serverRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	serverRpcApi.EXPECT().
+		Log().
+		Return(log).
+		AnyTimes()
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	agentServer := serverConstructAgentServer(ctx, log, serverRpcApi)
 	agentServerListener := grpctool.NewDialListener()

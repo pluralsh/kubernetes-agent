@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,8 +17,8 @@ type server struct {
 }
 
 func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAgentsRequest) (*rpc.GetConnectedAgentsResponse, error) {
-	log := grpctool.LoggerFromContext(ctx)
 	rpcApi := modserver.RpcApiFromContext(ctx)
+	log := rpcApi.Log()
 	switch v := req.Request.(type) {
 	case *rpc.GetConnectedAgentsRequest_AgentId:
 		var infos agent_tracker.ConnectedAgentInfoCollector

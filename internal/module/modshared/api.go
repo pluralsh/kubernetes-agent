@@ -22,6 +22,8 @@ type Api interface {
 
 // RpcApi provides the API for the module's gRPC handlers to use.
 type RpcApi interface {
+	// Log returns a logger to use in the context of the request being processed.
+	Log() *zap.Logger
 	// HandleProcessingError can be used to handle errors occurring while processing a request.
 	// If err is a (or wraps a) errz.UserError, it might be handled specially.
 	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)

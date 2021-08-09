@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
+	"go.uber.org/zap"
 )
 
 type RpcApiStub struct {
@@ -20,4 +21,8 @@ func (a *RpcApiStub) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBacko
 		return nil // all good, ctx is done
 	}
 	return err
+}
+
+func (a *RpcApiStub) Log() *zap.Logger {
+	return grpctool.LoggerFromContext(a.StreamCtx)
 }
