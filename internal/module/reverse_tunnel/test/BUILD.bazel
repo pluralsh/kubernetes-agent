@@ -8,7 +8,6 @@ go_custom_test(
         "reverse_tunnel_test.go",
     ],
     deps = [
-        "//cmd",
         "//internal/api",
         "//internal/module/modagent",
         "//internal/module/modserver",

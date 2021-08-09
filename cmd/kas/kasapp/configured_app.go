@@ -243,7 +243,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Start things up. Stages are shut down in reverse order.
-	return cmd.RunStages(ctx,
+	return stager.RunStages(ctx,
 		// connRegistry depends on tunnelTracker so it must be stopped last
 		func(stage stager.Stage) {
 			stage.Go(tunnelTracker.Run)

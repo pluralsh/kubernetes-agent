@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.86.0
-	github.com/ash2k/stager v0.2.1
+	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
 	github.com/envoyproxy/protoc-gen-validate v0.6.1

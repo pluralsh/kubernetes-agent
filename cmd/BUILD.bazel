@@ -64,9 +64,8 @@ go_library(
         "utils.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd",
-    visibility = ["//visibility:public"],
-    deps = [
-        "@com_github_ash2k_stager//:stager",
-        "@com_github_spf13_cobra//:cobra",
+    visibility = [
+        "//cmd:__subpackages__",
     ],
+    deps = ["@com_github_spf13_cobra//:cobra"],
 )

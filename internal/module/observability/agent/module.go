@@ -7,7 +7,6 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -31,7 +30,7 @@ const (
 )
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	return cmd.RunStages(ctx,
+	return stager.RunStages(ctx,
 		func(stage stager.Stage) {
 			// Listen for config changes and apply to logger
 			stage.Go(func(ctx context.Context) error {
