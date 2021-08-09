@@ -41,6 +41,7 @@ go_custom_test(
     embed = [":redistool"],
     deps = [
         "//internal/api",
+        "//internal/tool/testing/testhelpers",
         "@com_github_go_redis_redis_v8//:redis",
         "@com_github_go_redis_redismock_v8//:redismock",
         "@com_github_google_go_cmp//cmp",
