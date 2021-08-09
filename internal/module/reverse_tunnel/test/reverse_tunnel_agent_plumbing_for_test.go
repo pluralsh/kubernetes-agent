@@ -1,4 +1,4 @@
-package reverse_tunnel_test
+package test
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -42,7 +41,7 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 	m, err := f.New(config)
 	require.NoError(t, err)
 	return func(ctx context.Context) error {
-		return cmd.RunStages(ctx,
+		return stager.RunStages(ctx,
 			// Start modules.
 			func(stage stager.Stage) {
 				stage.Go(func(ctx context.Context) error {

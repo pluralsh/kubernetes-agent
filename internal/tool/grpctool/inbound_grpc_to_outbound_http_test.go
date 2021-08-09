@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
@@ -129,7 +128,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			Body: io.NopCloser(strings.NewReader(responseBodyData)),
 		}, nil
 	})
-	err := p.Pipe(mockRpcApi, server, modshared.NoAgentId)
+	err := p.Pipe(mockRpcApi, server, 0)
 	require.NoError(t, err)
 }
 

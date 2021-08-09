@@ -10,11 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
-)
-
-const (
-	token api.AgentToken = "0123456789"
 )
 
 func TestTokenLimiterHappyPath(t *testing.T) {
@@ -67,8 +64,8 @@ func setup(t *testing.T) (redismock.ClientMock, *TokenLimiter, context.Context, 
 	client, mock := redismock.NewClientMock()
 	mock.MatchExpectationsInOrder(true)
 	limiter := NewTokenLimiter(zaptest.NewLogger(t), client, "key_prefix", 1, tokenFromContext)
-	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: token})
-	key := limiter.buildKey(string(token))
+	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
+	key := limiter.buildKey(string(testhelpers.AgentkToken))
 	return mock, limiter, ctx, key
 }
 

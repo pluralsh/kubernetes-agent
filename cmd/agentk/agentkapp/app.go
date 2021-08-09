@@ -104,7 +104,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	runner := a.newModuleRunner(modules, kasConn)
 
 	// Start things up. Stages are shut down in reverse order.
-	return cmd.RunStages(ctx,
+	return stager.RunStages(ctx,
 		// Start modules.
 		func(stage stager.Stage) {
 			stage.Go(runner.RunModules)

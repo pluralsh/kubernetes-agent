@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	agent_configuration_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
@@ -70,7 +69,7 @@ func newModuleRunner(log *zap.Logger, modules []modagent.Module, configurationWa
 }
 
 func (r *moduleRunner) RunModules(ctx context.Context) error {
-	return cmd.RunStages(ctx,
+	return stager.RunStages(ctx,
 		func(stage stager.Stage) {
 			for _, holder := range r.holders {
 				holder := holder // capture the right variable

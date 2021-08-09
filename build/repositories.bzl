@@ -138,8 +138,8 @@ def go_repositories():
         name = "com_github_ash2k_stager",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/ash2k/stager",
-        sum = "h1:FBqTP0ZJGLn/MPrNzvK0HBkKmoHdAOyFhNFzEWEWg3k=",
-        version = "v0.2.1",
+        sum = "h1:3gpvrLGQzRmUCk1+A1EmrcSBu/JyeoU09fnITBl4Z/k=",
+        version = "v0.3.0",
     )
     go_repository(
         name = "com_github_avast_retry_go",

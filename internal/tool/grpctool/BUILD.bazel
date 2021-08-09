@@ -87,7 +87,6 @@ go_custom_test(
     data = glob(["testdata/**"]),
     embed = [":grpctool"],
     deps = [
-        "//internal/module/modshared",
         "//internal/tool/errz",
         "//internal/tool/grpctool/test",
         "//internal/tool/prototool",

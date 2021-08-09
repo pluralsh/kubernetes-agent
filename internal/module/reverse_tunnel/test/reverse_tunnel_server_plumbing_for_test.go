@@ -1,4 +1,4 @@
-package reverse_tunnel_test
+package test
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/golang/mock/gomock"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
@@ -68,7 +67,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	})
 
 	return func(ctx context.Context) error {
-		return cmd.RunStages(ctx,
+		return stager.RunStages(ctx,
 			// Start things that modules use.
 			func(stage stager.Stage) {
 				stage.Go(tunnelRegistry.Run)
