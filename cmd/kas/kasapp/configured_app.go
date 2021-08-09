@@ -486,7 +486,9 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, "", kasName)
+	jwtAuther := grpctool.NewJWTAuther(jwtSecret, "", kasName, func(ctx context.Context) *zap.Logger {
+		return modserver.RpcApiFromContext(ctx).Log()
+	})
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -540,7 +542,9 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName)
+	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName, func(ctx context.Context) *zap.Logger {
+		return modserver.RpcApiFromContext(ctx).Log()
+	})
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{

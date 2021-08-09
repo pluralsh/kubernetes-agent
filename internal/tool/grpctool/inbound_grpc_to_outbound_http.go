@@ -33,6 +33,7 @@ type InboundGrpcToOutboundHttpStream interface {
 // RpcApi is a reduced version on modshared.RpcApi.
 // It's here to avoid the dependency.
 type RpcApi interface {
+	Log() *zap.Logger
 	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
 	HandleSendError(log *zap.Logger, msg string, err error) error
 }
@@ -57,7 +58,6 @@ func NewInboundGrpcToOutboundHttp(httpDo HttpDo) *InboundGrpcToOutboundHttp {
 
 func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream, agentId int64) error {
 	ctx := server.Context()
-	log := LoggerFromContext(ctx)
 
 	g, ctx := errgroup.WithContext(ctx) // if one of the goroutines returns a non-nil error, ctx is canceled.
 
@@ -82,7 +82,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 			if err != nil {
 				return err
 			}
-			return x.pipeHttpIntoGrpc(log, rpcApi, server, resp)
+			return x.pipeHttpIntoGrpc(rpcApi, server, resp)
 		}
 	})
 
@@ -94,7 +94,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
-		rpcApi.HandleProcessingError(log, agentId, "gRPC -> HTTP", err)
+		rpcApi.HandleProcessingError(rpcApi.Log(), agentId, "gRPC -> HTTP", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err
@@ -122,7 +122,7 @@ func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server
 	)
 }
 
-func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, rpcApi RpcApi, server grpc.ServerStream, resp *http.Response) error {
+func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.ServerStream, resp *http.Response) error {
 	err := func() (retErr error) { // closure to close resp.Body ASAP
 		defer errz.SafeClose(resp.Body, &retErr)
 		err := server.SendMsg(&HttpResponse{
@@ -137,7 +137,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, rpcApi Rpc
 			},
 		})
 		if err != nil {
-			return rpcApi.HandleSendError(log, "Failed to send HTTP header", err)
+			return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP header", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -156,7 +156,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, rpcApi Rpc
 					},
 				})
 				if sendErr != nil {
-					return rpcApi.HandleSendError(log, "Failed to send HTTP data", sendErr)
+					return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP data", sendErr)
 				}
 			}
 		}
@@ -172,7 +172,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, rpcApi Rpc
 		},
 	})
 	if err != nil {
-		return rpcApi.HandleSendError(log, "Failed to send HTTP trailer", err)
+		return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP trailer", err)
 	}
 	return nil
 }

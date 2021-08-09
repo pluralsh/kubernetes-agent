@@ -29,7 +29,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 		Issuer:   issuer,
 		Insecure: true,
 	}
-	auther := NewJWTAuther([]byte(secret), issuer, audience)
+	auther := NewJWTAuther([]byte(secret), issuer, audience, LoggerFromContext)
 	listener := NewDialListener()
 
 	srv := grpc.NewServer(

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -44,14 +45,7 @@ func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStr
 	if err != nil {
 		return err
 	}
-	log := grpctool.LoggerFromContext(ctx).With(logz.AgentId(agentId))
-	return r.routeToCorrectKas(log, agentId, stream)
-}
-
-// routeToCorrectKas
-// must return a gRPC status-compatible error.
-func (r *router) routeToCorrectKas(log *zap.Logger, agentId int64, stream grpc.ServerStream) error {
-	err := retry.PollImmediateUntil(stream.Context(), r.routeAttemptInterval, r.attemptToRoute(log, agentId, stream))
+	err = retry.PollImmediateUntil(stream.Context(), r.routeAttemptInterval, r.attemptToRoute(agentId, stream))
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return status.Error(codes.Unavailable, "Unavailable")
 	}
@@ -60,11 +54,14 @@ func (r *router) routeToCorrectKas(log *zap.Logger, agentId int64, stream grpc.S
 
 // attemptToRoute
 // must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (r *router) attemptToRoute(log *zap.Logger, agentId int64, stream grpc.ServerStream) retry.ConditionFunc {
+func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.ConditionFunc {
 	ctx := stream.Context()
+	rpcApi := modserver.RpcApiFromContext(ctx)
+	log := rpcApi.Log().With(logz.AgentId(agentId))
+	pollConfig := r.pollConfig()
 	return func() (bool /* done */, error) {
 		var tunnels []*tracker.TunnelInfo
-		err := retry.PollWithBackoff(ctx, r.pollConfig(), r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
+		err := rpcApi.PollWithBackoff(pollConfig, r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
 		if err != nil {
 			return false, err
 		}

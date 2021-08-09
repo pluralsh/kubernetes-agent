@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
@@ -255,6 +256,12 @@ func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), routingMetadata)
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpc.NewContextWithServerTransportStream(ctx, sts)
+	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
+	ctx = modserver.InjectRpcApi(ctx, &serverRpcApi{
+		RpcApiStub: modshared.RpcApiStub{
+			StreamCtx: ctx,
+		},
+	})
 
 	sendDone := make(chan struct{})
 
@@ -420,23 +427,36 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		tunnelForwardStream,
 		tunnel.EXPECT().Done(),
 	)
+	factory := func(ctx context.Context, method string) modserver.RpcApi {
+		return &serverRpcApi{
+			RpcApiStub: modshared.RpcApiStub{
+				StreamCtx: ctx,
+			},
+		}
+	}
 
 	log := zaptest.NewLogger(t)
 	internalServer := grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerLoggerInterceptor(log),
+			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerLoggerInterceptor(log),
+			modserver.UnaryRpcApiInterceptor(factory),
 		),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 	privateApiServer := grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerLoggerInterceptor(log),
+			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerLoggerInterceptor(log),
+			modserver.UnaryRpcApiInterceptor(factory),
 		),
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	)

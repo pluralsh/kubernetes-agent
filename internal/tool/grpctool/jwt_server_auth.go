@@ -7,22 +7,25 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type JWTAuther struct {
-	jwtIssuer   string
-	jwtAudience string
-	secret      []byte
+	jwtIssuer         string
+	jwtAudience       string
+	secret            []byte
+	loggerFromContext func(context.Context) *zap.Logger
 }
 
-func NewJWTAuther(secret []byte, jwtIssuer, jwtAudience string) *JWTAuther {
+func NewJWTAuther(secret []byte, jwtIssuer, jwtAudience string, loggerFromContext func(context.Context) *zap.Logger) *JWTAuther {
 	return &JWTAuther{
-		jwtIssuer:   jwtIssuer,
-		jwtAudience: jwtAudience,
-		secret:      secret,
+		jwtIssuer:         jwtIssuer,
+		jwtAudience:       jwtAudience,
+		secret:            secret,
+		loggerFromContext: loggerFromContext,
 	}
 }
 
@@ -54,7 +57,7 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 		return a.secret, nil
 	})
 	if err != nil {
-		LoggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
+		a.loggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
 	claims := parsedToken.Claims.(jwt.MapClaims) // jwt.Parse() uses jwt.MapClaims

@@ -27,12 +27,15 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
 	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	mockRpcApi.EXPECT().
+		Log().
+		Return(zaptest.NewLogger(t)).
+		AnyTimes()
 	s := &server{
 		tunnelHandler: h,
 	}
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
-	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
 	ctx = modserver.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
@@ -55,11 +58,14 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
 	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	mockRpcApi.EXPECT().
+		Log().
+		Return(zaptest.NewLogger(t)).
+		AnyTimes()
 	s := &server{
 		tunnelHandler: h,
 	}
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
-	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
 	ctx = modserver.InjectRpcApi(ctx, mockRpcApi)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
@@ -67,11 +73,9 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 		Context().
 		Return(ctx).
 		MinTimes(1)
-	gomock.InOrder(
-		mockRpcApi.EXPECT().
-			AgentInfo(gomock.Any(), gomock.Any()).
-			Return(nil, errors.New("expected err")),
-	)
+	mockRpcApi.EXPECT().
+		AgentInfo(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("expected err"))
 	err := s.Connect(connectServer)
 	assert.EqualError(t, err, "expected err")
 }

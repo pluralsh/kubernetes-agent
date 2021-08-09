@@ -141,7 +141,7 @@ func TestJWTServerAuth(t *testing.T) {
 }
 
 func setupAuther() *grpctool.JWTAuther {
-	return grpctool.NewJWTAuther(secret, jwtIssuer, jwtAudience)
+	return grpctool.NewJWTAuther(secret, jwtIssuer, jwtAudience, grpctool.LoggerFromContext)
 }
 
 func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpctool.JWTAuther, errStr string) {

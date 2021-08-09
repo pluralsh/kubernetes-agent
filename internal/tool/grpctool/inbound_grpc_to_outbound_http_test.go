@@ -17,7 +17,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -31,11 +30,10 @@ const (
 func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRpcApi := mock_modshared.NewMockRpcApi(ctrl)
-	ctx := grpctool.InjectLogger(context.Background(), zaptest.NewLogger(t))
 	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
 	server.EXPECT().
 		Context().
-		Return(ctx).
+		Return(context.Background()).
 		MinTimes(1)
 	sendHeader := &grpctool.HttpRequest_Header{
 		Request: &prototool.HttpRequest{
