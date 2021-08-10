@@ -64,7 +64,7 @@ If the project, where the CI job is running, has certificate-based integration c
 configuration file contains contexts for both integrations. This allows users to use both integration
 simultaneously, for example to migrate from one to the other.
 
-CI job can set context `<context name>` as the current one using `kubectl config set-context <context name>`.
+CI job can set context `<context name>` as the current one using `kubectl config use-context <context name>`.
 A context can also be explicitly specified in each `kubectl` invocation using `kubectl --context=<context name> <command>`.
 
 After a context is selected, `kubectl` (or any other compatible program) can be used as if working with a cluster directly.
