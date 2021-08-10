@@ -13,7 +13,6 @@ import (
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modagent"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 )
@@ -21,7 +20,7 @@ import (
 func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockApi) (func(context.Context) error, *grpc.Server) {
 	log := zaptest.NewLogger(t)
 	internalListener := grpctool.NewDialListener()
-	internalServer := agentConstructInternalServer(ctx, log)
+	internalServer := agentConstructInternalServer(ctx)
 	internalServerConn, err := agentConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -56,15 +55,13 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 	}, internalServer
 }
 
-func agentConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+func agentConstructInternalServer(ctx context.Context) *grpc.Server {
 	return grpc.NewServer(
 		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(ctx, 0)),
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
 		),
 	)

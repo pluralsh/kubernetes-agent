@@ -122,6 +122,7 @@ func setupRpcApi(t *testing.T, statusCode int) (*zap.Logger, *MockSentryHub, *se
 	})
 	rpcApi := &serverRpcApi{
 		RpcApiStub: modshared.RpcApiStub{
+			Logger:    log,
 			StreamCtx: ctx,
 		},
 		GitLabClient:   gitLabClient,

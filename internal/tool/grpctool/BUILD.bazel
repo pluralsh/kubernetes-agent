@@ -26,7 +26,6 @@ go_library(
         "inbound_grpc_to_outbound_http.go",
         "jwt_creds.go",
         "jwt_server_auth.go",
-        "logger.go",
         "max_conn_age.go",
         "raw_codec.go",
         "server_ctx.go",
@@ -115,6 +114,7 @@ go_custom_test(
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//testing/protocmp",
         "@org_golang_google_protobuf//types/known/anypb",
+        "@org_uber_go_zap//:zap",
         "@org_uber_go_zap//zaptest",
     ],
 )
