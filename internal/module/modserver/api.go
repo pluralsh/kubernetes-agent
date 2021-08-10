@@ -24,6 +24,12 @@ const (
 	// from the routing kas instance, that is handling the incoming request, to the gateway kas instance,
 	// that is forwarding the request to an agentk.
 	RoutingAgentIdMetadataKey = RoutingHopPrefix + "routing-agent-id"
+
+	// CorrelationIdSentryField is the name of the Sentry field for correlation ID.
+	// LabKit uses 'gitlab.CorrelationID', but GitLab and Gitaly use 'correlation_id'.
+	CorrelationIdSentryField = "correlation_id"
+	GrpcServiceSentryField   = "grpc.service"
+	GrpcMethodSentryField    = "grpc.method"
 )
 
 // ApplyDefaults is a signature of a public function, exposed by modules to perform defaulting.

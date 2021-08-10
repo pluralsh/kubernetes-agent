@@ -427,7 +427,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		tunnelForwardStream,
 		tunnel.EXPECT().Done(),
 	)
-	factory := func(ctx context.Context, method string) modserver.RpcApi {
+	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
 				StreamCtx: ctx,

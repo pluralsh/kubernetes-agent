@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
@@ -90,4 +91,17 @@ func DeferMaybeWrapWithCorrelationId(err *error, client grpc.ClientStream) {
 		return
 	}
 	*err = MaybeWrapWithCorrelationId(*err, client)
+}
+
+func SplitGrpcMethod(fullMethodName string) (string /* service */, string /* method */) {
+	if fullMethodName != "" && fullMethodName[0] == '/' {
+		fullMethodName = fullMethodName[1:]
+	}
+	pos := strings.LastIndex(fullMethodName, "/")
+	if pos == -1 {
+		return "unknown", fullMethodName
+	}
+	service := fullMethodName[:pos]
+	method := fullMethodName[pos+1:]
+	return service, method
 }

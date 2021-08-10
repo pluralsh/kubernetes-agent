@@ -3,14 +3,15 @@ package kasapp
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_errtracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -21,34 +22,48 @@ var (
 )
 
 func TestHandleProcessingError_UserError(t *testing.T) {
-	ctx, log, _, apiObj := setupApi(t)
+	ctx, log, _, apiObj, _ := setupApi(t)
 	err := errz.NewUserError("boom")
-	apiObj.HandleProcessingError(ctx, log, 123, "Bla", err)
+	apiObj.HandleProcessingError(ctx, log, testhelpers.AgentId, "Bla", err)
 }
 
 func TestHandleProcessingError_NonUserError_AgentId(t *testing.T) {
-	ctx, log, errTracker, apiObj := setupApi(t)
+	ctx, log, hub, apiObj, correlationId := setupApi(t)
 	err := errors.New("boom")
-	errTracker.EXPECT().
-		Capture(matcher.ErrorEq("Bla: boom"), gomock.Len(2))
-	apiObj.HandleProcessingError(ctx, log, 123, "Bla", err)
+	hub.EXPECT().
+		CaptureEvent(gomock.Any()).
+		Do(func(event *sentry.Event) {
+			assert.Equal(t, correlationId, event.Tags[modserver.CorrelationIdSentryField])
+			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
+			assert.Equal(t, sentry.LevelError, event.Level)
+			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
+			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+		})
+	apiObj.HandleProcessingError(ctx, log, testhelpers.AgentId, "Bla", err)
 }
 
-func TestHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
-	ctx, log, errTracker, apiObj := setupApi(t)
+func TestHandleProcessingError_NonUserError_NoAgentId_NoCorrelationId(t *testing.T) {
+	_, log, hub, apiObj, _ := setupApi(t)
 	err := errors.New("boom")
-	errTracker.EXPECT().
-		Capture(matcher.ErrorEq("Bla: boom"), gomock.Len(1))
-	apiObj.HandleProcessingError(ctx, log, modshared.NoAgentId, "Bla", err)
+	hub.EXPECT().
+		CaptureEvent(gomock.Any()).
+		Do(func(event *sentry.Event) {
+			assert.NotContains(t, event.Tags, modserver.CorrelationIdSentryField)
+			assert.Empty(t, event.User.ID)
+			assert.Equal(t, sentry.LevelError, event.Level)
+			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
+			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+		})
+	apiObj.HandleProcessingError(context.Background(), log, modshared.NoAgentId, "Bla", err)
 }
 
-func setupApi(t *testing.T) (context.Context, *zap.Logger, *mock_errtracker.MockTracker, *serverApi) {
+func setupApi(t *testing.T) (context.Context, *zap.Logger, *MockSentryHub, *serverApi, string) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	errTracker := mock_errtracker.NewMockTracker(ctrl)
-	ctx, _ := testhelpers.CtxWithCorrelation(t)
+	hub := NewMockSentryHub(ctrl)
+	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
 	apiObj := &serverApi{
-		ErrorTracker: errTracker,
+		Hub: hub,
 	}
-	return ctx, log, errTracker, apiObj
+	return ctx, log, hub, apiObj, correlationId
 }

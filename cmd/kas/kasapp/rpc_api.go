@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,7 +23,7 @@ var (
 
 type serverRpcApi struct {
 	modshared.RpcApiStub
-	ErrorTracker   errortracking.Tracker
+	Hub            SentryHub
 	GitLabClient   gitlab.ClientInterface
 	AgentInfoCache *cache.CacheWithErr
 }
@@ -49,14 +48,14 @@ func (a *serverRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*api.Age
 	case gitlab.IsNotFound(err):
 		err = status.Error(codes.NotFound, "agent not found")
 	default:
-		logAndCapture(ctx, a.ErrorTracker, log, modshared.NoAgentId, "AgentInfo()", err)
+		logAndCapture(ctx, a.Hub, log, modshared.NoAgentId, "AgentInfo()", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return nil, err
 }
 
 func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error) {
-	handleProcessingError(a.StreamCtx, a.ErrorTracker, log, agentId, msg, err)
+	handleProcessingError(a.StreamCtx, a.Hub, log, agentId, msg, err)
 }
 
 func (a *serverRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
