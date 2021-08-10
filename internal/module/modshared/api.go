@@ -9,8 +9,6 @@ import (
 
 const (
 	NoAgentId int64 = 0
-
-	AgentIdErrTrackingField = "gitlab.AgentId"
 )
 
 // Api provides the API for the module to use.

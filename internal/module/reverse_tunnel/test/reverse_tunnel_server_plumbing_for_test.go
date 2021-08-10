@@ -138,7 +138,7 @@ func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, 
 
 func serverConstructAgentServer(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi) *grpc.Server {
 	kp, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
-	factory := func(ctx context.Context, method string) modserver.RpcApi {
+	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return rpcApi
 	}
 	return grpc.NewServer(

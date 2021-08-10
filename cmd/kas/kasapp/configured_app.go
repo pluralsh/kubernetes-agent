@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/ash2k/stager"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-redis/redis/v8"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
@@ -50,8 +52,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v14/client"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/monitoring"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -113,7 +115,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Sentry
-	errTracker, err := a.constructErrorTracker()
+	sentryHub, err := a.constructSentryHub()
 	if err != nil {
 		return fmt.Errorf("error tracker: %w", err)
 	}
@@ -125,7 +127,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// RPC API factory
-	rpcApiFactory := a.constructRpcApiFactory(errTracker, gitLabClient)
+	rpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient)
 
 	// Server for handling agentk requests
 	agentServer, err := a.constructAgentServer(ctx, tracer, redisClient, ssh, rpcApiFactory)
@@ -211,7 +213,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Construct modules
 	serverApi := &serverApi{
-		ErrorTracker: errTracker,
+		Hub: sentryHub,
 	}
 	poolWrapper := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
@@ -276,15 +278,27 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(errTracker errortracking.Tracker, gitLabClient gitlab.ClientInterface) modserver.RpcApiFactory {
+func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface) modserver.RpcApiFactory {
 	aCfg := a.Configuration.Agent
 	agentInfoCache := cache.NewWithError(aCfg.InfoCacheTtl.AsDuration(), aCfg.InfoCacheErrorTtl.AsDuration())
-	return func(ctx context.Context, method string) modserver.RpcApi {
+	return func(ctx context.Context, fullMethodName string) modserver.RpcApi {
+		service, method := grpctool.SplitGrpcMethod(fullMethodName)
+		hub := sentryHub.Clone()
+		scope := hub.Scope()
+		scope.SetTag(modserver.GrpcServiceSentryField, service)
+		scope.SetTag(modserver.GrpcMethodSentryField, method)
+		transaction := service + "::" + method              // Like in Gitaly
+		scope.SetTransaction(transaction)                   // Like in Gitaly
+		scope.SetFingerprint([]string{"grpc", transaction}) // Like in Gitaly
+		correlationId := correlation.ExtractFromContext(ctx)
+		if correlationId != "" {
+			scope.SetTag(modserver.CorrelationIdSentryField, correlationId)
+		}
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
 				StreamCtx: ctx,
 			},
-			ErrorTracker:   errTracker,
+			Hub:            hub,
 			GitLabClient:   gitLabClient,
 			AgentInfoCache: agentInfoCache,
 		}
@@ -654,21 +668,33 @@ func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient
 	)
 }
 
-func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
+func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
-	if s.Dsn == "" {
-		return nopErrTracker{}, nil
-	}
 	a.Log.Debug("Initializing Sentry error tracking", logz.SentryDSN(s.Dsn), logz.SentryEnv(s.Environment))
-	tracker, err := errortracking.NewTracker(
-		errortracking.WithSentryDSN(s.Dsn),
-		errortracking.WithVersion(kasServerName()),
-		errortracking.WithSentryEnvironment(s.Environment),
-	)
+	dialer := net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:         s.Dsn, // empty DSN disables Sentry transport
+		SampleRate:  1,     // no sampling
+		Release:     kasServerName(),
+		Environment: s.Environment,
+		HTTPTransport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           dialer.DialContext,
+			TLSClientConfig:       tlstool.DefaultClientTLSConfig(),
+			MaxIdleConns:          10,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 20 * time.Second,
+			ExpectContinueTimeout: 20 * time.Second,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
-	return tracker, nil
+	return sentry.NewHub(sentryClient, sentry.NewScope()), nil
 }
 
 func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
@@ -871,18 +897,10 @@ func kasServerName() string {
 }
 
 var (
-	_ errortracking.Tracker = nopErrTracker{}
 	_ agent_tracker.Tracker = nopAgentTracker{}
 	_ tracker.Tracker       = nopTunnelTracker{}
 	_ kasRouter             = nopKasRouter{}
 )
-
-// nopErrTracker is the state of the art error tracking facility.
-type nopErrTracker struct {
-}
-
-func (n nopErrTracker) Capture(err error, opts ...errortracking.CaptureOption) {
-}
 
 type nopAgentTracker struct {
 }

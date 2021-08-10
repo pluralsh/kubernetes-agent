@@ -13,7 +13,7 @@ const (
 	rpcApiKey rpcApiKeyType = iota
 )
 
-type RpcApiFactory func(ctx context.Context, method string) RpcApi
+type RpcApiFactory func(ctx context.Context, fullMethodName string) RpcApi
 
 func InjectRpcApi(ctx context.Context, rpcApi RpcApi) context.Context {
 	return context.WithValue(ctx, rpcApiKey, rpcApi)
@@ -23,7 +23,7 @@ func RpcApiFromContext(ctx context.Context) RpcApi {
 	rpcApi, ok := ctx.Value(rpcApiKey).(RpcApi)
 	if !ok {
 		// This is a programmer error, so panic.
-		panic("modserver.RPCAPI not attached to context. Make sure you are using interceptors")
+		panic("modserver.RpcApi not attached to context. Make sure you are using interceptors")
 	}
 	return rpcApi
 }
@@ -44,6 +44,6 @@ func StreamRpcApiInterceptor(factory RpcApiFactory) grpc.StreamServerInterceptor
 	}
 }
 
-func augmentContextWithRpcApi(ctx context.Context, method string, factory RpcApiFactory) context.Context {
-	return InjectRpcApi(ctx, factory(ctx, method))
+func augmentContextWithRpcApi(ctx context.Context, fullMethodName string, factory RpcApiFactory) context.Context {
+	return InjectRpcApi(ctx, factory(ctx, fullMethodName))
 }

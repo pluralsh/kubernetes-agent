@@ -8,6 +8,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
 	github.com/envoyproxy/protoc-gen-validate v0.6.1
+	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/go-redis/redismock/v8 v8.0.6

@@ -2,7 +2,6 @@ package grpctool
 
 import (
 	"context"
-	"strings"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -48,23 +47,10 @@ func StreamServerLoggerInterceptor(log *zap.Logger) grpc.StreamServerInterceptor
 }
 
 func augmentContextWithLogger(ctx context.Context, fullMethodName string, log *zap.Logger) context.Context {
-	service, method := splitMethod(fullMethodName)
+	service, method := SplitGrpcMethod(fullMethodName)
 	return InjectLogger(ctx, log.With(
 		logz.CorrelationIdFromContext(ctx),
 		logz.GrpcService(service),
 		logz.GrpcMethod(method),
 	))
-}
-
-func splitMethod(fullMethodName string) (string /* service */, string /* method */) {
-	if fullMethodName != "" && fullMethodName[0] == '/' {
-		fullMethodName = fullMethodName[1:]
-	}
-	pos := strings.LastIndex(fullMethodName, "/")
-	if pos == -1 {
-		return "unknown", fullMethodName
-	}
-	service := fullMethodName[:pos]
-	method := fullMethodName[pos+1:]
-	return service, method
 }
