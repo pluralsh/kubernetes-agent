@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -29,7 +31,9 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 		Issuer:   issuer,
 		Insecure: true,
 	}
-	auther := NewJWTAuther([]byte(secret), issuer, audience, LoggerFromContext)
+	auther := NewJWTAuther([]byte(secret), issuer, audience, func(ctx context.Context) *zap.Logger {
+		return zaptest.NewLogger(t)
+	})
 	listener := NewDialListener()
 
 	srv := grpc.NewServer(

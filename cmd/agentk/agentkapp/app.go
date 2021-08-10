@@ -269,6 +269,7 @@ func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
 	factory := func(ctx context.Context, method string) modagent.RpcApi {
 		return &agentRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
+				Logger:    a.Log,
 				StreamCtx: ctx,
 			},
 		}
@@ -278,15 +279,13 @@ func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
-			grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-			modagent.StreamRpcApiInterceptor(factory),            // 4. inject RPC API
+			modagent.StreamRpcApiInterceptor(factory),            // 3. inject RPC API
 			grpc_validator.StreamServerInterceptor(),             // x. wrap with validator
 		),
 		grpc.ChainUnaryInterceptor(
 			grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
-			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
-			modagent.UnaryRpcApiInterceptor(factory),            // 4. inject RPC API
+			modagent.UnaryRpcApiInterceptor(factory),            // 3. inject RPC API
 			grpc_validator.UnaryServerInterceptor(),             // x. wrap with validator
 		),
 	)

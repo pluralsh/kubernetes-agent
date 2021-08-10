@@ -11,6 +11,7 @@ import (
 
 type RpcApiStub struct {
 	StreamCtx context.Context
+	Logger    *zap.Logger
 }
 
 func (a *RpcApiStub) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
@@ -24,5 +25,5 @@ func (a *RpcApiStub) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBacko
 }
 
 func (a *RpcApiStub) Log() *zap.Logger {
-	return grpctool.LoggerFromContext(a.StreamCtx)
+	return a.Logger
 }

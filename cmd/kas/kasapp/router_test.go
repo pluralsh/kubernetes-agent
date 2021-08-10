@@ -254,11 +254,11 @@ func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	routingMetadata := modserver.RoutingMetadata(agentId)
 	ctx := metadata.NewIncomingContext(context.Background(), routingMetadata)
-	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 	ctx = grpc.NewContextWithServerTransportStream(ctx, sts)
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
 	ctx = modserver.InjectRpcApi(ctx, &serverRpcApi{
 		RpcApiStub: modshared.RpcApiStub{
+			Logger:    zaptest.NewLogger(t),
 			StreamCtx: ctx,
 		},
 	})
@@ -430,20 +430,18 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
+				Logger:    zaptest.NewLogger(t),
 				StreamCtx: ctx,
 			},
 		}
 	}
 
-	log := zaptest.NewLogger(t)
 	internalServer := grpc.NewServer(
 		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerLoggerInterceptor(log),
 			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerLoggerInterceptor(log),
 			modserver.UnaryRpcApiInterceptor(factory),
 		),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
@@ -451,11 +449,9 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	privateApiServer := grpc.NewServer(
 		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerLoggerInterceptor(log),
 			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerLoggerInterceptor(log),
 			modserver.UnaryRpcApiInterceptor(factory),
 		),
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),

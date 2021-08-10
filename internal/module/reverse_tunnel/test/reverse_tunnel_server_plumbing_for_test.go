@@ -19,7 +19,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -34,14 +33,14 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 		Return(log).
 		AnyTimes()
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	agentServer := serverConstructAgentServer(ctx, log, serverRpcApi)
+	agentServer := serverConstructAgentServer(ctx, serverRpcApi)
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
 	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 
-	internalServer := serverConstructInternalServer(ctx, log)
+	internalServer := serverConstructInternalServer(ctx)
 	internalServerConn, err := serverConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
 
@@ -89,16 +88,10 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	}, kasConn, internalServerConn, serverRpcApi, tunnelRegisterer
 }
 
-func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+func serverConstructInternalServer(ctx context.Context) *grpc.Server {
 	_, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	return grpc.NewServer(
 		grpc.StatsHandler(sh),
-		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerLoggerInterceptor(log),
-		),
-		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerLoggerInterceptor(log),
-		),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 }
@@ -136,7 +129,7 @@ func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, 
 	})
 }
 
-func serverConstructAgentServer(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi) *grpc.Server {
+func serverConstructAgentServer(ctx context.Context, rpcApi modserver.RpcApi) *grpc.Server {
 	kp, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return rpcApi
@@ -146,13 +139,11 @@ func serverConstructAgentServer(ctx context.Context, log *zap.Logger, rpcApi mod
 		kp,
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerAgentMDInterceptor(),
-			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
 			modserver.StreamRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerAgentMDInterceptor(),
-			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
 			modserver.UnaryRpcApiInterceptor(factory),
 		),

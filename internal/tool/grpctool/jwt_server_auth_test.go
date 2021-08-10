@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -41,14 +42,14 @@ func TestJWTServerAuth(t *testing.T) {
 		FullMethod: "bla",
 	}
 	t.Run("happy path", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 		require.NoError(t, err)
 
-		ctx := incomingCtx(context.Background(), t, signedClaims)
+		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "bearer "+signedClaims))
 		result, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryHandler(ctx, t))
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
@@ -60,20 +61,19 @@ func TestJWTServerAuth(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("missing header", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
-		ctx := grpctool.InjectLogger(context.Background(), zaptest.NewLogger(t))
-		_, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
+		_, err := jwtAuther.UnaryServerInterceptor(context.Background(), expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 
 		ctrl := gomock.NewController(t)
 		stream := mock_rpc.NewMockServerStream(ctrl)
-		stream.EXPECT().Context().Return(ctx)
+		stream.EXPECT().Context().Return(context.Background())
 		err = jwtAuther.StreamServerInterceptor(expectedSrv, stream, streamInfo, streamMustNotBeCalled(t))
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 	})
 	t.Run("invalid token type", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
@@ -81,7 +81,6 @@ func TestJWTServerAuth(t *testing.T) {
 		require.NoError(t, err)
 
 		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "weird_type "+signedClaims))
-		ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 		_, err = jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 
@@ -92,7 +91,7 @@ func TestJWTServerAuth(t *testing.T) {
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 	})
 	t.Run("unexpected signing algorithm", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
@@ -107,7 +106,7 @@ func TestJWTServerAuth(t *testing.T) {
 		assertValidationFailed(t, signedClaims, jwtAuther, "JWT validation failed")
 	})
 	t.Run("none signing algorithm", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
@@ -117,7 +116,7 @@ func TestJWTServerAuth(t *testing.T) {
 		assertValidationFailed(t, signedClaims, jwtAuther, "JWT validation failed")
 	})
 	t.Run("unexpected audience", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
@@ -128,7 +127,7 @@ func TestJWTServerAuth(t *testing.T) {
 		assertValidationFailed(t, signedClaims, jwtAuther, "JWT audience validation failed")
 	})
 	t.Run("unexpected issuer", func(t *testing.T) {
-		jwtAuther := setupAuther()
+		jwtAuther := setupAuther(t)
 
 		now := time.Now()
 		claims := validClams(now)
@@ -140,8 +139,10 @@ func TestJWTServerAuth(t *testing.T) {
 	})
 }
 
-func setupAuther() *grpctool.JWTAuther {
-	return grpctool.NewJWTAuther(secret, jwtIssuer, jwtAudience, grpctool.LoggerFromContext)
+func setupAuther(t *testing.T) *grpctool.JWTAuther {
+	return grpctool.NewJWTAuther(secret, jwtIssuer, jwtAudience, func(ctx context.Context) *zap.Logger {
+		return zaptest.NewLogger(t)
+	})
 }
 
 func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpctool.JWTAuther, errStr string) {
@@ -151,7 +152,7 @@ func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpcto
 	streamInfo := &grpc.StreamServerInfo{
 		FullMethod: "bla",
 	}
-	ctx := incomingCtx(context.Background(), t, signedClaims)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "bearer "+signedClaims))
 	_, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = "+errStr)
 
@@ -171,12 +172,6 @@ func validClams(now time.Time) jwt.StandardClaims {
 		NotBefore: now.Add(-jwtNotBefore).Unix(),
 	}
 	return claims
-}
-
-func incomingCtx(ctx context.Context, t *testing.T, token string) context.Context {
-	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs("authorization", "bearer "+token))
-	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
-	return ctx
 }
 
 func unaryHandler(expectedCtx context.Context, t *testing.T) grpc.UnaryHandler {
