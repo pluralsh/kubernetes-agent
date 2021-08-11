@@ -11,7 +11,6 @@ type Validatable interface {
 }
 
 type InvalidTestcase struct {
-	Name      string
 	ErrString string
 	Invalid   Validatable
 }
@@ -23,7 +22,7 @@ type ValidTestcase struct {
 
 func AssertInvalid(t *testing.T, tests []InvalidTestcase) {
 	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) {
+		t.Run(tc.ErrString, func(t *testing.T) {
 			err := tc.Invalid.Validate()
 			assert.EqualError(t, err, tc.ErrString)
 		})

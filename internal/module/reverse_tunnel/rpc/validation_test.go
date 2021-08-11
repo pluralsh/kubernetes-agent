@@ -22,7 +22,6 @@ func TestValidation_Valid(t *testing.T) {
 func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
 		{
-			Name:      "missing Error.Status",
 			ErrString: "invalid Error.Status: value is required",
 			Invalid:   &Error{},
 		},
