@@ -102,91 +102,78 @@ func TestValidation_Valid(t *testing.T) {
 func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
 		{
-			Name:      "zero GitopsCF.PollPeriod",
 			ErrString: "invalid GitopsCF.PollPeriod: value must be greater than 0s",
 			Invalid: &GitopsCF{
 				PollPeriod: durationpb.New(0),
 			},
 		},
 		{
-			Name:      "negative GitopsCF.PollPeriod",
 			ErrString: "invalid GitopsCF.PollPeriod: value must be greater than 0s",
 			Invalid: &GitopsCF{
 				PollPeriod: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "negative GitopsCF.ProjectInfoCacheTtl",
 			ErrString: "invalid GitopsCF.ProjectInfoCacheTtl: value must be greater than or equal to 0s",
 			Invalid: &GitopsCF{
 				ProjectInfoCacheTtl: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "zero GitopsCF.ProjectInfoCacheErrorTtl",
 			ErrString: "invalid GitopsCF.ProjectInfoCacheErrorTtl: value must be greater than 0s",
 			Invalid: &GitopsCF{
 				ProjectInfoCacheErrorTtl: durationpb.New(0),
 			},
 		},
 		{
-			Name:      "negative GitopsCF.ProjectInfoCacheErrorTtl",
 			ErrString: "invalid GitopsCF.ProjectInfoCacheErrorTtl: value must be greater than 0s",
 			Invalid: &GitopsCF{
 				ProjectInfoCacheErrorTtl: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "negative AgentCF.InfoCacheTtl",
 			ErrString: "invalid AgentCF.InfoCacheTtl: value must be greater than or equal to 0s",
 			Invalid: &AgentCF{
 				InfoCacheTtl: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "zero AgentCF.InfoCacheErrorTtl",
 			ErrString: "invalid AgentCF.InfoCacheErrorTtl: value must be greater than 0s",
 			Invalid: &AgentCF{
 				InfoCacheErrorTtl: durationpb.New(0),
 			},
 		},
 		{
-			Name:      "negative AgentCF.InfoCacheErrorTtl",
 			ErrString: "invalid AgentCF.InfoCacheErrorTtl: value must be greater than 0s",
 			Invalid: &AgentCF{
 				InfoCacheErrorTtl: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "zero AgentConfigurationCF.PollPeriod",
 			ErrString: "invalid AgentConfigurationCF.PollPeriod: value must be greater than 0s",
 			Invalid: &AgentConfigurationCF{
 				PollPeriod: durationpb.New(0),
 			},
 		},
 		{
-			Name:      "negative AgentConfigurationCF.PollPeriod",
 			ErrString: "invalid AgentConfigurationCF.PollPeriod: value must be greater than 0s",
 			Invalid: &AgentConfigurationCF{
 				PollPeriod: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "negative ObservabilityCF.UsageReportingPeriod",
 			ErrString: "invalid ObservabilityCF.UsageReportingPeriod: value must be greater than or equal to 0s",
 			Invalid: &ObservabilityCF{
 				UsageReportingPeriod: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "negative TokenBucketRateLimitCF.RefillRatePerSecond",
 			ErrString: "invalid TokenBucketRateLimitCF.RefillRatePerSecond: value must be greater than or equal to 0",
 			Invalid: &TokenBucketRateLimitCF{
 				RefillRatePerSecond: -1,
 			},
 		},
 		{
-			Name:      "zero RedisCF.DialTimeout",
 			ErrString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -198,7 +185,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "negative RedisCF.DialTimeout",
 			ErrString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -210,7 +196,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "zero RedisCF.ReadTimeout",
 			ErrString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -222,7 +207,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "negative RedisCF.ReadTimeout",
 			ErrString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -234,7 +218,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "zero RedisCF.WriteTimeout",
 			ErrString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -246,7 +229,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "negative RedisCF.WriteTimeout",
 			ErrString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -258,7 +240,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "zero RedisCF.IdleTimeout",
 			ErrString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -270,7 +251,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "negative RedisCF.IdleTimeout",
 			ErrString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
@@ -282,31 +262,26 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "missing RedisCF.RedisConfig",
 			ErrString: "invalid RedisCF.RedisConfig: value is required",
 			Invalid:   &RedisCF{},
 		},
 		{
-			Name:      "empty RedisServerCF.Address",
 			ErrString: "invalid RedisServerCF.Address: value length must be at least 1 bytes",
 			Invalid:   &RedisServerCF{},
 		},
 		{
-			Name:      "empty RedisSentinelCF.MasterName",
 			ErrString: "invalid RedisSentinelCF.MasterName: value length must be at least 1 bytes",
 			Invalid: &RedisSentinelCF{
 				Addresses: []string{"1:2"},
 			},
 		},
 		{
-			Name:      "empty RedisSentinelCF.Addresses",
 			ErrString: "invalid RedisSentinelCF.Addresses: value must contain at least 1 item(s)",
 			Invalid: &RedisSentinelCF{
 				MasterName: "bla",
 			},
 		},
 		{
-			Name:      "empty string RedisSentinelCF.Addresses",
 			ErrString: "invalid RedisSentinelCF.Addresses[0]: value length must be at least 1 bytes",
 			Invalid: &RedisSentinelCF{
 				MasterName: "bla",
@@ -314,28 +289,24 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "zero ListenAgentCF.MaxConnectionAge",
 			ErrString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
 			Invalid: &ListenAgentCF{
 				MaxConnectionAge: durationpb.New(0),
 			},
 		},
 		{
-			Name:      "negative ListenAgentCF.MaxConnectionAge",
 			ErrString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
 			Invalid: &ListenAgentCF{
 				MaxConnectionAge: durationpb.New(-1),
 			},
 		},
 		{
-			Name:      "empty GitLabCF.Address",
 			ErrString: "invalid GitLabCF.Address: value length must be at least 1 bytes",
 			Invalid: &GitLabCF{
 				AuthenticationSecretFile: "/some/file",
 			},
 		},
 		{
-			Name:      "relative GitLabCF.Address",
 			ErrString: "invalid GitLabCF.Address: value must be absolute",
 			Invalid: &GitLabCF{
 				Address:                  "/path",
@@ -343,7 +314,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "empty GitLabCF.AuthenticationSecretFile",
 			ErrString: "invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 bytes",
 			Invalid: &GitLabCF{
 				Address: "http://localhost:8080",
@@ -351,7 +321,6 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		// TODO uncomment when Redis becomes a hard dependency
 		//{
-		//	Name:      "missing ConfigurationFile.Redis",
 		//	ErrString: "invalid ConfigurationFile.Redis: value is required",
 		//	Invalid: &ConfigurationFile{
 		//		Gitlab: &GitLabCF{
@@ -361,17 +330,14 @@ func TestValidation_Invalid(t *testing.T) {
 		//	},
 		//},
 		{
-			Name:      "missing ConfigurationFile.Gitlab",
 			ErrString: "invalid ConfigurationFile.Gitlab: value is required",
 			Invalid:   &ConfigurationFile{},
 		},
 		{
-			Name:      "empty ListenApiCF.AuthenticationSecretFile",
 			ErrString: "invalid ListenApiCF.AuthenticationSecretFile: value length must be at least 1 bytes",
 			Invalid:   &ListenApiCF{},
 		},
 		{
-			Name:      "zero ListenApiCF.MaxConnectionAge",
 			ErrString: "invalid ListenApiCF.MaxConnectionAge: value must be greater than 0s",
 			Invalid: &ListenApiCF{
 				AuthenticationSecretFile: "bla",
@@ -379,7 +345,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "negative ListenApiCF.MaxConnectionAge",
 			ErrString: "invalid ListenApiCF.MaxConnectionAge: value must be greater than 0s",
 			Invalid: &ListenApiCF{
 				AuthenticationSecretFile: "bla",
@@ -387,12 +352,10 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			Name:      "missing ApiCF.Listen",
 			ErrString: "invalid ApiCF.Listen: value is required",
 			Invalid:   &ApiCF{},
 		},
 		{
-			Name:      "missing PrivateApiCF.Listen",
 			ErrString: "invalid PrivateApiCF.Listen: value is required",
 			Invalid:   &PrivateApiCF{},
 		},

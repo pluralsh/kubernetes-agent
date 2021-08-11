@@ -36,12 +36,10 @@ func TestValidation_Valid(t *testing.T) {
 func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
 		{
-			Name:      "missing TunnelInfo.AgentDescriptor",
 			ErrString: "invalid TunnelInfo.AgentDescriptor: value is required",
 			Invalid:   &TunnelInfo{},
 		},
 		{
-			Name:      "invalid TunnelInfo.KasUrl",
 			ErrString: `invalid TunnelInfo.KasUrl: value does not match regex pattern "(?:^$|^grpcs?://)"`,
 			Invalid: &TunnelInfo{
 				AgentDescriptor: &info.AgentDescriptor{},
