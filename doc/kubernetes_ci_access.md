@@ -34,7 +34,8 @@ ci_access:
       access_as:
         agent: {}
         impersonate:
-          name: name-of-identity-to-impersonate
+          username: name-of-identity-to-impersonate
+          uid: 06f6ce97-e2c5-4ab8-7ba5-7654dd08d52b
           groups:
             - group1
             - group2
