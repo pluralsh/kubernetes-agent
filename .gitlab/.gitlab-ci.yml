@@ -102,7 +102,7 @@ push_image_tag:
   script:
     - *registry_creds
     - git fetch
-    - if [[ $(git branch --contains "tags/$CI_COMMIT_TAG" | grep "$CI_DEFAULT_BRANCH") ]]; then make release-tag-and-stable; else make release-tag; fi
+    - if [[ $(git branch --remotes --contains "tags/$CI_COMMIT_TAG" | grep "$CI_DEFAULT_BRANCH") ]]; then make release-tag-and-stable; else make release-tag; fi
 
 push_image_manual:
   stage: push_image
