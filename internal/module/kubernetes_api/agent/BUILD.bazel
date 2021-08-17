@@ -1,8 +1,10 @@
+load("//build:build.bzl", "go_custom_test")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "agent",
     srcs = [
+        "client.go",
         "factory.go",
         "module.go",
         "server.go",
@@ -18,5 +20,21 @@ go_library(
         "//pkg/agentcfg",
         "@io_k8s_apimachinery//pkg/runtime/schema",
         "@io_k8s_client_go//rest",
+        "@io_k8s_client_go//transport",
+    ],
+)
+
+go_custom_test(
+    name = "agent_test",
+    srcs = ["client_test.go"],
+    embed = [":agent"],
+    deps = [
+        "//internal/module/kubernetes_api/rpc",
+        "//internal/module/modagent",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_client_go//rest",
+        "@io_k8s_client_go//transport",
+        "@io_k8s_kubectl//pkg/cmd/testing",
     ],
 )
