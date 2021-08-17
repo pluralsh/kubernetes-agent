@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api"
@@ -20,22 +19,12 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	transport, err := rest.TransportFor(restConfig)
-	if err != nil {
-		return nil, err
-	}
 	baseUrl, _, err := defaultServerUrlFor(restConfig)
 	if err != nil {
 		return nil, err
 	}
 	userAgent := fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.Version, config.AgentMeta.CommitId)
-	client := &http.Client{
-		Transport: transport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-	s := newServer(userAgent, client, baseUrl)
+	s := newServer(userAgent, &impersonatingClient{restConfig: restConfig}, baseUrl)
 	rpc.RegisterKubernetesApiServer(config.Server, s)
 	return &module{
 		api: config.Api,

@@ -1,5 +1,14 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//build:build.bzl", "go_custom_test")
+load("//build:proto.bzl", "go_proto_generate")
+
+go_proto_generate(
+    src = "api.proto",
+    workspace_relative_target_directory = "internal/gitlab/api",
+    deps = [
+        "//pkg/agentcfg:proto",
+    ],
+)
 
 go_library(
     name = "api",

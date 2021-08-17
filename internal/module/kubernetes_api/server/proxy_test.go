@@ -29,10 +29,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -149,7 +151,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", defaultGitLabHandler(t))
+	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil))
 	req.URL.Path = requestPath
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -168,16 +170,85 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
-func TestProxy_HappyPathWithoutUrlPrefix(t *testing.T) {
-	testProxyHappyPath(t, "/")
+func TestProxy_HappyPath(t *testing.T) {
+	tests := []struct {
+		name          string
+		urlPathPrefix string
+		config        *gapi.Configuration
+		expectedExtra *rpc.HeaderExtra
+	}{
+		{
+			name:          "no prefix",
+			urlPathPrefix: "/",
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{},
+			},
+		},
+		{
+			name:          "with prefix",
+			urlPathPrefix: "/bla/",
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{},
+			},
+		},
+		{
+			name:          "impersonate agent",
+			urlPathPrefix: "/",
+			config: &gapi.Configuration{
+				AccessAs: &agentcfg.CiAccessAsCF{
+					As: &agentcfg.CiAccessAsCF_Agent{
+						Agent: &agentcfg.CiAccessAsAgentCF{},
+					},
+				},
+			},
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{},
+			},
+		},
+		{
+			name:          "impersonate",
+			urlPathPrefix: "/",
+			config: &gapi.Configuration{
+				AccessAs: &agentcfg.CiAccessAsCF{
+					As: &agentcfg.CiAccessAsCF_Impersonate{
+						Impersonate: &agentcfg.CiAccessAsImpersonateCF{
+							Username: "user1",
+							Groups:   []string{"g1", "g2"},
+							Uid:      "uid",
+							Extra: []*agentcfg.ExtraKeyValCF{
+								{
+									Key: "k1",
+									Val: []string{"v1", "v2"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{
+					Username: "user1",
+					Groups:   []string{"g1", "g2"},
+					Uid:      "uid",
+					Extra: []*rpc.ExtraKeyVal{
+						{
+							Key: "k1",
+							Val: []string{"v1", "v2"},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testProxyHappyPath(t, tc.urlPathPrefix, tc.expectedExtra, configGitLabHandler(t, tc.config))
+		})
+	}
 }
 
-func TestProxy_HappyPathWithUrlPrefix(t *testing.T) {
-	testProxyHappyPath(t, "/bla/")
-}
-
-func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
-	_, k8sClient, client, req, requestCount := setupProxyWithHandler(t, urlPathPrefix, defaultGitLabHandler(t))
+func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.HeaderExtra, handler func(http.ResponseWriter, *http.Request)) {
+	_, k8sClient, client, req, requestCount := setupProxyWithHandler(t, urlPathPrefix, handler)
 	requestCount.EXPECT().Inc()
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
 	mrCall := k8sClient.EXPECT().
@@ -186,6 +257,8 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 			requireCorrectOutgoingMeta(t, ctx)
 			return mrClient, nil
 		})
+	extra, err := anypb.New(expectedExtra)
+	require.NoError(t, err)
 	gomock.InOrder(append([]*gomock.Call{mrCall}, mockSendStream(t, mrClient,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -216,6 +289,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 							},
 						},
 					},
+					Extra: extra,
 				},
 			},
 		},
@@ -373,25 +447,38 @@ func assertToken(t *testing.T, r *http.Request) bool {
 }
 
 func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
-	return setupProxyWithHandler(t, "/", defaultGitLabHandler(t))
+	return setupProxyWithHandler(t, "/", configGitLabHandler(t, nil))
 }
 
-func defaultGitLabHandler(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !assertToken(t, r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		testhelpers.RespondWithJSON(t, w, &gapi.AllowedAgentsForJob{
-			AllowedAgents: []gapi.AllowedAgent{
+		testhelpers.RespondWithJSON(t, w, &gapi.AllowedAgentsForJobAlias{ // use alias to ensure proper JSON marshaling
+			AllowedAgents: []*gapi.AllowedAgent{
 				{
 					Id: testhelpers.AgentId,
+					ConfigProject: &gapi.ConfigProject{
+						Id: 5,
+					},
+					Configuration: config,
 				},
 			},
-			Job:      gapi.Job{},
-			Pipeline: gapi.Pipeline{},
-			Project:  gapi.Project{},
-			User:     gapi.User{},
+			Job: &gapi.Job{
+				Id: 1,
+			},
+			Pipeline: &gapi.Pipeline{
+				Id: 2,
+			},
+			Project: &gapi.Project{
+				Id: 3,
+			},
+			User: &gapi.User{
+				Id:       3,
+				Username: "testuser",
+			},
 		})
 	}
 }

@@ -43,6 +43,31 @@ func TestValidation_Invalid(t *testing.T) {
 				Id: "", // empty id is not ok
 			},
 		},
+		{
+			ErrString: "invalid CiAccessAsCF.As: value is required",
+			Invalid:   &CiAccessAsCF{},
+		},
+		{
+			ErrString: "invalid CiAccessAsImpersonateCF.Username: value length must be at least 1 bytes",
+			Invalid:   &CiAccessAsImpersonateCF{},
+		},
+		{
+			ErrString: "invalid CiAccessAsImpersonateCF.Groups[0]: value length must be at least 1 bytes",
+			Invalid: &CiAccessAsImpersonateCF{
+				Username: "a",
+				Groups:   []string{""},
+			},
+		},
+		{
+			ErrString: "invalid ExtraKeyValCF.Key: value length must be at least 1 bytes",
+			Invalid:   &ExtraKeyValCF{},
+		},
+		{
+			ErrString: "invalid ExtraKeyValCF.Val: value must contain at least 1 item(s)",
+			Invalid: &ExtraKeyValCF{
+				Key: "1",
+			},
+		},
 	}
 	testhelpers.AssertInvalid(t, tests)
 }

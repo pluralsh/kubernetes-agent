@@ -10,6 +10,7 @@ import "internal/tool/grpctool/grpctool.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 
+// HeaderExtra is passed in grpctool.HttpRequest.extra.
 message HeaderExtra {
     // Name of the module that is making the request.
     string module_name = 1 [(validate.rules).string.min_bytes = 1];

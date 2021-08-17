@@ -13,3 +13,22 @@ service KubernetesApi {
   rpc MakeRequest (stream grpctool.HttpRequest) returns (stream grpctool.HttpResponse) {
   }
 }
+
+// HeaderExtra is passed in grpctool.HttpRequest.extra.
+message HeaderExtra {
+  ImpersonationConfig imp_config = 1;
+}
+
+// ImpersonationConfig is a representation of client-go rest.ImpersonationConfig.
+// See https://github.com/kubernetes/client-go/blob/release-1.22/rest/config.go#L201-L210
+message ImpersonationConfig {
+  string username = 1;
+  repeated string groups = 2;
+  string uid = 3;
+  repeated ExtraKeyVal extra = 4;
+}
+
+message ExtraKeyVal {
+  string key = 1;
+  repeated string val = 2;
+}

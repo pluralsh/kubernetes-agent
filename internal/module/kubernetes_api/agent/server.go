@@ -14,7 +14,7 @@ import (
 )
 
 type httpClient interface {
-	Do(*http.Request) (*http.Response, error)
+	Do(*rpc.ImpersonationConfig, *http.Request) (*http.Response, error)
 }
 
 type server struct {
@@ -35,10 +35,14 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 				if err != nil {
 					return nil, err
 				}
+				var headerExtra rpc.HeaderExtra
+				err = h.Extra.UnmarshalTo(&headerExtra)
+				if err != nil {
+					return nil, err
+				}
 				req.Header = h.Request.HttpHeader()
 				req.Header.Add("Via", via)
-
-				resp, err := client.Do(req)
+				resp, err := client.Do(headerExtra.ImpConfig, req)
 				if err != nil {
 					select {
 					case <-ctx.Done(): // assume request errored out because of context
