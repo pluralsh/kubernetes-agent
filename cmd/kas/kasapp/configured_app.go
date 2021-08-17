@@ -652,7 +652,7 @@ func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:         s.Dsn, // empty DSN disables Sentry transport
 		SampleRate:  1,     // no sampling
-		Release:     kasServerName(),
+		Release:     fmt.Sprintf("%s/%s", cmd.Version, cmd.Commit),
 		Environment: s.Environment,
 		HTTPTransport: &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
