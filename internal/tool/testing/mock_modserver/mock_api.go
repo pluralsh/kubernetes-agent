@@ -5,8 +5,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
 
-func NewMockRpcApiWithMockPoller(ctrl *gomock.Controller, pollTimes int) *MockRpcApi {
-	mockRpcApi := NewMockRpcApi(ctrl)
+func NewMockAgentRpcApiWithMockPoller(ctrl *gomock.Controller, pollTimes int) *MockAgentRpcApi {
+	mockRpcApi := NewMockAgentRpcApi(ctrl)
 	if pollTimes > 0 {
 		mockRpcApi.EXPECT().
 			PollWithBackoff(gomock.Any(), gomock.Any()).

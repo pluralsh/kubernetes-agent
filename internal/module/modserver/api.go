@@ -78,6 +78,12 @@ type Api interface {
 // RpcApi provides the API for the module's gRPC handlers to use.
 type RpcApi interface {
 	modshared.RpcApi
+}
+
+// AgentRpcApi provides the API for the module's gRPC handlers to use.
+// It should be used only by modules, that handle requests from agents.
+type AgentRpcApi interface {
+	modshared.RpcApi
 	// AgentToken returns the token of an agent making the RPC.
 	// It can only be called within an RPC context of the agent API server, it panics if misused.
 	AgentToken() api.AgentToken

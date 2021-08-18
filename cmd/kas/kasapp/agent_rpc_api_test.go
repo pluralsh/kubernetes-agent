@@ -1,6 +1,7 @@
 package kasapp
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
@@ -24,7 +24,10 @@ import (
 )
 
 var (
-	_ modserver.RpcApi = (*serverRpcApi)(nil)
+	_ modserver.RpcApi             = (*serverRpcApi)(nil)
+	_ modserver.RpcApiFactory      = (*serverRpcApiFactory)(nil).New
+	_ modserver.AgentRpcApi        = (*serverAgentRpcApi)(nil)
+	_ modserver.AgentRpcApiFactory = (*serverAgentRpcApiFactory)(nil).New
 )
 
 func TestGetAgentInfo_Errors(t *testing.T) {
@@ -53,7 +56,7 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(strconv.Itoa(tc.httpStatus), func(t *testing.T) {
-			log, hub, rpcApi, correlationId := setupRpcApi(t, tc.httpStatus)
+			ctx, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, tc.httpStatus)
 			if tc.captureErr != "" {
 				hub.EXPECT().
 					CaptureEvent(gomock.Any()).
@@ -65,7 +68,7 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 						assert.Equal(t, "AgentInfo(): "+tc.captureErr, event.Exception[0].Value)
 					})
 			}
-			info, err := rpcApi.AgentInfo(rpcApi.StreamCtx, log)
+			info, err := rpcApi.AgentInfo(ctx, log)
 			assert.Equal(t, tc.code, status.Code(err))
 			assert.Nil(t, info)
 		})
@@ -73,13 +76,13 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 }
 
 func TestRpcHandleProcessingError_UserError(t *testing.T) {
-	log, _, rpcApi, _ := setupRpcApi(t, http.StatusInternalServerError)
+	_, log, _, rpcApi, _ := setupAgentRpcApi(t, http.StatusInternalServerError)
 	err := errz.NewUserError("boom")
 	rpcApi.HandleProcessingError(log, testhelpers.AgentId, "Bla", err)
 }
 
 func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
-	log, hub, rpcApi, correlationId := setupRpcApi(t, http.StatusInternalServerError)
+	_, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, http.StatusInternalServerError)
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
@@ -94,7 +97,7 @@ func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 }
 
 func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
-	log, hub, rpcApi, correlationId := setupRpcApi(t, http.StatusInternalServerError)
+	_, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, http.StatusInternalServerError)
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
@@ -108,7 +111,7 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	rpcApi.HandleProcessingError(log, modshared.NoAgentId, "Bla", err)
 }
 
-func setupRpcApi(t *testing.T, statusCode int) (*zap.Logger, *MockSentryHub, *serverRpcApi, string) {
+func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, string) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	hub := NewMockSentryHub(ctrl)
@@ -117,17 +120,17 @@ func setupRpcApi(t *testing.T, statusCode int) (*zap.Logger, *MockSentryHub, *se
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		w.WriteHeader(statusCode)
 	})
-	ctx = api.InjectAgentMD(ctx, &api.AgentMD{
-		Token: testhelpers.AgentkToken,
-	})
-	rpcApi := &serverRpcApi{
-		RpcApiStub: modshared.RpcApiStub{
-			Logger:    log,
-			StreamCtx: ctx,
+	rpcApi := &serverAgentRpcApi{
+		RpcApi: &serverRpcApi{
+			RpcApiStub: modshared.RpcApiStub{
+				Logger:    log,
+				StreamCtx: ctx,
+			},
+			Hub: hub,
 		},
+		Token:          testhelpers.AgentkToken,
 		GitLabClient:   gitLabClient,
-		Hub:            hub,
 		AgentInfoCache: cache.NewWithError(0, 0), // no cache!
 	}
-	return log, hub, rpcApi, correlationId
+	return ctx, log, hub, rpcApi, correlationId
 }

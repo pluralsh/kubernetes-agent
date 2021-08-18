@@ -15,7 +15,7 @@ type server struct {
 func (s *server) Connect(server rpc.ReverseTunnel_ConnectServer) error {
 	ctx := server.Context()
 	ageCtx := grpctool.MaxConnectionAgeContextFromStreamContext(ctx)
-	rpcApi := modserver.RpcApiFromContext(ctx)
+	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
 	agentInfo, err := rpcApi.AgentInfo(ageCtx, log)
 	if err != nil {

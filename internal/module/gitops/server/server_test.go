@@ -136,7 +136,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Errors(t *testing.T) {
 			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 			server.EXPECT().
 				Context().
-				Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+				Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
 				MinTimes(1)
 			err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 			require.Error(t, err)
@@ -154,7 +154,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
 		MinTimes(1)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 	require.NoError(t, err) // no error here, it keeps trying for any other errors
@@ -460,14 +460,14 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, context.CancelFunc, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockRpcApi) {
+func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, context.CancelFunc, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAgentRpcApi) {
 	correlationId := correlation.SafeRandomID()
 	s, ctrl, mockRpcApi, gitalyPool := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
-	ctx := mock_modserver.IncomingCtx(t, mockRpcApi)
+	ctx := mock_modserver.IncomingAgentCtx(t, mockRpcApi)
 	ctx = correlation.ContextWithCorrelation(ctx, correlationId)
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -480,10 +480,10 @@ func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServ
 	return server, cancel, s, ctrl, gitalyPool, mockRpcApi
 }
 
-func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*server, *gomock.Controller, *mock_modserver.MockRpcApi, *mock_internalgitaly.MockPoolInterface) {
+func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*server, *gomock.Controller, *mock_modserver.MockAgentRpcApi, *mock_internalgitaly.MockPoolInterface) {
 	ctrl := gomock.NewController(t)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
-	mockRpcApi := mock_modserver.NewMockRpcApiWithMockPoller(ctrl, 1)
+	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	mockRpcApi.EXPECT().
 		AgentInfo(gomock.Any(), gomock.Any()).

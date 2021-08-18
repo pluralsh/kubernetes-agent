@@ -15,7 +15,7 @@ import (
 )
 
 func TestTokenLimiterHappyPath(t *testing.T) {
-	mock, limiter, ctx, key := setup(t)
+	ctx, mock, limiter, key := setup(t)
 
 	mock.ExpectGet(key).SetVal("0")
 	mock.ExpectTxPipeline()
@@ -29,7 +29,7 @@ func TestTokenLimiterHappyPath(t *testing.T) {
 }
 
 func TestTokenLimiterOverLimit(t *testing.T) {
-	mock, limiter, ctx, key := setup(t)
+	ctx, mock, limiter, key := setup(t)
 
 	mock.ExpectGet(key).SetVal("1")
 
@@ -39,7 +39,7 @@ func TestTokenLimiterOverLimit(t *testing.T) {
 }
 
 func TestTokenLimiterNotAllowedWhenGetError(t *testing.T) {
-	mock, limiter, ctx, key := setup(t)
+	ctx, mock, limiter, key := setup(t)
 	mock.ExpectGet(key).SetErr(errors.New("test connection error"))
 
 	require.False(t, limiter.Allow(ctx), "Do not allow when there is a connection error")
@@ -48,7 +48,7 @@ func TestTokenLimiterNotAllowedWhenGetError(t *testing.T) {
 }
 
 func TestTokenLimiterNotAllowedWhenIncrError(t *testing.T) {
-	mock, limiter, ctx, key := setup(t)
+	ctx, mock, limiter, key := setup(t)
 
 	mock.ExpectGet(key).SetVal("0")
 	mock.ExpectTxPipeline()
@@ -60,15 +60,15 @@ func TestTokenLimiterNotAllowedWhenIncrError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func setup(t *testing.T) (redismock.ClientMock, *TokenLimiter, context.Context, string) {
+func setup(t *testing.T) (context.Context, redismock.ClientMock, *TokenLimiter, string) {
 	client, mock := redismock.NewClientMock()
 	mock.MatchExpectationsInOrder(true)
 	limiter := NewTokenLimiter(zaptest.NewLogger(t), client, "key_prefix", 1, tokenFromContext)
-	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
+	ctx := context.WithValue(context.Background(), 123, testhelpers.AgentkToken) // nolint: staticcheck
 	key := limiter.buildKey(string(testhelpers.AgentkToken))
-	return mock, limiter, ctx, key
+	return ctx, mock, limiter, key
 }
 
 func tokenFromContext(ctx context.Context) string {
-	return string(api.AgentTokenFromContext(ctx))
+	return string(ctx.Value(123).(api.AgentToken))
 }

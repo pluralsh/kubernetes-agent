@@ -33,11 +33,11 @@ const (
 
 func TestMakeRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	mockRpcApi := mock_modserver.NewMockAgentRpcApi(ctrl)
 	server := mock_rpc.NewMockGitlabAccess_MakeRequestServer(ctrl)
 	server.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
 		MinTimes(1)
 	header := http.Header{
 		"k": []string{"v1", "v2"},

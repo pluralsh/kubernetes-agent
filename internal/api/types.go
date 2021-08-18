@@ -5,11 +5,6 @@ import "gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 // AgentToken is agentk's bearer access token.
 type AgentToken string
 
-// AgentMD contains gRPC metadata received from agentk with a request.
-type AgentMD struct {
-	Token AgentToken
-}
-
 type GitalyInfo struct {
 	Address  string
 	Token    string

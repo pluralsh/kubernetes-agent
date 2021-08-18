@@ -30,7 +30,7 @@ func newServer(gitLabClient gitlab.ClientInterface) *server {
 				return gapi.MakeModuleRequest(
 					ctx,
 					gitLabClient,
-					modserver.RpcApiFromContext(ctx).AgentToken(),
+					modserver.AgentRpcApiFromContext(ctx).AgentToken(),
 					extra.ModuleName,
 					header.Request.Method,
 					header.Request.UrlPath,
@@ -44,6 +44,6 @@ func newServer(gitLabClient gitlab.ClientInterface) *server {
 }
 
 func (s *server) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
-	rpcApi := modserver.RpcApiFromContext(server.Context())
+	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	return s.pipe.Pipe(rpcApi, server, modshared.NoAgentId)
 }
