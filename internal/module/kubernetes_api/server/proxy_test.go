@@ -104,42 +104,48 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 	}
 }
 
-func TestProxy_UnknownJobToken(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
-		assertToken(t, r)
-		w.WriteHeader(http.StatusUnauthorized) // pretend the token is invalid
-	})
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
-	assert.Empty(t, string(readAll(t, resp.Body)))
-}
-
-func TestProxy_ForbiddenJobToken(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
-		assertToken(t, r)
-		w.WriteHeader(http.StatusForbidden) // pretend the token is forbidden
-	})
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
-	assert.Empty(t, string(readAll(t, resp.Body)))
-}
-
-func TestProxy_ServerError(t *testing.T) {
-	api, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
-		assertToken(t, r)
-		w.WriteHeader(http.StatusBadGateway) // pretend there is some weird error
-	})
-	api.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("HTTP status code: 502"))
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.EqualValues(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Empty(t, string(readAll(t, resp.Body)))
+func TestProxy_AllowedAgentsError(t *testing.T) {
+	tests := []struct {
+		allowedAgentsHttpStatus int
+		expectedHttpStatus      int
+		captureErr              bool
+	}{
+		{
+			allowedAgentsHttpStatus: http.StatusUnauthorized, // token is invalid
+			expectedHttpStatus:      http.StatusUnauthorized,
+		},
+		{
+			allowedAgentsHttpStatus: http.StatusForbidden, // token is forbidden
+			expectedHttpStatus:      http.StatusForbidden,
+		},
+		{
+			allowedAgentsHttpStatus: http.StatusNotFound, // agent is not found
+			expectedHttpStatus:      http.StatusNotFound,
+		},
+		{
+			allowedAgentsHttpStatus: http.StatusBadGateway, // some weird error
+			expectedHttpStatus:      http.StatusInternalServerError,
+			captureErr:              true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(strconv.Itoa(tc.allowedAgentsHttpStatus), func(t *testing.T) {
+			api, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+				assertToken(t, r)
+				w.WriteHeader(tc.allowedAgentsHttpStatus)
+			})
+			if tc.captureErr {
+				api.EXPECT().
+					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
+						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d", tc.allowedAgentsHttpStatus)))
+			}
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.EqualValues(t, tc.expectedHttpStatus, resp.StatusCode)
+			assert.Empty(t, string(readAll(t, resp.Body)))
+		})
+	}
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {

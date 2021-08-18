@@ -4,6 +4,9 @@ import (
 	"context"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -12,6 +15,17 @@ type agentRpcApiKeyType int
 const (
 	agentRpcApiKey agentRpcApiKeyType = iota
 )
+
+// AgentRpcApi provides the API for the module's gRPC handlers to use.
+// It should be used only by modules, that handle requests from agents.
+type AgentRpcApi interface {
+	modshared.RpcApi
+	// AgentToken returns the token of an agent making the RPC.
+	AgentToken() api.AgentToken
+	// AgentInfo returns information about the agent making the RPC.
+	// It returns a gRPC-compatible error.
+	AgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error)
+}
 
 type AgentRpcApiFactory func(ctx context.Context, fullMethodName string) (AgentRpcApi, error)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"google.golang.org/grpc"
 )
 
@@ -12,6 +13,11 @@ type rpcApiKeyType int
 const (
 	rpcApiKey rpcApiKeyType = iota
 )
+
+// RpcApi provides the API for the module's gRPC handlers to use.
+type RpcApi interface {
+	modshared.RpcApi
+}
 
 type RpcApiFactory func(ctx context.Context, fullMethodName string) RpcApi
 
