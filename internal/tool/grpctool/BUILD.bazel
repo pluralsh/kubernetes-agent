@@ -16,7 +16,6 @@ go_proto_generate(
 go_library(
     name = "grpctool",
     srcs = [
-        "client_ctx.go",
         "client_limiting.go",
         "client_validator.go",
         "dial_listener.go",
@@ -27,7 +26,6 @@ go_library(
         "jwt_server_auth.go",
         "max_conn_age.go",
         "raw_codec.go",
-        "server_ctx.go",
         "server_limiting.go",
         "stream_visitor.go",
         "stream_visitor_options.go",
@@ -46,7 +44,6 @@ go_library(
         "@com_github_ash2k_stager//:stager",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_jwt_jwt_v4//:jwt",
-        "@com_github_grpc_ecosystem_go_grpc_middleware//:go-grpc-middleware",
         "@com_github_grpc_ecosystem_go_grpc_middleware//auth",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
         "@org_golang_google_grpc//:grpc",
