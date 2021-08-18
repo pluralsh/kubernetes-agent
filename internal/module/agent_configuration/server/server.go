@@ -41,7 +41,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	}
 	defer s.maybeUnregisterAgent(connectedAgentInfo)
 	ctx := server.Context()
-	rpcApi := modserver.RpcApiFromContext(ctx)
+	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
 	lastProcessedCommitId := req.CommitId
 	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {

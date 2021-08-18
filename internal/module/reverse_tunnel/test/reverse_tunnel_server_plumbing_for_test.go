@@ -24,10 +24,10 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockRpcApi, *mock_reverse_tunnel_tracker.MockRegisterer) {
+func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAgentRpcApi, *mock_reverse_tunnel_tracker.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	serverRpcApi := mock_modserver.NewMockRpcApi(ctrl)
+	serverRpcApi := mock_modserver.NewMockAgentRpcApi(ctrl)
 	serverRpcApi.EXPECT().
 		Log().
 		Return(log).
@@ -129,23 +129,21 @@ func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, 
 	})
 }
 
-func serverConstructAgentServer(ctx context.Context, rpcApi modserver.RpcApi) *grpc.Server {
+func serverConstructAgentServer(ctx context.Context, rpcApi modserver.AgentRpcApi) *grpc.Server {
 	kp, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
-	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
-		return rpcApi
+	factory := func(ctx context.Context, fullMethodName string) (modserver.AgentRpcApi, error) {
+		return rpcApi, nil
 	}
 	return grpc.NewServer(
 		grpc.StatsHandler(sh),
 		kp,
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerAgentMDInterceptor(),
 			grpc_validator.StreamServerInterceptor(),
-			modserver.StreamRpcApiInterceptor(factory),
+			modserver.StreamAgentRpcApiInterceptor(factory),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerAgentMDInterceptor(),
 			grpc_validator.UnaryServerInterceptor(),
-			modserver.UnaryRpcApiInterceptor(factory),
+			modserver.UnaryAgentRpcApiInterceptor(factory),
 		),
 	)
 }

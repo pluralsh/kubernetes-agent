@@ -225,9 +225,9 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 	}
 }
 
-func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockRpcApi) {
+func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi) {
 	ctrl := gomock.NewController(t)
-	mockRpcApi := mock_modserver.NewMockRpcApiWithMockPoller(ctrl, 1)
+	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	s := &server{
@@ -254,7 +254,7 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(t, mockRpcApi)).
+		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
 		MinTimes(1)
 	return s, agentInfo, ctrl, gitalyPool, resp, mockRpcApi
 }

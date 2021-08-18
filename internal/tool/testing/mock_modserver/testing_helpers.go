@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func IncomingCtx(t *testing.T, rpcApi *MockRpcApi) context.Context {
+func IncomingAgentCtx(t *testing.T, rpcApi *MockAgentRpcApi) context.Context {
 	rpcApi.EXPECT().
 		AgentToken().
 		Return(testhelpers.AgentkToken).
@@ -20,7 +20,7 @@ func IncomingCtx(t *testing.T, rpcApi *MockRpcApi) context.Context {
 		AnyTimes()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	ctx = modserver.InjectRpcApi(ctx, rpcApi)
+	ctx = modserver.InjectAgentRpcApi(ctx, rpcApi)
 
 	return ctx
 }
