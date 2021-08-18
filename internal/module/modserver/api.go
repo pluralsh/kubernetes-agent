@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
@@ -73,24 +72,6 @@ type Config struct {
 // Api provides the API for the module to use.
 type Api interface {
 	modshared.Api
-}
-
-// RpcApi provides the API for the module's gRPC handlers to use.
-type RpcApi interface {
-	modshared.RpcApi
-}
-
-// AgentRpcApi provides the API for the module's gRPC handlers to use.
-// It should be used only by modules, that handle requests from agents.
-type AgentRpcApi interface {
-	modshared.RpcApi
-	// AgentToken returns the token of an agent making the RPC.
-	// It can only be called within an RPC context of the agent API server, it panics if misused.
-	AgentToken() api.AgentToken
-	// AgentInfo returns information about the agent making the RPC.
-	// It can only be called within an RPC context of the agent API server, it panics if misused.
-	// It returns a gRPC-compatible error.
-	AgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error)
 }
 
 type Factory interface {
