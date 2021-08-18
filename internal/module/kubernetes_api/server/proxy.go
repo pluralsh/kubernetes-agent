@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -233,6 +234,7 @@ func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Lo
 	if err != nil {
 		if writeFailed {
 			// there is likely a connection problem so the client will likely not receive this
+			err = errz.NewUserErrorWithCause(err, "")
 			return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to write response to client", err)
 		}
 		return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to read response from agent", err)
@@ -263,6 +265,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		n, err = r.Body.Read(buffer)
 		if err != nil && !errors.Is(err, io.EOF) {
 			// There is likely a connection problem so the client will likely not receive this
+			err = errz.NewUserErrorWithCause(err, "")
 			return p.handleProcessingError(ctx, log, agentId, "Proxy failed to read request body from client", err)
 		}
 		if n > 0 { // handle n=0, err=io.EOF case
