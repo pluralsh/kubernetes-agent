@@ -16,7 +16,6 @@ go_proto_generate(
 go_library(
     name = "grpctool",
     srcs = [
-        "agent_md.go",
         "client_ctx.go",
         "client_limiting.go",
         "client_validator.go",

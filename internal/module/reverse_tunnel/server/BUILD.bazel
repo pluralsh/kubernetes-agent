@@ -26,7 +26,6 @@ go_custom_test(
     ],
     embed = [":server"],
     deps = [
-        "//internal/api",
         "//internal/module/modserver",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",

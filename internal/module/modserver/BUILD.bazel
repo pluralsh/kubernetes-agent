@@ -9,6 +9,7 @@ go_proto_generate(
 go_library(
     name = "modserver",
     srcs = [
+        "agent_rpc_api.go",
         "api.go",
         "modserver.pb.go",
         "rpc_api.go",
