@@ -91,50 +91,50 @@ message CiliumCF {
 }
 
 // https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
-message CiAccess {
-  // TODO repeated CiAccessProject projects = 1 [json_name = "projects"];
-  repeated CiAccessGroup groups = 2 [json_name = "groups"];
+message CiAccessCF {
+  // TODO repeated CiAccessProjectCF projects = 1 [json_name = "projects"];
+  repeated CiAccessGroupCF groups = 2 [json_name = "groups"];
 }
 
-//message CiAccessProject {
+//message CiAccessProjectCF {
 //  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
 //  string default_namespace = 2  [json_name = "default_namespace"];
-//// TODO CiAccessAs access_as = 3  [json_name = "access_as"];
+//// TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
 //}
 
-message CiAccessGroup {
+message CiAccessGroupCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2  [json_name = "default_namespace"];
-// TODO CiAccessAs access_as = 3  [json_name = "access_as"];
+// TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
 }
 
-//message CiAccessAs {
+//message CiAccessAsCF {
 //  oneof as {
 //    option (validate.required) = true;
 //
-//    CiAccessAsAgent agent = 1 [json_name = "agent"];
-//    CiAccessAsImpersonate impersonate = 2 [json_name = "impersonate"];
-//    CiAccessAsCiJob ci_job = 3 [json_name = "ci_job"];
-//    CiAccessAsCiUser ci_user = 4 [json_name = "ci_user"];
+//    CiAccessAsAgentCF agent = 1 [json_name = "agent"];
+//    CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate"];
+//    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job"];
+//    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user"];
 //  }
 //}
 //
-//message CiAccessAsAgent {
+//message CiAccessAsAgentCF {
 //}
 //
-//message CiAccessAsCiJob {
+//message CiAccessAsCiJobCF {
 //}
 //
-//message CiAccessAsCiUser {
+//message CiAccessAsCiUserCF {
 //}
 //
-//message CiAccessAsImpersonate {
+//message CiAccessAsImpersonateCF {
 //  string name = 1 [json_name = "name", (validate.rules).string.min_bytes = 1];
 //  repeated string groups = 2 [json_name = "groups", (validate.rules).repeated.items.string.min_bytes = 1];
-//  repeated ExtraKeyVal extra = 3 [json_name = "extra"];
+//  repeated ExtraKeyValCF extra = 3 [json_name = "extra"];
 //}
 //
-//message ExtraKeyVal {
+//message ExtraKeyValCF {
 //  string key = 1 [json_name = "key", (validate.rules).string.min_bytes = 1];
 //  repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
 //}
@@ -146,7 +146,7 @@ message ConfigurationFile {
   // agent itself, not any observability-related features.
   ObservabilityCF observability = 2 [json_name = "observability"];
   CiliumCF cilium = 3 [json_name = "cilium"];
-  CiAccess ci_access = 4 [json_name = "ci_access"];
+  CiAccessCF ci_access = 4 [json_name = "ci_access"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -161,5 +161,5 @@ message AgentConfiguration {
   int64 agent_id = 4;
   // Id of the configuration project.
   int64 project_id = 5;
-  CiAccess ci_access = 6;
+  CiAccessCF ci_access = 6;
 }

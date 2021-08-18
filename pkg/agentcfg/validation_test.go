@@ -13,8 +13,8 @@ func TestValidation_Valid(t *testing.T) {
 			Valid: &AgentConfiguration{},
 		},
 		{
-			Name: "empty CiAccessGroup.DefaultNamespace",
-			Valid: &CiAccessGroup{
+			Name: "empty CiAccessGroupCF.DefaultNamespace",
+			Valid: &CiAccessGroupCF{
 				Id:               "abc",
 				DefaultNamespace: "", // empty is ok
 			},
@@ -38,8 +38,8 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			ErrString: "invalid CiAccessGroup.Id: value length must be at least 1 bytes",
-			Invalid: &CiAccessGroup{
+			ErrString: "invalid CiAccessGroupCF.Id: value length must be at least 1 bytes",
+			Invalid: &CiAccessGroupCF{
 				Id: "", // empty id is not ok
 			},
 		},

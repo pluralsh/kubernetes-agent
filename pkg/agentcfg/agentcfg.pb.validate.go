@@ -555,9 +555,9 @@ var _ interface {
 	ErrorName() string
 } = CiliumCFValidationError{}
 
-// Validate checks the field values on CiAccess with the rules defined in the
+// Validate checks the field values on CiAccessCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
-func (m *CiAccess) Validate() error {
+func (m *CiAccessCF) Validate() error {
 	if m == nil {
 		return nil
 	}
@@ -567,7 +567,7 @@ func (m *CiAccess) Validate() error {
 
 		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				return CiAccessValidationError{
+				return CiAccessCFValidationError{
 					field:  fmt.Sprintf("Groups[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -580,9 +580,9 @@ func (m *CiAccess) Validate() error {
 	return nil
 }
 
-// CiAccessValidationError is the validation error returned by
-// CiAccess.Validate if the designated constraints aren't met.
-type CiAccessValidationError struct {
+// CiAccessCFValidationError is the validation error returned by
+// CiAccessCF.Validate if the designated constraints aren't met.
+type CiAccessCFValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -590,22 +590,22 @@ type CiAccessValidationError struct {
 }
 
 // Field function returns field value.
-func (e CiAccessValidationError) Field() string { return e.field }
+func (e CiAccessCFValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CiAccessValidationError) Reason() string { return e.reason }
+func (e CiAccessCFValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CiAccessValidationError) Cause() error { return e.cause }
+func (e CiAccessCFValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CiAccessValidationError) Key() bool { return e.key }
+func (e CiAccessCFValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CiAccessValidationError) ErrorName() string { return "CiAccessValidationError" }
+func (e CiAccessCFValidationError) ErrorName() string { return "CiAccessCFValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CiAccessValidationError) Error() string {
+func (e CiAccessCFValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -617,14 +617,14 @@ func (e CiAccessValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCiAccess.%s: %s%s",
+		"invalid %sCiAccessCF.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CiAccessValidationError{}
+var _ error = CiAccessCFValidationError{}
 
 var _ interface {
 	Field() string
@@ -632,18 +632,18 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CiAccessValidationError{}
+} = CiAccessCFValidationError{}
 
-// Validate checks the field values on CiAccessGroup with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *CiAccessGroup) Validate() error {
+// Validate checks the field values on CiAccessGroupCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *CiAccessGroupCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
 	if len(m.GetId()) < 1 {
-		return CiAccessGroupValidationError{
+		return CiAccessGroupCFValidationError{
 			field:  "Id",
 			reason: "value length must be at least 1 bytes",
 		}
@@ -654,9 +654,9 @@ func (m *CiAccessGroup) Validate() error {
 	return nil
 }
 
-// CiAccessGroupValidationError is the validation error returned by
-// CiAccessGroup.Validate if the designated constraints aren't met.
-type CiAccessGroupValidationError struct {
+// CiAccessGroupCFValidationError is the validation error returned by
+// CiAccessGroupCF.Validate if the designated constraints aren't met.
+type CiAccessGroupCFValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -664,22 +664,22 @@ type CiAccessGroupValidationError struct {
 }
 
 // Field function returns field value.
-func (e CiAccessGroupValidationError) Field() string { return e.field }
+func (e CiAccessGroupCFValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CiAccessGroupValidationError) Reason() string { return e.reason }
+func (e CiAccessGroupCFValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CiAccessGroupValidationError) Cause() error { return e.cause }
+func (e CiAccessGroupCFValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CiAccessGroupValidationError) Key() bool { return e.key }
+func (e CiAccessGroupCFValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CiAccessGroupValidationError) ErrorName() string { return "CiAccessGroupValidationError" }
+func (e CiAccessGroupCFValidationError) ErrorName() string { return "CiAccessGroupCFValidationError" }
 
 // Error satisfies the builtin error interface
-func (e CiAccessGroupValidationError) Error() string {
+func (e CiAccessGroupCFValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -691,14 +691,14 @@ func (e CiAccessGroupValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCiAccessGroup.%s: %s%s",
+		"invalid %sCiAccessGroupCF.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CiAccessGroupValidationError{}
+var _ error = CiAccessGroupCFValidationError{}
 
 var _ interface {
 	Field() string
@@ -706,7 +706,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CiAccessGroupValidationError{}
+} = CiAccessGroupCFValidationError{}
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
