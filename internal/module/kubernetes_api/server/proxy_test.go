@@ -456,7 +456,7 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.R
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		testhelpers.RespondWithJSON(t, w, &gapi.AllowedAgentsForJobAlias{ // use alias to ensure proper JSON marshaling
+		testhelpers.RespondWithJSON(t, w, &prototool.JsonBox{Message: &gapi.AllowedAgentsForJob{
 			AllowedAgents: []*gapi.AllowedAgent{
 				{
 					Id: testhelpers.AgentId,
@@ -479,7 +479,7 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.R
 				Id:       3,
 				Username: "testuser",
 			},
-		})
+		}})
 	}
 }
 

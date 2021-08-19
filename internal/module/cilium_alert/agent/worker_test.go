@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,21 +15,12 @@ import (
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/policy/api"
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
-	"google.golang.org/protobuf/testing/protocmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	_ json.Marshaler   = (*flowAlias)(nil)
-	_ json.Unmarshaler = (*flowAlias)(nil)
 )
 
 func TestSuccessfulMapping(t *testing.T) {
@@ -86,34 +76,6 @@ func TestNoMatch(t *testing.T) {
 			worker.Run(ctx)
 		})
 	}
-}
-
-func TestJSON(t *testing.T) {
-	expected := payload{
-		Alert: alert{
-			Flow: (*flowAlias)(&flow.Flow{
-				DropReasonDesc: flow.DropReason_POLICY_DENIED,
-			}),
-			CiliumNetworkPolicy: &v2.CiliumNetworkPolicy{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "bla",
-					APIVersion: "bla",
-				},
-			},
-		},
-	}
-	data, err := json.Marshal(expected)
-	require.NoError(t, err)
-
-	actual := payload{}
-	err = json.Unmarshal(data, &actual)
-	require.NoError(t, err)
-
-	assert.Empty(t, cmp.Diff(expected, actual, cmp.Transformer("flow", flowAlias2Flow), protocmp.Transform()))
-}
-
-func flowAlias2Flow(val *flowAlias) *flow.Flow {
-	return (*flow.Flow)(val)
 }
 
 func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockApi) {
