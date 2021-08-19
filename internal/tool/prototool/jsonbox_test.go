@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	_ json.Marshaler   = (*JsonBox)(nil)
+	_ json.Marshaler   = JsonBox{}
 	_ json.Unmarshaler = (*JsonBox)(nil)
 )
 
@@ -38,6 +38,17 @@ func TestJsonBox_RoundTrip(t *testing.T) {
 		expected interface{} // input is used if not set
 	}{
 		{
+			input: JsonBox{
+				Message: val,
+			},
+			output: &JsonBox{
+				Message: &HttpRequest{},
+			},
+			expected: &JsonBox{
+				Message: val,
+			},
+		},
+		{
 			input: &JsonBox{
 				Message: val,
 			},
@@ -46,7 +57,7 @@ func TestJsonBox_RoundTrip(t *testing.T) {
 			},
 		},
 		{
-			input: &embeddedBox{
+			input: &embeddedBox{ // pointer
 				A: JsonBox{
 					Message: val,
 				},
@@ -60,6 +71,32 @@ func TestJsonBox_RoundTrip(t *testing.T) {
 				},
 				B: &JsonBox{
 					Message: &HttpRequest{},
+				},
+			},
+		},
+		{
+			input: embeddedBox{ // not a pointer
+				A: JsonBox{
+					Message: val,
+				},
+				B: &JsonBox{
+					Message: val,
+				},
+			},
+			output: &embeddedBox{
+				A: JsonBox{
+					Message: &HttpRequest{},
+				},
+				B: &JsonBox{
+					Message: &HttpRequest{},
+				},
+			},
+			expected: &embeddedBox{
+				A: JsonBox{
+					Message: val,
+				},
+				B: &JsonBox{
+					Message: val,
 				},
 			},
 		},
