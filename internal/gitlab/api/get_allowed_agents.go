@@ -4,48 +4,29 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
 	AllowedAgentsApiPath = "/api/v4/job/allowed_agents"
 )
 
-type AllowedAgent struct {
-	Id            int64         `json:"id"`
-	ConfigProject ConfigProject `json:"config_project"`
+// AllowedAgentsForJobAlias ensures the protojson package is used for to/from JSON marshaling.
+// See https://pkg.go.dev/google.golang.org/protobuf/encoding/protojson.
+type AllowedAgentsForJobAlias AllowedAgentsForJob
+
+func (a *AllowedAgentsForJobAlias) MarshalJSON() ([]byte, error) {
+	typedA := (*AllowedAgentsForJob)(a)
+	return protojson.Marshal(typedA)
 }
 
-type ConfigProject struct {
-	Id int64 `json:"id"`
-}
-
-type Pipeline struct {
-	Id int64 `json:"id"`
-}
-
-type Project struct {
-	Id int64 `json:"id"`
-}
-
-type Job struct {
-	Id int64 `json:"id"`
-}
-
-type User struct {
-	Id       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-type AllowedAgentsForJob struct {
-	AllowedAgents []AllowedAgent `json:"allowed_agents"`
-	Job           Job            `json:"job"`
-	Pipeline      Pipeline       `json:"pipeline"`
-	Project       Project        `json:"project"`
-	User          User           `json:"user"`
+func (a *AllowedAgentsForJobAlias) UnmarshalJSON(data []byte) error {
+	typedA := (*AllowedAgentsForJob)(a)
+	return protojson.Unmarshal(data, typedA)
 }
 
 func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, jobToken string) (*AllowedAgentsForJob, error) {
-	ji := &AllowedAgentsForJob{}
+	ji := &AllowedAgentsForJobAlias{}
 	err := client.Do(ctx,
 		gitlab.WithPath(AllowedAgentsApiPath),
 		gitlab.WithJobToken(jobToken),
@@ -54,5 +35,5 @@ func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, 
 	if err != nil {
 		return nil, err
 	}
-	return ji, nil
+	return (*AllowedAgentsForJob)(ji), nil
 }

@@ -22,11 +22,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -141,12 +143,19 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	p.requestCount.Inc() // Count only authenticated and authorized requests
 
+	impConfig, err := constructImpersonationConfig(aa)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		p.api.HandleProcessingError(ctx, log, agentId, "Failed to construct impersonation config", err)
+		return
+	}
+
 	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
 	r.Header.Add(viaHeader, "gRPC/1.0 "+p.serverName)
 
-	headerWritten, errF := p.pipeStreams(ctx, log, w, r, agentId)
+	headerWritten, errF := p.pipeStreams(ctx, log, agentId, w, r, impConfig)
 	if errF != nil {
 		if headerWritten {
 			// HTTP status has been written already as part of the normal response flow.
@@ -171,7 +180,7 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToke
 	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
 }
 
-func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w http.ResponseWriter, r *http.Request, agentId int64) (bool /* headerWritten */, errFunc) {
+func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request, impConfig *rpc.ImpersonationConfig) (bool, errFunc) {
 	g, ctx := errgroup.WithContext(ctx)
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md)) // must use context from errgroup
@@ -180,7 +189,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	}
 	// Pipe client -> remote
 	g.Go(func() error {
-		errFuncRet := p.pipeClientToRemote(ctx, log, agentId, mkClient, r)
+		errFuncRet := p.pipeClientToRemote(ctx, log, agentId, mkClient, r, impConfig)
 		if errFuncRet != nil {
 			return errFuncRet
 		}
@@ -190,7 +199,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	headerWritten := false
 	g.Go(func() error {
 		var errFuncRet errFunc
-		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, agentId, w, mkClient)
+		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, agentId, mkClient, w)
 		if errFuncRet != nil {
 			return errFuncRet
 		}
@@ -203,7 +212,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	return false, nil
 }
 
-func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, w http.ResponseWriter, mkClient rpc.KubernetesApi_MakeRequestClient) (bool, errFunc) {
+func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, w http.ResponseWriter) (bool, errFunc) {
 	writeFailed := false
 	headerWritten := false
 	err := p.streamVisitor.Visit(mkClient,
@@ -242,8 +251,15 @@ func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Lo
 	return headerWritten, nil
 }
 
-func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, r *http.Request) errFunc {
-	err := mkClient.Send(&grpctool.HttpRequest{
+func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Logger, agentId int64,
+	mkClient rpc.KubernetesApi_MakeRequestClient, r *http.Request, impConfig *rpc.ImpersonationConfig) errFunc {
+	extra, err := anypb.New(&rpc.HeaderExtra{
+		ImpConfig: impConfig,
+	})
+	if err != nil {
+		return p.handleProcessingError(ctx, log, agentId, "Proxy failed to marshal HttpRequestExtra proto", err)
+	}
+	err = mkClient.Send(&grpctool.HttpRequest{
 		Message: &grpctool.HttpRequest_Header_{
 			Header: &grpctool.HttpRequest_Header{
 				Request: &prototool.HttpRequest{
@@ -252,6 +268,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 					UrlPath: r.URL.Path,
 					Query:   prototool.UrlValuesToValuesMap(r.URL.Query()),
 				},
+				Extra: extra,
 			},
 		},
 	})
@@ -302,7 +319,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
 	for _, aa := range agentsForJob.AllowedAgents {
 		if aa.Id == agentId {
-			return &aa
+			return aa
 		}
 	}
 	return nil
@@ -376,6 +393,39 @@ func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err er
 func (p *kubernetesApiProxy) handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) errFunc {
 	p.api.HandleProcessingError(ctx, log, agentId, msg, err)
 	return writeError(msg, err)
+}
+
+func constructImpersonationConfig(aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
+	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
+	if as == nil {
+		as = &agentcfg.CiAccessAsCF_Agent{} // default value
+	}
+	switch imp := as.(type) {
+	case *agentcfg.CiAccessAsCF_Impersonate:
+		i := imp.Impersonate
+		return &rpc.ImpersonationConfig{
+			Username: i.Username,
+			Groups:   i.Groups,
+			Uid:      i.Uid,
+			Extra:    convertExtra(i.Extra),
+		}, nil
+	case *agentcfg.CiAccessAsCF_Agent:
+		return &rpc.ImpersonationConfig{}, nil
+	default:
+		// Normally this should never happen
+		return nil, fmt.Errorf("unexpected impersonation mode: %T", imp)
+	}
+}
+
+func convertExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
+	out := make([]*rpc.ExtraKeyVal, 0, len(in))
+	for _, kv := range in {
+		out = append(out, &rpc.ExtraKeyVal{
+			Key: kv.Key,
+			Val: kv.Val,
+		})
+	}
+	return out
 }
 
 func writeError(msg string, err error) errFunc {

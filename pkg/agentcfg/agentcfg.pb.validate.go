@@ -708,6 +708,366 @@ var _ interface {
 	ErrorName() string
 } = CiAccessGroupCFValidationError{}
 
+// Validate checks the field values on CiAccessAsCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *CiAccessAsCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	switch m.As.(type) {
+
+	case *CiAccessAsCF_Agent:
+
+		if v, ok := interface{}(m.GetAgent()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CiAccessAsCFValidationError{
+					field:  "Agent",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *CiAccessAsCF_Impersonate:
+
+		if v, ok := interface{}(m.GetImpersonate()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CiAccessAsCFValidationError{
+					field:  "Impersonate",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	default:
+		return CiAccessAsCFValidationError{
+			field:  "As",
+			reason: "value is required",
+		}
+
+	}
+
+	return nil
+}
+
+// CiAccessAsCFValidationError is the validation error returned by
+// CiAccessAsCF.Validate if the designated constraints aren't met.
+type CiAccessAsCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessAsCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessAsCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessAsCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessAsCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessAsCFValidationError) ErrorName() string { return "CiAccessAsCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CiAccessAsCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccessAsCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessAsCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessAsCFValidationError{}
+
+// Validate checks the field values on CiAccessAsAgentCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *CiAccessAsAgentCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	return nil
+}
+
+// CiAccessAsAgentCFValidationError is the validation error returned by
+// CiAccessAsAgentCF.Validate if the designated constraints aren't met.
+type CiAccessAsAgentCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessAsAgentCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessAsAgentCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessAsAgentCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessAsAgentCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessAsAgentCFValidationError) ErrorName() string {
+	return "CiAccessAsAgentCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CiAccessAsAgentCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccessAsAgentCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessAsAgentCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessAsAgentCFValidationError{}
+
+// Validate checks the field values on CiAccessAsImpersonateCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *CiAccessAsImpersonateCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetUsername()) < 1 {
+		return CiAccessAsImpersonateCFValidationError{
+			field:  "Username",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	for idx, item := range m.GetGroups() {
+		_, _ = idx, item
+
+		if len(item) < 1 {
+			return CiAccessAsImpersonateCFValidationError{
+				field:  fmt.Sprintf("Groups[%v]", idx),
+				reason: "value length must be at least 1 bytes",
+			}
+		}
+
+	}
+
+	// no validation rules for Uid
+
+	for idx, item := range m.GetExtra() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CiAccessAsImpersonateCFValidationError{
+					field:  fmt.Sprintf("Extra[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// CiAccessAsImpersonateCFValidationError is the validation error returned by
+// CiAccessAsImpersonateCF.Validate if the designated constraints aren't met.
+type CiAccessAsImpersonateCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessAsImpersonateCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessAsImpersonateCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessAsImpersonateCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessAsImpersonateCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessAsImpersonateCFValidationError) ErrorName() string {
+	return "CiAccessAsImpersonateCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CiAccessAsImpersonateCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccessAsImpersonateCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessAsImpersonateCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessAsImpersonateCFValidationError{}
+
+// Validate checks the field values on ExtraKeyValCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *ExtraKeyValCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetKey()) < 1 {
+		return ExtraKeyValCFValidationError{
+			field:  "Key",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	if len(m.GetVal()) < 1 {
+		return ExtraKeyValCFValidationError{
+			field:  "Val",
+			reason: "value must contain at least 1 item(s)",
+		}
+	}
+
+	for idx, item := range m.GetVal() {
+		_, _ = idx, item
+
+		if len(item) < 1 {
+			return ExtraKeyValCFValidationError{
+				field:  fmt.Sprintf("Val[%v]", idx),
+				reason: "value length must be at least 1 bytes",
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ExtraKeyValCFValidationError is the validation error returned by
+// ExtraKeyValCF.Validate if the designated constraints aren't met.
+type ExtraKeyValCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ExtraKeyValCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ExtraKeyValCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ExtraKeyValCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ExtraKeyValCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ExtraKeyValCFValidationError) ErrorName() string { return "ExtraKeyValCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ExtraKeyValCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sExtraKeyValCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ExtraKeyValCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ExtraKeyValCFValidationError{}
+
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.

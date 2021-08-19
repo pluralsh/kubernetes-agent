@@ -98,46 +98,48 @@ message CiAccessCF {
 
 //message CiAccessProjectCF {
 //  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
-//  string default_namespace = 2  [json_name = "default_namespace"];
+//  string default_namespace = 2 [json_name = "default_namespace"];
 //// TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
 //}
 
 message CiAccessGroupCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
-  string default_namespace = 2  [json_name = "default_namespace"];
+  string default_namespace = 2 [json_name = "default_namespace"];
 // TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
 }
 
-//message CiAccessAsCF {
-//  oneof as {
-//    option (validate.required) = true;
-//
-//    CiAccessAsAgentCF agent = 1 [json_name = "agent"];
-//    CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate"];
+message CiAccessAsCF {
+  oneof as {
+    option (validate.required) = true;
+
+    CiAccessAsAgentCF agent = 1 [json_name = "agent"];
+    CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate"];
 //    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job"];
 //    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user"];
-//  }
-//}
-//
-//message CiAccessAsAgentCF {
-//}
-//
+  }
+}
+
+message CiAccessAsAgentCF {
+}
+
 //message CiAccessAsCiJobCF {
 //}
 //
 //message CiAccessAsCiUserCF {
 //}
-//
-//message CiAccessAsImpersonateCF {
-//  string name = 1 [json_name = "name", (validate.rules).string.min_bytes = 1];
-//  repeated string groups = 2 [json_name = "groups", (validate.rules).repeated.items.string.min_bytes = 1];
-//  repeated ExtraKeyValCF extra = 3 [json_name = "extra"];
-//}
-//
-//message ExtraKeyValCF {
-//  string key = 1 [json_name = "key", (validate.rules).string.min_bytes = 1];
-//  repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
-//}
+
+message CiAccessAsImpersonateCF {
+  string username = 1 [json_name = "username", (validate.rules).string.min_bytes = 1];
+  repeated string groups = 2 [json_name = "groups", (validate.rules).repeated.items.string.min_bytes = 1];
+  string uid = 3 [json_name = "uid"];
+  repeated ExtraKeyValCF extra = 4 [json_name = "extra"];
+}
+
+message ExtraKeyValCF {
+  string key = 1 [json_name = "key", (validate.rules).string.min_bytes = 1];
+  // Empty elements are allowed by Kubernetes.
+  repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
+}
 
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {

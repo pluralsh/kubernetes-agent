@@ -13,6 +13,7 @@ go_library(
     name = "rpc",
     srcs = [
         "rpc.pb.go",
+        "rpc_extra.go",
         "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc",

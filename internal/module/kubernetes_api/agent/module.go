@@ -8,11 +8,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 )
 
-var (
-	_ modagent.Module  = &module{}
-	_ modagent.Factory = &Factory{}
-)
-
 type module struct {
 	api modagent.Api
 }

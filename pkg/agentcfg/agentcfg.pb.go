@@ -542,6 +542,250 @@ func (x *CiAccessGroupCF) GetDefaultNamespace() string {
 	return ""
 }
 
+type CiAccessAsCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to As:
+	//	*CiAccessAsCF_Agent
+	//	*CiAccessAsCF_Impersonate
+	As isCiAccessAsCF_As `protobuf_oneof:"as"`
+}
+
+func (x *CiAccessAsCF) Reset() {
+	*x = CiAccessAsCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CiAccessAsCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CiAccessAsCF) ProtoMessage() {}
+
+func (x *CiAccessAsCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CiAccessAsCF.ProtoReflect.Descriptor instead.
+func (*CiAccessAsCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{8}
+}
+
+func (m *CiAccessAsCF) GetAs() isCiAccessAsCF_As {
+	if m != nil {
+		return m.As
+	}
+	return nil
+}
+
+func (x *CiAccessAsCF) GetAgent() *CiAccessAsAgentCF {
+	if x, ok := x.GetAs().(*CiAccessAsCF_Agent); ok {
+		return x.Agent
+	}
+	return nil
+}
+
+func (x *CiAccessAsCF) GetImpersonate() *CiAccessAsImpersonateCF {
+	if x, ok := x.GetAs().(*CiAccessAsCF_Impersonate); ok {
+		return x.Impersonate
+	}
+	return nil
+}
+
+type isCiAccessAsCF_As interface {
+	isCiAccessAsCF_As()
+}
+
+type CiAccessAsCF_Agent struct {
+	Agent *CiAccessAsAgentCF `protobuf:"bytes,1,opt,name=agent,proto3,oneof"`
+}
+
+type CiAccessAsCF_Impersonate struct {
+	Impersonate *CiAccessAsImpersonateCF `protobuf:"bytes,2,opt,name=impersonate,proto3,oneof"`
+}
+
+func (*CiAccessAsCF_Agent) isCiAccessAsCF_As() {}
+
+func (*CiAccessAsCF_Impersonate) isCiAccessAsCF_As() {}
+
+type CiAccessAsAgentCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *CiAccessAsAgentCF) Reset() {
+	*x = CiAccessAsAgentCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CiAccessAsAgentCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CiAccessAsAgentCF) ProtoMessage() {}
+
+func (x *CiAccessAsAgentCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CiAccessAsAgentCF.ProtoReflect.Descriptor instead.
+func (*CiAccessAsAgentCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{9}
+}
+
+type CiAccessAsImpersonateCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Username string           `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Groups   []string         `protobuf:"bytes,2,rep,name=groups,proto3" json:"groups,omitempty"`
+	Uid      string           `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`
+	Extra    []*ExtraKeyValCF `protobuf:"bytes,4,rep,name=extra,proto3" json:"extra,omitempty"`
+}
+
+func (x *CiAccessAsImpersonateCF) Reset() {
+	*x = CiAccessAsImpersonateCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CiAccessAsImpersonateCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CiAccessAsImpersonateCF) ProtoMessage() {}
+
+func (x *CiAccessAsImpersonateCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CiAccessAsImpersonateCF.ProtoReflect.Descriptor instead.
+func (*CiAccessAsImpersonateCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CiAccessAsImpersonateCF) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CiAccessAsImpersonateCF) GetGroups() []string {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+func (x *CiAccessAsImpersonateCF) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
+}
+
+func (x *CiAccessAsImpersonateCF) GetExtra() []*ExtraKeyValCF {
+	if x != nil {
+		return x.Extra
+	}
+	return nil
+}
+
+type ExtraKeyValCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Val []string `protobuf:"bytes,2,rep,name=val,proto3" json:"val,omitempty"`
+}
+
+func (x *ExtraKeyValCF) Reset() {
+	*x = ExtraKeyValCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExtraKeyValCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtraKeyValCF) ProtoMessage() {}
+
+func (x *ExtraKeyValCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtraKeyValCF.ProtoReflect.Descriptor instead.
+func (*ExtraKeyValCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ExtraKeyValCF) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ExtraKeyValCF) GetVal() []string {
+	if x != nil {
+		return x.Val
+	}
+	return nil
+}
+
 type ConfigurationFile struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -556,7 +800,7 @@ type ConfigurationFile struct {
 func (x *ConfigurationFile) Reset() {
 	*x = ConfigurationFile{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[8]
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -569,7 +813,7 @@ func (x *ConfigurationFile) String() string {
 func (*ConfigurationFile) ProtoMessage() {}
 
 func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[8]
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -582,7 +826,7 @@ func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationFile.ProtoReflect.Descriptor instead.
 func (*ConfigurationFile) Descriptor() ([]byte, []int) {
-	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{8}
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ConfigurationFile) GetGitops() *GitopsCF {
@@ -629,7 +873,7 @@ type AgentConfiguration struct {
 func (x *AgentConfiguration) Reset() {
 	*x = AgentConfiguration{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[9]
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -642,7 +886,7 @@ func (x *AgentConfiguration) String() string {
 func (*AgentConfiguration) ProtoMessage() {}
 
 func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[9]
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +899,7 @@ func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConfiguration.ProtoReflect.Descriptor instead.
 func (*AgentConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{9}
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AgentConfiguration) GetGitops() *GitopsCF {
@@ -781,7 +1025,36 @@ var file_pkg_agentcfg_agentcfg_proto_rawDesc = []byte{
 	0x42, 0x04, 0x72, 0x02, 0x20, 0x01, 0x52, 0x02, 0x69, 0x64, 0x12, 0x2c, 0x0a, 0x11, 0x64, 0x65,
 	0x66, 0x61, 0x75, 0x6c, 0x74, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x18,
 	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x11, 0x64, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x5f, 0x6e,
-	0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x22, 0x94, 0x02, 0x0a, 0x11, 0x43, 0x6f, 0x6e,
+	0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x22, 0xaf, 0x01, 0x0a, 0x0c, 0x43, 0x69, 0x41,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x43, 0x46, 0x12, 0x40, 0x0a, 0x05, 0x61, 0x67, 0x65,
+	0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61,
+	0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67,
+	0x2e, 0x43, 0x69, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x41, 0x67, 0x65, 0x6e, 0x74,
+	0x43, 0x46, 0x48, 0x00, 0x52, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x12, 0x52, 0x0a, 0x0b, 0x69,
+	0x6d, 0x70, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x2e, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e,
+	0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x43, 0x69, 0x41, 0x63, 0x63, 0x65, 0x73,
+	0x73, 0x41, 0x73, 0x49, 0x6d, 0x70, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x61, 0x74, 0x65, 0x43, 0x46,
+	0x48, 0x00, 0x52, 0x0b, 0x69, 0x6d, 0x70, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x61, 0x74, 0x65, 0x42,
+	0x09, 0x0a, 0x02, 0x61, 0x73, 0x12, 0x03, 0xf8, 0x42, 0x01, 0x22, 0x13, 0x0a, 0x11, 0x43, 0x69,
+	0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x46, 0x22,
+	0xb2, 0x01, 0x0a, 0x17, 0x43, 0x69, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x49, 0x6d,
+	0x70, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x61, 0x74, 0x65, 0x43, 0x46, 0x12, 0x23, 0x0a, 0x08, 0x75,
+	0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xfa,
+	0x42, 0x04, 0x72, 0x02, 0x20, 0x01, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65,
+	0x12, 0x24, 0x0a, 0x06, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09,
+	0x42, 0x0c, 0xfa, 0x42, 0x09, 0x92, 0x01, 0x06, 0x22, 0x04, 0x72, 0x02, 0x20, 0x01, 0x52, 0x06,
+	0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x69, 0x64, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x3a, 0x0a, 0x05, 0x65, 0x78, 0x74, 0x72,
+	0x61, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
+	0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e,
+	0x45, 0x78, 0x74, 0x72, 0x61, 0x4b, 0x65, 0x79, 0x56, 0x61, 0x6c, 0x43, 0x46, 0x52, 0x05, 0x65,
+	0x78, 0x74, 0x72, 0x61, 0x22, 0x52, 0x0a, 0x0d, 0x45, 0x78, 0x74, 0x72, 0x61, 0x4b, 0x65, 0x79,
+	0x56, 0x61, 0x6c, 0x43, 0x46, 0x12, 0x19, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x42, 0x07, 0xfa, 0x42, 0x04, 0x72, 0x02, 0x20, 0x01, 0x52, 0x03, 0x6b, 0x65, 0x79,
+	0x12, 0x26, 0x0a, 0x03, 0x76, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x42, 0x14, 0xfa,
+	0x42, 0x05, 0x92, 0x01, 0x02, 0x08, 0x01, 0xfa, 0x42, 0x09, 0x92, 0x01, 0x06, 0x22, 0x04, 0x72,
+	0x02, 0x20, 0x01, 0x52, 0x03, 0x76, 0x61, 0x6c, 0x22, 0x94, 0x02, 0x0a, 0x11, 0x43, 0x6f, 0x6e,
 	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x37,
 	0x0a, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f,
 	0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x67,
@@ -845,42 +1118,49 @@ func file_pkg_agentcfg_agentcfg_proto_rawDescGZIP() []byte {
 }
 
 var file_pkg_agentcfg_agentcfg_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pkg_agentcfg_agentcfg_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_pkg_agentcfg_agentcfg_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_pkg_agentcfg_agentcfg_proto_goTypes = []interface{}{
-	(LoggingLevelEnum)(0),       // 0: gitlab.agent.agentcfg.logging_level_enum
-	(*PathCF)(nil),              // 1: gitlab.agent.agentcfg.PathCF
-	(*ManifestProjectCF)(nil),   // 2: gitlab.agent.agentcfg.ManifestProjectCF
-	(*GitopsCF)(nil),            // 3: gitlab.agent.agentcfg.GitopsCF
-	(*ObservabilityCF)(nil),     // 4: gitlab.agent.agentcfg.ObservabilityCF
-	(*LoggingCF)(nil),           // 5: gitlab.agent.agentcfg.LoggingCF
-	(*CiliumCF)(nil),            // 6: gitlab.agent.agentcfg.CiliumCF
-	(*CiAccessCF)(nil),          // 7: gitlab.agent.agentcfg.CiAccessCF
-	(*CiAccessGroupCF)(nil),     // 8: gitlab.agent.agentcfg.CiAccessGroupCF
-	(*ConfigurationFile)(nil),   // 9: gitlab.agent.agentcfg.ConfigurationFile
-	(*AgentConfiguration)(nil),  // 10: gitlab.agent.agentcfg.AgentConfiguration
-	(*durationpb.Duration)(nil), // 11: google.protobuf.Duration
+	(LoggingLevelEnum)(0),           // 0: gitlab.agent.agentcfg.logging_level_enum
+	(*PathCF)(nil),                  // 1: gitlab.agent.agentcfg.PathCF
+	(*ManifestProjectCF)(nil),       // 2: gitlab.agent.agentcfg.ManifestProjectCF
+	(*GitopsCF)(nil),                // 3: gitlab.agent.agentcfg.GitopsCF
+	(*ObservabilityCF)(nil),         // 4: gitlab.agent.agentcfg.ObservabilityCF
+	(*LoggingCF)(nil),               // 5: gitlab.agent.agentcfg.LoggingCF
+	(*CiliumCF)(nil),                // 6: gitlab.agent.agentcfg.CiliumCF
+	(*CiAccessCF)(nil),              // 7: gitlab.agent.agentcfg.CiAccessCF
+	(*CiAccessGroupCF)(nil),         // 8: gitlab.agent.agentcfg.CiAccessGroupCF
+	(*CiAccessAsCF)(nil),            // 9: gitlab.agent.agentcfg.CiAccessAsCF
+	(*CiAccessAsAgentCF)(nil),       // 10: gitlab.agent.agentcfg.CiAccessAsAgentCF
+	(*CiAccessAsImpersonateCF)(nil), // 11: gitlab.agent.agentcfg.CiAccessAsImpersonateCF
+	(*ExtraKeyValCF)(nil),           // 12: gitlab.agent.agentcfg.ExtraKeyValCF
+	(*ConfigurationFile)(nil),       // 13: gitlab.agent.agentcfg.ConfigurationFile
+	(*AgentConfiguration)(nil),      // 14: gitlab.agent.agentcfg.AgentConfiguration
+	(*durationpb.Duration)(nil),     // 15: google.protobuf.Duration
 }
 var file_pkg_agentcfg_agentcfg_proto_depIdxs = []int32{
 	1,  // 0: gitlab.agent.agentcfg.ManifestProjectCF.paths:type_name -> gitlab.agent.agentcfg.PathCF
-	11, // 1: gitlab.agent.agentcfg.ManifestProjectCF.reconcile_timeout:type_name -> google.protobuf.Duration
-	11, // 2: gitlab.agent.agentcfg.ManifestProjectCF.prune_timeout:type_name -> google.protobuf.Duration
+	15, // 1: gitlab.agent.agentcfg.ManifestProjectCF.reconcile_timeout:type_name -> google.protobuf.Duration
+	15, // 2: gitlab.agent.agentcfg.ManifestProjectCF.prune_timeout:type_name -> google.protobuf.Duration
 	2,  // 3: gitlab.agent.agentcfg.GitopsCF.manifest_projects:type_name -> gitlab.agent.agentcfg.ManifestProjectCF
 	5,  // 4: gitlab.agent.agentcfg.ObservabilityCF.logging:type_name -> gitlab.agent.agentcfg.LoggingCF
 	0,  // 5: gitlab.agent.agentcfg.LoggingCF.level:type_name -> gitlab.agent.agentcfg.logging_level_enum
 	8,  // 6: gitlab.agent.agentcfg.CiAccessCF.groups:type_name -> gitlab.agent.agentcfg.CiAccessGroupCF
-	3,  // 7: gitlab.agent.agentcfg.ConfigurationFile.gitops:type_name -> gitlab.agent.agentcfg.GitopsCF
-	4,  // 8: gitlab.agent.agentcfg.ConfigurationFile.observability:type_name -> gitlab.agent.agentcfg.ObservabilityCF
-	6,  // 9: gitlab.agent.agentcfg.ConfigurationFile.cilium:type_name -> gitlab.agent.agentcfg.CiliumCF
-	7,  // 10: gitlab.agent.agentcfg.ConfigurationFile.ci_access:type_name -> gitlab.agent.agentcfg.CiAccessCF
-	3,  // 11: gitlab.agent.agentcfg.AgentConfiguration.gitops:type_name -> gitlab.agent.agentcfg.GitopsCF
-	4,  // 12: gitlab.agent.agentcfg.AgentConfiguration.observability:type_name -> gitlab.agent.agentcfg.ObservabilityCF
-	6,  // 13: gitlab.agent.agentcfg.AgentConfiguration.cilium:type_name -> gitlab.agent.agentcfg.CiliumCF
-	7,  // 14: gitlab.agent.agentcfg.AgentConfiguration.ci_access:type_name -> gitlab.agent.agentcfg.CiAccessCF
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	10, // 7: gitlab.agent.agentcfg.CiAccessAsCF.agent:type_name -> gitlab.agent.agentcfg.CiAccessAsAgentCF
+	11, // 8: gitlab.agent.agentcfg.CiAccessAsCF.impersonate:type_name -> gitlab.agent.agentcfg.CiAccessAsImpersonateCF
+	12, // 9: gitlab.agent.agentcfg.CiAccessAsImpersonateCF.extra:type_name -> gitlab.agent.agentcfg.ExtraKeyValCF
+	3,  // 10: gitlab.agent.agentcfg.ConfigurationFile.gitops:type_name -> gitlab.agent.agentcfg.GitopsCF
+	4,  // 11: gitlab.agent.agentcfg.ConfigurationFile.observability:type_name -> gitlab.agent.agentcfg.ObservabilityCF
+	6,  // 12: gitlab.agent.agentcfg.ConfigurationFile.cilium:type_name -> gitlab.agent.agentcfg.CiliumCF
+	7,  // 13: gitlab.agent.agentcfg.ConfigurationFile.ci_access:type_name -> gitlab.agent.agentcfg.CiAccessCF
+	3,  // 14: gitlab.agent.agentcfg.AgentConfiguration.gitops:type_name -> gitlab.agent.agentcfg.GitopsCF
+	4,  // 15: gitlab.agent.agentcfg.AgentConfiguration.observability:type_name -> gitlab.agent.agentcfg.ObservabilityCF
+	6,  // 16: gitlab.agent.agentcfg.AgentConfiguration.cilium:type_name -> gitlab.agent.agentcfg.CiliumCF
+	7,  // 17: gitlab.agent.agentcfg.AgentConfiguration.ci_access:type_name -> gitlab.agent.agentcfg.CiAccessCF
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_pkg_agentcfg_agentcfg_proto_init() }
@@ -986,7 +1266,7 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			}
 		}
 		file_pkg_agentcfg_agentcfg_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigurationFile); i {
+			switch v := v.(*CiAccessAsCF); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -998,6 +1278,54 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			}
 		}
 		file_pkg_agentcfg_agentcfg_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CiAccessAsAgentCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CiAccessAsImpersonateCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExtraKeyValCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConfigurationFile); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AgentConfiguration); i {
 			case 0:
 				return &v.state
@@ -1013,13 +1341,17 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 	file_pkg_agentcfg_agentcfg_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*ManifestProjectCF_Prune)(nil),
 	}
+	file_pkg_agentcfg_agentcfg_proto_msgTypes[8].OneofWrappers = []interface{}{
+		(*CiAccessAsCF_Agent)(nil),
+		(*CiAccessAsCF_Impersonate)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pkg_agentcfg_agentcfg_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

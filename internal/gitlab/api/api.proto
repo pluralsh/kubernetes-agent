@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.gitlab.api;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api";
+
+import "pkg/agentcfg/agentcfg.proto";
+
+// Configuration contains shared fields from agentcfg.CiAccessProjectCF and agentcfg.CiAccessGroupCF.
+// It is used to parse response from the allowed_agents API endpoint.
+// See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md#apiv4joballowed_agents-api.
+message Configuration {
+  string default_namespace = 1 [json_name = "default_namespace"];
+  agentcfg.CiAccessAsCF access_as = 2 [json_name = "access_as"];
+}
+
+message AllowedAgent {
+  int64 id = 1 [json_name = "id"];
+  ConfigProject config_project = 2 [json_name = "config_project"];
+  Configuration configuration = 3 [json_name = "configuration"];
+}
+
+message ConfigProject {
+  int64 id = 1 [json_name = "id"];
+}
+
+message Pipeline {
+  int64 id = 1 [json_name = "id"];
+}
+
+message Project {
+  int64 id = 1 [json_name = "id"];
+}
+
+message Job {
+  int64 id = 1 [json_name = "id"];
+}
+
+message User {
+  int64 id = 1 [json_name = "id"];
+  string username = 2 [json_name = "username"];
+}
+
+message AllowedAgentsForJob {
+  repeated AllowedAgent allowed_agents = 1 [json_name = "allowed_agents"];
+  Job job = 2 [json_name = "job"];
+  Pipeline pipeline = 3 [json_name = "pipeline"];
+  Project project = 4 [json_name = "project"];
+  User user = 5 [json_name = "user"];
+}
