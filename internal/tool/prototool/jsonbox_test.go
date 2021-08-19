@@ -2,6 +2,7 @@ package prototool
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -17,31 +18,88 @@ var (
 
 // Test round trip using stdlib json package.
 func TestJsonBox_RoundTrip(t *testing.T) {
-	source := &JsonBox{
-		Message: &HttpRequest{
-			Method: "POST",
-			Header: map[string]*Values{
-				"Req-Header": {
-					Value: []string{"x1", "x2"},
+	val := &HttpRequest{
+		Method: "POST",
+		Header: map[string]*Values{
+			"Req-Header": {
+				Value: []string{"x1", "x2"},
+			},
+		},
+		UrlPath: "adsad",
+		Query: map[string]*Values{
+			"asdsad": {
+				Value: []string{"asdasds"},
+			},
+		},
+	}
+	tests := []struct {
+		input    interface{}
+		output   interface{}
+		expected interface{} // input is used if not set
+	}{
+		{
+			input: &JsonBox{
+				Message: val,
+			},
+			output: &JsonBox{
+				Message: &HttpRequest{},
+			},
+		},
+		{
+			input: &embeddedBox{
+				A: JsonBox{
+					Message: val,
+				},
+				B: &JsonBox{
+					Message: val,
 				},
 			},
-			UrlPath: "adsad",
-			Query: map[string]*Values{
-				"asdsad": {
-					Value: []string{"asdasds"},
+			output: &embeddedBox{
+				A: JsonBox{
+					Message: &HttpRequest{},
+				},
+				B: &JsonBox{
+					Message: &HttpRequest{},
+				},
+			},
+		},
+		{
+			input: &embeddedBox{},
+			output: &embeddedBox{
+				A: JsonBox{
+					Message: &HttpRequest{},
+				},
+				B: &JsonBox{
+					Message: &HttpRequest{},
+				},
+			},
+			expected: &embeddedBox{
+				A: JsonBox{
+					Message: &HttpRequest{},
 				},
 			},
 		},
 	}
+	for i, tc := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			data, err := json.Marshal(tc.input)
+			require.NoError(t, err)
 
-	data, err := json.Marshal(source)
-	require.NoError(t, err)
+			err = json.Unmarshal(data, tc.output)
+			require.NoError(t, err)
 
-	actual := &JsonBox{
-		Message: &HttpRequest{},
+			var expected interface{}
+			if tc.expected != nil {
+				expected = tc.expected
+			} else {
+				expected = tc.input
+			}
+			assert.Empty(t, cmp.Diff(expected, tc.output, protocmp.Transform()))
+		})
 	}
-	err = json.Unmarshal(data, actual)
-	require.NoError(t, err)
+}
 
-	assert.Empty(t, cmp.Diff(source.Message, actual.Message, protocmp.Transform()))
+type embeddedBox struct {
+	A JsonBox
+	B *JsonBox
 }
