@@ -157,7 +157,7 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow, informer cache
 func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) (retErr error) {
 	mbdy, err := json.Marshal(payload{
 		Alert: alert{
-			Flow:                &prototool.JsonBox{Message: fl},
+			Flow:                prototool.JsonBox{Message: fl},
 			CiliumNetworkPolicy: cnp,
 		},
 	})
@@ -187,6 +187,6 @@ type payload struct {
 }
 
 type alert struct {
-	Flow                *prototool.JsonBox      `json:"flow"`
+	Flow                prototool.JsonBox       `json:"flow"`
 	CiliumNetworkPolicy *v2.CiliumNetworkPolicy `json:"ciliumNetworkPolicy"`
 }
