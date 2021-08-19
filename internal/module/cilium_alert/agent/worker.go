@@ -21,9 +21,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -157,7 +157,7 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow, informer cache
 func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) (retErr error) {
 	mbdy, err := json.Marshal(payload{
 		Alert: alert{
-			Flow:                (*flowAlias)(fl),
+			Flow:                &prototool.JsonBox{Message: fl},
 			CiliumNetworkPolicy: cnp,
 		},
 	})
@@ -182,25 +182,11 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 	return nil
 }
 
-// flowAlias ensures the protojson package is used for to/from JSON marshaling.
-// See https://pkg.go.dev/google.golang.org/protobuf/encoding/protojson.
-type flowAlias flow.Flow
-
-func (f *flowAlias) MarshalJSON() ([]byte, error) {
-	typedF := (*flow.Flow)(f)
-	return protojson.Marshal(typedF)
-}
-
-func (f *flowAlias) UnmarshalJSON(data []byte) error {
-	typedF := (*flow.Flow)(f)
-	return protojson.Unmarshal(data, typedF)
-}
-
 type payload struct {
 	Alert alert `json:"alert"`
 }
 
 type alert struct {
-	Flow                *flowAlias              `json:"flow"`
+	Flow                *prototool.JsonBox      `json:"flow"`
 	CiliumNetworkPolicy *v2.CiliumNetworkPolicy `json:"ciliumNetworkPolicy"`
 }
