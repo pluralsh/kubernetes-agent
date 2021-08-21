@@ -3,14 +3,15 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14
 go 1.16
 
 require (
-	cloud.google.com/go v0.86.0
+	cloud.google.com/go/profiler v0.1.0
+	cloud.google.com/go/trace v0.1.0 // indirect
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
 	github.com/envoyproxy/protoc-gen-validate v0.6.1
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/zapr v0.4.0
-	github.com/go-redis/redis/v8 v8.11.0
+	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.6.0
@@ -20,17 +21,17 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.11.0
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/gitlab-org/gitaly/v14 v14.1.0-rc3
-	gitlab.com/gitlab-org/labkit v1.5.1-0.20210709085637-98de0925bac8
-	go.uber.org/zap v1.18.1
+	gitlab.com/gitlab-org/gitaly/v14 v14.2.0
+	gitlab.com/gitlab-org/labkit v1.9.0
+	go.uber.org/zap v1.19.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6
-	golang.org/x/tools v0.1.4
-	google.golang.org/api v0.50.0
-	google.golang.org/genproto v0.0.0-20210701191553-46259e63a0a9
-	google.golang.org/grpc v1.39.0
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+	golang.org/x/tools v0.1.5
+	google.golang.org/api v0.54.0
+	google.golang.org/genproto v0.0.0-20210820002220-43fce44e7af1
+	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
@@ -44,8 +45,6 @@ require (
 )
 
 replace (
-	// Cilium depends on v0.19.9 which is incompatible with v0.19.3 which Kubernetes uses. v0.19.8 works fine
-	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.8
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	// Use a fork to avoid all the dependencies https://github.com/spf13/cobra/issues/1240#issuecomment-874387919
 	// https://github.com/ash2k/cobra/commits/remove-cli
