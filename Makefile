@@ -5,6 +5,8 @@
 # - .golangci.yml
 GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
 
+SHELL = /usr/bin/env bash -eo pipefail
+
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
 .PHONY: lint
@@ -84,6 +86,11 @@ test: fmt update-bazel
 .PHONY: test-ci
 test-ci:
 	bazel test -- //... //cmd:push-latest
+
+.PHONY: verify-ci
+verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks fmt update-bazel update-repos
+	git add .
+	git diff --cached --quiet ':(exclude).bazelrc' || (echo "Error: uncommitted changes detected:" && git --no-pager diff --cached && exit 1)
 
 .PHONY: quick-test
 quick-test:
@@ -186,5 +193,6 @@ show-go-dependency-updates:
 
 .PHONY: delete-generated-files
 delete-generated-files:
-	find -d . -name '*.pb.go' -type f -delete
-	find -d . -name '*.pb.validate.go' -type f -delete
+	find . -name '*.pb.go' -type f -delete
+	find . -name '*.pb.validate.go' -type f -delete
+	find . -name '*_pb.rb' -type f -delete

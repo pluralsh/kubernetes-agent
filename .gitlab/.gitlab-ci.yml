@@ -11,12 +11,13 @@ default:
     - gitlab-org
 
 variables:
+  BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/ci"
   # must use image digest to invalidate cache if image is updated.
-  # Image built using https://github.com/ash2k/container-definitions/compare/master...ash2k:bazel-and-clang-only
-  # Bazel v4.0.0
-  BUILD_IMAGE_SHA: "6739e24acf84fcd4224312074111e112ac56750899b015bbe7c8948f136a7ee8"
+  # Image built using build/ci_image/Dockerfile
+  BUILD_IMAGE_SHA: "b0f0a829cea24621bedcd361e0e57511f2052cf94df73255d02fa936350507e2"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
+  DOCKER_VERSION: 20.10.8 # https://hub.docker.com/_/docker
 
 stages:
   - test
@@ -26,7 +27,7 @@ stages:
 
 .bazel_build:
   image:
-    name: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/ci@sha256:$BUILD_IMAGE_SHA"
+    name: "$BUILD_IMAGE_NAME@sha256:$BUILD_IMAGE_SHA"
     entrypoint: [""]
   before_script:
     - echo "build --verbose_failures" >> .bazelrc
@@ -35,7 +36,7 @@ stages:
     - |
       if [[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
         echo "build --google_default_credentials" >> .bazelrc
-        echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
+        echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$(cat .bazelversion)-$BUILD_IMAGE_SHA" >> .bazelrc
         echo "build --remote_download_minimal" >> .bazelrc
         echo "run --remote_download_outputs=toplevel" >> .bazelrc
       fi
@@ -67,6 +68,12 @@ test:
     - make test-ci
     - *registry_creds
     - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest; fi
+
+verify:
+  stage: test
+  extends: .bazel_build
+  script:
+    - make verify-ci
 
 lint:
   # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2021-06-16
@@ -193,3 +200,23 @@ container_scan:
        https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# This job builds an image that is used by other jobs.
+# Run this manual job, copy the digest, update BUILD_IMAGE_SHA, commit.
+push_ci_image:
+  stage: test
+  image: "docker:${DOCKER_VERSION}"
+  tags:
+    - gitlab-org-docker
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    BUILD_IMAGE_NAME_LATEST: "$BUILD_IMAGE_NAME:latest"
+  services:
+    - "docker:${DOCKER_VERSION}-dind"
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - *registry_creds
+    - docker build --pull --tag "$BUILD_IMAGE_NAME_LATEST" ./build/ci_image
+    - docker push "$BUILD_IMAGE_NAME_LATEST"
