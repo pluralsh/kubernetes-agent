@@ -27,12 +27,14 @@ type TunnelFinder interface {
 	// FindTunnel finds a tunnel to a matching agentk.
 	// It waits for a matching tunnel to proxy a connection through. When a matching tunnel is found, it is returned.
 	// It only returns errors from the context or context.Canceled if the finder is shutting down.
-	FindTunnel(ctx context.Context, agentId int64) (Tunnel, error)
+	// service and method and gRPC service and method that the agent must support.
+	FindTunnel(ctx context.Context, agentId int64, service, method string) (Tunnel, error)
 }
 
 type findTunnelRequest struct {
-	agentId int64
-	retTun  chan<- Tunnel
+	agentId         int64
+	service, method string
+	retTun          chan<- Tunnel
 }
 
 type TunnelRegistry struct {
@@ -91,10 +93,12 @@ func (r *TunnelRegistry) Run(ctx context.Context) error {
 	}
 }
 
-func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64) (Tunnel, error) {
+func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service, method string) (Tunnel, error) {
 	retTun := make(chan Tunnel) // can receive nil from it if registry is shutting down
 	ftr := &findTunnelRequest{
 		agentId: agentId,
+		service: service,
+		method:  method,
 		retTun:  retTun,
 	}
 	select {
@@ -175,6 +179,9 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[toReg.tunnelInfo.AgentId]
 	for ftr := range findRequestsForAgentId {
+		if !toReg.tunnelInfo.SupportsServiceAndMethod(ftr.service, ftr.method) {
+			continue
+		}
 		// Waiting request found!
 		ftr.retTun <- toReg      // Satisfy the waiting request ASAP
 		r.deleteFindRequest(ftr) // Remove it from the queue
@@ -212,6 +219,9 @@ func (r *TunnelRegistry) unregisterTunnel(toAbort *tunnel) {
 func (r *TunnelRegistry) handleFindRequest(ftr *findTunnelRequest) {
 	// 1. Check if we have a suitable tunnel
 	for tun := range r.tunsByAgentId[ftr.agentId] {
+		if !tun.tunnelInfo.SupportsServiceAndMethod(ftr.service, ftr.method) {
+			continue
+		}
 		// Suitable tunnel found!
 		ftr.retTun <- tun // respond ASAP, then do all the bookkeeping
 		r.unregisterTunnel(tun)

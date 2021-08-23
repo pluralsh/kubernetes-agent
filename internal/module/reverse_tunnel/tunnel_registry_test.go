@@ -30,7 +30,7 @@ import (
 const (
 	serviceName    = "gitlab.service1"
 	methodName     = "DoSomething"
-	fullMethodName = "/gitlab.service1/DoSomething"
+	fullMethodName = "/" + serviceName + "/" + methodName
 )
 
 var (
@@ -48,7 +48,7 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 			Recv().
 			Return(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Descriptor_{
-					Descriptor_: &rpc.Descriptor{},
+					Descriptor_: descriptor(),
 				},
 			}, nil),
 		tunnelRegisterer.EXPECT().
@@ -82,7 +82,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 			Recv().
 			Return(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Descriptor_{
-					Descriptor_: &rpc.Descriptor{},
+					Descriptor_: descriptor(),
 				},
 			}, nil),
 		tunnelRegisterer.EXPECT().
@@ -148,11 +148,49 @@ func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 		assert.NoError(t, r.HandleTunnel(context.Background(), agentInfo, tunnel))
 	})
 	time.Sleep(50 * time.Millisecond)
-	tun, err := r.FindTunnel(context.Background(), agentInfo.Id)
+	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	require.NoError(t, err)
 	defer tun.Done()
 	err = tun.ForwardStream(incomingStream, cb)
 	require.NoError(t, err)
+}
+
+func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Recv().
+		Return(&rpc.ConnectRequest{
+			Msg: &rpc.ConnectRequest_Descriptor_{
+				Descriptor_: descriptor(),
+			},
+		}, nil)
+	gomock.InOrder(
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	require.NoError(t, err)
+	agentInfo := testhelpers.AgentInfoObj()
+	var wg wait.Group
+	defer wg.Wait()
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	wg.Start(func() {
+		assert.NoError(t, r.Run(ctx1))
+	})
+	wg.Start(func() {
+		assert.NoError(t, r.HandleTunnel(context.Background(), agentInfo, connectServer))
+	})
+	time.Sleep(50 * time.Millisecond)
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel2()
+	_, err = r.FindTunnel(ctx2, agentInfo.Id, "missing_service", "missing_method")
+	assert.Equal(t, context.DeadlineExceeded, err)
 }
 
 func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
@@ -167,7 +205,7 @@ func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	wg.Start(func() {
-		tun, err := r.FindTunnel(context.Background(), agentInfo.Id)
+		tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -178,6 +216,45 @@ func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	err := r.HandleTunnel(context.Background(), agentInfo, tunnel)
 	require.NoError(t, err)
+}
+
+func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Recv().
+		Return(&rpc.ConnectRequest{
+			Msg: &rpc.ConnectRequest_Descriptor_{
+				Descriptor_: descriptor(),
+			},
+		}, nil)
+	gomock.InOrder(
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	require.NoError(t, err)
+	agentInfo := testhelpers.AgentInfoObj()
+	var wg wait.Group
+	defer wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg.Start(func() {
+		assert.NoError(t, r.Run(ctx))
+	})
+	wg.Start(func() {
+		_, findErr := r.FindTunnel(context.Background(), agentInfo.Id, "missing_service", "missing_method")
+		assert.Equal(t, context.Canceled, findErr)
+	})
+	time.Sleep(50 * time.Millisecond)
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel2()
+	err = r.HandleTunnel(ctx2, agentInfo, connectServer)
+	assert.NoError(t, err)
 }
 
 func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
@@ -202,20 +279,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 		Recv().
 		Return(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.Descriptor{
-					AgentDescriptor: &info.AgentDescriptor{
-						Services: []*info.Service{
-							{
-								Name: serviceName,
-								Methods: []*info.Method{
-									{
-										Name: methodName,
-									},
-								},
-							},
-						},
-					},
-				},
+				Descriptor_: descriptor(),
 			},
 		}, nil)
 	if expectRegisterTunnel {
@@ -316,4 +380,21 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	return incomingStream, cb, connectServer, r
+}
+
+func descriptor() *rpc.Descriptor {
+	return &rpc.Descriptor{
+		AgentDescriptor: &info.AgentDescriptor{
+			Services: []*info.Service{
+				{
+					Name: serviceName,
+					Methods: []*info.Method{
+						{
+							Name: methodName,
+						},
+					},
+				},
+			},
+		},
+	}
 }

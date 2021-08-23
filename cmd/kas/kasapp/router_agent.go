@@ -8,6 +8,7 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
@@ -16,11 +17,14 @@ import (
 )
 
 func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerStream) error {
-	md, _ := metadata.FromIncomingContext(stream.Context())
+	ctx := stream.Context()
+	md, _ := metadata.FromIncomingContext(ctx)
 	agentId, err := agentIdFromMeta(md)
 	if err != nil {
 		return err
 	}
+	sts := grpc.ServerTransportStreamFromContext(ctx)
+	service, method := grpctool.SplitGrpcMethod(sts.Method())
 	wrappedStream := grpc_middleware.WrapServerStream(stream)
 	// Overwrite incoming MD with sanitized MD
 	wrappedStream.WrappedContext = metadata.NewIncomingContext(
@@ -28,7 +32,7 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		removeHopMeta(md),
 	)
 	stream = wrappedStream
-	tunnel, err := r.tunnelFinder.FindTunnel(wrappedStream.WrappedContext, agentId)
+	tunnel, err := r.tunnelFinder.FindTunnel(wrappedStream.WrappedContext, agentId, service, method)
 	if err != nil {
 		return status.FromContextError(err).Err()
 	}

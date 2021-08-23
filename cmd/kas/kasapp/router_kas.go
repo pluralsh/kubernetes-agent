@@ -59,9 +59,11 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	log := rpcApi.Log().With(logz.AgentId(agentId))
 	pollConfig := r.pollConfig()
+	sts := grpc.ServerTransportStreamFromContext(ctx)
+	service, method := grpctool.SplitGrpcMethod(sts.Method())
 	return func() (bool /* done */, error) {
 		var tunnels []*tracker.TunnelInfo
-		err := rpcApi.PollWithBackoff(pollConfig, r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
+		err := rpcApi.PollWithBackoff(pollConfig, r.attemptToGetTunnels(ctx, log, agentId, service, method, &tunnels))
 		if err != nil {
 			return false, err
 		}
@@ -96,10 +98,11 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 
 // attemptToGetTunnels
 // must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agentId int64, infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
+func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agentId int64, service, method string,
+	infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
 	return func() (error, retry.AttemptResult) {
 		var infos tunnelInfoCollector
-		err := r.tunnelQuerier.GetTunnelsByAgentId(ctx, agentId, infos.Collect)
+		err := r.tunnelQuerier.GetTunnelsByAgentId(ctx, agentId, infos.Collect(service, method))
 		if err != nil {
 			// TODO error tracking
 			log.Error("GetTunnelsByAgentId()", logz.Error(err))
@@ -265,12 +268,18 @@ func pipeFromStreamToKas(kasStream grpc.ClientStream, stream grpc.ServerStream) 
 
 type tunnelInfoCollector []*tracker.TunnelInfo
 
-func (c *tunnelInfoCollector) Collect(info *tracker.TunnelInfo) (bool, error) {
-	if info.KasUrl == "" {
-		// kas without a private API endpoint. Ignore it.
-		// TODO this can be made mandatory if/when the env var the address is coming from is mandatory
+func (c *tunnelInfoCollector) Collect(service, method string) tracker.GetTunnelsByAgentIdCallback {
+	return func(info *tracker.TunnelInfo) (bool /* done */, error) {
+		if info.KasUrl == "" {
+			// kas without a private API endpoint. Ignore it.
+			// TODO this can be made mandatory if/when the env var the address is coming from is mandatory
+			return false, nil
+		}
+		if !info.SupportsServiceAndMethod(service, method) {
+			// This tunnel doesn't support required API. Ignore it.
+			return false, nil
+		}
+		*c = append(*c, info)
 		return false, nil
 	}
-	*c = append(*c, info)
-	return false, nil
 }
