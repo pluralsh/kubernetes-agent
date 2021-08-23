@@ -32,10 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-const (
-	agentId int64 = 234
-)
-
 var (
 	_ kasRouter          = &router{}
 	_ grpc.StreamHandler = (&router{}).RouteToCorrectKasHandler
@@ -45,7 +41,7 @@ var (
 func TestRouter_UnaryHappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	unaryResponse := &test.Response{Message: &test.Response_Scalar{Scalar: 123}}
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	payloadMD, responseMD, trailersMD := meta()
 	payloadReq := &test.Request{S1: "123"}
 	var (
@@ -58,7 +54,7 @@ func TestRouter_UnaryHappyPath(t *testing.T) {
 		Do(forwardStream(t, routingMetadata, payloadMD, payloadReq, unaryResponse, responseMD, trailersMD))
 	runRouterTest(t, tunnel, tunnelForwardStream, func(client test.TestingClient) {
 		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Join(routingMetadata, payloadMD))
-		// grpc.Header() and grpc.Trailer are ok here because its a unary RPC.
+		// grpc.Header() and grpc.Trailer are ok here because it's a unary RPC.
 		response, err := client.RequestResponse(ctx, payloadReq, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 		require.NoError(t, err)
 		assert.Empty(t, cmp.Diff(response, unaryResponse, protocmp.Transform()))
@@ -69,7 +65,7 @@ func TestRouter_UnaryHappyPath(t *testing.T) {
 
 func TestRouter_UnaryImmediateError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
@@ -88,7 +84,7 @@ func TestRouter_UnaryImmediateError(t *testing.T) {
 
 func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	payloadMD, responseMD, trailersMD := meta()
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
@@ -110,7 +106,7 @@ func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMetadata, payloadMD))
-		// grpc.Header() and grpc.Trailer are ok here because its a unary RPC.
+		// grpc.Header() and grpc.Trailer are ok here because it's a unary RPC.
 		_, err := client.RequestResponse(ctx, &test.Request{S1: "123"}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 		require.Error(t, err)
 		receivedStatus := status.Convert(err).Proto()
@@ -123,7 +119,7 @@ func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 func TestRouter_StreamHappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	streamResponse := &test.Response{Message: &test.Response_Scalar{Scalar: 123}}
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	payloadMD, responseMD, trailersMD := meta()
 	payloadReq := &test.Request{S1: "123"}
 	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
@@ -151,7 +147,7 @@ func TestRouter_StreamHappyPath(t *testing.T) {
 
 func TestRouter_StreamImmediateError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
@@ -178,7 +174,7 @@ func TestRouter_StreamImmediateError(t *testing.T) {
 
 func TestRouter_StreamErrorAfterHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	payloadMD, responseMD, trailersMD := meta()
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
@@ -212,7 +208,7 @@ func TestRouter_StreamErrorAfterHeader(t *testing.T) {
 
 func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	payloadMD, responseMD, trailersMD := meta()
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
@@ -252,7 +248,7 @@ func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
 	kasStream := mock_rpc.NewMockClientStream(ctrl)
 	stream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
-	routingMetadata := modserver.RoutingMetadata(agentId)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
 	ctx := metadata.NewIncomingContext(context.Background(), routingMetadata)
 	ctx = grpc.NewContextWithServerTransportStream(ctx, sts)
 	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
@@ -273,12 +269,13 @@ func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
 		MinTimes(1)
 	sts.EXPECT().
 		Method().
-		Return("gRPC method")
+		Return("/gitlab.agent.grpctool.test.Testing/RequestResponse").
+		MinTimes(1)
 	conn.EXPECT().
 		Close()
 	gomock.InOrder(
 		querier.EXPECT().
-			GetTunnelsByAgentId(gomock.Any(), agentId, gomock.Any()).
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
 				done, err := cb(tunnelInfo())
 				assert.False(t, done)
@@ -353,7 +350,7 @@ func tunnelInfo() *tracker.TunnelInfo {
 			},
 		},
 		ConnectionId: 1312312313,
-		AgentId:      agentId,
+		AgentId:      testhelpers.AgentId,
 		KasUrl:       "grpc://pipe",
 	}
 }
@@ -415,14 +412,14 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 
 	gomock.InOrder(
 		querier.EXPECT().
-			GetTunnelsByAgentId(gomock.Any(), agentId, gomock.Any()).
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
 				done, err := cb(tunnelInfo())
 				assert.False(t, done)
 				return err
 			}),
 		finder.EXPECT().
-			FindTunnel(gomock.Any(), agentId).
+			FindTunnel(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnelForwardStream,
 		tunnel.EXPECT().Done(),

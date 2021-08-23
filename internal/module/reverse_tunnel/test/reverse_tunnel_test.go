@@ -322,7 +322,10 @@ type serverTestingServer struct {
 }
 
 func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
-	tunnel, err := s.tunnelFinder.FindTunnel(server.Context(), testhelpers.AgentId)
+	ctx := server.Context()
+	sts := grpc.ServerTransportStreamFromContext(ctx)
+	service, method := grpctool.SplitGrpcMethod(sts.Method())
+	tunnel, err := s.tunnelFinder.FindTunnel(ctx, testhelpers.AgentId, service, method)
 	if err != nil {
 		return status.FromContextError(err).Err()
 	}

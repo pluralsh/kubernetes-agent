@@ -14,6 +14,7 @@ go_proto_generate(
 go_library(
     name = "tracker",
     srcs = [
+        "tracker.extra_methods.go",
         "tracker.go",
         "tracker.pb.go",
         "tracker.pb.validate.go",

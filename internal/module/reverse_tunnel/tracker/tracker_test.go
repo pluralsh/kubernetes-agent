@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -194,4 +195,26 @@ func TestTunnelInfoSize(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Log(len(data))
+}
+
+func TestSupportsServiceAndMethod(t *testing.T) {
+	ti := TunnelInfo{
+		AgentDescriptor: &info.AgentDescriptor{
+			Services: []*info.Service{
+				{
+					Name: "empire.fleet.DeathStar",
+					Methods: []*info.Method{
+						{
+							Name: "BlastPlanet",
+						},
+					},
+				},
+			},
+		},
+	}
+	os.Pipe()
+	assert.True(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "BlastPlanet"))
+	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "Explode"))
+	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "BlastPlanet"))
+	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "Debug"))
 }
