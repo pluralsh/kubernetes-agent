@@ -26,6 +26,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	agent := config.Config.Agent
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, &server{
 		gitaly:                   config.Gitaly,
+		gitLabClient:             config.GitLabClient,
 		agentRegisterer:          f.AgentRegisterer,
 		maxConfigurationFileSize: int64(agent.Configuration.MaxConfigurationFileSize),
 		getConfigurationPollConfig: retry.NewPollConfigFactory(agent.Configuration.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
