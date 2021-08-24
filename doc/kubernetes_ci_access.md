@@ -245,6 +245,10 @@ Only the needed fields are returned, not everything. Algorithm:
 1. Retrieve the list of agents allowed to be accessed from the CI project by querying the
    `ci project id` -> `agent id` index.
 
+1. Retrieve the list of agents configured in the CI project, if any. These are allowed to be accessed from CI jobs
+   implicitly with default configuration. The user can set configuration by explicitly granting access to the
+   configuration project - to allow that, explicit grants are prioritized over implicit configuration.
+
 1. Gather an ordered (from more nested/inner to less nested/outer) list of groups for the CI project by querying the
    `group id` -> `agent id` index.
 
@@ -258,6 +262,9 @@ Only the needed fields are returned, not everything. Algorithm:
    1. Project-level configuration `group1/group1-1/project1`.
    1. Inner-most group configuration `group1/group1-1`.
    1. Outer group configuration `group1`.
+
+1. **TBD** What happens if user grants access to a group, containing the agent configuration project? Does it override the
+   implicit configuration or not?
 
 1. Collate information from above and return it.
 
