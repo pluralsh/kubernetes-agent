@@ -87,6 +87,8 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*Ref
 	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
 		Repository: repo,
+		// Do not set GitConfigOptions or GitProtocol because that would disable cache in Gitaly.
+		// See https://gitlab.com/gitlab-org/gitaly/-/blob/bea500b301bbec8535fbcae58c1da2d29377c666/internal/gitaly/service/smarthttp/cache.go#L53-56
 	}
 	uploadPackResp, err := p.Client.InfoRefsUploadPack(ctx, uploadPackReq)
 	if err != nil {
