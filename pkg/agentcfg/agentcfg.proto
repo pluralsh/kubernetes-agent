@@ -99,13 +99,13 @@ message CiAccessCF {
 message CiAccessProjectCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2 [json_name = "default_namespace"];
-  // TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
+  CiAccessAsCF access_as = 3  [json_name = "access_as"];
 }
 
 message CiAccessGroupCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2 [json_name = "default_namespace"];
-  // TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
+  CiAccessAsCF access_as = 3  [json_name = "access_as"];
 }
 
 message CiAccessAsCF {
