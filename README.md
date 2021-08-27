@@ -1,4 +1,4 @@
-# gitlab-agent
+# GitLab Kubernetes Agent
 
 GitLab Kubernetes Agent is an active in-cluster component for solving any GitLab<->Kubernetes integration tasks.
 
