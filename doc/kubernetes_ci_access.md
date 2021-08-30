@@ -70,6 +70,9 @@ A context can also be explicitly specified in each `kubectl` invocation using `k
 
 After a context is selected, `kubectl` (or any other compatible program) can be used as if working with a cluster directly.
 
+We might add another level of authorization from the group side, if requested by users. This is tracked by
+https://gitlab.com/gitlab-org/gitlab/-/issues/330591 and is initially out of scope for the CI tunnel.
+
 ## Implementation
 
 ### `kubectl` configuration file
@@ -215,6 +218,20 @@ There are two authorization steps, performed in the following order:
 
 1. Fine-grained authorization: performed by the in-cluster access control mechanisms, configured by the Platform
    Engineer. Information, described in the [Impersonation](#impersonation) section above, can be used to define what is allowed.
+
+### Default configuration
+
+Be default, the agent should work without an agent configuration file as well. The following configuration should be
+the default:
+
+```yaml
+# .gitlab/agents/<agent name>/config.yaml
+ci_access:
+  projects:
+    - id: "<agent's configuration project id>"
+      access_as:
+        agent: {}
+```
 
 ### Notifying GitLab of agent's configuration
 
