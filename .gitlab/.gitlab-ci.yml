@@ -11,13 +11,14 @@ default:
     - gitlab-org
 
 variables:
-  BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/ci"
+  # Image built using https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image
+  # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
+  BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # Image built using build/ci_image/Dockerfile
-  BUILD_IMAGE_SHA: "b0f0a829cea24621bedcd361e0e57511f2052cf94df73255d02fa936350507e2"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/1547509495
+  BUILD_IMAGE_SHA: "9b08734e959a8c63a9272b9f25f33ba07b5b2e07997a5035a7cfbab721fe2dfd"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
-  DOCKER_VERSION: 20.10.8 # https://hub.docker.com/_/docker
 
 stages:
   - test
@@ -200,23 +201,3 @@ container_scan:
        https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-# This job builds an image that is used by other jobs.
-# Run this manual job, copy the digest, update BUILD_IMAGE_SHA, commit.
-push_ci_image:
-  stage: test
-  image: "docker:${DOCKER_VERSION}"
-  tags:
-    - gitlab-org-docker
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
-    BUILD_IMAGE_NAME_LATEST: "$BUILD_IMAGE_NAME:latest"
-  services:
-    - "docker:${DOCKER_VERSION}-dind"
-  rules:
-    - when: manual
-      allow_failure: true
-  script:
-    - *registry_creds
-    - docker build --pull --tag "$BUILD_IMAGE_NAME_LATEST" ./build/ci_image
-    - docker push "$BUILD_IMAGE_NAME_LATEST"
