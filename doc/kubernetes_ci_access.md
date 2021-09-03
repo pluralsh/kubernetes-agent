@@ -61,6 +61,8 @@ to its location on disk. The file contains a
 [context](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#context)
 per GitLab Kubernetes Agent that this CI job is allowed to access.
 
+The `ci_access.projects[].default_namespace` specifies the namespace for the context used in the CI/CD tunnel. Omitting `default_namespace` does not set a namespace in the context.
+
 If the project, where the CI job is running, has certificate-based integration configured, then the generated
 configuration file contains contexts for both integrations. This allows users to use both integration
 simultaneously, for example to migrate from one to the other.
