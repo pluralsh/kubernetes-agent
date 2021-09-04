@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -51,7 +53,7 @@ func (a *agentAPI) SubscribeToFeatureStatus(feature modagent.Feature, cb modagen
 	a.featureTracker.Subscribe(feature, cb)
 }
 
-func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (retResponse *modagent.GitLabResponse, retErr error) {
+func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 	config := modagent.ApplyRequestOptions(opts)
 	ctx, cancel := context.WithCancel(ctx)
 	client, errReq := a.client.MakeRequest(ctx)
@@ -62,25 +64,27 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 		}
 		return nil, errReq
 	}
-	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, client)
-	response := make(chan *modagent.GitLabResponse)
-	responseErr := make(chan error)
 	pr, pw := io.Pipe()
+	val := newValueOrError(func(err error) error {
+		cancel()                                               // 1. Cancel the other goroutine and the client.
+		err = grpctool.MaybeWrapWithCorrelationId(err, client) // 2. Get correlation id from header (can block if called before cancel)
+		_ = pw.CloseWithError(err)                             // 3. Close the "write side" of the pipe
+		return err
+	})
 
+	var wg wait.Group
 	// Write request
-	go func() {
+	wg.Start(func() {
 		err := a.makeRequest(client, path, config)
 		if err != nil {
-			cancel()
-			_ = pw.CloseWithError(err)
+			val.SetError(err)
 		}
-	}()
+	})
 	// Read response
-	go func() {
-		responseSent := false
+	wg.Start(func() {
 		err := a.responseVisitor.Visit(client,
 			grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
-				resp := &modagent.GitLabResponse{
+				val.SetValue(&modagent.GitLabResponse{
 					Status:     header.Response.Status,
 					StatusCode: header.Response.StatusCode,
 					Header:     header.Response.HttpHeader(),
@@ -88,14 +92,8 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 						ReadCloser: pr,
 						cancel:     cancel,
 					},
-				}
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case response <- resp:
-					responseSent = true
-					return nil
-				}
+				})
+				return nil
 			}),
 			grpctool.WithCallback(dataFieldNumber, func(data *grpctool.HttpResponse_Data) error {
 				_, err := pw.Write(data.Data)
@@ -109,28 +107,15 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 			}),
 		)
 		if err != nil {
-			cancel()
-			// This aborts the reader if the stream has not been closed already. Otherwise a no-op.
-			_ = pw.CloseWithError(err)
-			if !responseSent {
-				// If we are here, there was an error before we've received headers.
-				select {
-				case <-ctx.Done():
-				case responseErr <- err:
-				}
-			}
+			val.SetError(err)
 		}
-	}()
-	select {
-	case <-ctx.Done():
-		err := ctx.Err()
-		_ = pw.CloseWithError(err)
-		return nil, err
-	case resp := <-response:
-		return resp, nil
-	case err := <-responseErr:
+	})
+	resp, err := val.Wait()
+	if err != nil {
+		wg.Wait() // Wait for both goroutines to finish before returning
 		return nil, err
 	}
+	return resp.(*modagent.GitLabResponse), nil
 }
 
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
@@ -212,6 +197,7 @@ func handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, 
 		log.Error(msg, logz.Error(err))
 	}
 }
+
 func handleSendError(log *zap.Logger, msg string, err error) error {
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
@@ -227,6 +213,64 @@ type cancelingReadCloser struct {
 }
 
 func (c cancelingReadCloser) Close() error {
+	// First close the pipe, then cancel the context.
+	// Doing it the other way around can result in another goroutine calling CloseWithError() with the
+	// cancellation error.
+	err := c.ReadCloser.Close()
 	c.cancel()
-	return c.ReadCloser.Close()
+	return err
+}
+
+// valueOrError holds a value or an error. The first value/error is persisted, rest are discarded.
+// onError is a callback that is called on each SetError() invocation, regardless of whether a value or an error
+// has already been set.
+// Thread safe.
+type valueOrError struct {
+	mx      sync.Mutex
+	locker  *sync.Cond
+	onError func(error) error
+	value   interface{}
+	err     error
+	isSet   bool
+}
+
+func newValueOrError(onError func(error) error) *valueOrError {
+	v := &valueOrError{
+		onError: onError,
+	}
+	v.locker = sync.NewCond(&v.mx)
+	return v
+}
+
+func (v *valueOrError) SetValue(value interface{}) {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+	if v.isSet {
+		return
+	}
+	v.isSet = true
+	v.value = value
+	v.locker.Broadcast()
+}
+
+func (v *valueOrError) SetError(err error) {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+	err = v.onError(err)
+	if v.isSet {
+		return
+	}
+	v.isSet = true
+	v.err = err
+	v.locker.Broadcast()
+}
+
+// Wait returns a value or an error, blocking the caller until one of them is set.
+func (v *valueOrError) Wait() (interface{}, error) {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+	if !v.isSet {
+		v.locker.Wait()
+	}
+	return v.value, v.err
 }
