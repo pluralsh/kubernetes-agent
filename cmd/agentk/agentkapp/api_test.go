@@ -329,7 +329,19 @@ func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_Ma
 			Send(matcher.ProtoEq(t, msg))
 		res = append(res, call)
 	}
-	res = append(res, client.EXPECT().CloseSend())
+	streamDone := make(chan struct{})
+	res = append(res, client.EXPECT().
+		CloseSend().
+		Do(func() {
+			close(streamDone)
+		}))
+	t.Cleanup(func() {
+		// The sending is done concurrently and test can finish earlier than the sending goroutine is done sending.
+		// In that case there will be a missing expected invocation. Wait for it to finish before proceeding.
+		// t.Cleanup() processes added functions in LIFO order, so this one should be executed before the validation
+		// function (added by gomock.NewController()).
+		<-streamDone
+	})
 	return res
 }
 
