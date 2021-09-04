@@ -102,7 +102,7 @@ func WithStartState(startState protoreflect.FieldNumber) StreamVisitorOption {
 }
 
 func defaultInvalidTransitionCallback(from, to protoreflect.FieldNumber, allowed []protoreflect.FieldNumber, message proto.Message) error {
-	return fmt.Errorf("transition from %d to %d is not allowed. Allowed: %d", from, to, allowed)
+	return fmt.Errorf("transition from %d to %d is not allowed. Allowed: %v", from, to, allowed)
 }
 
 func defaultEOFCallback() error {

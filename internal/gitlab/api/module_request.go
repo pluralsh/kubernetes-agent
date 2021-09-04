@@ -26,5 +26,8 @@ func MakeModuleRequest(ctx context.Context, client gitlab.ClientInterface, agent
 		gitlab.WithRequestBody(body, ""),
 		gitlab.WithResponseHandler(gitlab.NakedResponseHandler(&resp)),
 	)
-	return resp, err
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

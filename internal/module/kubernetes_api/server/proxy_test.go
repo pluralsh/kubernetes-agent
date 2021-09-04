@@ -312,7 +312,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 				Header: &grpctool.HttpResponse_Header{
 					Response: &prototool.HttpResponse{
 						StatusCode: http.StatusOK,
-						Status:     "ok",
+						Status:     http.StatusText(http.StatusOK),
 						Header: map[string]*prototool.Values{
 							"Resp-Header": {
 								Value: []string{"a1", "a2"},
@@ -347,7 +347,9 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	req.Header.Set("User-Agent", "test-agent") // added manually to override what is added by the Go client
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() {
+		assert.NoError(t, resp.Body.Close())
+	}()
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
 	resp.Header.Del("Date")
