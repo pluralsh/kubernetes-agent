@@ -9,6 +9,7 @@ go_library(
         "//internal/api",
         "//internal/gitlab",
         "//internal/tool/testing/testhelpers",
+        "@com_github_hashicorp_go_retryablehttp//:go-retryablehttp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
@@ -40,5 +41,8 @@ func SetupClient(t *testing.T, pattern string, handler func(http.ResponseWriter,
 		gitlab.WithUserAgent(testhelpers.KasUserAgent),
 		gitlab.WithCorrelationClientName(testhelpers.KasCorrelationClientName),
 		gitlab.WithLogger(zaptest.NewLogger(t)),
+		gitlab.WithRetryConfig(gitlab.RetryConfig{
+			CheckRetry: retryablehttp.DefaultRetryPolicy,
+		}), // disable retries
 	)
 }

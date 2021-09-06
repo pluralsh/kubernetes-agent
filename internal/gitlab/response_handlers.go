@@ -54,7 +54,7 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 					return fmt.Errorf("response body read: %w", err)
 				}
 				if err = json.Unmarshal(data, response); err != nil {
-					return fmt.Errorf("WithJsonResponseHandler: json.Unmarshal: %w", err)
+					return fmt.Errorf("JsonResponseHandler: json.Unmarshal: %w", err)
 				}
 				return nil
 			default: // Unexpected status

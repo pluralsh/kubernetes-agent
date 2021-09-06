@@ -18,6 +18,7 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
+	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.11.0

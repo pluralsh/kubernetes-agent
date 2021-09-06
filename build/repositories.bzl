@@ -1710,6 +1710,13 @@ def go_repositories():
         version = "v0.5.1",
     )
     go_repository(
+        name = "com_github_hashicorp_go_hclog",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/hashicorp/go-hclog",
+        sum = "h1:CG6TE5H9/JXsFWJCfoIVpKFIkFe6ysEuHirp4DxCsHI=",
+        version = "v0.9.2",
+    )
+    go_repository(
         name = "com_github_hashicorp_go_immutable_radix",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/hashicorp/go-immutable-radix",
@@ -1736,6 +1743,13 @@ def go_repositories():
         importpath = "github.com/hashicorp/go.net",
         sum = "h1:sNCoNyDEvN1xa+X0baata4RdcpKwcMS6DH+xwfqPgjw=",
         version = "v0.0.1",
+    )
+    go_repository(
+        name = "com_github_hashicorp_go_retryablehttp",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/hashicorp/go-retryablehttp",
+        sum = "h1:eu1EI/mbirUgP5C8hVsTNaGZreBDlYiwC1FZWkvQPQ4=",
+        version = "v0.7.0",
     )
     go_repository(
         name = "com_github_hashicorp_go_rootcerts",

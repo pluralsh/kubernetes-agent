@@ -8,22 +8,68 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/opentracing/opentracing-go"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
 	"go.uber.org/zap"
 )
 
+const (
+	// Default retry configuration
+	defaultRetryWaitMin = 100 * time.Millisecond
+	defaultRetryWaitMax = 30 * time.Second
+	defaultRetryMax     = 4
+)
+
+type RetryConfig struct {
+	// Logger instance. Can be either retryablehttp.Logger or retryablehttp.LeveledLogger
+	Logger interface{}
+
+	RetryWaitMin time.Duration // Minimum time to wait
+	RetryWaitMax time.Duration // Maximum time to wait
+	RetryMax     int           // Maximum number of retries
+
+	// RequestLogHook allows a user-supplied function to be called
+	// before each retry.
+	RequestLogHook retryablehttp.RequestLogHook
+
+	// ResponseLogHook allows a user-supplied function to be called
+	// with the response from each HTTP request executed.
+	ResponseLogHook retryablehttp.ResponseLogHook
+
+	// CheckRetry specifies the policy for handling retries, and is called
+	// after each request. The default policy is retryablehttp.DefaultRetryPolicy.
+	CheckRetry retryablehttp.CheckRetry
+
+	// Backoff specifies the policy for how long to wait between retries.
+	// retryablehttp.DefaultBackoff is used by default.
+	Backoff retryablehttp.Backoff
+}
+
+type transportConfig struct {
+	Proxy                 func(*http.Request) (*url.URL, error)
+	DialContext           func(ctx context.Context, network, address string) (net.Conn, error)
+	TLSClientConfig       *tls.Config
+	TLSHandshakeTimeout   time.Duration
+	MaxIdleConns          int
+	MaxIdleConnsPerHost   int
+	MaxConnsPerHost       int
+	IdleConnTimeout       time.Duration
+	ResponseHeaderTimeout time.Duration
+	ExpectContinueTimeout time.Duration
+	ForceAttemptHTTP2     bool
+}
+
 // clientConfig holds configuration for the client.
 type clientConfig struct {
-	tracer      opentracing.Tracer
-	log         *zap.Logger
-	tlsConfig   *tls.Config
-	limiter     httpz.Limiter
-	dialContext func(ctx context.Context, network, address string) (net.Conn, error)
-	proxy       func(*http.Request) (*url.URL, error)
-	clientName  string
-	userAgent   string
+	log             *zap.Logger
+	retryConfig     RetryConfig
+	transportConfig transportConfig
+	tracer          opentracing.Tracer
+	limiter         httpz.Limiter
+	clientName      string
+	userAgent       string
 }
 
 // ClientOption to configure the client.
@@ -31,23 +77,46 @@ type ClientOption func(*clientConfig)
 
 func applyClientOptions(opts []ClientOption) clientConfig {
 	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	config := clientConfig{
-		tracer:      opentracing.GlobalTracer(),
-		log:         zap.NewNop(),
-		tlsConfig:   tlstool.DefaultClientTLSConfig(),
-		dialContext: dialer.DialContext,
-		proxy:       http.ProxyFromEnvironment,
-		clientName:  "",
-		userAgent:   "",
+		log: zap.NewNop(),
+		retryConfig: RetryConfig{
+			RetryWaitMin: defaultRetryWaitMin,
+			RetryWaitMax: defaultRetryWaitMax,
+			RetryMax:     defaultRetryMax,
+			CheckRetry:   retryablehttp.DefaultRetryPolicy,
+			Backoff:      retryablehttp.DefaultBackoff,
+		},
+		transportConfig: transportConfig{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           dialer.DialContext,
+			TLSClientConfig:       tlstool.DefaultClientTLSConfig(),
+			TLSHandshakeTimeout:   10 * time.Second,
+			MaxIdleConns:          100,
+			MaxIdleConnsPerHost:   50,
+			MaxConnsPerHost:       50,
+			IdleConnTimeout:       90 * time.Second,
+			ResponseHeaderTimeout: 20 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			ForceAttemptHTTP2:     true,
+		},
+		tracer:     opentracing.GlobalTracer(),
+		clientName: "",
+		userAgent:  "",
 	}
 	for _, v := range opts {
 		v(&config)
 	}
 
 	return config
+}
+
+// WithRetryConfig configures retry behavior.
+func WithRetryConfig(retryConfig RetryConfig) ClientOption {
+	return func(config *clientConfig) {
+		config.retryConfig = retryConfig
+	}
 }
 
 // WithTracer sets a custom tracer to be used, otherwise the opentracing.GlobalTracer is used.
@@ -81,7 +150,7 @@ func WithLogger(log *zap.Logger) ClientOption {
 // WithTLSConfig sets the TLS config to use.
 func WithTLSConfig(tlsConfig *tls.Config) ClientOption {
 	return func(config *clientConfig) {
-		config.tlsConfig = tlsConfig
+		config.transportConfig.TLSClientConfig = tlsConfig
 	}
 }
 
