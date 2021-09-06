@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tracing"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -23,7 +24,7 @@ const (
 )
 
 type HTTPClient interface {
-	Do(*http.Request) (*http.Response, error)
+	Do(*retryablehttp.Request) (*http.Response, error)
 }
 
 type Client struct {
@@ -36,14 +37,17 @@ type Client struct {
 func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Client {
 	o := applyClientOptions(opts)
 	var transport http.RoundTripper = &http.Transport{
-		Proxy:                 o.proxy,
-		DialContext:           o.dialContext,
-		TLSClientConfig:       o.tlsConfig,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 20 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		Proxy:                 o.transportConfig.Proxy,
+		DialContext:           o.transportConfig.DialContext,
+		TLSClientConfig:       o.transportConfig.TLSClientConfig,
+		TLSHandshakeTimeout:   o.transportConfig.ExpectContinueTimeout,
+		MaxIdleConns:          o.transportConfig.MaxIdleConns,
+		MaxIdleConnsPerHost:   o.transportConfig.MaxIdleConnsPerHost,
+		MaxConnsPerHost:       o.transportConfig.MaxConnsPerHost,
+		IdleConnTimeout:       o.transportConfig.IdleConnTimeout,
+		ResponseHeaderTimeout: o.transportConfig.ResponseHeaderTimeout,
+		ExpectContinueTimeout: o.transportConfig.ExpectContinueTimeout,
+		ForceAttemptHTTP2:     o.transportConfig.ForceAttemptHTTP2,
 	}
 	if o.limiter != nil {
 		transport = &httpz.RateLimitingRoundTripper{
@@ -53,17 +57,31 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 	}
 	return &Client{
 		Backend: backend,
-		HTTPClient: &http.Client{
-			Transport: tracing.NewRoundTripper(
-				correlation.NewInstrumentedRoundTripper(
-					transport,
-					correlation.WithClientName(o.clientName),
+		HTTPClient: &retryablehttp.Client{
+			HTTPClient: &http.Client{
+				Transport: tracing.NewRoundTripper(
+					correlation.NewInstrumentedRoundTripper(
+						transport,
+						correlation.WithClientName(o.clientName),
+					),
+					tracing.WithRoundTripperTracer(o.tracer),
+					tracing.WithLogger(o.log),
 				),
-				tracing.WithRoundTripperTracer(o.tracer),
-				tracing.WithLogger(o.log),
-			),
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			},
+			Logger:          o.retryConfig.Logger,
+			RetryWaitMin:    o.retryConfig.RetryWaitMin,
+			RetryWaitMax:    o.retryConfig.RetryWaitMax,
+			RetryMax:        o.retryConfig.RetryMax,
+			RequestLogHook:  o.retryConfig.RequestLogHook,
+			ResponseLogHook: o.retryConfig.ResponseLogHook,
+			CheckRetry:      o.retryConfig.CheckRetry,
+			Backoff:         o.retryConfig.Backoff,
+			ErrorHandler: func(resp *http.Response, err error, numTries int) (*http.Response, error) {
+				// Just return the last response and error when ran out of retry attempts.
+				return resp, err
 			},
 		},
 		AuthSecret: authSecret,
@@ -79,11 +97,12 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	u := *c.Backend
 	u.Path = o.path
 	u.RawQuery = o.query.Encode() // handles query == nil
-	r, err := http.NewRequestWithContext(ctx, o.method, u.String(), o.body)
+	r, err := retryablehttp.NewRequest(o.method, u.String(), o.body)
 	if err != nil {
-		return fmt.Errorf("NewRequestWithContext: %w", err)
+		return fmt.Errorf("NewRequest: %w", err)
 	}
-	if o.header != nil {
+	r = r.WithContext(ctx)
+	if len(o.header) > 0 {
 		r.Header = o.header
 	}
 	if o.withJWT {
