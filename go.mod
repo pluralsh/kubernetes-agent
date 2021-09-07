@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	cloud.google.com/go/profiler v0.1.0
-	cloud.google.com/go/trace v0.1.0 // indirect
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
@@ -25,7 +24,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/gitlab-org/gitaly/v14 v14.2.0
-	gitlab.com/gitlab-org/labkit v1.9.0
+	gitlab.com/gitlab-org/labkit v1.9.1-0.20210903132057-56e2f8af39d9
 	go.uber.org/zap v1.19.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
