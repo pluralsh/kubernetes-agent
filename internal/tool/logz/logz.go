@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -77,7 +76,7 @@ func CorrelationId(correlationId string) zap.Field {
 }
 
 func SentryDSN(sentryDSN string) zap.Field {
-	return zap.String("sentry_dsn", maskURL(sentryDSN))
+	return zap.String("sentry_dsn", mask.URL(sentryDSN))
 }
 
 func SentryEnv(sentryEnv string) zap.Field {
@@ -153,20 +152,4 @@ func (m correlationMarshaler) MarshalLogObject(encoder zapcore.ObjectEncoder) er
 	zap.Error(m.err).AddTo(encoder)
 	CorrelationId(m.correlationId).AddTo(encoder)
 	return nil
-}
-
-// This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
-func maskURL(s string) string {
-	u, err := url.Parse(s)
-	if err != nil {
-		return s
-	}
-
-	_, hasPassword := u.User.Password()
-
-	if hasPassword || u.User.Username() != "" {
-		u.User = url.User(mask.RedactionString)
-	}
-
-	return mask.URL(u.String())
 }

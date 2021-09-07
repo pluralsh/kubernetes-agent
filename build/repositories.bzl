@@ -383,8 +383,8 @@ def go_repositories():
         name = "com_github_certifi_gocertifi",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/certifi/gocertifi",
-        sum = "h1:MmeatFT1pTPSVb4nkPmBFN/LRZ97vPjsFKsZrU3KKTs=",
-        version = "v0.0.0-20180905225744-ee1a9a0726d2",
+        sum = "h1:S2NE3iHSwP0XV47EEXL8mWmRdEfGscSJ+7EgePNgt0s=",
+        version = "v0.0.0-20210507211836-431795d63e8d",
     )
     go_repository(
         name = "com_github_cespare_xxhash",
@@ -686,6 +686,13 @@ def go_repositories():
         importpath = "github.com/DataDog/gostackparse",
         sum = "h1:jb72P6GFHPHz2W0onsN51cS3FkaMDcjb0QzgxxA4gDk=",
         version = "v0.5.0",
+    )
+    go_repository(
+        name = "com_github_datadog_sketches_go",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/DataDog/sketches-go",
+        sum = "h1:chm5KSXO7kO+ywGWJ0Zs6tdmWU8PBXSbywFVciL6BG4=",
+        version = "v1.0.0",
     )
     go_repository(
         name = "com_github_davecgh_go_spew",
@@ -1531,8 +1538,8 @@ def go_repositories():
         name = "com_github_google_gofuzz",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/gofuzz",
-        sum = "h1:Hsa8mG0dQ46ij8Sl2AYJDUv1oA9/d6Vk+3LG99Oe02g=",
-        version = "v1.1.0",
+        sum = "h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=",
+        version = "v1.2.0",
     )
     go_repository(
         name = "com_github_google_gopacket",
@@ -1839,8 +1846,8 @@ def go_repositories():
         name = "com_github_hdrhistogram_hdrhistogram_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/HdrHistogram/hdrhistogram-go",
-        sum = "h1:6dpdDPTRoo78HxAJ6T1HfMiKSnqhgRRqzCuPshRkQ7I=",
-        version = "v1.1.0",
+        sum = "h1:cJXY5VLMHgejurPjZH6Fo9rIwRGLefBGdiaENZALqrg=",
+        version = "v1.1.1",
     )
     go_repository(
         name = "com_github_hpcloud_tail",
@@ -2287,8 +2294,8 @@ def go_repositories():
         name = "com_github_lightstep_lightstep_tracer_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/lightstep/lightstep-tracer-go",
-        sum = "h1:qGUbkzHP64NA9r+uIbCvf303IzHPr0M4JlkaDMxXqqk=",
-        version = "v0.24.0",
+        sum = "h1:sGVnz8h3jTQuHKMbUe2949nXm3Sg09N1UcR3VoQNN5E=",
+        version = "v0.25.0",
     )
     go_repository(
         name = "com_github_lithammer_dedent",
@@ -2427,8 +2434,8 @@ def go_repositories():
         name = "com_github_microsoft_go_winio",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/Microsoft/go-winio",
-        sum = "h1:ZMZG0O5M8bhD0lgCURV8yu3hQ7TGvQ4L1ZW8+J0j9iE=",
-        version = "v0.4.19",
+        sum = "h1:Elr9Wn+sGKPlkaBvwu4mTrxtmOp3F3yV9qhaHbXGjwU=",
+        version = "v0.5.0",
     )
     go_repository(
         name = "com_github_microsoft_hcsshim",
@@ -2848,8 +2855,8 @@ def go_repositories():
         name = "com_github_philhofer_fwd",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/philhofer/fwd",
-        sum = "h1:UbZqGr5Y38ApvM/V/jEljVxwocdweyH+vmYvRPBnbqQ=",
-        version = "v1.0.0",
+        sum = "h1:GdGcTjf5RNAxwS4QLsiMzJYj5KEvPJD3Abr261yRQXQ=",
+        version = "v1.1.1",
     )
     go_repository(
         name = "com_github_pierrec_lz4",
@@ -3090,6 +3097,13 @@ def go_repositories():
         version = "v2.20.4+incompatible",
     )
     go_repository(
+        name = "com_github_shirou_gopsutil_v3",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/shirou/gopsutil/v3",
+        sum = "h1:fIOk3hyqV1oGKogfGNjUZa0lUbtlkx3+ZT0IoJth2uM=",
+        version = "v3.21.2",
+    )
+    go_repository(
         name = "com_github_shopify_goreferrer",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/Shopify/goreferrer",
@@ -3273,6 +3287,20 @@ def go_repositories():
         version = "v1.1.2",
     )
     go_repository(
+        name = "com_github_tklauser_go_sysconf",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/tklauser/go-sysconf",
+        sum = "h1:HT8SVixZd3IzLdfs/xlpq0jeSfTX57g1v6wB1EuzV7M=",
+        version = "v0.3.4",
+    )
+    go_repository(
+        name = "com_github_tklauser_numcpus",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/tklauser/numcpus",
+        sum = "h1:ct88eFm+Q7m2ZfXJdan1xYoXKlmwsfP+k88q05KvlZc=",
+        version = "v0.2.1",
+    )
+    go_repository(
         name = "com_github_tmc_grpc_websocket_proxy",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/tmc/grpc-websocket-proxy",
@@ -3290,8 +3318,8 @@ def go_repositories():
         name = "com_github_uber_jaeger_client_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/uber/jaeger-client-go",
-        sum = "h1:6WVONolFJiB8Vx9bq4z9ddyV/SXSpfvvtb7Yl/TGHiE=",
-        version = "v2.27.0+incompatible",
+        sum = "h1:R9ec3zO3sGpzs0abd43Y+fBZRJ9uiH6lXyR/+u6brW4=",
+        version = "v2.29.1+incompatible",
     )
     go_repository(
         name = "com_github_uber_jaeger_lib",
@@ -3612,8 +3640,8 @@ def go_repositories():
         name = "in_gopkg_datadog_dd_trace_go_v1",
         build_file_proto_mode = "disable_global",
         importpath = "gopkg.in/DataDog/dd-trace-go.v1",
-        sum = "h1:yJJrDYzAlUsDPpAVBjv4VFnXKTbgvaJFTX0646xDPi4=",
-        version = "v1.30.0",
+        sum = "h1:DkD0plWEVUB8v/Ru6kRBW30Hy/fRNBC8hPdcExuBZMc=",
+        version = "v1.32.0",
     )
     go_repository(
         name = "in_gopkg_errgo_v2",
