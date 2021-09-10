@@ -16,10 +16,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	_ modserver.AgentRpcApi = (*serverAgentRpcApi)(nil)
-)
-
 type serverAgentRpcApi struct {
 	modserver.RpcApi
 	Token          api.AgentToken
