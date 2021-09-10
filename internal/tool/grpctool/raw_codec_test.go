@@ -7,7 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
+	"google.golang.org/grpc/encoding"
 	"google.golang.org/protobuf/testing/protocmp"
+)
+
+var (
+	_ encoding.Codec = RawCodec{}
+	_ encoding.Codec = RawCodecWithProtoFallback{}
 )
 
 func TestRawCodec_Roundtrip(t *testing.T) {

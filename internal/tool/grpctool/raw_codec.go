@@ -38,11 +38,6 @@ func (c RawCodec) Name() string {
 	return protoenc.Name
 }
 
-// String is here for compatibility with grpc.Codec interface.
-func (c RawCodec) String() string {
-	return c.Name()
-}
-
 // RawCodecWithProtoFallback is a *raw* encoding.Codec.
 // This codec treats a gRPC message as raw bytes if it's RawFrame and falls back to default proto encoding
 // for other message types.
@@ -71,9 +66,4 @@ func (c RawCodecWithProtoFallback) Unmarshal(data []byte, v interface{}) error {
 func (c RawCodecWithProtoFallback) Name() string {
 	// Pretend to be a codec for protobuf.
 	return protoenc.Name
-}
-
-// String is here for compatibility with grpc.Codec interface.
-func (c RawCodecWithProtoFallback) String() string {
-	return c.Name()
 }
