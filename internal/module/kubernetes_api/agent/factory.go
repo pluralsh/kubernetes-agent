@@ -11,6 +11,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	// Proxy can be used by many clients, so increase the number of QPS.
+	defaultProxyQPS   = 150
+	defaultProxyBurst = 150
+)
+
 type Factory struct {
 }
 
@@ -19,6 +25,9 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	restConfig = rest.CopyConfig(restConfig)
+	restConfig.QPS = defaultProxyQPS
+	restConfig.Burst = defaultProxyBurst
 	baseUrl, _, err := defaultServerUrlFor(restConfig)
 	if err != nil {
 		return nil, err
