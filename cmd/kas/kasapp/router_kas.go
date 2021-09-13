@@ -45,7 +45,7 @@ func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStr
 	if err != nil {
 		return err
 	}
-	err = retry.PollImmediateUntil(stream.Context(), r.routeAttemptInterval, r.attemptToRoute(agentId, stream))
+	err = retry.PollImmediateUntil(ctx, r.routeAttemptInterval, r.attemptToRoute(agentId, stream))
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return status.Error(codes.Unavailable, "Unavailable")
 	}
@@ -63,7 +63,7 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 	service, method := grpctool.SplitGrpcMethod(sts.Method())
 	return func() (bool /* done */, error) {
 		var tunnels []*tracker.TunnelInfo
-		err := rpcApi.PollWithBackoff(pollConfig, r.attemptToGetTunnels(ctx, log, agentId, service, method, &tunnels))
+		err := rpcApi.PollWithBackoff(pollConfig, r.attemptToGetTunnels(ctx, log, rpcApi, agentId, service, method, &tunnels))
 		if err != nil {
 			return false, err
 		}
@@ -74,7 +74,7 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 			// Redefines log variable to eliminate the chance of using the original one
 			log := log.With(logz.ConnectionId(tunnel.ConnectionId), logz.KasUrl(tunnel.KasUrl)) // nolint:govet
 			log.Debug("Trying tunnel")
-			err, done := r.attemptToRouteViaTunnel(log, tunnel, stream)
+			err, done := r.attemptToRouteViaTunnel(log, rpcApi, agentId, tunnel, stream)
 			switch {
 			case done:
 				// Request was routed successfully. The remote may have returned an error, but that's still a
@@ -89,7 +89,7 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 				return false, status.Error(codes.DeadlineExceeded, err.Error())
 			default:
 				// There was an error routing the request via this tunnel. Log and try another one.
-				log.Error("Failed to route request", logz.Error(err))
+				rpcApi.HandleProcessingError(log, agentId, "Failed to route request", err)
 			}
 		}
 		return false, nil
@@ -98,14 +98,13 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 
 // attemptToGetTunnels
 // must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agentId int64, service, method string,
-	infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
+func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
+	service, method string, infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
 	return func() (error, retry.AttemptResult) {
 		var infos tunnelInfoCollector
 		err := r.tunnelQuerier.GetTunnelsByAgentId(ctx, agentId, infos.Collect(service, method))
 		if err != nil {
-			// TODO error tracking
-			log.Error("GetTunnelsByAgentId()", logz.Error(err))
+			rpcApi.HandleProcessingError(log, agentId, "GetTunnelsByAgentId()", err)
 			return nil, retry.Backoff
 		}
 		*infosTarget = infos
@@ -115,7 +114,7 @@ func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agent
 
 // attemptToRouteViaTunnel attempts to route the stream via the tunnel.
 // Unusual signature to signal that the done bool should be checked to determine what the error value means.
-func (r *router) attemptToRouteViaTunnel(log *zap.Logger, tunnel *tracker.TunnelInfo, stream grpc.ServerStream) (error, bool /* done */) {
+func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64, tunnel *tracker.TunnelInfo, stream grpc.ServerStream) (error, bool) {
 	ctx := stream.Context()
 	kasClient, err := r.kasPool.Dial(ctx, tunnel.KasUrl)
 	if err != nil {
@@ -163,12 +162,12 @@ func (r *router) attemptToRouteViaTunnel(log *zap.Logger, tunnel *tracker.Tunnel
 	if err != nil {
 		return fmt.Errorf("stream SendMsg(): %w", err), false
 	}
-	return r.forwardStream(log, kasStream, stream), true
+	return r.forwardStream(log, rpcApi, agentId, kasStream, stream), true
 }
 
 // forwardStream does bi-directional stream forwarding.
 // Returns a gRPC status-compatible error.
-func (r *router) forwardStream(log *zap.Logger, kasStream grpc.ClientStream, stream grpc.ServerStream) error {
+func (r *router) forwardStream(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64, kasStream grpc.ClientStream, stream grpc.ServerStream) error {
 	// Cancellation
 	//
 	// kasStream is an outbound client stream (this kas -> gateway kas)
@@ -189,7 +188,7 @@ func (r *router) forwardStream(log *zap.Logger, kasStream grpc.ClientStream, str
 	// We don't care about the second value if the first one is a non-nil error.
 	res := make(chan *status.Status, 1)
 	go func() {
-		res <- r.pipeFromKasToStream(log, kasStream, stream)
+		res <- r.pipeFromKasToStream(log, rpcApi, agentId, kasStream, stream)
 	}()
 	go func() {
 		res <- pipeFromStreamToKas(kasStream, stream)
@@ -205,7 +204,8 @@ func (r *router) forwardStream(log *zap.Logger, kasStream grpc.ClientStream, str
 	return nil
 }
 
-func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStream, stream grpc.ServerStream) *status.Status {
+func (r *router) pipeFromKasToStream(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
+	kasStream grpc.ClientStream, stream grpc.ServerStream) *status.Status {
 	var stat *statuspb.Status
 	err := r.gatewayKasVisitor.Visit(kasStream,
 		grpctool.WithStartState(tunnelReadyFieldNumber),
@@ -236,8 +236,7 @@ func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStrea
 		return status.Convert(err)
 	default:
 		// Something unexpected
-		// TODO track error
-		log.Error("Failed to route request: visitor", logz.Error(err))
+		rpcApi.HandleProcessingError(log, agentId, "Failed to route request: read from router kas", err)
 		return status.New(codes.Unavailable, "unavailable")
 	}
 }
