@@ -15,7 +15,7 @@ agent:
     websocket: false
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
-    connections_per_token_per_minute: 100
+    connections_per_token_per_minute: 10000
     max_connection_age: "1800s"
   configuration:
     poll_period: "20s"
@@ -66,11 +66,11 @@ observability:
     url_path: /readiness
 gitaly:
   global_api_rate_limit:
-    refill_rate_per_second: 10.0
-    bucket_size: 50
+    refill_rate_per_second: 30.0
+    bucket_size: 70
   per_server_api_rate_limit:
-    refill_rate_per_second: 5.0
-    bucket_size: 10
+    refill_rate_per_second: 15.0
+    bucket_size: 40
 redis:
   server:
     address: "localhost:6380" # required

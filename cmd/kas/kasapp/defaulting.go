@@ -25,13 +25,13 @@ const (
 	defaultAgentRedisConnInfoGC      = 10 * time.Minute
 
 	defaultAgentListenAddress                      = "127.0.0.1:8150"
-	defaultAgentListenConnectionsPerTokenPerMinute = 100
+	defaultAgentListenConnectionsPerTokenPerMinute = 10000
 	defaultAgentListenMaxConnectionAge             = 30 * time.Minute
 
-	defaultGitalyGlobalApiRefillRate    = 10.0
-	defaultGitalyGlobalApiBucketSize    = 50
-	defaultGitalyPerServerApiRate       = 5.0
-	defaultGitalyPerServerApiBucketSize = 10
+	defaultGitalyGlobalApiRefillRate    = 30.0
+	defaultGitalyGlobalApiBucketSize    = 70
+	defaultGitalyPerServerApiRate       = 15.0
+	defaultGitalyPerServerApiBucketSize = 40
 
 	defaultRedisPoolSize     = 5
 	defaultRedisDialTimeout  = 5 * time.Second
