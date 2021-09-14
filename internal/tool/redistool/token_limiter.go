@@ -13,54 +13,57 @@ import (
 	"go.uber.org/zap"
 )
 
+type RpcApi interface {
+	Log() *zap.Logger
+	HandleProcessingError(msg string, err error)
+	AgentToken() string
+}
+
 // TokenLimiter is a redis-based rate limiter implementing the algorithm in https://redislabs.com/redis-best-practices/basic-rate-limiting/
 type TokenLimiter struct {
-	log            *zap.Logger
 	redisClient    redis.UniversalClient
 	keyPrefix      string
 	limitPerMinute uint64
-	getToken       func(ctx context.Context) string
+	getApi         func(context.Context) RpcApi
 }
 
 // NewTokenLimiter returns a new TokenLimiter
-func NewTokenLimiter(log *zap.Logger, redisClient redis.UniversalClient, keyPrefix string, limitPerMinute uint64, getToken func(ctx context.Context) string) *TokenLimiter {
+func NewTokenLimiter(redisClient redis.UniversalClient, keyPrefix string,
+	limitPerMinute uint64, getApi func(context.Context) RpcApi) *TokenLimiter {
 	return &TokenLimiter{
-		log:            log,
 		redisClient:    redisClient,
 		keyPrefix:      keyPrefix,
 		limitPerMinute: limitPerMinute,
-		getToken:       getToken,
+		getApi:         getApi,
 	}
 }
 
 // Allow consumes one limitable event from the token in the context
 func (l *TokenLimiter) Allow(ctx context.Context) bool {
-	key := l.buildKey(l.getToken(ctx))
+	api := l.getApi(ctx)
+	key := l.buildKey(api.AgentToken())
 
 	count, err := l.redisClient.Get(ctx, key).Uint64()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
-			// FIXME: Handle error
-			l.log.Error("redistool.TokenLimiter: Error retrieving minute bucket count", logz.Error(err))
+			api.HandleProcessingError("redistool.TokenLimiter: error retrieving minute bucket count", err)
 			return false
 		}
 		count = 0
 	}
 	if count >= l.limitPerMinute {
-		l.log.Debug("redistool.TokenLimiter: Rate limit exceeded",
+		api.Log().Debug("redistool.TokenLimiter: rate limit exceeded",
 			logz.RedisKey([]byte(key)), logz.U64Count(count), logz.TokenLimit(l.limitPerMinute))
 		return false
 	}
 
-	// FIXME: Handle errors
 	_, err = l.redisClient.TxPipelined(ctx, func(p redis.Pipeliner) error {
 		p.Incr(ctx, key)
 		p.Expire(ctx, key, 59*time.Second)
 		return nil
 	})
 	if err != nil {
-		l.log.Error("redistool.TokenLimiter: Error wile incrementing token key count", logz.Error(err))
-		// FIXME: Handle error
+		api.HandleProcessingError("redistool.TokenLimiter: error while incrementing token key count", err)
 		return false
 	}
 

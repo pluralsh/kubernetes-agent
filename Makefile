@@ -42,6 +42,7 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/redistool" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_agent_tracker" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitaly" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab_access" \
