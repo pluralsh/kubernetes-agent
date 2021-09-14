@@ -16,12 +16,12 @@ message ListAgentConfigFilesRequest {
 }
 
 message ListAgentConfigFilesResponse {
-  repeated AgentConfigFile config_files = 1;
+  repeated AgentConfigFile config_files = 1 [json_name = "config_files"];
 }
 
 message AgentConfigFile {
-  string name = 1;
-  string agent_name = 2;
+  string name = 1 [json_name = "name"];
+  string agent_name = 2 [json_name = "agent_name"];
 }
 
 service ConfigurationProject {

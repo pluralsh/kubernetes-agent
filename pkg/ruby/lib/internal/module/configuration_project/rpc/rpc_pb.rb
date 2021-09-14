@@ -11,11 +11,11 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       optional :gitaly_address, :message, 2, "gitlab.agent.modserver.GitalyAddress", json_name: "gitalyAddress"
     end
     add_message "gitlab.agent.configuration_project.rpc.ListAgentConfigFilesResponse" do
-      repeated :config_files, :message, 1, "gitlab.agent.configuration_project.rpc.AgentConfigFile", json_name: "configFiles"
+      repeated :config_files, :message, 1, "gitlab.agent.configuration_project.rpc.AgentConfigFile", json_name: "config_files"
     end
     add_message "gitlab.agent.configuration_project.rpc.AgentConfigFile" do
       optional :name, :string, 1, json_name: "name"
-      optional :agent_name, :string, 2, json_name: "agentName"
+      optional :agent_name, :string, 2, json_name: "agent_name"
     end
   end
 end

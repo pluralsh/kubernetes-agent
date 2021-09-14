@@ -21,7 +21,7 @@ message GetConnectedAgentsRequest {
 
 message GetConnectedAgentsResponse {
   // There may 0 or more agents with the same id, depending on the number of running agentk Pods.
-  repeated agent_tracker.ConnectedAgentInfo agents = 1;
+  repeated agent_tracker.ConnectedAgentInfo agents = 1 [json_name = "agents"];
 }
 
 service AgentTracker {
