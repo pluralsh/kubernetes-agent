@@ -31,6 +31,7 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
@@ -439,11 +440,14 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 
 	if redisClient != nil {
 		agentConnectionLimiter := redistool.NewTokenLimiter(
-			a.Log,
 			redisClient,
 			a.Configuration.Redis.KeyPrefix+":agent_limit",
 			uint64(listenCfg.ConnectionsPerTokenPerMinute),
-			func(ctx context.Context) string { return string(modserver.AgentRpcApiFromContext(ctx).AgentToken()) },
+			func(ctx context.Context) redistool.RpcApi {
+				return &tokenLimiterApi{
+					rpcApi: modserver.AgentRpcApiFromContext(ctx),
+				}
+			},
 		)
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
@@ -875,6 +879,7 @@ var (
 	_ agent_tracker.Tracker = nopAgentTracker{}
 	_ tracker.Tracker       = nopTunnelTracker{}
 	_ kasRouter             = nopKasRouter{}
+	_ redistool.RpcApi      = (*tokenLimiterApi)(nil)
 )
 
 type nopAgentTracker struct {
@@ -923,4 +928,20 @@ type nopKasRouter struct {
 }
 
 func (r nopKasRouter) RegisterAgentApi(desc *grpc.ServiceDesc) {
+}
+
+type tokenLimiterApi struct {
+	rpcApi modserver.AgentRpcApi
+}
+
+func (a *tokenLimiterApi) Log() *zap.Logger {
+	return a.rpcApi.Log()
+}
+
+func (a *tokenLimiterApi) HandleProcessingError(msg string, err error) {
+	a.rpcApi.HandleProcessingError(a.rpcApi.Log(), modshared.NoAgentId, msg, err)
+}
+
+func (a *tokenLimiterApi) AgentToken() string {
+	return string(a.rpcApi.AgentToken())
 }

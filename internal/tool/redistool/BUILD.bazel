@@ -14,6 +14,7 @@ go_proto_generate(
 go_library(
     name = "redistool",
     srcs = [
+        "doc.go",
         "expiring_hash.go",
         "redistool.pb.go",
         "token_limiter.go",
@@ -36,6 +37,7 @@ go_custom_test(
     name = "redistool_test",
     srcs = [
         "expiring_hash_test.go",
+        "mock_for_test.go",
         "token_limiter_test.go",
     ],
     embed = [":redistool"],
@@ -44,12 +46,14 @@ go_custom_test(
         "//internal/tool/testing/testhelpers",
         "@com_github_go_redis_redis_v8//:redis",
         "@com_github_go_redis_redismock_v8//:redismock",
+        "@com_github_golang_mock//gomock",
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//testing/protocmp",
         "@org_golang_google_protobuf//types/known/anypb",
+        "@org_uber_go_zap//:zap",
         "@org_uber_go_zap//zaptest",
     ],
 )
