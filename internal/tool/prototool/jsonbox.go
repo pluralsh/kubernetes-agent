@@ -22,5 +22,7 @@ func (b JsonBox) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler on JsonBox.
 func (b *JsonBox) UnmarshalJSON(data []byte) error {
-	return protojson.Unmarshal(data, b.Message)
+	return protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}.Unmarshal(data, b.Message)
 }

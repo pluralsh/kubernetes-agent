@@ -136,6 +136,22 @@ func TestJsonBox_RoundTrip(t *testing.T) {
 	}
 }
 
+func TestJsonBox_IgnoreUnknownFields(t *testing.T) {
+	var (
+		in  = []byte(`{"method":"POST", "some_field":"Ha-ha! I'll break your code!"}`)
+		out = JsonBox{
+			Message: &HttpRequest{},
+		}
+		expected = &HttpRequest{
+			Method: "POST",
+		}
+	)
+	err := json.Unmarshal(in, &out)
+	require.NoError(t, err)
+
+	assert.Empty(t, cmp.Diff(expected, out.Message, protocmp.Transform()))
+}
+
 type embeddedBox struct {
 	A JsonBox
 	B *JsonBox
