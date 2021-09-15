@@ -108,7 +108,7 @@ func (w *worker) Run(ctx context.Context) {
 			Since: since,
 		})
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
+			if !grpctool.RequestCanceledOrTimedOut(err) {
 				w.log.Error("Failed to get flows from Hubble relay", logz.Error(err))
 			}
 			return nil, retry.Backoff
@@ -119,7 +119,7 @@ func (w *worker) Run(ctx context.Context) {
 				if errors.Is(err, io.EOF) {
 					return nil, retry.Continue
 				}
-				if !grpctool.RequestCanceled(err) {
+				if !grpctool.RequestCanceledOrTimedOut(err) {
 					w.log.Error("GetFlows.Recv() failed", logz.Error(err))
 				}
 				return nil, retry.Backoff

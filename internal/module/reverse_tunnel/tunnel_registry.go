@@ -129,7 +129,7 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
 	recv, err := server.Recv()
 	if err != nil {
-		if !grpctool.RequestCanceled(err) {
+		if !grpctool.RequestCanceledOrTimedOut(err) {
 			r.log.Debug("Recv() from incoming tunnel connection failed", logz.Error(err))
 		}
 		return status.Error(codes.Unavailable, "unavailable")

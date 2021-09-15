@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func RequestCanceled(err error) bool {
+func RequestCanceledOrTimedOut(err error) bool {
 	if errz.ContextDone(err) {
 		return true
 	}

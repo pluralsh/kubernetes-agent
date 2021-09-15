@@ -26,7 +26,7 @@ func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg
 func (a *serverRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
-	if !grpctool.RequestCanceled(err) {
+	if !grpctool.RequestCanceledOrTimedOut(err) {
 		log.Debug(msg, logz.Error(err))
 	}
 	return status.Error(codes.Unavailable, "gRPC send failed")

@@ -42,7 +42,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 			AgentMeta: w.AgentMeta,
 		})
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
+			if !grpctool.RequestCanceledOrTimedOut(err) {
 				w.Log.Warn("GetConfiguration failed", logz.Error(err))
 			}
 			return nil, retry.Backoff
@@ -53,7 +53,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 				switch {
 				case errors.Is(err, io.EOF):
 					return nil, retry.ContinueImmediately // immediately reconnect after a clean close
-				case grpctool.RequestCanceled(err):
+				case grpctool.RequestCanceledOrTimedOut(err):
 				default:
 					w.Log.Warn("GetConfiguration.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
 				}

@@ -384,7 +384,7 @@ func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Value
 }
 
 func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err error) errFunc {
-	if !grpctool.RequestCanceled(err) {
+	if !grpctool.RequestCanceledOrTimedOut(err) {
 		log.Debug(msg, logz.Error(err))
 	}
 	return writeError(msg, err)

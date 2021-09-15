@@ -30,7 +30,7 @@ func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 }
 
 func handleProcessingError(ctx context.Context, hub SentryHub, log *zap.Logger, agentId int64, msg string, err error) {
-	if grpctool.RequestCanceled(err) {
+	if grpctool.RequestCanceledOrTimedOut(err) {
 		// An error caused by context signalling done
 		return
 	}

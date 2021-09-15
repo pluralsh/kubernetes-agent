@@ -21,24 +21,24 @@ import (
 
 func TestRequestCanceled(t *testing.T) {
 	t.Run("context errors", func(t *testing.T) {
-		assert.True(t, grpctool.RequestCanceled(context.Canceled))
-		assert.True(t, grpctool.RequestCanceled(context.DeadlineExceeded))
-		assert.False(t, grpctool.RequestCanceled(io.EOF))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(context.Canceled))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(context.DeadlineExceeded))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(io.EOF))
 	})
 	t.Run("wrapped context errors", func(t *testing.T) {
-		assert.True(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", context.Canceled)))
-		assert.True(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", context.DeadlineExceeded)))
-		assert.False(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", io.EOF)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", context.Canceled)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", context.DeadlineExceeded)))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", io.EOF)))
 	})
 	t.Run("gRPC errors", func(t *testing.T) {
-		assert.True(t, grpctool.RequestCanceled(status.Error(codes.Canceled, "bla")))
-		assert.True(t, grpctool.RequestCanceled(status.Error(codes.DeadlineExceeded, "bla")))
-		assert.False(t, grpctool.RequestCanceled(status.Error(codes.Unavailable, "bla")))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(status.Error(codes.Canceled, "bla")))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(status.Error(codes.DeadlineExceeded, "bla")))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(status.Error(codes.Unavailable, "bla")))
 	})
 	t.Run("wrapped gRPC errors", func(t *testing.T) {
-		assert.True(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", status.Error(codes.Canceled, "bla"))))
-		assert.True(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", status.Error(codes.DeadlineExceeded, "bla"))))
-		assert.False(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", status.Error(codes.Unavailable, "bla"))))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", status.Error(codes.Canceled, "bla"))))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", status.Error(codes.DeadlineExceeded, "bla"))))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", status.Error(codes.Unavailable, "bla"))))
 	})
 }
 
