@@ -204,7 +204,7 @@ func handleSendError(log *zap.Logger, msg string, err error) error {
 	if !grpctool.RequestCanceledOrTimedOut(err) {
 		log.Debug(msg, logz.Error(err))
 	}
-	return status.Error(codes.Unavailable, "gRPC send failed")
+	return status.Error(codes.Canceled, "gRPC send failed")
 }
 
 type cancelingReadCloser struct {

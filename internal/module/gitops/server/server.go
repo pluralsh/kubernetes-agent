@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
@@ -178,17 +179,22 @@ func (s *server) sendObjectsToSynchronizeBody(
 		vGlob.Glob = globNoSlash // set new glob for each path
 		err = pf.Visit(ctx, projectInfo.Repository, []byte(commitId), repoPath, recursive, vCounting)
 		if err != nil {
-			if v.sendFailed {
+			switch {
+			case v.sendFailed:
 				return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
-			}
-			if isUserError(err) {
+			case isUserError(err):
 				err = errz.NewUserErrorWithCause(err, "manifest file")
 				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
 				// return the error to the client because it's a user error
 				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
+			case grpctool.RequestCanceled(err):
+				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.Canceled, "GitOps: failed to get objects to synchronize")
+			case grpctool.RequestTimedOut(err):
+				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.DeadlineExceeded, "GitOps: failed to get objects to synchronize")
+			default:
+				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
+				return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
-			rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
-			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 		}
 	}
 	return vCounting.FilesVisited, vCounting.FilesSent, nil

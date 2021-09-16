@@ -2,7 +2,6 @@ package grpctool
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -47,7 +46,7 @@ func (w recvWrapper) RecvMsg(m interface{}) error {
 func maybeValidate(msg interface{}) error {
 	if v, ok := msg.(validatable); ok {
 		if err := v.Validate(); err != nil {
-			return status.Errorf(codes.InvalidArgument, fmt.Sprintf("invalid server response: %v", err))
+			return status.Errorf(codes.InvalidArgument, "invalid server response: %v", err)
 		}
 	}
 	return nil
