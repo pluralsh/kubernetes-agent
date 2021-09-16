@@ -2,7 +2,6 @@ package reverse_tunnel
 
 import (
 	"context"
-	"errors"
 	"io"
 	"testing"
 	"time"
@@ -21,7 +20,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -108,12 +109,12 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
-		Return(nil, errors.New("expected err"))
+		Return(nil, status.Error(codes.DataLoss, "expected err"))
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
-	assert.EqualError(t, err, "rpc error: code = Unavailable desc = unavailable")
+	assert.EqualError(t, err, "rpc error: code = DataLoss desc = expected err")
 }
 
 func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {

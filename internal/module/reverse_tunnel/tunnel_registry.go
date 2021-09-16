@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/mathz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -129,10 +128,7 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
 	recv, err := server.Recv()
 	if err != nil {
-		if !grpctool.RequestCanceled(err) {
-			r.log.Debug("Recv() from incoming tunnel connection failed", logz.Error(err))
-		}
-		return status.Error(codes.Unavailable, "unavailable")
+		return err
 	}
 	descriptor, ok := recv.Msg.(*rpc.ConnectRequest_Descriptor_)
 	if !ok {

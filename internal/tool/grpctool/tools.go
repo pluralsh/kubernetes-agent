@@ -16,13 +16,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func RequestCanceledOrTimedOut(err error) bool {
+	return RequestCanceled(err) || RequestTimedOut(err)
+}
+
 func RequestCanceled(err error) bool {
-	if errz.ContextDone(err) {
-		return true
-	}
 	for err != nil {
+		if err == context.Canceled { // nolint:errorlint
+			return true
+		}
 		code := status.Code(err)
-		if code == codes.Canceled || code == codes.DeadlineExceeded {
+		if code == codes.Canceled {
+			return true
+		}
+		err = errors.Unwrap(err)
+	}
+	return false
+}
+
+func RequestTimedOut(err error) bool {
+	for err != nil {
+		if err == context.DeadlineExceeded { // nolint:errorlint
+			return true
+		}
+		code := status.Code(err)
+		if code == codes.DeadlineExceeded {
 			return true
 		}
 		err = errors.Unwrap(err)

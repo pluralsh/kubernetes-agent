@@ -49,7 +49,7 @@ func (c *connection) Run(ctx context.Context) {
 	_ = retry.PollWithBackoff(ctx, c.pollConfig(), func() (error, retry.AttemptResult) {
 		err := c.attempt(ctx)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
+			if !grpctool.RequestCanceledOrTimedOut(err) {
 				c.log.Error("Error handling a connection", logz.Error(err))
 			}
 			return nil, retry.Backoff

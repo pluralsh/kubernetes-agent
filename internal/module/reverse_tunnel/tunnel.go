@@ -104,7 +104,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				return status.Error(codes.Unavailable, "unavailable"), err
+				return status.Error(codes.Canceled, "read from incoming stream"), err
 			}
 			err = t.tunnel.Send(&rpc.ConnectResponse{
 				Msg: &rpc.ConnectResponse_Message{
@@ -131,7 +131,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
 		select {
 		case <-incomingCtx.Done():
-			return nil, status.Error(codes.Unavailable, "unavailable")
+			return nil, status.FromContextError(incomingCtx.Err()).Err()
 		case <-startReadingTunnel:
 		}
 		var forTunnel, forIncomingStream error
@@ -156,9 +156,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 		)
 		if fromVisitor != nil {
 			forIncomingStream = fromVisitor
-			if forTunnel == nil {
-				forTunnel = status.Error(codes.Unavailable, "unavailable")
-			}
+			forTunnel = fromVisitor
 		}
 		return forTunnel, forIncomingStream
 	})

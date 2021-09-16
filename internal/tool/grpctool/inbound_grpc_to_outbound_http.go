@@ -3,11 +3,11 @@ package grpctool
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -89,8 +89,12 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 	err := g.Wait()
 	switch {
 	case err == nil:
-	case errz.ContextDone(err):
-		err = status.Error(codes.Unavailable, "unavailable")
+	case errors.Is(err, context.Canceled):
+		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
+		err = status.Error(codes.Canceled, err.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
+		err = status.Error(codes.DeadlineExceeded, err.Error())
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
@@ -145,7 +149,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 			var n int
 			n, err = resp.Body.Read(buffer)
 			if err != nil && !errors.Is(err, io.EOF) {
-				return fmt.Errorf("read response body: %w", err) // wrap
+				return status.Errorf(codes.Canceled, "read HTTP response body: %v", err)
 			}
 			if n > 0 { // handle n=0, err=io.EOF case
 				sendErr := server.SendMsg(&HttpResponse{

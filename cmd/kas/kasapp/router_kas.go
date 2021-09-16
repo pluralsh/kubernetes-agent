@@ -47,7 +47,7 @@ func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStr
 	}
 	err = retry.PollImmediateUntil(ctx, r.routeAttemptInterval, r.attemptToRoute(agentId, stream))
 	if errors.Is(err, retry.ErrWaitTimeout) {
-		return status.Error(codes.Unavailable, "Unavailable")
+		return status.FromContextError(ctx.Err()).Err()
 	}
 	return err // nil or some gRPC status value
 }

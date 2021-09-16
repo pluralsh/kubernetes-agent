@@ -53,7 +53,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		req.CommitId = lastProcessedCommitId
 		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
+			if !grpctool.RequestCanceledOrTimedOut(err) {
 				o.Log.Error("GetObjectsToSynchronize failed", logz.Error(err))
 			}
 			return nil, retry.Backoff
@@ -65,7 +65,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 			grpctool.WithCallback(trailerFieldNumber, v.OnTrailer),
 		)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
+			if !grpctool.RequestCanceledOrTimedOut(err) {
 				o.Log.Error("GetObjectsToSynchronize.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
 			}
 			return nil, retry.Backoff
