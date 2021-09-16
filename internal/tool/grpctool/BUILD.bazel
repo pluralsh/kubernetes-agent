@@ -70,6 +70,7 @@ go_custom_test(
     srcs = [
         "client_validator_test.go",
         "dial_listener_test.go",
+        "grpc_test.go",
         "inbound_grpc_to_outbound_http_test.go",
         "jwt_creds_test.go",
         "jwt_server_auth_test.go",
