@@ -17,10 +17,10 @@ import (
 
 const (
 	routeAttemptInterval      = 3 * time.Second
-	getTunnelsAttemptInterval = 1 * time.Second
+	getTunnelsAttemptInterval = 50 * time.Millisecond
 
-	routingInitBackoff   = 1 * time.Second
-	routingMaxBackoff    = 10 * time.Second
+	routingInitBackoff   = 100 * time.Millisecond
+	routingMaxBackoff    = 1 * time.Second
 	routingResetDuration = 10 * time.Second
 	routingBackoffFactor = 2.0
 	routingJitter        = 1.0
