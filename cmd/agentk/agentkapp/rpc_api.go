@@ -3,6 +3,7 @@ package agentkapp
 import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"go.uber.org/zap"
 )
 
@@ -19,5 +20,5 @@ func (a *agentRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg 
 }
 
 func (a *agentRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
-	return handleSendError(log, msg, err)
+	return grpctool.HandleSendError(log, msg, err)
 }

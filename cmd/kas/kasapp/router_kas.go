@@ -160,7 +160,7 @@ func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcAp
 	}
 	err = kasStream.SendMsg(&StartStreaming{})
 	if err != nil {
-		return fmt.Errorf("stream SendMsg(): %w", err), false
+		return rpcApi.HandleSendError(log, "SendMsg(StartStreaming) failed", err), false
 	}
 	return r.forwardStream(log, rpcApi, agentId, kasStream, stream), true
 }
@@ -210,12 +210,20 @@ func (r *router) pipeFromKasToStream(log *zap.Logger, rpcApi modserver.RpcApi, a
 	err := r.gatewayKasVisitor.Visit(kasStream,
 		grpctool.WithStartState(tunnelReadyFieldNumber),
 		grpctool.WithCallback(headerFieldNumber, func(header *GatewayKasResponse_Header) error {
-			return stream.SetHeader(header.Metadata())
+			err := stream.SetHeader(header.Metadata())
+			if err != nil {
+				return rpcApi.HandleSendError(log, "router kas->stream SetHeader() failed", err)
+			}
+			return nil
 		}),
 		grpctool.WithCallback(messageFieldNumber, func(message *GatewayKasResponse_Message) error {
-			return stream.SendMsg(&grpctool.RawFrame{
+			err := stream.SendMsg(&grpctool.RawFrame{
 				Data: message.Data,
 			})
+			if err != nil {
+				return rpcApi.HandleSendError(log, "router kas->stream SendMsg() failed", err)
+			}
+			return nil
 		}),
 		grpctool.WithCallback(trailerFieldNumber, func(trailer *GatewayKasResponse_Trailer) error {
 			stream.SetTrailer(trailer.Metadata())

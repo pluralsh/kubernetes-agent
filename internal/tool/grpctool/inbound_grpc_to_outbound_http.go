@@ -141,7 +141,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 			},
 		})
 		if err != nil {
-			return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP header", err)
+			return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Header) failed", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -160,7 +160,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 					},
 				})
 				if sendErr != nil {
-					return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP data", sendErr)
+					return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Data) failed", sendErr)
 				}
 			}
 		}
@@ -176,7 +176,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 		},
 	})
 	if err != nil {
-		return rpcApi.HandleSendError(rpcApi.Log(), "Failed to send HTTP trailer", err)
+		return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Trailer) failed", err)
 	}
 	return nil
 }

@@ -10,8 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type serverRpcApi struct {
@@ -24,14 +22,7 @@ func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg
 }
 
 func (a *serverRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
-	// The problem is almost certainly with the client's connection.
-	// Still log it on Debug.
-	log.Debug(msg, logz.Error(err))
-	c := codes.Canceled
-	if grpctool.RequestTimedOut(err) {
-		c = codes.DeadlineExceeded
-	}
-	return status.Error(c, "gRPC send failed")
+	return grpctool.HandleSendError(log, msg, err)
 }
 
 type serverRpcApiFactory struct {

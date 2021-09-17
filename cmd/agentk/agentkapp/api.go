@@ -14,8 +14,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,7 +40,7 @@ func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, a
 }
 
 func (a *agentAPI) HandleSendError(log *zap.Logger, msg string, err error) error {
-	return handleSendError(log, msg, err)
+	return grpctool.HandleSendError(log, msg, err)
 }
 
 func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {
@@ -196,17 +194,6 @@ func handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, 
 		// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
 		log.Error(msg, logz.Error(err))
 	}
-}
-
-func handleSendError(log *zap.Logger, msg string, err error) error {
-	// The problem is almost certainly with the client's connection.
-	// Still log it on Debug.
-	log.Debug(msg, logz.Error(err))
-	c := codes.Canceled
-	if grpctool.RequestTimedOut(err) {
-		c = codes.DeadlineExceeded
-	}
-	return status.Error(c, "gRPC send failed")
 }
 
 type cancelingReadCloser struct {

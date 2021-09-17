@@ -3,18 +3,48 @@ package grpctool
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
+	"go.uber.org/zap"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+func HandleSendError(log *zap.Logger, msg string, err error) error {
+	// The problem is almost certainly with the client's connection.
+	// Still log it on Debug.
+	log.Debug(msg, logz.Error(err))
+	if IsStatusError(err) {
+		s := status.Convert(err).Proto()
+		if isErrIllegalHeaderWriteError(s) {
+			s.Code = int32(codes.Canceled)
+		}
+		s.Message = fmt.Sprintf("%s: %s", msg, s.Message)
+		err = status.ErrorProto(s)
+	} else {
+		err = status.Errorf(codes.Canceled, "%s: %v", msg, err)
+	}
+	return err
+}
+
+// isErrIllegalHeaderWriteError checks if an error is google.golang.org/grpc/internal/transport.ErrIllegalHeaderWrite
+// We cannot/shouldn't import an internal package, so we just do an error string check :facepalm:
+// See https://github.com/grpc/grpc-go/blob/v1.40.0/internal/transport/http2_server.go#L999
+// See https://github.com/grpc/grpc-go/issues/3575
+// See https://github.com/grpc/grpc-go/issues/4696
+func isErrIllegalHeaderWriteError(s *statuspb.Status) bool {
+	return s.Code == int32(codes.Internal) && strings.HasSuffix(s.Message, "transport: the stream is done or WriteHeader was already called")
+}
 
 func RequestCanceledOrTimedOut(err error) bool {
 	return RequestCanceled(err) || RequestTimedOut(err)
