@@ -8,11 +8,11 @@ require 'internal/module/modshared/modshared_pb'
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/agent_tracker/agent_tracker.proto", :syntax => :proto3) do
     add_message "gitlab.agent.agent_tracker.ConnectedAgentInfo" do
-      optional :agent_meta, :message, 1, "gitlab.agent.modshared.AgentMeta", json_name: "agentMeta"
-      optional :connected_at, :message, 2, "google.protobuf.Timestamp", json_name: "connectedAt"
-      optional :connection_id, :int64, 3, json_name: "connectionId"
-      optional :agent_id, :int64, 4, json_name: "agentId"
-      optional :project_id, :int64, 5, json_name: "projectId"
+      optional :agent_meta, :message, 1, "gitlab.agent.modshared.AgentMeta", json_name: "agent_meta"
+      optional :connected_at, :message, 2, "google.protobuf.Timestamp", json_name: "connected_at"
+      optional :connection_id, :int64, 3, json_name: "connection_id"
+      optional :agent_id, :int64, 4, json_name: "agent_id"
+      optional :project_id, :int64, 5, json_name: "project_id"
     end
   end
 end
