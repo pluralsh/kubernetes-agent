@@ -83,10 +83,10 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 				return true, err
 			case err == nil:
 				// No error to log, but also not a success. Continue to try the next tunnel.
-			case errors.Is(err, context.Canceled):
-				return false, status.Error(codes.Canceled, err.Error())
-			case errors.Is(err, context.DeadlineExceeded):
-				return false, status.Error(codes.DeadlineExceeded, err.Error())
+			case grpctool.RequestCanceled(err):
+				return false, status.Error(codes.Canceled, err.Error()) // TODO cleanup message
+			case grpctool.RequestTimedOut(err):
+				return false, status.Error(codes.DeadlineExceeded, err.Error()) // TODO cleanup message
 			default:
 				// There was an error routing the request via this tunnel. Log and try another one.
 				rpcApi.HandleProcessingError(log, agentId, "Failed to route request", err)
