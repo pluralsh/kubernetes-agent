@@ -13,8 +13,15 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
+const (
+	// https://datatracker.ietf.org/doc/html/rfc7230#section-5.7.1
+	httpViaHeader = "Via"
+)
+
 type httpClient interface {
-	Do(*rpc.ImpersonationConfig, *http.Request) (*http.Response, error)
+	// Do performs the request.
+	// impConfig may be nil.
+	Do(impConfig *rpc.ImpersonationConfig, r *http.Request) (*http.Response, error)
 }
 
 type server struct {
@@ -36,12 +43,14 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 					return nil, err
 				}
 				var headerExtra rpc.HeaderExtra
-				err = h.Extra.UnmarshalTo(&headerExtra)
-				if err != nil {
-					return nil, err
+				if h.Extra != nil { // May not be there on older kas versions. Also, just be more robust.
+					err = h.Extra.UnmarshalTo(&headerExtra)
+					if err != nil {
+						return nil, err
+					}
 				}
 				req.Header = h.Request.HttpHeader()
-				req.Header.Add("Via", via)
+				req.Header.Add(httpViaHeader, via)
 				resp, err := client.Do(headerExtra.ImpConfig, req)
 				if err != nil {
 					select {
@@ -51,7 +60,7 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 						return nil, err
 					}
 				}
-				resp.Header.Add("Via", fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, userAgent))
+				resp.Header.Add(httpViaHeader, fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, userAgent))
 				return resp, nil
 			},
 		),
