@@ -562,6 +562,21 @@ func (m *CiAccessCF) Validate() error {
 		return nil
 	}
 
+	for idx, item := range m.GetProjects() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CiAccessCFValidationError{
+					field:  fmt.Sprintf("Projects[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	for idx, item := range m.GetGroups() {
 		_, _ = idx, item
 
@@ -633,6 +648,82 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = CiAccessCFValidationError{}
+
+// Validate checks the field values on CiAccessProjectCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *CiAccessProjectCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetId()) < 1 {
+		return CiAccessProjectCFValidationError{
+			field:  "Id",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	// no validation rules for DefaultNamespace
+
+	return nil
+}
+
+// CiAccessProjectCFValidationError is the validation error returned by
+// CiAccessProjectCF.Validate if the designated constraints aren't met.
+type CiAccessProjectCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiAccessProjectCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiAccessProjectCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiAccessProjectCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiAccessProjectCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiAccessProjectCFValidationError) ErrorName() string {
+	return "CiAccessProjectCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CiAccessProjectCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiAccessProjectCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiAccessProjectCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiAccessProjectCFValidationError{}
 
 // Validate checks the field values on CiAccessGroupCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
