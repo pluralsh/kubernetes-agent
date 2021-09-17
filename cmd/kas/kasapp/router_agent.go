@@ -9,7 +9,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"go.uber.org/zap"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -37,13 +39,15 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		return status.FromContextError(err).Err()
 	}
 	defer tunnel.Done()
+	rpcApi := modserver.RpcApiFromContext(ctx)
+	log := rpcApi.Log().With(logz.AgentId(agentId))
 	err = stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_TunnelReady_{
 			TunnelReady: &GatewayKasResponse_TunnelReady{},
 		},
 	})
 	if err != nil {
-		return err
+		return rpcApi.HandleSendError(log, "SendMsg(GatewayKasResponse_TunnelReady) failed", err)
 	}
 	var start StartStreaming
 	err = stream.RecvMsg(&start)
@@ -54,7 +58,11 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		}
 		return err
 	}
-	return tunnel.ForwardStream(stream, wrappingCallback{stream: stream})
+	return tunnel.ForwardStream(stream, wrappingCallback{
+		log:    log,
+		rpcApi: rpcApi,
+		stream: stream,
+	})
 }
 
 func removeHopMeta(md metadata.MD) metadata.MD {
@@ -72,45 +80,54 @@ var (
 )
 
 type wrappingCallback struct {
+	log    *zap.Logger
+	rpcApi modserver.RpcApi
 	stream grpc.ServerStream
 }
 
 func (c wrappingCallback) Header(md map[string]*prototool.Values) error {
-	return c.stream.SendMsg(&GatewayKasResponse{
+	return c.maybeHandleError("SendMsg(GatewayKasResponse_Header) failed", c.stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_Header_{
 			Header: &GatewayKasResponse_Header{
 				Meta: md,
 			},
 		},
-	})
+	}))
 }
 
 func (c wrappingCallback) Message(data []byte) error {
-	return c.stream.SendMsg(&GatewayKasResponse{
+	return c.maybeHandleError("SendMsg(GatewayKasResponse_Message) failed", c.stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_Message_{
 			Message: &GatewayKasResponse_Message{
 				Data: data,
 			},
 		},
-	})
+	}))
 }
 
 func (c wrappingCallback) Trailer(md map[string]*prototool.Values) error {
-	return c.stream.SendMsg(&GatewayKasResponse{
+	return c.maybeHandleError("SendMsg(GatewayKasResponse_Trailer) failed", c.stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_Trailer_{
 			Trailer: &GatewayKasResponse_Trailer{
 				Meta: md,
 			},
 		},
-	})
+	}))
 }
 
 func (c wrappingCallback) Error(stat *statuspb.Status) error {
-	return c.stream.SendMsg(&GatewayKasResponse{
+	return c.maybeHandleError("SendMsg(GatewayKasResponse_Error) failed", c.stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_Error_{
 			Error: &GatewayKasResponse_Error{
 				Status: stat,
 			},
 		},
-	})
+	}))
+}
+
+func (c wrappingCallback) maybeHandleError(msg string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return c.rpcApi.HandleSendError(c.log, msg, err)
 }
