@@ -92,20 +92,20 @@ message CiliumCF {
 
 // https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
 message CiAccessCF {
-  // TODO repeated CiAccessProjectCF projects = 1 [json_name = "projects"];
+  repeated CiAccessProjectCF projects = 1 [json_name = "projects"];
   repeated CiAccessGroupCF groups = 2 [json_name = "groups"];
 }
 
-//message CiAccessProjectCF {
-//  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
-//  string default_namespace = 2 [json_name = "default_namespace"];
-//// TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
-//}
+message CiAccessProjectCF {
+  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+  string default_namespace = 2 [json_name = "default_namespace"];
+  // TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
+}
 
 message CiAccessGroupCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2 [json_name = "default_namespace"];
-// TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
+  // TODO CiAccessAsCF access_as = 3  [json_name = "access_as"];
 }
 
 message CiAccessAsCF {
