@@ -130,7 +130,11 @@ func TestGrpcErrors_AbruptConnectionDrop(t *testing.T) {
 	resp, err := client.StreamingRequestResponse(context.Background())
 	assert.NoError(t, err)
 	_, err = resp.Recv()
-	assert.EqualError(t, err, "rpc error: code = Canceled desc = grpc: the client connection is closing")
+	if status.Code(err) == codes.Unavailable {
+		assert.EqualError(t, err, "rpc error: code = Unavailable desc = error reading from server: io: read/write on closed pipe")
+	} else {
+		assert.EqualError(t, err, "rpc error: code = Canceled desc = grpc: the client connection is closing")
+	}
 }
 
 func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
