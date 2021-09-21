@@ -15,6 +15,9 @@ go_library(
         "//internal/module/reverse_tunnel",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
+        "//internal/tool/retry",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )
 
@@ -29,6 +32,7 @@ go_custom_test(
         "//internal/module/modserver",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
+        "//internal/tool/retry",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel",
         "//internal/tool/testing/mock_reverse_tunnel_rpc",
@@ -36,6 +40,8 @@ go_custom_test(
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
         "@org_uber_go_zap//zaptest",
     ],
 )

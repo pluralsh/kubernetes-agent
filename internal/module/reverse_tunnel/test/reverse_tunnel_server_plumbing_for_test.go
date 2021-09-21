@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
@@ -32,6 +33,17 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 		Log().
 		Return(log).
 		AnyTimes()
+	serverRpcApi.EXPECT().
+		PollWithBackoff(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
+			for {
+				err, result := f()
+				if result == retry.Done {
+					return err
+				}
+			}
+		}).
+		MinTimes(1)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	agentServer := serverConstructAgentServer(ctx, serverRpcApi)
 	agentServerListener := grpctool.NewDialListener()

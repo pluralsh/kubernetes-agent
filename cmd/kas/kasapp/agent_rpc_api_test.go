@@ -50,8 +50,18 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 		},
 		{
 			httpStatus: http.StatusInternalServerError,
-			code:       codes.Unavailable,
 			captureErr: "HTTP status code: 500",
+			code:       codes.Unavailable,
+		},
+		{
+			httpStatus: http.StatusBadGateway,
+			captureErr: "HTTP status code: 502",
+			code:       codes.Unavailable,
+		},
+		{
+			httpStatus: http.StatusServiceUnavailable,
+			captureErr: "HTTP status code: 503",
+			code:       codes.Unavailable,
 		},
 	}
 	for _, tc := range tests {

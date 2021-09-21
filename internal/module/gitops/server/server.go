@@ -48,21 +48,29 @@ type server struct {
 }
 
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
+	err := s.validateGetObjectsToSynchronizeRequest(req)
+	if err != nil {
+		return err // no wrap
+	}
+	var (
+		lastPoll  time.Time
+		agentInfo *api.AgentInfo
+	)
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
-	log := rpcApi.Log()
-	agentInfo, err := rpcApi.AgentInfo(ctx, log)
-	if err != nil {
-		return err // no wrap
-	}
-	err = s.validateGetObjectsToSynchronizeRequest(req)
-	if err != nil {
-		return err // no wrap
-	}
-	var lastPoll time.Time
-	log = log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
+	log := rpcApi.Log().With(logz.ProjectId(req.ProjectId))
 	return rpcApi.PollWithBackoff(s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
+		if agentInfo == nil { // executed only once (if successful)
+			agentInfo, err = rpcApi.AgentInfo(ctx, log)
+			if err != nil {
+				if status.Code(err) == codes.Unavailable {
+					return nil, retry.Backoff
+				}
+				return err, retry.Done // no wrap
+			}
+			log = log.With(logz.AgentId(agentInfo.Id))
+		}
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
