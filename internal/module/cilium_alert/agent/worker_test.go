@@ -38,7 +38,7 @@ func TestSuccessfulMapping(t *testing.T) {
 					Recv().
 					Return(matchingData.FlwResponse, nil),
 				mAPI.EXPECT().
-					MakeGitLabRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					MakeGitLabRequest(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&modagent.GitLabResponse{StatusCode: http.StatusOK}, nil),
 				flwClient.EXPECT().
 					Recv().

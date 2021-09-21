@@ -1,9 +1,7 @@
 package agent
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -155,19 +153,14 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow, informer cache
 }
 
 func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) (retErr error) {
-	mbdy, err := json.Marshal(payload{
-		Alert: alert{
-			Flow:                prototool.JsonBox{Message: fl},
-			CiliumNetworkPolicy: cnp,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("failed while encapsulating alert: %w", err)
-	}
 	resp, err := w.api.MakeGitLabRequest(ctx, "/",
 		modagent.WithRequestMethod(http.MethodPost),
-		modagent.WithRequestHeader("Content-Type", "application/json"),
-		modagent.WithRequestBody(bytes.NewReader(mbdy)),
+		modagent.WithJsonRequestBody(&payload{
+			Alert: alert{
+				Flow:                prototool.JsonBox{Message: fl},
+				CiliumNetworkPolicy: cnp,
+			},
+		}),
 	)
 	if err != nil {
 		return fmt.Errorf("failed request to internal api: %w", err)

@@ -1,9 +1,13 @@
 package modagent
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"net/textproto"
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
@@ -111,55 +115,74 @@ func defaultRequestConfig() *GitLabRequestConfig {
 	}
 }
 
-func ApplyRequestOptions(opts []GitLabRequestOption) *GitLabRequestConfig {
+func ApplyRequestOptions(opts []GitLabRequestOption) (*GitLabRequestConfig, error) {
 	c := defaultRequestConfig()
+	var firstErr error
 	for _, o := range opts {
-		o(c)
+		err := o(c)
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
-	return c
+	if firstErr != nil { // return the first error but close the body first
+		if c.Body != nil {
+			_ = c.Body.Close()
+		}
+		return nil, firstErr
+	}
+	return c, nil
 }
 
-type GitLabRequestOption func(*GitLabRequestConfig)
-
-func WithRequestHeaders(header http.Header) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
-		c.Header = header
-	}
-}
+type GitLabRequestOption func(*GitLabRequestConfig) error
 
 func WithRequestHeader(header string, values ...string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
-		c.Header[header] = values
+	return func(c *GitLabRequestConfig) error {
+		c.Header[textproto.CanonicalMIMEHeaderKey(header)] = values
+		return nil
 	}
 }
 
 func WithRequestQueryParam(key string, values ...string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
+	return func(c *GitLabRequestConfig) error {
 		c.Query[key] = values
+		return nil
 	}
 }
 
-func WithRequestQuery(query url.Values) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
-		c.Query = query
-	}
-}
-
-// WithRequestBody specifies request body to send.
+// WithRequestBody specifies request body to send and HTTP Content-Type header if contentType is not empty.
 // If body implements io.ReadCloser, its Close() method will be called once the data has been sent.
-func WithRequestBody(body io.Reader) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
+// If body is nil, no body or Content-Type header is sent.
+func WithRequestBody(body io.Reader, contentType string) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) error {
+		if body == nil {
+			return nil
+		}
 		if rc, ok := body.(io.ReadCloser); ok {
 			c.Body = rc
 		} else {
 			c.Body = io.NopCloser(body)
 		}
+		if contentType != "" {
+			c.Header.Set("Content-Type", contentType)
+		}
+		return nil
+	}
+}
+
+func WithJsonRequestBody(body interface{}) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) error {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("WithJsonRequestBody: %w", err)
+		}
+		return WithRequestBody(bytes.NewReader(bodyBytes), "application/json")(c)
 	}
 }
 
 // WithRequestMethod specifies request HTTP method.
 func WithRequestMethod(method string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) {
+	return func(c *GitLabRequestConfig) error {
 		c.Method = method
+		return nil
 	}
 }
