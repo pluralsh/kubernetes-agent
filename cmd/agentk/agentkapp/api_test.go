@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -65,6 +64,9 @@ func TestMakeGitLabRequest_HappyPath(t *testing.T) {
 							"Req-Header": {
 								Value: []string{"x1", "x2"},
 							},
+							"Content-Type": {
+								Value: []string{"text/plain"},
+							},
 						},
 						UrlPath: urlPath,
 						Query: map[string]*prototool.Values{
@@ -120,13 +122,9 @@ func TestMakeGitLabRequest_HappyPath(t *testing.T) {
 		})...)
 	resp, err := api.MakeGitLabRequest(context.Background(), urlPath,
 		modagent.WithRequestMethod(httpMethod),
-		modagent.WithRequestQuery(url.Values{
-			queryParamName: []string{queryParamValue},
-		}),
-		modagent.WithRequestHeaders(http.Header{
-			"Req-Header": []string{"x1", "x2"},
-		}),
-		modagent.WithRequestBody(strings.NewReader(requestPayload)),
+		modagent.WithRequestQueryParam(queryParamName, queryParamValue),
+		modagent.WithRequestHeader("Req-Header", "x1", "x2"),
+		modagent.WithRequestBody(strings.NewReader(requestPayload), "text/plain"),
 	)
 	require.NoError(t, err)
 	defer func() {
@@ -145,7 +143,7 @@ func TestMakeGitLabRequest_MakeRequestErrorClosesBody(t *testing.T) {
 	client.EXPECT().
 		MakeRequest(gomock.Any()).
 		Return(nil, errors.New("expected error"))
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body))
+	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
 	assert.EqualError(t, err, "expected error")
 	assert.True(t, body.CloseCalled())
 	assert.False(t, body.ReadCalled())
@@ -179,7 +177,7 @@ func TestMakeGitLabRequest_SendError(t *testing.T) {
 			// Also return an error - this one must be ignored, the one from Send() should be used.
 			return clientCtx.Err()
 		})
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body))
+	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
 	assert.EqualError(t, err, "send request header: expected error")
 	assert.True(t, body.CloseCalled())
 	assert.False(t, body.ReadCalled())
@@ -217,7 +215,7 @@ func TestMakeGitLabRequest_RecvError(t *testing.T) {
 	clientStream.EXPECT().
 		RecvMsg(gomock.Any()).
 		Return(errors.New("expected error"))
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body))
+	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
 	assert.EqualError(t, err, "expected error")
 	assert.True(t, body.CloseCalled())
 	assert.False(t, body.ReadCalled())
@@ -269,7 +267,7 @@ func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
 			RecvMsg(gomock.Any()).
 			Return(errors.New("expected error")),
 	)
-	resp, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body))
+	resp, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
 	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, resp.Body.Close())

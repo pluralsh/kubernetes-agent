@@ -52,7 +52,10 @@ func (a *agentAPI) SubscribeToFeatureStatus(feature modagent.Feature, cb modagen
 }
 
 func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
-	config := modagent.ApplyRequestOptions(opts)
+	config, err := modagent.ApplyRequestOptions(opts)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	client, errReq := a.client.MakeRequest(ctx)
 	if errReq != nil {
