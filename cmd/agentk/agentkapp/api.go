@@ -76,14 +76,14 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	var wg wait.Group
 	// Write request
 	wg.Start(func() {
-		err := a.makeRequest(client, path, config)
-		if err != nil {
-			val.SetError(err)
+		writeErr := a.makeRequest(client, path, config)
+		if writeErr != nil {
+			val.SetError(writeErr)
 		}
 	})
 	// Read response
 	wg.Start(func() {
-		err := a.responseVisitor.Visit(client,
+		readErr := a.responseVisitor.Visit(client,
 			grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 				val.SetValue(&modagent.GitLabResponse{
 					Status:     header.Response.Status,
@@ -97,8 +97,8 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 				return nil
 			}),
 			grpctool.WithCallback(dataFieldNumber, func(data *grpctool.HttpResponse_Data) error {
-				_, err := pw.Write(data.Data)
-				return err
+				_, pwErr := pw.Write(data.Data)
+				return pwErr
 			}),
 			grpctool.WithCallback(trailerFieldNumber, func(trailer *grpctool.HttpResponse_Trailer) error {
 				return nil
@@ -107,8 +107,8 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 				return pw.Close()
 			}),
 		)
-		if err != nil {
-			val.SetError(err)
+		if readErr != nil {
+			val.SetError(readErr)
 		}
 	})
 	resp, err := val.Wait()
