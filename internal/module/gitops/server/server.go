@@ -76,10 +76,10 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		// - repository location in Gitaly might have changed
 		projectInfo, err := s.getProjectInfo(ctx, log, rpcApi, agentInfo.Id, agentToken, req.ProjectId)
 		if err != nil {
+			if status.Code(err) == codes.Unavailable {
+				return nil, retry.Backoff
+			}
 			return err, retry.Done // no wrap
-		}
-		if projectInfo == nil { // retriable error
-			return nil, retry.Backoff
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := s.poll(ctx, projectInfo, req.CommitId, revision)
@@ -216,7 +216,7 @@ func (s *server) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToS
 	})
 }
 
-// getProjectInfo returns nil for both error and ProjectInfo if there was a retriable error.
+// getProjectInfo returns an error with code Unavailable if there was a retriable error.
 func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
 	agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	projectInfo, err := s.projectInfoClient.GetProjectInfo(ctx, agentToken, projectId)
@@ -235,7 +235,7 @@ func (s *server) getProjectInfo(ctx context.Context, log *zap.Logger, rpcApi mod
 		err = status.Error(codes.NotFound, "project not found")
 	default:
 		rpcApi.HandleProcessingError(log, agentId, "GetProjectInfo()", err)
-		err = nil // no error and no project info
+		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return nil, err
 }
