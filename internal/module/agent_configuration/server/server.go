@@ -54,6 +54,9 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		// - repository location in Gitaly might have changed
 		agentInfo, err := rpcApi.AgentInfo(ctx, log)
 		if err != nil {
+			if status.Code(err) == codes.Unavailable {
+				return nil, retry.Backoff
+			}
 			return err, retry.Done
 		}
 		s.maybeRegisterAgent(ctx, connectedAgentInfo, agentInfo)

@@ -27,6 +27,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"sigs.k8s.io/yaml"
@@ -40,10 +42,10 @@ const (
 )
 
 var (
-	_ modserver.Module             = &module{}
-	_ modserver.Factory            = &Factory{}
+	_ modserver.Module             = (*module)(nil)
+	_ modserver.Factory            = (*Factory)(nil)
 	_ modserver.ApplyDefaults      = ApplyDefaults
-	_ rpc.AgentConfigurationServer = &server{}
+	_ rpc.AgentConfigurationServer = (*server)(nil)
 )
 
 func TestEmptyConfig(t *testing.T) {
@@ -228,9 +230,36 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 	}
 }
 
-func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi) {
+func TestGetConfiguration_GetAgentInfo_Error(t *testing.T) {
+	s, _, _, resp, mockRpcApi, _ := setupServerBare(t, 1)
+	mockRpcApi.EXPECT().
+		AgentInfo(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.PermissionDenied, "expected err")) // code doesn't matter, we test that we return on error
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
+	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
+}
+
+func TestGetConfiguration_GetAgentInfo_RetriableError(t *testing.T) {
+	s, _, _, resp, mockRpcApi, _ := setupServerBare(t, 2)
+	gomock.InOrder(
+		mockRpcApi.EXPECT().
+			AgentInfo(gomock.Any(), gomock.Any()).
+			Return(nil, status.Error(codes.Unavailable, "unavailable")),
+		mockRpcApi.EXPECT().
+			AgentInfo(gomock.Any(), gomock.Any()).
+			Return(nil, status.Error(codes.PermissionDenied, "expected err")), // code doesn't matter, we test that we return on error
+	)
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
+	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
+}
+
+func setupServerBare(t *testing.T, pollTimes int) (*server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi, *mock_agent_tracker.MockTracker) {
 	ctrl := gomock.NewController(t)
-	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 1)
+	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentConfigurationApiPath, func(w http.ResponseWriter, r *http.Request) {
@@ -243,6 +272,16 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 		getConfigurationPollConfig: testhelpers.NewPollConfig(10 * time.Minute),
 		maxConfigurationFileSize:   maxConfigurationFileSize,
 	}
+	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
+	resp.EXPECT().
+		Context().
+		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
+		MinTimes(1)
+	return s, ctrl, gitalyPool, resp, mockRpcApi, agentTracker
+}
+
+func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi) {
+	s, ctrl, gitalyPool, resp, mockRpcApi, agentTracker := setupServerBare(t, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
 		AgentMeta: agentMeta(),
@@ -258,11 +297,6 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 	)
 	agentTracker.EXPECT().
 		UnregisterConnection(gomock.Any(), connMatcher)
-	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
-	resp.EXPECT().
-		Context().
-		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
-		MinTimes(1)
 	return s, agentInfo, ctrl, gitalyPool, resp, mockRpcApi
 }
 

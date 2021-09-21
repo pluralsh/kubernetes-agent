@@ -23,7 +23,9 @@ type AgentRpcApi interface {
 	// AgentToken returns the token of an agent making the RPC.
 	AgentToken() api.AgentToken
 	// AgentInfo returns information about the agent making the RPC.
-	// It returns a gRPC-compatible error.
+	// Returns a gRPC-compatible error.
+	// Returns an error with the Unavailable code if there was a retriable error.
+	// If there was an error, it takes care of tracking it via HandleProcessingError().
 	AgentInfo(ctx context.Context, log *zap.Logger) (*api.AgentInfo, error)
 }
 
