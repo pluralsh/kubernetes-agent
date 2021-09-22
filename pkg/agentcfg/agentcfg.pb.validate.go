@@ -666,6 +666,16 @@ func (m *CiAccessProjectCF) Validate() error {
 
 	// no validation rules for DefaultNamespace
 
+	if v, ok := interface{}(m.GetAccessAs()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return CiAccessProjectCFValidationError{
+				field:  "AccessAs",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -741,6 +751,16 @@ func (m *CiAccessGroupCF) Validate() error {
 	}
 
 	// no validation rules for DefaultNamespace
+
+	if v, ok := interface{}(m.GetAccessAs()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return CiAccessGroupCFValidationError{
+				field:  "AccessAs",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	return nil
 }
