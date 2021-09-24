@@ -17,10 +17,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -33,9 +31,9 @@ import (
 )
 
 var (
-	_ kasRouter          = &router{}
-	_ grpc.StreamHandler = (&router{}).RouteToCorrectKasHandler
-	_ grpc.StreamHandler = (&router{}).RouteToCorrectAgentHandler
+	_ kasRouter          = (*router)(nil)
+	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectKasHandler
+	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectAgentHandler
 )
 
 func TestRouter_UnaryHappyPath(t *testing.T) {
@@ -237,99 +235,6 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 		require.EqualError(t, err, "rpc error: code = Unavailable desc = expected return error")
 		verifyHeaderAndTrailer(t, stream, responseMD, trailersMD)
 	})
-}
-
-func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
-	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
-	pool := NewMockKasPool(ctrl)
-	conn := NewMockClientConnInterface(ctrl)
-	kasStream := mock_rpc.NewMockClientStream(ctrl)
-	stream := mock_rpc.NewMockServerStream(ctrl)
-	sts := mock_rpc.NewMockServerTransportStream(ctrl)
-	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
-	ctx := metadata.NewIncomingContext(context.Background(), routingMetadata)
-	ctx = grpc.NewContextWithServerTransportStream(ctx, sts)
-	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
-	ctx = modserver.InjectRpcApi(ctx, &serverRpcApi{
-		RpcApiStub: modshared.RpcApiStub{
-			Logger:    zaptest.NewLogger(t),
-			StreamCtx: ctx,
-		},
-	})
-
-	sendDone := make(chan struct{})
-
-	startStreaming := kasStream.EXPECT().
-		SendMsg(matcher.ProtoEq(t, &StartStreaming{}))
-	stream.EXPECT().
-		Context().
-		Return(ctx).
-		MinTimes(1)
-	sts.EXPECT().
-		Method().
-		Return("/gitlab.agent.grpctool.test.Testing/RequestResponse").
-		MinTimes(1)
-	conn.EXPECT().
-		Close()
-	gomock.InOrder(
-		querier.EXPECT().
-			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
-				done, err := cb(tunnelInfo())
-				assert.False(t, done)
-				return err
-			}),
-		pool.EXPECT().
-			Dial(gomock.Any(), "grpc://pipe").
-			Return(conn, nil),
-		conn.EXPECT().
-			NewStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(kasStream, nil),
-		kasStream.EXPECT().
-			RecvMsg(gomock.Any()).
-			Do(testhelpers.RecvMsg(&GatewayKasResponse{
-				Msg: &GatewayKasResponse_TunnelReady_{
-					TunnelReady: &GatewayKasResponse_TunnelReady{},
-				},
-			})),
-		startStreaming,
-	)
-	gomock.InOrder( // pipeFromKasToStream
-		startStreaming,
-		kasStream.EXPECT().
-			RecvMsg(gomock.Any()).
-			DoAndReturn(func(m interface{}) error {
-				<-sendDone
-				time.Sleep(20 * time.Millisecond)
-				return status.Error(codes.InvalidArgument, "expected error from RecvMsg")
-			}),
-	)
-	gomock.InOrder( // pipeFromStreamToKas
-		startStreaming,
-		stream.EXPECT().
-			RecvMsg(gomock.Any()),
-		kasStream.EXPECT().
-			SendMsg(gomock.Any()).
-			DoAndReturn(func(m interface{}) error {
-				close(sendDone)
-				return io.EOF // there is an error, call RecvMsg() to get it
-			}),
-	)
-
-	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
-	require.NoError(t, err)
-	r := &router{
-		kasPool:              pool,
-		tunnelQuerier:        querier,
-		tunnelFinder:         finder,
-		pollConfig:           testhelpers.NewPollConfig(time.Minute),
-		gatewayKasVisitor:    gatewayKasVisitor,
-		routeAttemptInterval: time.Minute,
-	}
-	err = r.RouteToCorrectKasHandler(nil, stream)
-	require.EqualError(t, err, "rpc error: code = InvalidArgument desc = expected error from RecvMsg")
 }
 
 func tunnelInfo() *tracker.TunnelInfo {
