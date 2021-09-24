@@ -176,7 +176,7 @@ func (t *tunnel) Done() {
 		t.state = stateDone
 		t.tunnelRetErr <- nil // unblock tunnel
 	case stateForwarding:
-	// Nothing to do
+		t.state = stateDone
 	case stateDone:
 		panic(errors.New("Done() called more than once"))
 	default:
