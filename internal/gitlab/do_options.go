@@ -29,6 +29,7 @@ type doConfig struct {
 	body            io.Reader
 	responseHandler ResponseHandler
 	withJWT         bool
+	noRetry         bool
 }
 
 func (c *doConfig) ensureHeaderNotNil() {
@@ -146,6 +147,13 @@ func WithResponseHandler(handler ResponseHandler) DoOption {
 			config.ensureHeaderNotNil()
 			config.header.Set("Accept", accept)
 		}
+		return nil
+	}
+}
+
+func WithoutRetries() DoOption {
+	return func(config *doConfig) error {
+		config.noRetry = true
 		return nil
 	}
 }
