@@ -7,6 +7,10 @@ import (
 
 type GetItemDirectly func() (interface{}, error)
 
+// ErrCacheStrategy determines whether an error is cacheable or not.
+// Returns true if cacheable and false otherwise.
+type ErrCacheStrategy func(error) bool
+
 type EntryWithErr struct {
 	// Item is the cached item.
 	Item interface{}
@@ -14,16 +18,18 @@ type EntryWithErr struct {
 }
 
 type CacheWithErr struct {
-	cache  *Cache
-	ttl    time.Duration
-	errTtl time.Duration
+	cache            *Cache
+	ttl              time.Duration
+	errTtl           time.Duration
+	errCacheStrategy ErrCacheStrategy
 }
 
-func NewWithError(ttl, errTtl time.Duration) *CacheWithErr {
+func NewWithError(ttl, errTtl time.Duration, errCacheStrategy ErrCacheStrategy) *CacheWithErr {
 	return &CacheWithErr{
-		cache:  New(minDuration(ttl, errTtl)),
-		ttl:    ttl,
-		errTtl: errTtl,
+		cache:            New(minDuration(ttl, errTtl)),
+		ttl:              ttl,
+		errTtl:           errTtl,
+		errCacheStrategy: errCacheStrategy,
 	}
 }
 
@@ -41,10 +47,13 @@ func (c *CacheWithErr) GetItem(ctx context.Context, key interface{}, f GetItemDi
 	if entry.IsNeedRefreshLocked() {
 		entryWithErr.Item, entryWithErr.Err = f()
 		var ttl time.Duration
-		if entryWithErr.Err == nil {
+		switch {
+		case entryWithErr.Err == nil: // no error
 			ttl = c.ttl
-		} else {
+		case c.errCacheStrategy(entryWithErr.Err): // cacheable error
 			ttl = c.errTtl
+		default: // not a cacheable error
+			return nil, entryWithErr.Err
 		}
 		entry.Item = entryWithErr
 		entry.Expires = time.Now().Add(ttl)

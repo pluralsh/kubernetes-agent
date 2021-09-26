@@ -75,7 +75,7 @@ type kubernetesApiProxy struct {
 	kubernetesApiClient rpc.KubernetesApiClient
 	gitLabClient        gitlab.ClientInterface
 	streamVisitor       *grpctool.StreamVisitor
-	cache               *cache.CacheWithErr
+	allowedAgentsCache  *cache.CacheWithErr
 	requestCount        usage_metrics.Counter
 	serverName          string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
@@ -171,7 +171,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToken string) (*gapi.AllowedAgentsForJob, error) {
-	allowedForJob, err := p.cache.GetItem(ctx, jobToken, func() (interface{}, error) {
+	allowedForJob, err := p.allowedAgentsCache.GetItem(ctx, jobToken, func() (interface{}, error) {
 		return gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
 	})
 	if err != nil {

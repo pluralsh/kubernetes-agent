@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
@@ -49,7 +50,7 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient:     config.GitLabClient,
-			ProjectInfoCache: cache.NewWithError(gitops.ProjectInfoCacheTtl.AsDuration(), gitops.ProjectInfoCacheErrorTtl.AsDuration()),
+			ProjectInfoCache: cache.NewWithError(gitops.ProjectInfoCacheTtl.AsDuration(), gitops.ProjectInfoCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,

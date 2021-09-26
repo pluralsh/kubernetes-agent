@@ -140,7 +140,7 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 		},
 		Token:          testhelpers.AgentkToken,
 		GitLabClient:   gitLabClient,
-		AgentInfoCache: cache.NewWithError(0, 0), // no cache!
+		AgentInfoCache: cache.NewWithError(0, 0, func(err error) bool { return false }), // no cache!
 	}
 	return ctx, log, hub, rpcApi, correlationId
 }
