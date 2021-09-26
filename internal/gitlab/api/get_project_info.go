@@ -19,16 +19,18 @@ type ProjectInfoResponse struct {
 	GitalyRepository gitlab.GitalyRepository `json:"gitaly_repository"`
 }
 
-func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
+func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentToken api.AgentToken, projectId string, opts ...gitlab.DoOption) (*api.ProjectInfo, error) {
 	response := ProjectInfoResponse{}
 	err := client.Do(ctx,
-		gitlab.WithPath(ProjectInfoApiPath),
-		gitlab.WithQuery(url.Values{
-			ProjectIdQueryParam: []string{projectId},
-		}),
-		gitlab.WithAgentToken(agentToken),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
-		gitlab.WithJWT(true),
+		joinOpts(opts,
+			gitlab.WithPath(ProjectInfoApiPath),
+			gitlab.WithQuery(url.Values{
+				ProjectIdQueryParam: []string{projectId},
+			}),
+			gitlab.WithAgentToken(agentToken),
+			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
+			gitlab.WithJWT(true),
+		)...,
 	)
 	if err != nil {
 		return nil, err

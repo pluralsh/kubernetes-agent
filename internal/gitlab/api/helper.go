@@ -20,3 +20,16 @@ func IsCacheableError(err error) bool {
 		return false
 	}
 }
+
+func joinOpts(extra []gitlab.DoOption, opts ...gitlab.DoOption) []gitlab.DoOption {
+	if len(extra) == 0 {
+		return opts
+	}
+	if len(opts) == 0 {
+		return extra
+	}
+	res := make([]gitlab.DoOption, 0, len(extra)+len(opts))
+	res = append(res, opts...)
+	res = append(res, extra...)
+	return res
+}

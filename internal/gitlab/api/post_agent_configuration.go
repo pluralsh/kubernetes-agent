@@ -18,15 +18,18 @@ type agentConfigurationRequest struct {
 	AgentConfig prototool.JsonBox `json:"agent_config"`
 }
 
-func PostAgentConfiguration(ctx context.Context, client gitlab.ClientInterface, agentId int64, config *agentcfg.ConfigurationFile) error {
+func PostAgentConfiguration(ctx context.Context, client gitlab.ClientInterface, agentId int64,
+	config *agentcfg.ConfigurationFile, opts ...gitlab.DoOption) error {
 	return client.Do(ctx,
-		gitlab.WithMethod(http.MethodPost),
-		gitlab.WithPath(AgentConfigurationApiPath),
-		gitlab.WithJWT(true),
-		gitlab.WithJsonRequestBody(&agentConfigurationRequest{
-			AgentId:     agentId,
-			AgentConfig: prototool.JsonBox{Message: config},
-		}),
-		gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
+		joinOpts(opts,
+			gitlab.WithMethod(http.MethodPost),
+			gitlab.WithPath(AgentConfigurationApiPath),
+			gitlab.WithJWT(true),
+			gitlab.WithJsonRequestBody(&agentConfigurationRequest{
+				AgentId:     agentId,
+				AgentConfig: prototool.JsonBox{Message: config},
+			}),
+			gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
+		)...,
 	)
 }
