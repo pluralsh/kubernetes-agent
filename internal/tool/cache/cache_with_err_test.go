@@ -11,7 +11,7 @@ import (
 )
 
 func TestGetItem_HappyPath(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute)
+	c := NewWithError(time.Minute, time.Minute, alwaysCache)
 	item, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
 		return itemVal, nil
 	})
@@ -26,8 +26,8 @@ func TestGetItem_HappyPath(t *testing.T) {
 	assert.Equal(t, itemVal, item)
 }
 
-func TestGetItem_Error(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute)
+func TestGetItem_CacheableError(t *testing.T) {
+	c := NewWithError(time.Minute, time.Minute, alwaysCache)
 	_, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
 		return nil, errors.New("boom")
 	})
@@ -40,8 +40,23 @@ func TestGetItem_Error(t *testing.T) {
 	assert.EqualError(t, err, "boom")
 }
 
+func TestGetItem_NonCacheableError(t *testing.T) {
+	c := NewWithError(time.Minute, time.Minute, func(err error) bool {
+		return false
+	})
+	_, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
+		return nil, errors.New("boom")
+	})
+	assert.EqualError(t, err, "boom")
+
+	_, err = c.GetItem(context.Background(), key, func() (interface{}, error) {
+		return nil, errors.New("bAAm")
+	})
+	assert.EqualError(t, err, "bAAm")
+}
+
 func TestGetItem_Context(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute)
+	c := NewWithError(time.Minute, time.Minute, alwaysCache)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	start := make(chan struct{})
@@ -62,4 +77,8 @@ func TestGetItem_Context(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, itemVal, item)
+}
+
+func alwaysCache(err error) bool {
+	return true
 }

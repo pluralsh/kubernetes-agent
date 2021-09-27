@@ -499,7 +499,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		kubernetesApiClient: k8sClient,
 		gitLabClient:        mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
 		streamVisitor:       sv,
-		cache:               cache.NewWithError(0, 0),
+		allowedAgentsCache:  cache.NewWithError(0, 0, func(err error) bool { return false }),
 		requestCount:        requestCount,
 		serverName:          "sv1",
 		urlPathPrefix:       urlPathPrefix,
