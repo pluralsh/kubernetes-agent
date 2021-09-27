@@ -26,39 +26,39 @@ http_archive(
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "59d5b42ac315e7eadffa944e86e90c2990110a1c8075f1cd145f487e999d22b3",
-    strip_prefix = "rules_docker-0.17.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.17.0/rules_docker-v0.17.0.tar.gz"],
+    sha256 = "1f4e59843b61981a96835dc4ac377ad4da9f8c334ebe5e0bb3f58f80c09735f4",
+    strip_prefix = "rules_docker-0.19.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.19.0/rules_docker-v0.19.0.tar.gz"],
 )
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "c28eef4d30ba1a195c6837acf6c75a4034981f5b4002dda3c5aa6e48ce023cf1",
-    strip_prefix = "buildtools-4.0.1",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/4.0.1.tar.gz"],
+    sha256 = "b8b69615e8d9ade79f3612311b8d0c4dfe01017420c90eed11db15e9e7c9ff3c",
+    strip_prefix = "buildtools-4.2.1",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/4.2.1.tar.gz"],
 )
 
 http_archive(
     name = "com_github_ash2k_bazel_tools",
-    sha256 = "eec529f8356247dc8ffa55ecdc1235fa786f4a0d39a115b2f496322a74f00a98",
-    strip_prefix = "bazel-tools-a96f0cb384e9e657bdf6ecc8be5548820c578e6b",
-    urls = ["https://github.com/ash2k/bazel-tools/archive/a96f0cb384e9e657bdf6ecc8be5548820c578e6b.tar.gz"],
+    sha256 = "9c03ae41411d3e27d3a84a5f9498939162fcbb1d3ae1b2b3ec9300bd0f32a081",
+    strip_prefix = "bazel-tools-f8b27b99cae951099385655e0bb0fc9cc1c7baa4",
+    urls = ["https://github.com/ash2k/bazel-tools/archive/f8b27b99cae951099385655e0bb0fc9cc1c7baa4.tar.gz"],
 )
 
 http_archive(
     name = "rules_proto",
-    sha256 = "bc12122a5ae4b517fa423ea03a8d82ea6352d5127ea48cb54bc324e8ab78493c",
-    strip_prefix = "rules_proto-af6481970a34554c6942d993e194a9aed7987780",
+    sha256 = "66bfdf8782796239d3875d37e7de19b1d94301e8972b3cbd2446b332429b4df1",
+    strip_prefix = "rules_proto-4.0.0",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/af6481970a34554c6942d993e194a9aed7987780.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/4.0.0.tar.gz",
     ],
 )
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "7954abbb6898830cd10ac9714fbcacf092299fda00ed2baf781172f545120419",
-    strip_prefix = "rules_proto_grpc-3.1.1",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/3.1.1.tar.gz"],
+    sha256 = "4202a150910712d00d95f11e240ad6da4c92e542d3b9fbb5b3a3d60abba3de77",
+    strip_prefix = "rules_proto_grpc-4.0.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.0.0.tar.gz"],
 )
 
 http_archive(
@@ -72,18 +72,18 @@ http_archive(
 
 http_archive(
     name = "rules_pkg",
-    sha256 = "353b20e8b093d42dd16889c7f918750fb8701c485ac6cceb69a5236500507c27",
+    sha256 = "a89e203d3cf264e564fcb96b6e06dd70bc0557356eb48400ce4b5d97c2c3720d",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.0/rules_pkg-0.5.0.tar.gz",
-        "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.0/rules_pkg-0.5.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.0/rules_pkg-0.5.1.tar.gz",
     ],
 )
 
 git_repository(
     name = "bazelruby_rules_ruby",
-    commit = "b738b9885f3fba30cbbb6fc05f23ae7a78a4ca84",
+    commit = "91a94051bd383affe61bb92134a6f2d7fc831a0d",
     remote = "https://github.com/bazelruby/rules_ruby.git",
-    shallow_since = "1619209813 -0700",
+    shallow_since = "1625867882 -0700",
 )
 
 http_archive(
