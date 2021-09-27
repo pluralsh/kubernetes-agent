@@ -47,7 +47,7 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 		// No new counts
 		return nil
 	}
-	err := gapi.SendUsagePing(ctx, m.gitLabClient, usageData.Counters)
+	err := gapi.SendUsagePing(ctx, m.gitLabClient, usageData.Counters, gitlab.WithoutRetries())
 	if err != nil {
 		return err // don't wrap
 	}

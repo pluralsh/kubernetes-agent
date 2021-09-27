@@ -17,7 +17,7 @@ type projectInfoClient struct {
 func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	key := projectInfoCacheKey{agentToken: agentToken, projectId: projectId}
 	projectInfo, err := c.ProjectInfoCache.GetItem(ctx, key, func() (interface{}, error) {
-		return gapi.GetProjectInfo(ctx, c.GitLabClient, agentToken, projectId)
+		return gapi.GetProjectInfo(ctx, c.GitLabClient, agentToken, projectId, gitlab.WithoutRetries())
 	})
 	if err != nil {
 		return nil, err

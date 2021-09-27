@@ -51,7 +51,7 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *serverAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	agentInfo, err := a.AgentInfoCache.GetItem(ctx, a.Token, func() (interface{}, error) {
-		return gapi.GetAgentInfo(ctx, a.GitLabClient, a.Token)
+		return gapi.GetAgentInfo(ctx, a.GitLabClient, a.Token, gitlab.WithoutRetries())
 	})
 	if err != nil {
 		return nil, err

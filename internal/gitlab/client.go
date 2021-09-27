@@ -28,10 +28,11 @@ type HTTPClient interface {
 }
 
 type Client struct {
-	Backend    *url.URL
-	HTTPClient HTTPClient
-	AuthSecret []byte
-	UserAgent  string
+	Backend           *url.URL
+	HTTPClient        HTTPClient
+	HTTPClientNoRetry HTTPClient
+	AuthSecret        []byte
+	UserAgent         string
 }
 
 func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Client {
@@ -55,22 +56,23 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 			Limiter:  o.limiter,
 		}
 	}
+	httpClient := &http.Client{
+		Transport: tracing.NewRoundTripper(
+			correlation.NewInstrumentedRoundTripper(
+				transport,
+				correlation.WithClientName(o.clientName),
+			),
+			tracing.WithRoundTripperTracer(o.tracer),
+			tracing.WithLogger(o.log),
+		),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	return &Client{
 		Backend: backend,
 		HTTPClient: &retryablehttp.Client{
-			HTTPClient: &http.Client{
-				Transport: tracing.NewRoundTripper(
-					correlation.NewInstrumentedRoundTripper(
-						transport,
-						correlation.WithClientName(o.clientName),
-					),
-					tracing.WithRoundTripperTracer(o.tracer),
-					tracing.WithLogger(o.log),
-				),
-				CheckRedirect: func(req *http.Request, via []*http.Request) error {
-					return http.ErrUseLastResponse
-				},
-			},
+			HTTPClient:      httpClient,
 			Logger:          o.retryConfig.Logger,
 			RetryWaitMin:    o.retryConfig.RetryWaitMin,
 			RetryWaitMax:    o.retryConfig.RetryWaitMax,
@@ -79,10 +81,16 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 			ResponseLogHook: o.retryConfig.ResponseLogHook,
 			CheckRetry:      o.retryConfig.CheckRetry,
 			Backoff:         o.retryConfig.Backoff,
-			ErrorHandler: func(resp *http.Response, err error, numTries int) (*http.Response, error) {
-				// Just return the last response and error when ran out of retry attempts.
-				return resp, err
-			},
+			ErrorHandler:    errorHandler,
+		},
+		HTTPClientNoRetry: &retryablehttp.Client{
+			HTTPClient:      httpClient,
+			Logger:          o.retryConfig.Logger,
+			RetryMax:        0,
+			RequestLogHook:  o.retryConfig.RequestLogHook,
+			ResponseLogHook: o.retryConfig.ResponseLogHook,
+			CheckRetry:      o.retryConfig.CheckRetry,
+			ErrorHandler:    errorHandler,
 		},
 		AuthSecret: authSecret,
 		UserAgent:  o.userAgent,
@@ -125,7 +133,11 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		r.Header.Set("User-Agent", c.UserAgent)
 	}
 
-	resp, err := c.HTTPClient.Do(r) // nolint: bodyclose
+	client := c.HTTPClient
+	if o.noRetry {
+		client = c.HTTPClientNoRetry
+	}
+	resp, err := client.Do(r) // nolint: bodyclose
 	if err != nil {
 		select {
 		case <-ctx.Done(): // assume request errored out because of context
@@ -134,4 +146,9 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		}
 	}
 	return o.responseHandler.Handle(resp, err)
+}
+
+func errorHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
+	// Just return the last response and error when ran out of retry attempts.
+	return resp, err
 }
