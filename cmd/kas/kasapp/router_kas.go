@@ -13,20 +13,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
-	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/reflect/protoreflect"
-)
-
-const (
-	tunnelReadyFieldNumber protoreflect.FieldNumber = 1
-	headerFieldNumber      protoreflect.FieldNumber = 2
-	messageFieldNumber     protoreflect.FieldNumber = 3
-	trailerFieldNumber     protoreflect.FieldNumber = 4
-	errorFieldNumber       protoreflect.FieldNumber = 5
 )
 
 var (
@@ -74,11 +64,11 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 			// Redefines log variable to eliminate the chance of using the original one
 			log := log.With(logz.ConnectionId(tunnel.ConnectionId), logz.KasUrl(tunnel.KasUrl)) // nolint:govet
 			log.Debug("Trying tunnel")
-			err, done := r.attemptToRouteViaTunnel(log, rpcApi, agentId, tunnel, stream)
+			err, done := r.attemptToRouteViaTunnel(log, rpcApi, tunnel, stream)
 			switch {
 			case done:
 				// Request was routed successfully. The remote may have returned an error, but that's still a
-				// successful response as far as we are concerned. Our job it to route the request and return what
+				// successful response as far as we are concerned. Our job is to route the request and return what
 				// the remote responded with.
 				return true, err
 			case err == nil:
@@ -114,7 +104,7 @@ func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, rpcAp
 
 // attemptToRouteViaTunnel attempts to route the stream via the tunnel.
 // Unusual signature to signal that the done bool should be checked to determine what the error value means.
-func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64, tunnel *tracker.TunnelInfo, stream grpc.ServerStream) (error, bool) {
+func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcApi, tunnel *tracker.TunnelInfo, stream grpc.ServerStream) (error, bool) {
 	ctx := stream.Context()
 	kasClient, err := r.kasPool.Dial(ctx, tunnel.KasUrl)
 	if err != nil {
@@ -162,115 +152,12 @@ func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcAp
 	if err != nil {
 		return rpcApi.HandleSendError(log, "SendMsg(StartStreaming) failed", err), false
 	}
-	return r.forwardStream(log, rpcApi, agentId, kasStream, stream), true
-}
-
-// forwardStream does bi-directional stream forwarding.
-// Returns a gRPC status-compatible error.
-func (r *router) forwardStream(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64, kasStream grpc.ClientStream, stream grpc.ServerStream) error {
-	// Cancellation
-	//
-	// kasStream is an outbound client stream (this kas -> gateway kas)
-	// stream is an inbound server stream (internal/external gRPC client -> this kas)
-	//
-	// If one of the streams break, the other one needs to be aborted too ASAP. Waiting for a timeout
-	// is a waste of resources and a bad API with unpredictable latency.
-	//
-	// kasStream is automatically aborted if there is a problem with stream because kasStream uses stream's context.
-	// Unlike the above, if there is a problem with kasStream, stream.RecvMsg()/stream.SendMsg() are unaffected
-	// so can stay blocked for an arbitrary amount of time.
-	// To make gRPC abort those method calls, gRPC stream handler (i.e. this method) should just return from the call.
-	// See https://github.com/grpc/grpc-go/issues/465#issuecomment-179414474
-	// To implement this, we read and write in both directions in separate goroutines and return from this
-	// handler whenever there is an error, aborting both connections.
-
-	// Channel of size 1 to ensure that if we return early, the second goroutine has space for the value.
-	// We don't care about the second value if the first one is a non-nil error.
-	res := make(chan *status.Status, 1)
-	go func() {
-		res <- r.pipeFromKasToStream(log, rpcApi, agentId, kasStream, stream)
-	}()
-	go func() {
-		res <- pipeFromStreamToKas(kasStream, stream)
-	}()
-	resStatus := <-res
-	if resStatus != nil {
-		return resStatus.Err()
+	f := kasStreamForwarder{
+		log:               log,
+		rpcApi:            rpcApi,
+		gatewayKasVisitor: r.gatewayKasVisitor,
 	}
-	resStatus = <-res
-	if resStatus != nil {
-		return resStatus.Err()
-	}
-	return nil
-}
-
-func (r *router) pipeFromKasToStream(log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
-	kasStream grpc.ClientStream, stream grpc.ServerStream) *status.Status {
-	var stat *statuspb.Status
-	err := r.gatewayKasVisitor.Visit(kasStream,
-		grpctool.WithStartState(tunnelReadyFieldNumber),
-		grpctool.WithCallback(headerFieldNumber, func(header *GatewayKasResponse_Header) error {
-			err := stream.SetHeader(header.Metadata())
-			if err != nil {
-				return rpcApi.HandleSendError(log, "router kas->stream SetHeader() failed", err)
-			}
-			return nil
-		}),
-		grpctool.WithCallback(messageFieldNumber, func(message *GatewayKasResponse_Message) error {
-			err := stream.SendMsg(&grpctool.RawFrame{
-				Data: message.Data,
-			})
-			if err != nil {
-				return rpcApi.HandleSendError(log, "router kas->stream SendMsg() failed", err)
-			}
-			return nil
-		}),
-		grpctool.WithCallback(trailerFieldNumber, func(trailer *GatewayKasResponse_Trailer) error {
-			stream.SetTrailer(trailer.Metadata())
-			return nil
-		}),
-		grpctool.WithCallback(errorFieldNumber, func(err *GatewayKasResponse_Error) error {
-			stat = err.Status
-			return nil
-		}),
-	)
-	switch {
-	case err == nil && stat != nil:
-		return status.FromProto(stat)
-	case err == nil:
-		return nil
-	case grpctool.IsStatusError(err):
-		// A gRPC status already
-		return status.Convert(err)
-	default:
-		// Something unexpected
-		rpcApi.HandleProcessingError(log, agentId, "Failed to route request: read from router kas", err)
-		return status.New(codes.Unavailable, "unavailable")
-	}
-}
-
-// pipeFromStreamToKas pipes data kasStream -> stream
-// must return gRPC status compatible error or nil.
-func pipeFromStreamToKas(kasStream grpc.ClientStream, stream grpc.ServerStream) *status.Status {
-	var frame grpctool.RawFrame
-	for {
-		err := stream.RecvMsg(&frame)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return status.Convert(err) // as is
-		}
-		err = kasStream.SendMsg(&frame)
-		if err != nil {
-			if errors.Is(err, io.EOF) { // the other goroutine will receive the error in RecvMsg()
-				return nil
-			}
-			return status.Convert(err) // as is
-		}
-	}
-	err := kasStream.CloseSend()
-	return status.Convert(err) // as is or nil
+	return f.ForwardStream(kasStream, stream), true
 }
 
 type tunnelInfoCollector []*tracker.TunnelInfo
