@@ -42,8 +42,8 @@ func (f *kasStreamForwarder) ForwardStream(kasStream grpc.ClientStream, stream g
 	// so can stay blocked for an arbitrary amount of time.
 	// To make gRPC abort those method calls, gRPC stream handler (i.e. this method) should just return from the call.
 	// See https://github.com/grpc/grpc-go/issues/465#issuecomment-179414474
-	// To implement this, we read and write in both directions in separate goroutines and return from this
-	// handler whenever there is an error, aborting both connections.
+	// To implement this, we read from stream in a separate goroutine and return from this
+	// handler whenever there is an error, aborting reads from the incoming connection.
 
 	// Channel of size 1 to ensure that if we return early, the other goroutine has space for the value.
 	// We don't care about that value if we already got a non-nil error.
