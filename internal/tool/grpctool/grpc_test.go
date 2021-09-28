@@ -3,6 +3,7 @@ package grpctool
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"sync"
 	"testing"
@@ -148,9 +149,11 @@ func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 	bc := newBrokenConn(sConn)
 
 	s := grpc.NewServer()
+	isBroken := make(chan struct{})
 	test.RegisterTestingServer(s, &test.GrpcTestingServer{
 		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
 			bc.BreakRead(errors.New("read failed, boom"))
+			close(isBroken)
 			_, recvErr := server.Recv()
 			assert.EqualError(t, recvErr, "rpc error: code = Canceled desc = context canceled")
 			return nil
@@ -168,6 +171,12 @@ func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 	client := test.NewTestingClient(conn)
 	resp, err := client.StreamingRequestResponse(context.Background())
 	assert.NoError(t, err)
+	<-isBroken
+	gotEof := false
+	for !gotEof { // should eventually get an io.EOF when sending over a broken connection
+		err = resp.Send(&test.Request{})
+		gotEof = errors.Is(err, io.EOF)
+	}
 	_, err = resp.Recv()
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = error reading from server: EOF")
 }
@@ -208,6 +217,28 @@ func TestGrpcErrors_ErrorWritingResponse(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = resp.Recv()
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = error reading from server: EOF")
+}
+
+func TestGrpcErrors_SendingRequestWhenResponseHasBeenSent(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ats := &test.GrpcTestingServer{
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
+			return status.Error(codes.NotFound, "not found")
+		},
+	}
+	conn := setup(t, ats)
+	client := test.NewTestingClient(conn)
+	resp, err := client.StreamingRequestResponse(ctx)
+	require.NoError(t, err)
+	gotEof := false
+	for !gotEof { // should eventually get an io.EOF when sending over a broken connection
+		// protocol error - trying to send something when the server has responded already.
+		err = resp.Send(&test.Request{})
+		gotEof = errors.Is(err, io.EOF)
+	}
+	_, err = resp.Recv()
+	assert.EqualError(t, err, "rpc error: code = NotFound desc = not found")
 }
 
 func setup(t *testing.T, srv test.TestingServer, opt ...grpc.ServerOption) *grpc.ClientConn {
