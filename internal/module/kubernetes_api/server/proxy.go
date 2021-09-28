@@ -25,10 +25,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -181,35 +181,27 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToke
 }
 
 func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request, impConfig *rpc.ImpersonationConfig) (bool, errFunc) {
-	g, ctx := errgroup.WithContext(ctx)
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
-	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md)) // must use context from errgroup
+	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
 	if err != nil {
 		return false, p.handleProcessingError(ctx, log, agentId, "Proxy failed to make outbound request", err)
 	}
-	// Pipe client -> remote
-	g.Go(func() error {
-		errFuncRet := p.pipeClientToRemote(ctx, log, agentId, mkClient, r, impConfig)
-		if errFuncRet != nil {
-			return errFuncRet
-		}
-		return nil
-	})
+	var (
+		wg            wait.Group
+		headerWritten = false
+		errFuncRet2   errFunc
+	)
 	// Pipe remote -> client
-	headerWritten := false
-	g.Go(func() error {
-		var errFuncRet errFunc
-		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, agentId, mkClient, w)
-		if errFuncRet != nil {
-			return errFuncRet
-		}
-		return nil
+	wg.Start(func() {
+		headerWritten, errFuncRet2 = p.pipeRemoteToClient(ctx, log, agentId, mkClient, w)
 	})
-	err = g.Wait() // don't inline as headerWritten must be read after Wait() returned
-	if err != nil {
-		return headerWritten, err.(errFunc) // nolint: errorlint
+	// Pipe client -> remote
+	errFuncRet1 := p.pipeClientToRemote(ctx, log, agentId, mkClient, r, impConfig)
+	wg.Wait()
+	if errFuncRet1 != nil {
+		return headerWritten, errFuncRet1
 	}
-	return false, nil
+	return headerWritten, errFuncRet2
 }
 
 func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, w http.ResponseWriter) (bool, errFunc) {
@@ -257,7 +249,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		ImpConfig: impConfig,
 	})
 	if err != nil {
-		return p.handleProcessingError(ctx, log, agentId, "Proxy failed to marshal HttpRequestExtra proto", err)
+		return p.handleProcessingError(ctx, log, agentId, "Proxy failed to marshal HeaderExtra proto", err)
 	}
 	err = mkClient.Send(&grpctool.HttpRequest{
 		Message: &grpctool.HttpRequest_Header_{
@@ -273,6 +265,9 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return p.handleSendError(log, "Proxy failed to send request header to agent", err)
 	}
 
@@ -294,6 +289,9 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 				},
 			})
 			if sendErr != nil {
+				if errors.Is(sendErr, io.EOF) {
+					return nil // the other goroutine will receive the error in RecvMsg()
+				}
 				return p.handleSendError(log, "Proxy failed to send request body to agent", sendErr)
 			}
 		}
@@ -307,6 +305,9 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return p.handleSendError(log, "Proxy failed to send trailers to agent", err)
 	}
 	err = mkClient.CloseSend()
@@ -433,13 +434,5 @@ func writeError(msg string, err error) errFunc {
 	}
 }
 
-var (
-	_ error = errFunc(nil)
-)
-
 // errFunc enhances type safety.
 type errFunc func(http.ResponseWriter)
-
-func (e errFunc) Error() string {
-	return "errorFunc"
-}

@@ -367,21 +367,13 @@ func TestProxy_RecvHeaderError(t *testing.T) {
 	api, k8sClient, client, req, requestCount := setupProxy(t)
 	requestCount.EXPECT().Inc()
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
-	var reqCtx context.Context
-	mrCall := k8sClient.EXPECT().
-		MakeRequest(gomock.Any()).
-		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (rpc.KubernetesApi_MakeRequestClient, error) {
-			reqCtx = ctx
-			return mrClient, nil
-		})
 	mrClient.EXPECT().
 		Send(gomock.Any()).
-		DoAndReturn(func(*grpctool.HttpRequest) error {
-			<-reqCtx.Done() // wait for the receiving side to return error
-			return errors.New("expected error 1")
-		})
+		Return(io.EOF) // error on the stream
 	gomock.InOrder(
-		mrCall,
+		k8sClient.EXPECT().
+			MakeRequest(gomock.Any()).
+			Return(mrClient, nil),
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -395,9 +387,9 @@ func TestProxy_RecvHeaderError(t *testing.T) {
 			})),
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
-			Return(errors.New("expected error 2")),
+			Return(errors.New("expected error")),
 		api.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error 2")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error")),
 	)
 	_, err := client.Do(req)               // nolint: bodyclose
 	assert.True(t, errors.Is(err, io.EOF)) // dropped connection is io.EOF
@@ -407,21 +399,13 @@ func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
 	api, k8sClient, client, req, requestCount := setupProxy(t)
 	requestCount.EXPECT().Inc()
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
-	var reqCtx context.Context
-	mrCall := k8sClient.EXPECT().
-		MakeRequest(gomock.Any()).
-		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (rpc.KubernetesApi_MakeRequestClient, error) {
-			reqCtx = ctx
-			return mrClient, nil
-		})
 	mrClient.EXPECT().
 		Send(gomock.Any()).
-		DoAndReturn(func(*grpctool.HttpRequest) error {
-			<-reqCtx.Done() // wait for the receiving side to return error
-			return errors.New("expected error 1")
-		})
+		Return(io.EOF) // error on the stream
 	gomock.InOrder(
-		mrCall,
+		k8sClient.EXPECT().
+			MakeRequest(gomock.Any()).
+			Return(mrClient, nil),
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("expected error 2")),
