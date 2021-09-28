@@ -300,7 +300,7 @@ func TestStreamVisitorReachableMissingCallback(t *testing.T) {
 	require.NoError(t, err)
 
 	err = v.Visit(stream)
-	require.EqualError(t, err, "no callback defined for field gitlab.agent.grpctool.test.Response.scalar (1)")
+	require.EqualError(t, err, "rpc error: code = Internal desc = no callback defined for field gitlab.agent.grpctool.test.Response.scalar (1)")
 }
 
 func TestStreamingVisitorUnreachableMissingCallback(t *testing.T) {
@@ -368,5 +368,5 @@ func TestStreamVisitorInvalidNumber(t *testing.T) {
 		grpctool.WithCallback(lastNumber, cb),
 		grpctool.WithCallback(20, cb),
 	)
-	require.EqualError(t, err, "oneof gitlab.agent.grpctool.test.Response.message does not have a field 20")
+	require.EqualError(t, err, "rpc error: code = Internal desc = oneof gitlab.agent.grpctool.test.Response.message does not have a field 20")
 }

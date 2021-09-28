@@ -1,9 +1,10 @@
 package grpctool
 
 import (
-	"fmt"
 	"reflect"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -24,6 +25,8 @@ type config struct {
 	fieldCallbacks            map[protoreflect.FieldNumber]reflect.Value // callbacks that accept a specific field type of the oneof
 }
 
+// StreamVisitorOption is an option for the visitor.
+// Must return nil or an error, compatible with the gRPC status package.
 type StreamVisitorOption func(*config) error
 
 func WithEOFCallback(cb EOFCallback) StreamVisitorOption {
@@ -38,26 +41,26 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 	return func(c *config) error {
 		cbType := reflect.TypeOf(cb)
 		if cbType.Kind() != reflect.Func {
-			return fmt.Errorf("cb must be a function, got: %T", cb)
+			return status.Errorf(codes.Internal, "cb must be a function, got: %T", cb)
 		}
 		if cbType.NumIn() != 1 {
-			return fmt.Errorf("cb must take one parameter only, got: %T", cb)
+			return status.Errorf(codes.Internal, "cb must take one parameter only, got: %T", cb)
 		}
 		if cbType.NumOut() != 1 {
-			return fmt.Errorf("cb must return one value only, got: %T", cb)
+			return status.Errorf(codes.Internal, "cb must return one value only, got: %T", cb)
 		}
 		if cbType.Out(0) != errorType {
-			return fmt.Errorf("cb must return an error, got: %T", cb)
+			return status.Errorf(codes.Internal, "cb must return an error, got: %T", cb)
 		}
 		if existingCb, exists := c.msgCallbacks[transitionTo]; exists {
-			return fmt.Errorf("callback for %d has already been defined: %v", transitionTo, existingCb)
+			return status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
 		}
 		if existingCb, exists := c.fieldCallbacks[transitionTo]; exists {
-			return fmt.Errorf("callback for %d has already been defined: %v", transitionTo, existingCb)
+			return status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
 		}
 		field := c.oneof.Fields().ByNumber(transitionTo)
 		if field == nil {
-			return fmt.Errorf("oneof %s does not have a field %d", c.oneof.FullName(), transitionTo)
+			return status.Errorf(codes.Internal, "oneof %s does not have a field %d", c.oneof.FullName(), transitionTo)
 		}
 		inType := cbType.In(0)
 		if c.goMessageType.AssignableTo(inType) {
@@ -71,14 +74,14 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 		case protoreflect.EnumKind:
 			et, err := protoregistry.GlobalTypes.FindEnumByName(field.Enum().FullName())
 			if err != nil {
-				return err
+				return status.Errorf(codes.Internal, "FindEnumByName(): %v", err)
 			}
 			goField = et.New(0)
 		default:
 			goField = c.reflectMessage.Get(field).Interface()
 		}
 		if !reflect.TypeOf(goField).AssignableTo(inType) {
-			return fmt.Errorf("callback must be a function with one parameter of type %s or the oneof field type %T, got: %T", c.goMessageType, goField, cb)
+			return status.Errorf(codes.Internal, "callback must be a function with one parameter of type %s or the oneof field type %T, got: %T", c.goMessageType, goField, cb)
 		}
 		c.fieldCallbacks[transitionTo] = reflect.ValueOf(cb)
 		return nil
@@ -102,7 +105,7 @@ func WithStartState(startState protoreflect.FieldNumber) StreamVisitorOption {
 }
 
 func defaultInvalidTransitionCallback(from, to protoreflect.FieldNumber, allowed []protoreflect.FieldNumber, message proto.Message) error {
-	return fmt.Errorf("transition from %d to %d is not allowed. Allowed: %v", from, to, allowed)
+	return status.Errorf(codes.InvalidArgument, "transition from %d to %d is not allowed. Allowed: %v", from, to, allowed)
 }
 
 func defaultEOFCallback() error {
