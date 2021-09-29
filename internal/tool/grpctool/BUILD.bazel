@@ -22,6 +22,7 @@ go_library(
         "grpctool.pb.go",
         "grpctool.pb.validate.go",
         "inbound_grpc_to_outbound_http.go",
+        "inbound_grpc_to_outbound_stream.go",
         "jwt_creds.go",
         "jwt_server_auth.go",
         "max_conn_age.go",
@@ -61,7 +62,6 @@ go_library(
         "@org_golang_google_protobuf//runtime/protoimpl",
         "@org_golang_google_protobuf//types/descriptorpb",
         "@org_golang_google_protobuf//types/known/anypb",
-        "@org_golang_x_sync//errgroup",
         "@org_uber_go_zap//:zap",
     ],
 )
