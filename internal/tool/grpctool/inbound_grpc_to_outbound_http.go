@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,47 +58,45 @@ func NewInboundGrpcToOutboundHttp(httpDo HttpDo) *InboundGrpcToOutboundHttp {
 func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream, agentId int64) error {
 	ctx := server.Context()
 
-	g, ctx := errgroup.WithContext(ctx) // if one of the goroutines returns a non-nil error, ctx is canceled.
-
 	pr, pw := io.Pipe()
 	headerMsg := make(chan *HttpRequest_Header)
-
-	// Pipe gRPC request -> HTTP request
-	g.Go(func() error {
-		return x.pipeGrpcIntoHttp(ctx, server, headerMsg, pw)
-	})
-	// Pipe HTTP response -> gRPC response
-	g.Go(func() error {
-		// Make sure the writer is unblocked if we exit abruptly
-		// The error is ignored because it will always occur if things go normally - the pipe will have been
-		// closed already when this code is reached (and that's an error).
-		defer pr.Close() // nolint: errcheck
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case header := <-headerMsg:
-			resp, err := x.httpDo(ctx, header, pr)
-			if err != nil {
-				return err
+	s := InboundGrpcToOutboundStream{
+		// Pipe gRPC request -> HTTP request
+		PipeInboundToOutbound: func() error {
+			return x.pipeGrpcIntoHttp(ctx, server, headerMsg, pw)
+		},
+		// Pipe HTTP response -> gRPC response
+		PipeOutboundToInbound: func() error {
+			// Make sure the writer is unblocked if we exit abruptly
+			// The error is ignored because it will always occur if things go normally - the pipe will have been
+			// closed already when this code is reached (and that's an error).
+			defer pr.Close() // nolint: errcheck
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case header := <-headerMsg:
+				resp, err := x.httpDo(ctx, header, pr)
+				if err != nil {
+					return err
+				}
+				return x.pipeHttpIntoGrpc(rpcApi, server, resp)
 			}
-			return x.pipeHttpIntoGrpc(rpcApi, server, resp)
-		}
-	})
-
-	err := g.Wait()
+		},
+	}
+	err := s.Pipe()
 	switch {
 	case err == nil:
+	case IsStatusError(err):
+		// A gRPC status already
 	case errors.Is(err, context.Canceled):
 		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
 		err = status.Error(codes.Canceled, err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
 		err = status.Error(codes.DeadlineExceeded, err.Error())
-	case IsStatusError(err):
-		// A gRPC status already
 	default:
 		rpcApi.HandleProcessingError(rpcApi.Log(), agentId, "gRPC -> HTTP", err)
-		err = status.Error(codes.Unavailable, "unavailable")
+		err = status.Errorf(codes.Unavailable, "gRPC -> HTTP: %v", err)
 	}
 	return err
 }

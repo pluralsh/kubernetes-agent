@@ -29,34 +29,17 @@ type kasStreamForwarder struct {
 // ForwardStream does bi-directional stream forwarding.
 // Returns a gRPC status-compatible error.
 func (f *kasStreamForwarder) ForwardStream(kasStream grpc.ClientStream, stream grpc.ServerStream) error {
-	// Cancellation
-	//
 	// kasStream is an outbound client stream (this/routing kas -> gateway kas)
 	// stream is an inbound server stream (internal/external gRPC client -> this/routing kas)
-	//
-	// If one of the streams breaks, the other one needs to be aborted too ASAP. Waiting for a timeout
-	// is a waste of resources and a bad API with unpredictable latency.
-	//
-	// kasStream is automatically aborted if there is a problem with stream because kasStream uses stream's context.
-	// Unlike the above, if there is a problem with kasStream, stream.RecvMsg()/stream.SendMsg() are unaffected
-	// so can stay blocked for an arbitrary amount of time.
-	// To make gRPC abort those method calls, gRPC stream handler (i.e. this method) should just return from the call.
-	// See https://github.com/grpc/grpc-go/issues/465#issuecomment-179414474
-	// To implement this, we read from stream in a separate goroutine and return from this
-	// handler whenever there is an error, aborting reads from the incoming connection.
-
-	// Channel of size 1 to ensure that if we return early, the other goroutine has space for the value.
-	// We don't care about that value if we already got a non-nil error.
-	res := make(chan error, 1)
-	go func() {
-		res <- f.pipeFromStreamToKas(kasStream, stream)
-	}()
-	err := f.pipeFromKasToStream(kasStream, stream)
-	if err != nil {
-		return err // unblocks stream.RecvMsg() in the other goroutine if it is stuck
+	x := grpctool.InboundGrpcToOutboundStream{
+		PipeInboundToOutbound: func() error {
+			return f.pipeFromStreamToKas(kasStream, stream)
+		},
+		PipeOutboundToInbound: func() error {
+			return f.pipeFromKasToStream(kasStream, stream)
+		},
 	}
-	// Wait for the other goroutine to return to cleanly finish reading from stream
-	return <-res
+	return x.Pipe()
 }
 
 func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, stream grpc.ServerStream) error {
