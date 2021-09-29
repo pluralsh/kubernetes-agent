@@ -79,7 +79,7 @@ func TestMetricServer(t *testing.T) {
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed liveness on purpose", rec.Body.String())
+		require.Equal(t, "failed liveness on purpose\n", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 
@@ -100,7 +100,7 @@ func TestMetricServer(t *testing.T) {
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed readiness on purpose", rec.Body.String())
+		require.Equal(t, "failed readiness on purpose\n", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 }

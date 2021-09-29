@@ -2,7 +2,6 @@ package observability
 
 import (
 	"context"
-	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -78,8 +77,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 			err := s.LivenessProbe(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "LivenessProbe failed", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = io.WriteString(w, err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			w.WriteHeader(http.StatusOK)
@@ -91,8 +89,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 			err := s.ReadinessProbe(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "ReadinessProbe failed", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = io.WriteString(w, err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			w.WriteHeader(http.StatusOK)

@@ -24,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -70,24 +71,26 @@ var (
 )
 
 type kubernetesApiProxy struct {
-	log                 *zap.Logger
-	api                 modserver.Api
-	kubernetesApiClient rpc.KubernetesApiClient
-	gitLabClient        gitlab.ClientInterface
-	streamVisitor       *grpctool.StreamVisitor
-	allowedAgentsCache  *cache.CacheWithErr
-	requestCount        usage_metrics.Counter
-	serverName          string
+	log                       *zap.Logger
+	api                       modserver.Api
+	kubernetesApiClient       rpc.KubernetesApiClient
+	gitLabClient              gitlab.ClientInterface
+	streamVisitor             *grpctool.StreamVisitor
+	allowedAgentsCache        *cache.CacheWithErr
+	requestCount              usage_metrics.Counter
+	metricsHttpHandlerFactory metrics.HandlerFactory
+	serverName                string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix string
 }
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
+	var handler http.Handler
+	handler = http.HandlerFunc(p.proxy)
+	handler = correlation.InjectCorrelationID(handler, correlation.WithSetResponseHeader())
+	handler = p.metricsHttpHandlerFactory(handler)
 	srv := &http.Server{
-		Handler: correlation.InjectCorrelationID(
-			http.HandlerFunc(p.proxy),
-			correlation.WithSetResponseHeader(),
-		),
+		Handler:      handler,
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
