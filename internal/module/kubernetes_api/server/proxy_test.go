@@ -30,6 +30,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
+	"gitlab.com/gitlab-org/labkit/metrics"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -485,8 +486,11 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		streamVisitor:       sv,
 		allowedAgentsCache:  cache.NewWithError(0, 0, func(err error) bool { return false }),
 		requestCount:        requestCount,
-		serverName:          "sv1",
-		urlPathPrefix:       urlPathPrefix,
+		metricsHttpHandlerFactory: func(next http.Handler, opts ...metrics.HandlerOption) http.Handler {
+			return next
+		},
+		serverName:    "sv1",
+		urlPathPrefix: urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group

@@ -12,10 +12,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
+	"gitlab.com/gitlab-org/labkit/metrics"
 )
 
 const (
 	k8sApiRequestCountKnownMetric = "k8s_api_proxy_request_count"
+
+	httpMetricsNamespace = "kas_k8s_proxy"
 )
 
 type Factory struct {
@@ -54,15 +57,16 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	m := &module{
 		log: config.Log,
 		proxy: kubernetesApiProxy{
-			log:                 config.Log,
-			api:                 config.Api,
-			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
-			gitLabClient:        config.GitLabClient,
-			streamVisitor:       sv,
-			allowedAgentsCache:  cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
-			requestCount:        config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
-			serverName:          fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
-			urlPathPrefix:       k8sApi.UrlPathPrefix,
+			log:                       config.Log,
+			api:                       config.Api,
+			kubernetesApiClient:       rpc.NewKubernetesApiClient(config.AgentConn),
+			gitLabClient:              config.GitLabClient,
+			streamVisitor:             sv,
+			allowedAgentsCache:        cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
+			requestCount:              config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
+			metricsHttpHandlerFactory: metrics.NewHandlerFactory(metrics.WithNamespace(httpMetricsNamespace)),
+			serverName:                fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
+			urlPathPrefix:             k8sApi.UrlPathPrefix,
 		},
 		listener: listener,
 	}
