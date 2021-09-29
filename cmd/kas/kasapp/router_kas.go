@@ -150,6 +150,10 @@ func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcAp
 	}
 	err = kasStream.SendMsg(&StartStreaming{})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			var frame grpctool.RawFrame
+			err = kasStream.RecvMsg(&frame) // get the real error
+		}
 		return rpcApi.HandleSendError(log, "SendMsg(StartStreaming) failed", err), false
 	}
 	f := kasStreamForwarder{

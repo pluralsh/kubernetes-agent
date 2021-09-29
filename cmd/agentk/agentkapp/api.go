@@ -39,10 +39,6 @@ func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, a
 	handleProcessingError(ctx, log, agentId, msg, err)
 }
 
-func (a *agentAPI) HandleSendError(log *zap.Logger, msg string, err error) error {
-	return grpctool.HandleSendError(log, msg, err)
-}
-
 func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {
 	a.featureTracker.ToggleFeature(feature, a.moduleName, enabled)
 }
@@ -103,9 +99,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 			grpctool.WithCallback(trailerFieldNumber, func(trailer *grpctool.HttpResponse_Trailer) error {
 				return nil
 			}),
-			grpctool.WithEOFCallback(func() error {
-				return pw.Close()
-			}),
+			grpctool.WithEOFCallback(pw.Close),
 		)
 		if readErr != nil {
 			val.SetError(readErr)
@@ -141,6 +135,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return fmt.Errorf("send request header: %w", err) // wrap
 	}
 	if config.Body != nil {
@@ -159,6 +156,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 						}},
 				})
 				if sendErr != nil {
+					if errors.Is(sendErr, io.EOF) { // the other goroutine will receive the error in RecvMsg()
+						return nil
+					}
 					return fmt.Errorf("send request data: %w", sendErr) // wrap
 				}
 			}
@@ -173,6 +173,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return fmt.Errorf("send request trailer: %w", err) // wrap
 	}
 	err = client.CloseSend()

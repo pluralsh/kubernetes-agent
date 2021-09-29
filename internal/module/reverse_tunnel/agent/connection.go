@@ -110,6 +110,9 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 				Data: message.Data,
 			})
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil // the other goroutine will receive the error in RecvMsg()
+				}
 				return fmt.Errorf("SendMsg(): %w", err)
 			}
 			return nil
@@ -142,6 +145,9 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return fmt.Errorf("Send(header): %w", err) // wrap
 	}
 	var frame grpctool.RawFrame
@@ -157,6 +163,9 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 				},
 			})
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil // the other goroutine will receive the error in RecvMsg()
+				}
 				return fmt.Errorf("Send(trailer): %w", err) // wrap
 			}
 			if errors.Is(recvErr, io.EOF) {
@@ -172,6 +181,9 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 			},
 		})
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil // the other goroutine will receive the error in RecvMsg()
+			}
 			return fmt.Errorf("Send(message): %w", err) // wrap
 		}
 	}
@@ -191,6 +203,9 @@ func sendErrorToTunnel(errToSend error, tunnel rpc.ReverseTunnel_ConnectClient) 
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
 		return fmt.Errorf("Send(error): %w", err) // wrap
 	}
 	err = tunnel.CloseSend()
