@@ -91,8 +91,8 @@ func (f *kasStreamForwarder) pipeFromStreamToKas(kasStream grpc.ClientStream, st
 		}
 		err = kasStream.SendMsg(&frame)
 		if err != nil {
-			if errors.Is(err, io.EOF) { // the other goroutine will receive the error in RecvMsg()
-				return nil
+			if errors.Is(err, io.EOF) {
+				return nil // the other goroutine will receive the error in RecvMsg()
 			}
 			return f.rpcApi.HandleSendError(f.log, "stream->router kas SendMsg() failed", err)
 		}
