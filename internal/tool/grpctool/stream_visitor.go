@@ -8,6 +8,8 @@ import (
 	"sort"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/automata"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -154,7 +156,7 @@ func (s *StreamVisitor) applyOptions(opts []StreamVisitorOption) (config, error)
 		if ok {
 			continue
 		}
-		return config{}, fmt.Errorf("no callback defined for field %s (%d)", field.FullName(), fieldNumber)
+		return config{}, status.Errorf(codes.Internal, "no callback defined for field %s (%d)", field.FullName(), fieldNumber)
 	}
 	return cfg, nil
 }
