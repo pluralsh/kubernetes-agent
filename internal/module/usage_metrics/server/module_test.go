@@ -55,6 +55,9 @@ func TestSendUsage(t *testing.T) {
 				cancel()
 				return &usage_metrics.UsageData{}
 			}),
+		tracker.EXPECT().
+			CloneUsageData().
+			Return(&usage_metrics.UsageData{}),
 	)
 	require.NoError(t, m.Run(ctx))
 }
@@ -102,6 +105,9 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 				cancel()
 				return &usage_metrics.UsageData{}
 			}),
+		tracker.EXPECT().
+			CloneUsageData().
+			Return(&usage_metrics.UsageData{}),
 	)
 	require.NoError(t, m.Run(ctx))
 }
@@ -129,6 +135,9 @@ func TestSendUsageHttp(t *testing.T) {
 			Do(func(ud *usage_metrics.UsageData) {
 				cancel()
 			}),
+		tracker.EXPECT().
+			CloneUsageData().
+			Return(&usage_metrics.UsageData{}),
 	)
 	require.NoError(t, m.Run(ctx))
 }

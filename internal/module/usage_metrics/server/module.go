@@ -30,13 +30,20 @@ func (m *module) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			ctxExit, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			m.sendUsage(ctxExit) // Flush metrics before exiting
+			cancel()
 			return nil
 		case <-ticker.C:
-			if err := m.sendUsageInternal(ctx); err != nil {
-				if !errz.ContextDone(err) {
-					m.api.HandleProcessingError(ctx, m.log, modshared.NoAgentId, "Failed to send usage data", err)
-				}
-			}
+			m.sendUsage(ctx)
+		}
+	}
+}
+
+func (m *module) sendUsage(ctx context.Context) {
+	if err := m.sendUsageInternal(ctx); err != nil {
+		if !errz.ContextDone(err) {
+			m.api.HandleProcessingError(ctx, m.log, modshared.NoAgentId, "Failed to send usage data", err)
 		}
 	}
 }
