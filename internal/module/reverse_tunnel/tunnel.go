@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"go.uber.org/zap"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -40,11 +41,15 @@ type TunnelDataCallback interface {
 	Error(*statuspb.Status) error
 }
 
+type RpcApi interface {
+	HandleSendError(log *zap.Logger, msg string, err error) error
+}
+
 type Tunnel interface {
 	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
 	// cb is called with header, messages and trailer coming from the tunnel. It's the callers
 	// responsibility to forward them into the incomingStream.
-	ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCallback) error
+	ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) error
 	// Done must be called when the caller is done with the Tunnel.
 	Done()
 }
@@ -57,7 +62,7 @@ type tunnel struct {
 	state               stateType
 }
 
-func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCallback) error {
+func (t *tunnel) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) error {
 	if t.state == stateReady {
 		t.state = stateForwarding
 	} else {
@@ -80,7 +85,6 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 	// Channel of size 1 to ensure that if we return early, the second goroutine has space for the value.
 	// We don't care about the second value if the first one has at least one non-nil error.
 	res := make(chan errPair, 1)
-	startReadingTunnel := make(chan struct{})
 	incomingCtx := incomingStream.Context()
 	// Pipe incoming stream (i.e. data a client is sending us) into the tunnel stream
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
@@ -94,9 +98,9 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 			},
 		})
 		if err != nil {
+			err = rpcApi.HandleSendError(log, "Send(ConnectResponse_RequestInfo)", err)
 			return err, err
 		}
-		close(startReadingTunnel)
 		for {
 			var frame grpctool.RawFrame
 			err = incomingStream.RecvMsg(&frame)
@@ -114,6 +118,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 				},
 			})
 			if err != nil {
+				err = rpcApi.HandleSendError(log, "Send(ConnectResponse_Message)", err)
 				return err, err
 			}
 		}
@@ -123,17 +128,13 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 			},
 		})
 		if err != nil {
+			err = rpcApi.HandleSendError(log, "Send(ConnectResponse_CloseSend)", err)
 			return err, err
 		}
 		return nil, nil
 	})
 	// Pipe tunnel stream (i.e. data agentk is sending us) into the incoming stream
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
-		select {
-		case <-incomingCtx.Done():
-			return nil, status.FromContextError(incomingCtx.Err()).Err()
-		case <-startReadingTunnel:
-		}
 		var forTunnel, forIncomingStream error
 		fromVisitor := t.tunnelStreamVisitor.Visit(t.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),

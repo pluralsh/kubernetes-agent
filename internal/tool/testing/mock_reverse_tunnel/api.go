@@ -12,6 +12,7 @@ import (
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	reverse_tunnel "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc"
+	zap "go.uber.org/zap"
 	grpc "google.golang.org/grpc"
 )
 
@@ -126,15 +127,15 @@ func (mr *MockTunnelMockRecorder) Done() *gomock.Call {
 }
 
 // ForwardStream mocks base method.
-func (m *MockTunnel) ForwardStream(arg0 grpc.ServerStream, arg1 reverse_tunnel.TunnelDataCallback) error {
+func (m *MockTunnel) ForwardStream(arg0 *zap.Logger, arg1 reverse_tunnel.RpcApi, arg2 grpc.ServerStream, arg3 reverse_tunnel.TunnelDataCallback) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForwardStream", arg0, arg1)
+	ret := m.ctrl.Call(m, "ForwardStream", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ForwardStream indicates an expected call of ForwardStream.
-func (mr *MockTunnelMockRecorder) ForwardStream(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockTunnelMockRecorder) ForwardStream(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForwardStream", reflect.TypeOf((*MockTunnel)(nil).ForwardStream), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForwardStream", reflect.TypeOf((*MockTunnel)(nil).ForwardStream), arg0, arg1, arg2, arg3)
 }

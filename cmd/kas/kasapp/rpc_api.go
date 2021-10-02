@@ -22,7 +22,10 @@ func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg
 }
 
 func (a *serverRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
-	return grpctool.HandleSendError(log, msg, err)
+	// The problem is almost certainly with the client's connection.
+	// Still log it on Debug.
+	log.Debug(msg, logz.Error(err))
+	return grpctool.HandleSendError(msg, err)
 }
 
 type serverRpcApiFactory struct {

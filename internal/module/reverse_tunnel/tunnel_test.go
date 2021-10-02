@@ -78,6 +78,6 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
 	}
-	err = c.ForwardStream(incomingStream, cb)
+	err = c.ForwardStream(nil, nil, incomingStream, cb)
 	assert.EqualError(t, err, "correct error")
 }

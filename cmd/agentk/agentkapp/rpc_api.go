@@ -4,6 +4,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"go.uber.org/zap"
 )
 
@@ -20,5 +21,8 @@ func (a *agentRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg 
 }
 
 func (a *agentRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
-	return grpctool.HandleSendError(log, msg, err)
+	// The problem is almost certainly with the client's connection.
+	// Still log it on Debug.
+	log.Debug(msg, logz.Error(err))
+	return grpctool.HandleSendError(msg, err)
 }

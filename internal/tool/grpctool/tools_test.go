@@ -15,7 +15,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/labkit/correlation"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -126,7 +125,7 @@ func TestHandleSendError(t *testing.T) {
 	}
 	for i, tc := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			actual := grpctool.HandleSendError(zaptest.NewLogger(t), "msg", tc.in)
+			actual := grpctool.HandleSendError("msg", tc.in)
 			assert.Equal(t, tc.expected.Error(), actual.Error())
 		})
 	}
