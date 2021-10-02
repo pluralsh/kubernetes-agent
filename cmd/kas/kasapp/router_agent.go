@@ -86,48 +86,49 @@ type wrappingCallback struct {
 }
 
 func (c wrappingCallback) Header(md map[string]*prototool.Values) error {
-	return c.maybeHandleError("SendMsg(GatewayKasResponse_Header) failed", c.stream.SendMsg(&GatewayKasResponse{
+	return c.sendMsg("SendMsg(GatewayKasResponse_Header) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Header_{
 			Header: &GatewayKasResponse_Header{
 				Meta: md,
 			},
 		},
-	}))
+	})
 }
 
 func (c wrappingCallback) Message(data []byte) error {
-	return c.maybeHandleError("SendMsg(GatewayKasResponse_Message) failed", c.stream.SendMsg(&GatewayKasResponse{
+	return c.sendMsg("SendMsg(GatewayKasResponse_Message) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Message_{
 			Message: &GatewayKasResponse_Message{
 				Data: data,
 			},
 		},
-	}))
+	})
 }
 
 func (c wrappingCallback) Trailer(md map[string]*prototool.Values) error {
-	return c.maybeHandleError("SendMsg(GatewayKasResponse_Trailer) failed", c.stream.SendMsg(&GatewayKasResponse{
+	return c.sendMsg("SendMsg(GatewayKasResponse_Trailer) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Trailer_{
 			Trailer: &GatewayKasResponse_Trailer{
 				Meta: md,
 			},
 		},
-	}))
+	})
 }
 
 func (c wrappingCallback) Error(stat *statuspb.Status) error {
-	return c.maybeHandleError("SendMsg(GatewayKasResponse_Error) failed", c.stream.SendMsg(&GatewayKasResponse{
+	return c.sendMsg("SendMsg(GatewayKasResponse_Error) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Error_{
 			Error: &GatewayKasResponse_Error{
 				Status: stat,
 			},
 		},
-	}))
+	})
 }
 
-func (c wrappingCallback) maybeHandleError(msg string, err error) error {
-	if err == nil {
-		return nil
+func (c wrappingCallback) sendMsg(errMsg string, msg *GatewayKasResponse) error {
+	err := c.stream.SendMsg(msg)
+	if err != nil {
+		return c.rpcApi.HandleSendError(c.log, errMsg, err)
 	}
-	return c.rpcApi.HandleSendError(c.log, msg, err)
+	return nil
 }
