@@ -9,10 +9,8 @@ import (
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
-	"go.uber.org/zap"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -20,10 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func HandleSendError(log *zap.Logger, msg string, err error) error {
-	// The problem is almost certainly with the client's connection.
-	// Still log it on Debug.
-	log.Debug(msg, logz.Error(err))
+func HandleSendError(msg string, err error) error {
 	if IsStatusError(err) {
 		s := status.Convert(err).Proto()
 		if isErrIllegalHeaderWriteError(s) {

@@ -58,7 +58,7 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		}
 		return err
 	}
-	return tunnel.ForwardStream(stream, wrappingCallback{
+	return tunnel.ForwardStream(log, rpcApi, stream, wrappingCallback{
 		log:    log,
 		rpcApi: rpcApi,
 		stream: stream,

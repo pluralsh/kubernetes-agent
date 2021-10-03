@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
@@ -136,7 +137,7 @@ func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 
 func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 	t.Parallel()
-	incomingStream, cb, tunnel, r := setupStreams(t, true)
+	incomingStream, rpcApi, cb, tunnel, r := setupStreams(t, true)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -152,7 +153,7 @@ func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	require.NoError(t, err)
 	defer tun.Done()
-	err = tun.ForwardStream(incomingStream, cb)
+	err = tun.ForwardStream(zaptest.NewLogger(t), rpcApi, incomingStream, cb)
 	require.NoError(t, err)
 }
 
@@ -196,7 +197,7 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 
 func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 	t.Parallel()
-	incomingStream, cb, tunnel, r := setupStreams(t, false)
+	incomingStream, rpcApi, cb, tunnel, r := setupStreams(t, false)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -211,7 +212,7 @@ func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 			return
 		}
 		defer tun.Done()
-		err = tun.ForwardStream(incomingStream, cb)
+		err = tun.ForwardStream(zaptest.NewLogger(t), rpcApi, incomingStream, cb)
 		assert.NoError(t, err)
 	})
 	time.Sleep(50 * time.Millisecond)
@@ -258,7 +259,7 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver.MockAgentRpcApi, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
@@ -266,6 +267,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	cb := NewMockTunnelDataCallback(ctrl)
 
+	rpcApi := mock_modserver.NewMockAgentRpcApi(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
 	incomingCtx = metadata.NewIncomingContext(incomingCtx, meta)
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
@@ -380,7 +382,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
-	return incomingStream, cb, connectServer, r
+	return incomingStream, rpcApi, cb, connectServer, r
 }
 
 func descriptor() *rpc.Descriptor {

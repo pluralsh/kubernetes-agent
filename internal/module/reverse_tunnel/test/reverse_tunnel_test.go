@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
@@ -323,6 +324,7 @@ type serverTestingServer struct {
 
 func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
 	ctx := server.Context()
+	rpcApi := modserver.RpcApiFromContext(ctx)
 	sts := grpc.ServerTransportStreamFromContext(ctx)
 	service, method := grpctool.SplitGrpcMethod(sts.Method())
 	tunnel, err := s.tunnelFinder.FindTunnel(ctx, testhelpers.AgentId, service, method)
@@ -330,7 +332,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 		return status.FromContextError(err).Err()
 	}
 	defer tunnel.Done()
-	return tunnel.ForwardStream(server, streamingCallback{incomingStream: server})
+	return tunnel.ForwardStream(rpcApi.Log(), rpcApi, server, streamingCallback{incomingStream: server})
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with

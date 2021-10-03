@@ -12,14 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -52,7 +55,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 
-	internalServer := serverConstructInternalServer(ctx)
+	internalServer := serverConstructInternalServer(ctx, log)
 	internalServerConn, err := serverConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
 
@@ -100,11 +103,25 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	}, kasConn, internalServerConn, serverRpcApi, tunnelRegisterer
 }
 
-func serverConstructInternalServer(ctx context.Context) *grpc.Server {
+func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
 	_, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
+	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
+		return &serverRpcApiForTest{
+			RpcApiStub: modshared.RpcApiStub{
+				StreamCtx: ctx,
+				Logger:    log,
+			},
+		}
+	}
 	return grpc.NewServer(
 		grpc.StatsHandler(sh),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
+		grpc.ChainStreamInterceptor(
+			modserver.StreamRpcApiInterceptor(factory),
+		),
+		grpc.ChainUnaryInterceptor(
+			modserver.UnaryRpcApiInterceptor(factory),
+		),
 	)
 }
 
@@ -164,4 +181,17 @@ func serverStartAgentServer(stage stager.Stage, agentServer *grpc.Server, agentS
 	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		return agentServerListener, nil
 	})
+}
+
+type serverRpcApiForTest struct {
+	modshared.RpcApiStub
+}
+
+func (a *serverRpcApiForTest) HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error) {
+	log.Error(msg, logz.Error(err))
+}
+
+func (a *serverRpcApiForTest) HandleSendError(log *zap.Logger, msg string, err error) error {
+	log.Debug(msg, logz.Error(err))
+	return grpctool.HandleSendError(msg, err)
 }
