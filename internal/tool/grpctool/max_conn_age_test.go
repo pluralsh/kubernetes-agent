@@ -162,6 +162,29 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedParallel(t *testing.T) {
 	})
 }
 
+func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
+	const maxAge = 3 * time.Second
+	var ageCtx context.Context
+	srv := &test.GrpcTestingServer{
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
+			ageCtx = MaxConnectionAgeContextFromStreamContext(server.Context())
+			return nil
+		},
+	}
+	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
+	testKeepalive(t, false, kp, sh, srv, func(t *testing.T, client test.TestingClient) {
+		resp, err := client.StreamingRequestResponse(context.Background())
+		require.NoError(t, err)
+		_, err = resp.Recv()
+		require.Equal(t, io.EOF, err)
+		select {
+		case <-ageCtx.Done():
+		default:
+			t.Fail()
+		}
+	})
+}
+
 func testKeepalive(t *testing.T, websocket bool, kp keepalive.ServerParameters, sh stats.Handler, srv test.TestingServer, f func(*testing.T, test.TestingClient)) {
 	t.Parallel()
 	l, dial := listenerAndDialer(websocket)
