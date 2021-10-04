@@ -57,7 +57,7 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 
 func agentConstructInternalServer(ctx context.Context) *grpc.Server {
 	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(ctx, 0)),
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(ctx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpc_validator.StreamServerInterceptor(),
 		),

@@ -22,7 +22,7 @@ import (
 
 var (
 	_ stats.Handler = joinStatHandlers{}
-	_ stats.Handler = maxConnAgeStatsHandler{}
+	_ stats.Handler = serverMaxConnAgeStatsHandler{}
 )
 
 // These tests verify our understanding of how MaxConnectionAge and MaxConnectionAgeGrace work in gRPC

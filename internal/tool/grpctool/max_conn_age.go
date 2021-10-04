@@ -56,7 +56,7 @@ func maxConnectionAge2GrpcKeepalive(auxCtx context.Context, maxConnectionAge tim
 		// Trying to stay below 60 seconds (typical load-balancer timeout)
 		Time: 50 * time.Second,
 	}
-	sh := NewMaxConnAgeStatsHandler(auxCtx, maxConnectionAge*(100-maxConnectionAgeGracePercent-maxConnectionAgeJitterPercent)/100) // nolint: durationcheck
+	sh := NewServerMaxConnAgeStatsHandler(auxCtx, maxConnectionAge*(100-maxConnectionAgeGracePercent-maxConnectionAgeJitterPercent)/100) // nolint: durationcheck
 	return kp, sh
 }
 
@@ -104,19 +104,19 @@ func (h joinStatHandlers) HandleConn(ctx context.Context, connStats stats.ConnSt
 	}
 }
 
-type maxConnAgeStatsHandler struct {
+type serverMaxConnAgeStatsHandler struct {
 	auxCtx           context.Context
 	maxConnectionAge time.Duration
 }
 
-func NewMaxConnAgeStatsHandler(auxCtx context.Context, maxConnectionAge time.Duration) stats.Handler {
-	return maxConnAgeStatsHandler{
+func NewServerMaxConnAgeStatsHandler(auxCtx context.Context, maxConnectionAge time.Duration) stats.Handler {
+	return serverMaxConnAgeStatsHandler{
 		auxCtx:           auxCtx,
 		maxConnectionAge: maxConnectionAge,
 	}
 }
 
-func (m maxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
+func (m serverMaxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
 	var (
 		ageCtx    context.Context
 		ageCancel context.CancelFunc
@@ -137,12 +137,12 @@ func (m maxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagIn
 	return AddMaxConnectionAgeContext(ctx, ageCtx)
 }
 
-func (m maxConnAgeStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
+func (m serverMaxConnAgeStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
 }
 
-func (m maxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+func (m serverMaxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
 	return context.WithValue(ctx, maxConnAgeConnStartKey, time.Now())
 }
 
-func (m maxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
+func (m serverMaxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
 }
