@@ -172,8 +172,9 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 }
 
 func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
+	agentId := toReg.tunnelInfo.AgentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
-	findRequestsForAgentId := r.findRequestsByAgentId[toReg.tunnelInfo.AgentId]
+	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
 	for ftr := range findRequestsForAgentId {
 		if !toReg.tunnelInfo.SupportsServiceAndMethod(ftr.service, ftr.method) {
 			continue
@@ -187,10 +188,10 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 	// 2. Register the tunnel
 	r.tunnelRegisterer.RegisterTunnel(context.Background(), toReg.tunnelInfo) // register ASAP
 	r.tuns[toReg] = struct{}{}
-	tunsByAgentId := r.tunsByAgentId[toReg.tunnelInfo.AgentId]
+	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
 		tunsByAgentId = make(map[*tunnel]struct{}, 1)
-		r.tunsByAgentId[toReg.tunnelInfo.AgentId] = tunsByAgentId
+		r.tunsByAgentId[agentId] = tunsByAgentId
 	}
 	tunsByAgentId[toReg] = struct{}{}
 }
