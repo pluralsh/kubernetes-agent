@@ -28,7 +28,10 @@ import (
 
 type maxConnAgeCtxKeyType int
 
-const maxConnAgeCtxKey maxConnAgeCtxKeyType = iota
+const (
+	maxConnAgeCtxKey maxConnAgeCtxKeyType = iota
+	maxConnAgeConnStartKey
+)
 
 const (
 	maxConnectionAgeJitterPercent = 5
@@ -53,7 +56,7 @@ func maxConnectionAge2GrpcKeepalive(auxCtx context.Context, maxConnectionAge tim
 		// Trying to stay below 60 seconds (typical load-balancer timeout)
 		Time: 50 * time.Second,
 	}
-	sh := NewMaxConnAgeStatsHandler(auxCtx, maxConnectionAge*(100-maxConnectionAgeGracePercent-maxConnectionAgeJitterPercent)/100) // nolint: durationcheck
+	sh := NewServerMaxConnAgeStatsHandler(auxCtx, maxConnectionAge*(100-maxConnectionAgeGracePercent-maxConnectionAgeJitterPercent)/100) // nolint: durationcheck
 	return kp, sh
 }
 
@@ -101,26 +104,19 @@ func (h joinStatHandlers) HandleConn(ctx context.Context, connStats stats.ConnSt
 	}
 }
 
-type maxConnAgeStatsHandler struct {
+type serverMaxConnAgeStatsHandler struct {
 	auxCtx           context.Context
 	maxConnectionAge time.Duration
 }
 
-func NewMaxConnAgeStatsHandler(auxCtx context.Context, maxConnectionAge time.Duration) stats.Handler {
-	return maxConnAgeStatsHandler{
+func NewServerMaxConnAgeStatsHandler(auxCtx context.Context, maxConnectionAge time.Duration) stats.Handler {
+	return serverMaxConnAgeStatsHandler{
 		auxCtx:           auxCtx,
 		maxConnectionAge: maxConnectionAge,
 	}
 }
 
-func (m maxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
-	return ctx
-}
-
-func (m maxConnAgeStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
-}
-
-func (m maxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+func (m serverMaxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
 	var (
 		ageCtx    context.Context
 		ageCancel context.CancelFunc
@@ -128,7 +124,8 @@ func (m maxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTag
 	if m.maxConnectionAge == 0 {
 		ageCtx, ageCancel = context.WithCancel(m.auxCtx)
 	} else {
-		ageCtx, ageCancel = context.WithTimeout(m.auxCtx, mathz.DurationWithPositiveJitter(m.maxConnectionAge, maxConnectionAgeJitterPercent))
+		remainingConnAge := m.maxConnectionAge - time.Since(ctx.Value(maxConnAgeConnStartKey).(time.Time))
+		ageCtx, ageCancel = context.WithTimeout(m.auxCtx, mathz.DurationWithPositiveJitter(remainingConnAge, maxConnectionAgeJitterPercent))
 	}
 	go func() {
 		select {
@@ -140,5 +137,12 @@ func (m maxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTag
 	return AddMaxConnectionAgeContext(ctx, ageCtx)
 }
 
-func (m maxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
+func (m serverMaxConnAgeStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
+}
+
+func (m serverMaxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+	return context.WithValue(ctx, maxConnAgeConnStartKey, time.Now())
+}
+
+func (m serverMaxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
 }

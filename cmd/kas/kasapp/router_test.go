@@ -340,7 +340,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	}
 
 	internalServer := grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
 			modserver.StreamRpcApiInterceptor(factory),
 		),
@@ -350,7 +350,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 	privateApiServer := grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(context.Background(), 0)),
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(context.Background(), 0)),
 		grpc.ChainStreamInterceptor(
 			modserver.StreamRpcApiInterceptor(factory),
 		),

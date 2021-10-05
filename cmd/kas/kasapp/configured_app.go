@@ -586,7 +586,7 @@ func (a *ConfiguredApp) constructInternalServer(auxCtx context.Context, tracer o
 	factory modserver.RpcApiFactory) *grpc.Server {
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(auxCtx, 0)),
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 1. add correlation id
 			modserver.StreamRpcApiInterceptor(factory),                                    // 2. inject RPC API

@@ -275,7 +275,7 @@ func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
 		}
 	}
 	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(auxCtx, 0)),
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id

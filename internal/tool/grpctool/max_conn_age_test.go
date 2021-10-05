@@ -22,7 +22,7 @@ import (
 
 var (
 	_ stats.Handler = joinStatHandlers{}
-	_ stats.Handler = maxConnAgeStatsHandler{}
+	_ stats.Handler = serverMaxConnAgeStatsHandler{}
 )
 
 // These tests verify our understanding of how MaxConnectionAge and MaxConnectionAgeGrace work in gRPC
@@ -159,6 +159,29 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedParallel(t *testing.T) {
 	})
 	t.Run("WebSocket", func(t *testing.T) {
 		testKeepalive(t, true, kp, sh, srv, testClient)
+	})
+}
+
+func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
+	const maxAge = 3 * time.Second
+	var ageCtx context.Context
+	srv := &test.GrpcTestingServer{
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
+			ageCtx = MaxConnectionAgeContextFromStreamContext(server.Context())
+			return nil
+		},
+	}
+	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
+	testKeepalive(t, false, kp, sh, srv, func(t *testing.T, client test.TestingClient) {
+		resp, err := client.StreamingRequestResponse(context.Background())
+		require.NoError(t, err)
+		_, err = resp.Recv()
+		require.Equal(t, io.EOF, err)
+		select {
+		case <-ageCtx.Done():
+		default:
+			t.Fail()
+		}
 	})
 }
 
