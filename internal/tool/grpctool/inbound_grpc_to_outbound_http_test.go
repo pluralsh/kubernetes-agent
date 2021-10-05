@@ -14,9 +14,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -27,9 +27,8 @@ const (
 	responseBodyData = "nlnflkwqnflkasdnflnasdlfnasldnflnl"
 )
 
-func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
+func TestInboundGrpcToOutboundHttp_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRpcApi := mock_modshared.NewMockRpcApi(ctrl)
 	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
 	server.EXPECT().
 		Context().
@@ -110,7 +109,15 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			},
 		},
 	)...)
-	p := grpctool.InboundGrpcToOutboundHttp{
+	grpc2http := grpctool.InboundGrpcToOutboundHttp{
+		Log: zaptest.NewLogger(t),
+		HandleProcessingError: func(msg string, err error) {
+			t.Fail()
+		},
+		HandleSendError: func(msg string, err error) error {
+			t.Fail()
+			return nil
+		},
 		HttpDo: func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 			assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
 			data, err := io.ReadAll(body)
@@ -128,7 +135,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			}, nil
 		},
 	}
-	err := p.Pipe(mockRpcApi, server, 0)
+	err := grpc2http.Pipe(server)
 	require.NoError(t, err)
 }
 
@@ -153,7 +160,7 @@ func mockSendStream(t *testing.T, server *mock_rpc.MockInboundGrpcToOutboundHttp
 	res := make([]*gomock.Call, 0, len(msgs))
 	for _, msg := range msgs {
 		call := server.EXPECT().
-			SendMsg(matcher.ProtoEq(t, msg))
+			Send(matcher.ProtoEq(t, msg))
 		res = append(res, call)
 	}
 	return res

@@ -158,7 +158,7 @@ func mockSendStream(t *testing.T, server *mock_rpc.MockGitlabAccess_MakeRequestS
 	res := make([]*gomock.Call, 0, len(msgs))
 	for _, msg := range msgs {
 		call := server.EXPECT().
-			SendMsg(matcher.ProtoEq(t, msg))
+			Send(matcher.ProtoEq(t, msg))
 		res = append(res, call)
 	}
 	return res
