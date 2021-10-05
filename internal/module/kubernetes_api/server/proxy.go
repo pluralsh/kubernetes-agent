@@ -75,7 +75,6 @@ type kubernetesApiProxy struct {
 	api                       modserver.Api
 	kubernetesApiClient       rpc.KubernetesApiClient
 	gitLabClient              gitlab.ClientInterface
-	streamVisitor             *grpctool.StreamVisitor
 	allowedAgentsCache        *cache.CacheWithErr
 	requestCount              usage_metrics.Counter
 	metricsHttpHandlerFactory metrics.HandlerFactory
@@ -210,7 +209,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, a
 func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, w http.ResponseWriter) (bool, errFunc) {
 	writeFailed := false
 	headerWritten := false
-	err := p.streamVisitor.Visit(mkClient,
+	err := grpctool.HttpResponseStreamVisitor().Visit(mkClient,
 		grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 			httpH := header.Response.HttpHeader()
 			httpz.RemoveConnectionHeaders(httpH)

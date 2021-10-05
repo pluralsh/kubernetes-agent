@@ -32,8 +32,8 @@ type server struct {
 func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 	via := "gRPC/1.0 " + userAgent
 	return &server{
-		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
+		pipe: &grpctool.InboundGrpcToOutboundHttp{
+			HttpDo: func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				u := *baseUrl
 				u.Path = h.Request.UrlPath
 				u.RawQuery = h.Request.UrlQuery().Encode()
@@ -63,7 +63,7 @@ func newServer(userAgent string, client httpClient, baseUrl *url.URL) *server {
 				resp.Header.Add(httpViaHeader, fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, userAgent))
 				return resp, nil
 			},
-		),
+		},
 	}
 }
 

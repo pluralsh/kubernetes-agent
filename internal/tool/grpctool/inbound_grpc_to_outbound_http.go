@@ -40,19 +40,7 @@ type RpcApi interface {
 type HttpDo func(ctx context.Context, header *HttpRequest_Header, body io.Reader) (*http.Response, error)
 
 type InboundGrpcToOutboundHttp struct {
-	streamVisitor *StreamVisitor
-	httpDo        HttpDo
-}
-
-func NewInboundGrpcToOutboundHttp(httpDo HttpDo) *InboundGrpcToOutboundHttp {
-	sv, err := NewStreamVisitor(&HttpRequest{})
-	if err != nil {
-		panic(err) // this will never panic as long as the proto file is correct
-	}
-	return &InboundGrpcToOutboundHttp{
-		streamVisitor: sv,
-		httpDo:        httpDo,
-	}
+	HttpDo HttpDo
 }
 
 func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream, agentId int64) error {
@@ -75,7 +63,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 			case <-ctx.Done():
 				return ctx.Err()
 			case header := <-headerMsg:
-				resp, err := x.httpDo(ctx, header, pr)
+				resp, err := x.HttpDo(ctx, header, pr)
 				if err != nil {
 					return err
 				}
@@ -102,7 +90,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 }
 
 func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server grpc.ServerStream, headerMsg chan *HttpRequest_Header, pw *io.PipeWriter) error {
-	return x.streamVisitor.Visit(server,
+	return HttpRequestStreamVisitor().Visit(server,
 		WithCallback(headerFieldNumber, func(header *HttpRequest_Header) error {
 			select {
 			case <-ctx.Done():

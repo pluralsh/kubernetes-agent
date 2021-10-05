@@ -21,6 +21,7 @@ go_library(
         "dial_listener.go",
         "grpctool.pb.go",
         "grpctool.pb.validate.go",
+        "http_stream_vititors.go",
         "inbound_grpc_to_outbound_http.go",
         "inbound_grpc_to_outbound_stream.go",
         "jwt_creds.go",
