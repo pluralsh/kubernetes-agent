@@ -110,22 +110,24 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			},
 		},
 	)...)
-	p := grpctool.NewInboundGrpcToOutboundHttp(func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
-		assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
-		data, err := io.ReadAll(body)
-		if !assert.NoError(t, err) {
-			return nil, err
-		}
-		assert.Equal(t, requestBodyData, string(data))
-		return &http.Response{
-			Status:     "OK!",
-			StatusCode: http.StatusOK,
-			Header: http.Header{
-				"x1": []string{"a1", "a2"},
-			},
-			Body: io.NopCloser(strings.NewReader(responseBodyData)),
-		}, nil
-	})
+	p := grpctool.InboundGrpcToOutboundHttp{
+		HttpDo: func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
+			assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
+			data, err := io.ReadAll(body)
+			if !assert.NoError(t, err) {
+				return nil, err
+			}
+			assert.Equal(t, requestBodyData, string(data))
+			return &http.Response{
+				Status:     "OK!",
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"x1": []string{"a1", "a2"},
+				},
+				Body: io.NopCloser(strings.NewReader(responseBodyData)),
+			}, nil
+		},
+	}
 	err := p.Pipe(mockRpcApi, server, 0)
 	require.NoError(t, err)
 }

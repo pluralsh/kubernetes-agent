@@ -20,8 +20,8 @@ type server struct {
 
 func newServer(gitLabClient gitlab.ClientInterface) *server {
 	return &server{
-		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
+		pipe: &grpctool.InboundGrpcToOutboundHttp{
+			HttpDo: func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				var extra rpc.HeaderExtra
 				err := header.Extra.UnmarshalTo(&extra)
 				if err != nil {
@@ -39,7 +39,7 @@ func newServer(gitLabClient gitlab.ClientInterface) *server {
 					body,
 				)
 			},
-		),
+		},
 	}
 }
 

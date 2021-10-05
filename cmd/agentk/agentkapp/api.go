@@ -29,10 +29,9 @@ const (
 
 // agentAPI is an implementation of modagent.API.
 type agentAPI struct {
-	moduleName      string
-	client          gitlab_access_rpc.GitlabAccessClient
-	responseVisitor *grpctool.StreamVisitor
-	featureTracker  *featureTracker
+	moduleName     string
+	client         gitlab_access_rpc.GitlabAccessClient
+	featureTracker *featureTracker
 }
 
 func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
@@ -79,7 +78,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	})
 	// Read response
 	wg.Start(func() {
-		readErr := a.responseVisitor.Visit(client,
+		readErr := grpctool.HttpResponseStreamVisitor().Visit(client,
 			grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 				val.SetValue(&modagent.GitLabResponse{
 					Status:     header.Response.Status,

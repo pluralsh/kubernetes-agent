@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/labkit/metrics"
 )
@@ -28,10 +27,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	k8sApi := config.Config.Agent.KubernetesApi
 	if k8sApi == nil {
 		return nopModule{}, nil
-	}
-	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
-	if err != nil {
-		return nil, err
 	}
 	listenCfg := k8sApi.Listen
 	certFile := listenCfg.CertificateFile
@@ -61,7 +56,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			api:                       config.Api,
 			kubernetesApiClient:       rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:              config.GitLabClient,
-			streamVisitor:             sv,
 			allowedAgentsCache:        cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
 			requestCount:              config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			metricsHttpHandlerFactory: metrics.NewHandlerFactory(metrics.WithNamespace(httpMetricsNamespace)),

@@ -292,16 +292,13 @@ func setupApiWithStream(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlab
 }
 
 func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClient, *mock_gitlab_access.MockGitlabAccess_MakeRequestClient) {
-	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
-	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	client := mock_gitlab_access.NewMockGitlabAccessClient(ctrl)
 	clientStream := mock_gitlab_access.NewMockGitlabAccess_MakeRequestClient(ctrl)
 	return &agentAPI{
-		moduleName:      moduleName,
-		client:          client,
-		responseVisitor: sv,
-		featureTracker:  newFeatureTracker(zaptest.NewLogger(t)),
+		moduleName:     moduleName,
+		client:         client,
+		featureTracker: newFeatureTracker(zaptest.NewLogger(t)),
 	}, client, clientStream
 }
 

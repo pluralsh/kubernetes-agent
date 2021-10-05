@@ -471,8 +471,6 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.R
 }
 
 func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
-	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
-	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	k8sClient := mock_kubernetes_api.NewMockKubernetesApiClient(ctrl)
@@ -483,7 +481,6 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		api:                 mockApi,
 		kubernetesApiClient: k8sClient,
 		gitLabClient:        mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
-		streamVisitor:       sv,
 		allowedAgentsCache:  cache.NewWithError(0, 0, func(err error) bool { return false }),
 		requestCount:        requestCount,
 		metricsHttpHandlerFactory: func(next http.Handler, opts ...metrics.HandlerOption) http.Handler {
