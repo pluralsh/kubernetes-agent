@@ -163,7 +163,7 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedParallel(t *testing.T) {
 }
 
 func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
-	const maxAge = 3 * time.Second
+	const maxAge = time.Minute
 	var ageCtx context.Context
 	srv := &test.GrpcTestingServer{
 		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
@@ -179,7 +179,7 @@ func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
 		require.Equal(t, io.EOF, err)
 		select {
 		case <-ageCtx.Done():
-		default:
+		case <-time.After(1 * time.Second):
 			t.Fail()
 		}
 	})
