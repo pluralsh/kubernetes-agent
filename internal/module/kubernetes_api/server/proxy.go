@@ -2,9 +2,7 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -17,19 +15,14 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -38,36 +31,13 @@ const (
 	readTimeout               = 1 * time.Second
 	writeTimeout              = defaultMaxRequestDuration
 	idleTimeout               = 1 * time.Minute
-	maxDataChunkSize          = 32 * 1024
 
 	authorizationHeader             = "Authorization"
 	serverHeader                    = "Server"
 	viaHeader                       = "Via"
-	hostHeader                      = "Host"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
-
-	headerFieldNumber  protoreflect.FieldNumber = 1
-	dataFieldNumber    protoreflect.FieldNumber = 2
-	trailerFieldNumber protoreflect.FieldNumber = 3
-)
-
-var (
-	// See https://httpwg.org/http-core/draft-ietf-httpbis-semantics-latest.html#field.connection
-	// See https://tools.ietf.org/html/rfc2616#section-13.5.1
-	// See https://github.com/golang/go/blob/81ea89adf38b90c3c3a8c4eed9e6c093a8634d59/src/net/http/httputil/reverseproxy.go#L169-L184
-	hopHeaders = []string{
-		"Connection",
-		"Proxy-Connection",
-		"Keep-Alive",
-		"Proxy-Authenticate",
-		"Proxy-Authorization",
-		"Te",      // canonicalized version of "TE"
-		"Trailer", // not Trailers as per rfc2616; See errata https://www.rfc-editor.org/errata_search.php?eid=4522
-		"Transfer-Encoding",
-		"Upgrade",
-	}
 )
 
 type kubernetesApiProxy struct {
@@ -152,24 +122,15 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
-	// Put it back by -1 on length.
-	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
-	r.Header.Add(viaHeader, "gRPC/1.0 "+p.serverName)
-
-	headerWritten, errF := p.pipeStreams(ctx, log, agentId, w, r, impConfig)
-	if errF != nil {
-		if headerWritten {
-			// HTTP status has been written already as part of the normal response flow.
-			// But then something went wrong and an error happened. To let the client know that something isn't right
-			// we have only one thing we can do - abruptly close the connection. To do that we panic with a special
-			// error value that the "http" package provides. See its description.
-			// If we try to write the status again here, http package would log a warning, which is not nice.
-			panic(http.ErrAbortHandler)
-		} else {
-			errF(w)
-		}
+	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
+	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		p.api.HandleProcessingError(ctx, log, agentId, "Proxy failed to make outbound request", err)
+		return
 	}
+
+	p.pipeStreams(log, agentId, w, r, mkClient, impConfig)
 }
 
 func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToken string) (*gapi.AllowedAgentsForJob, error) {
@@ -182,141 +143,32 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToke
 	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
 }
 
-func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request, impConfig *rpc.ImpersonationConfig) (bool, errFunc) {
-	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
-	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
-	if err != nil {
-		return false, p.handleProcessingError(ctx, log, agentId, "Proxy failed to make outbound request", err)
-	}
-	var (
-		wg            wait.Group
-		headerWritten = false
-		errFuncRet2   errFunc
-	)
-	// Pipe remote -> client
-	wg.Start(func() {
-		headerWritten, errFuncRet2 = p.pipeRemoteToClient(ctx, log, agentId, mkClient, w)
-	})
-	// Pipe client -> remote
-	errFuncRet1 := p.pipeClientToRemote(ctx, log, agentId, mkClient, r, impConfig)
-	wg.Wait()
-	if errFuncRet1 != nil {
-		return headerWritten, errFuncRet1
-	}
-	return headerWritten, errFuncRet2
-}
+func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request,
+	client rpc.KubernetesApi_MakeRequestClient, impConfig *rpc.ImpersonationConfig) {
 
-func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, agentId int64, mkClient rpc.KubernetesApi_MakeRequestClient, w http.ResponseWriter) (bool, errFunc) {
-	writeFailed := false
-	headerWritten := false
-	err := grpctool.HttpResponseStreamVisitor().Visit(mkClient,
-		grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
-			httpH := header.Response.HttpHeader()
-			httpz.RemoveConnectionHeaders(httpH)
-			h := w.Header()
-			h.Del(serverHeader) // remove the header we've added above. We use Via instead.
-			for k, vals := range httpH {
-				h[k] = vals
-			}
-			h.Add(viaHeader, "gRPC/1.0 "+p.serverName)
-			w.WriteHeader(int(header.Response.StatusCode))
-			headerWritten = true
-			return nil
-		}),
-		grpctool.WithCallback(dataFieldNumber, func(data *grpctool.HttpResponse_Data) error {
-			_, err := w.Write(data.Data)
-			if err != nil {
-				writeFailed = true
-			}
-			return err
-		}),
-		grpctool.WithCallback(trailerFieldNumber, func(trailer *grpctool.HttpResponse_Trailer) error {
-			return nil
-		}),
-	)
-	if err != nil {
-		if writeFailed {
-			// there is likely a connection problem so the client will likely not receive this
-			err = errz.NewUserErrorWithCause(err, "")
-			return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to write response to client", err)
-		}
-		return headerWritten, p.handleProcessingError(ctx, log, agentId, "Proxy failed to read response from agent", err)
-	}
-	return headerWritten, nil
-}
+	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
+	// Put it back by -1 on length.
+	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
+	r.Header.Del(authorizationHeader) // Remove Authorization header - we got the CI job token in it
+	serverProto := "gRPC/1.0 " + p.serverName
+	r.Header.Add(viaHeader, serverProto)
 
-func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Logger, agentId int64,
-	mkClient rpc.KubernetesApi_MakeRequestClient, r *http.Request, impConfig *rpc.ImpersonationConfig) errFunc {
-	extra, err := anypb.New(&rpc.HeaderExtra{
+	http2grpc := grpctool.InboundHttpToOutboundGrpc{
+		Log: log,
+		HandleProcessingError: func(msg string, err error) {
+			p.api.HandleProcessingError(r.Context(), log, agentId, msg, err)
+		},
+		MergeHeaders: func(fromOutbound, toInbound http.Header) {
+			toInbound.Del(serverHeader) // remove the header we've added above. We use Via instead.
+			for k, vals := range fromOutbound {
+				toInbound[k] = vals
+			}
+			toInbound.Add(viaHeader, serverProto)
+		},
+	}
+	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
 		ImpConfig: impConfig,
 	})
-	if err != nil {
-		return p.handleProcessingError(ctx, log, agentId, "Proxy failed to marshal HeaderExtra proto", err)
-	}
-	err = mkClient.Send(&grpctool.HttpRequest{
-		Message: &grpctool.HttpRequest_Header_{
-			Header: &grpctool.HttpRequest_Header{
-				Request: &prototool.HttpRequest{
-					Method:  r.Method,
-					Header:  headerFromHttpRequestHeader(r.Header),
-					UrlPath: r.URL.Path,
-					Query:   prototool.UrlValuesToValuesMap(r.URL.Query()),
-				},
-				Extra: extra,
-			},
-		},
-	})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return p.handleSendError(log, "Proxy failed to send request header to agent", err)
-	}
-
-	buffer := make([]byte, maxDataChunkSize)
-	for {
-		var n int
-		n, err = r.Body.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			// There is likely a connection problem so the client will likely not receive this
-			err = errz.NewUserErrorWithCause(err, "")
-			return p.handleProcessingError(ctx, log, agentId, "Proxy failed to read request body from client", err)
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
-			sendErr := mkClient.Send(&grpctool.HttpRequest{
-				Message: &grpctool.HttpRequest_Data_{
-					Data: &grpctool.HttpRequest_Data{
-						Data: buffer[:n],
-					},
-				},
-			})
-			if sendErr != nil {
-				if errors.Is(sendErr, io.EOF) {
-					return nil // the other goroutine will receive the error in RecvMsg()
-				}
-				return p.handleSendError(log, "Proxy failed to send request body to agent", sendErr)
-			}
-		}
-		if errors.Is(err, io.EOF) {
-			break
-		}
-	}
-	err = mkClient.Send(&grpctool.HttpRequest{
-		Message: &grpctool.HttpRequest_Trailer_{
-			Trailer: &grpctool.HttpRequest_Trailer{},
-		},
-	})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return p.handleSendError(log, "Proxy failed to send trailers to agent", err)
-	}
-	err = mkClient.CloseSend()
-	if err != nil {
-		return p.handleSendError(log, "Proxy failed to send close frame to agent", err)
-	}
-	return nil
 }
 
 func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
@@ -370,32 +222,6 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 	return agentId, token, nil
 }
 
-func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Values {
-	header = header.Clone()
-	header.Del(hostHeader)          // Use the destination host name
-	header.Del(authorizationHeader) // Remove Authorization header - we got the CI job token in it
-
-	// Remove hop-by-hop headers
-	// 1. Remove headers listed in the Connection header
-	httpz.RemoveConnectionHeaders(header)
-	// 2. Remove well-known headers
-	for _, name := range hopHeaders {
-		header.Del(name)
-	}
-
-	return prototool.HttpHeaderToValuesMap(header)
-}
-
-func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err error) errFunc {
-	log.Debug(msg, logz.Error(err))
-	return writeError(msg, err)
-}
-
-func (p *kubernetesApiProxy) handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) errFunc {
-	p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-	return writeError(msg, err)
-}
-
 func constructImpersonationConfig(aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
 	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
 	if as == nil {
@@ -428,13 +254,3 @@ func convertExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
 	}
 	return out
 }
-
-func writeError(msg string, err error) errFunc {
-	return func(w http.ResponseWriter) {
-		// See https://tools.ietf.org/html/rfc7231#section-6.6.3
-		http.Error(w, fmt.Sprintf("%s: %v", msg, err), http.StatusBadGateway)
-	}
-}
-
-// errFunc enhances type safety.
-type errFunc func(http.ResponseWriter)

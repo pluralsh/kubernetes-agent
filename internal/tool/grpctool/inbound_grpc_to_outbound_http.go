@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	headerFieldNumber  protoreflect.FieldNumber = 1
-	dataFieldNumber    protoreflect.FieldNumber = 2
-	trailerFieldNumber protoreflect.FieldNumber = 3
+	httpRequestHeaderFieldNumber  protoreflect.FieldNumber = 1
+	httpRequestDataFieldNumber    protoreflect.FieldNumber = 2
+	httpRequestTrailerFieldNumber protoreflect.FieldNumber = 3
 
 	maxDataChunkSize = 32 * 1024
 )
@@ -29,29 +29,26 @@ type InboundGrpcToOutboundHttpStream interface {
 	grpc.ServerStream
 }
 
-// RpcApi is a reduced version on modshared.RpcApi.
-// It's here to avoid the dependency.
-type RpcApi interface {
-	Log() *zap.Logger
-	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
-	HandleSendError(log *zap.Logger, msg string, err error) error
-}
-
+type HandleProcessingErrorFunc func(msg string, err error)
+type HandleSendErrorFunc func(msg string, err error) error
 type HttpDo func(ctx context.Context, header *HttpRequest_Header, body io.Reader) (*http.Response, error)
 
 type InboundGrpcToOutboundHttp struct {
-	HttpDo HttpDo
+	Log                   *zap.Logger
+	HandleProcessingError HandleProcessingErrorFunc
+	HandleSendError       HandleSendErrorFunc
+	HttpDo                HttpDo
 }
 
-func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutboundHttpStream, agentId int64) error {
-	ctx := server.Context()
+func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream) error {
+	ctx := inbound.Context()
 
 	pr, pw := io.Pipe()
 	headerMsg := make(chan *HttpRequest_Header)
 	s := InboundGrpcToOutboundStream{
 		// Pipe gRPC request -> HTTP request
 		PipeInboundToOutbound: func() error {
-			return x.pipeGrpcIntoHttp(ctx, server, headerMsg, pw)
+			return x.pipeInboundToOutbound(inbound, headerMsg, pw)
 		},
 		// Pipe HTTP response -> gRPC response
 		PipeOutboundToInbound: func() error {
@@ -67,7 +64,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 				if err != nil {
 					return err
 				}
-				return x.pipeHttpIntoGrpc(rpcApi, server, resp)
+				return x.pipeOutboundToInbound(inbound, resp)
 			}
 		},
 	}
@@ -77,21 +74,22 @@ func (x *InboundGrpcToOutboundHttp) Pipe(rpcApi RpcApi, server InboundGrpcToOutb
 	case IsStatusError(err):
 		// A gRPC status already
 	case errors.Is(err, context.Canceled):
-		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
-		err = status.Error(codes.Canceled, err.Error())
+		x.Log.Debug("gRPC -> HTTP", logz.Error(err))
+		err = status.Errorf(codes.Canceled, "gRPC -> HTTP: %v", err)
 	case errors.Is(err, context.DeadlineExceeded):
-		rpcApi.Log().Debug("gRPC -> HTTP", logz.Error(err))
-		err = status.Error(codes.DeadlineExceeded, err.Error())
+		x.Log.Debug("gRPC -> HTTP", logz.Error(err))
+		err = status.Errorf(codes.DeadlineExceeded, "gRPC -> HTTP: %v", err)
 	default:
-		rpcApi.HandleProcessingError(rpcApi.Log(), agentId, "gRPC -> HTTP", err)
+		x.HandleProcessingError("gRPC -> HTTP", err)
 		err = status.Errorf(codes.Unavailable, "gRPC -> HTTP: %v", err)
 	}
 	return err
 }
 
-func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server grpc.ServerStream, headerMsg chan *HttpRequest_Header, pw *io.PipeWriter) error {
-	return HttpRequestStreamVisitor().Visit(server,
-		WithCallback(headerFieldNumber, func(header *HttpRequest_Header) error {
+func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToOutboundHttpStream, headerMsg chan *HttpRequest_Header, pw *io.PipeWriter) error {
+	ctx := inbound.Context()
+	return HttpRequestStreamVisitor().Visit(inbound,
+		WithCallback(httpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -99,11 +97,11 @@ func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server
 				return nil
 			}
 		}),
-		WithCallback(dataFieldNumber, func(data *HttpRequest_Data) error {
+		WithCallback(httpRequestDataFieldNumber, func(data *HttpRequest_Data) error {
 			_, err := pw.Write(data.Data)
 			return err
 		}),
-		WithCallback(trailerFieldNumber, func(trailer *HttpRequest_Trailer) error {
+		WithCallback(httpRequestTrailerFieldNumber, func(trailer *HttpRequest_Trailer) error {
 			// Nothing to do
 			return nil
 		}),
@@ -111,10 +109,10 @@ func (x *InboundGrpcToOutboundHttp) pipeGrpcIntoHttp(ctx context.Context, server
 	)
 }
 
-func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.ServerStream, resp *http.Response) error {
+func (x *InboundGrpcToOutboundHttp) pipeOutboundToInbound(inbound InboundGrpcToOutboundHttpStream, resp *http.Response) error {
 	err := func() (retErr error) { // closure to close resp.Body ASAP
 		defer errz.SafeClose(resp.Body, &retErr)
-		err := server.SendMsg(&HttpResponse{
+		err := inbound.Send(&HttpResponse{
 			Message: &HttpResponse_Header_{
 				Header: &HttpResponse_Header{
 					Response: &prototool.HttpResponse{
@@ -126,7 +124,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 			},
 		})
 		if err != nil {
-			return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Header) failed", err)
+			return x.HandleSendError("SendMsg(HttpResponse_Header) failed", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -137,7 +135,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 				return status.Errorf(codes.Canceled, "read HTTP response body: %v", err)
 			}
 			if n > 0 { // handle n=0, err=io.EOF case
-				sendErr := server.SendMsg(&HttpResponse{
+				sendErr := inbound.Send(&HttpResponse{
 					Message: &HttpResponse_Data_{
 						Data: &HttpResponse_Data{
 							Data: buffer[:n],
@@ -145,7 +143,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 					},
 				})
 				if sendErr != nil {
-					return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Data) failed", sendErr)
+					return x.HandleSendError("SendMsg(HttpResponse_Data) failed", sendErr)
 				}
 			}
 		}
@@ -155,13 +153,13 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(rpcApi RpcApi, server grpc.
 		return err
 	}
 
-	err = server.SendMsg(&HttpResponse{
+	err = inbound.Send(&HttpResponse{
 		Message: &HttpResponse_Trailer_{
 			Trailer: &HttpResponse_Trailer{},
 		},
 	})
 	if err != nil {
-		return rpcApi.HandleSendError(rpcApi.Log(), "SendMsg(HttpResponse_Trailer) failed", err)
+		return x.HandleSendError("SendMsg(HttpResponse_Trailer) failed", err)
 	}
 	return nil
 }
