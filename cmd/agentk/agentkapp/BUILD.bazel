@@ -28,6 +28,7 @@ go_library(
         "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//internal/tool/logz",
+        "//internal/tool/memz",
         "//internal/tool/prototool",
         "//internal/tool/retry",
         "//internal/tool/tlstool",

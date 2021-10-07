@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -151,10 +152,33 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 		return x.handleSendError("Proxy failed to send request header", err)
 	}
 
-	buffer := make([]byte, maxDataChunkSize)
+	errF := x.sendRequestBody(outboundClient, r.Body)
+	if errF != nil {
+		return errF // as is
+	}
+	err = outboundClient.Send(&HttpRequest{
+		Message: &HttpRequest_Trailer_{
+			Trailer: &HttpRequest_Trailer{},
+		},
+	})
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil // the other goroutine will receive the error in RecvMsg()
+		}
+		return x.handleSendError("Proxy failed to send trailer", err)
+	}
+	err = outboundClient.CloseSend()
+	if err != nil {
+		return x.handleSendError("Proxy failed to send close frame to agent", err)
+	}
+	return nil
+}
+
+func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestClient, body io.Reader) errFunc {
+	buffer := memz.Get32k()
+	defer memz.Put32k(buffer)
 	for {
-		var n int
-		n, err = r.Body.Read(buffer)
+		n, err := body.Read(buffer)
 		if err != nil && !errors.Is(err, io.EOF) {
 			// There is likely a connection problem so the client will likely not receive this
 			err = errz.NewUserErrorWithCause(err, "")
@@ -178,21 +202,6 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 		if errors.Is(err, io.EOF) {
 			break
 		}
-	}
-	err = outboundClient.Send(&HttpRequest{
-		Message: &HttpRequest_Trailer_{
-			Trailer: &HttpRequest_Trailer{},
-		},
-	})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return x.handleSendError("Proxy failed to send trailer", err)
-	}
-	err = outboundClient.CloseSend()
-	if err != nil {
-		return x.handleSendError("Proxy failed to send close frame to agent", err)
 	}
 	return nil
 }
