@@ -104,9 +104,8 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	if len(sources) == 0 {
 		return nil, nil
 	}
-	// TODO allow enforcing namespace
 	builder := s.k8sUtilFactory.NewBuilder().
-		//ContinueOnError(). // TODO collect errors and report them all
+		ContinueOnError().
 		Flatten().
 		NamespaceParam(s.project.DefaultNamespace).
 		DefaultNamespace().
@@ -114,10 +113,10 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	for _, source := range sources {
 		builder.Stream(bytes.NewReader(source.Data), source.Name)
 	}
+	result := builder.Do()
 	var res []*unstructured.Unstructured
-	err := builder.Do().Visit(func(info *resource.Info, err error) error {
+	err := result.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
-			// TODO collect errors and report them all
 			return err
 		}
 		un := info.Object.(*unstructured.Unstructured)
