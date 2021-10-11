@@ -42,6 +42,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
+	"sigs.k8s.io/cli-utils/pkg/util/factory"
 )
 
 const (
@@ -150,9 +151,9 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&kubernetes_api_agent.Factory{},
 	}
 	modules := make([]modagent.Module, 0, len(factories))
-	for _, factory := range factories {
-		moduleName := factory.Name()
-		module, err := factory.New(&modagent.Config{
+	for _, f := range factories {
+		moduleName := f.Name()
+		module, err := f.New(&modagent.Config{
 			Log:       a.Log.With(logz.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
@@ -309,7 +310,9 @@ func NewCommand() *cobra.Command {
 			PodNamespace: os.Getenv(envVarPodNamespace),
 			PodName:      os.Getenv(envVarPodName),
 		},
-		K8sClientGetter: kubeConfigFlags,
+		K8sClientGetter: &factory.CachingRESTClientGetter{
+			Delegate: kubeConfigFlags,
+		},
 	}
 	c := &cobra.Command{
 		Use:   "agentk",
