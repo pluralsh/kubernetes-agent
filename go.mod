@@ -28,7 +28,7 @@ require (
 	go.uber.org/zap v1.19.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
-	golang.org/x/tools v0.1.5
+	golang.org/x/tools v0.1.7
 	google.golang.org/api v0.54.0
 	google.golang.org/genproto v0.0.0-20210820002220-43fce44e7af1
 	google.golang.org/grpc v1.40.0
@@ -161,9 +161,9 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210505214959-0714010a04ed // indirect
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/oauth2 v0.0.0-20210805134026-6f1e6394065a // indirect
-	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069 // indirect
+	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
@@ -189,7 +189,7 @@ replace (
 	// https://github.com/ash2k/cobra/commits/remove-cli
 	github.com/spf13/cobra => github.com/ash2k/cobra v1.2.2-0.20210706005132-e91bfee91527
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
-	golang.org/x/tools => golang.org/x/tools v0.1.4
+	golang.org/x/tools => golang.org/x/tools v0.1.7
 
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.21.2
