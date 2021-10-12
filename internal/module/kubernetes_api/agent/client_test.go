@@ -111,7 +111,9 @@ func TestClientImpersonation(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			config, err := cmdtesting.NewTestFactory().ToRESTConfig()
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
+			config, err := tf.ToRESTConfig()
 			require.NoError(t, err)
 			config.Impersonate = tc.restImpConfig
 			rt := &testRoundTripper{

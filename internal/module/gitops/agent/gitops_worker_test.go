@@ -298,6 +298,8 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	ctrl := gomock.NewController(t)
 	applier := NewMockApplier(ctrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
+	tf := cmdtesting.NewTestFactory()
+	t.Cleanup(tf.Cleanup)
 	w := &defaultGitopsWorker{
 		objWatcher: watcher,
 		synchronizerConfig: synchronizerConfig{
@@ -312,7 +314,7 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 				},
 			},
 			applier:           applier,
-			k8sUtilFactory:    cmdtesting.NewTestFactory(),
+			k8sUtilFactory:    tf,
 			applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
 		},
 	}
