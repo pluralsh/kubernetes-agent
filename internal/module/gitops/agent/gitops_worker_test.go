@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
@@ -300,6 +301,8 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
 	tf := cmdtesting.NewTestFactory()
 	t.Cleanup(tf.Cleanup)
+	mapper, err := tf.ToRESTMapper()
+	require.NoError(t, err)
 	w := &defaultGitopsWorker{
 		objWatcher: watcher,
 		synchronizerConfig: synchronizerConfig{
@@ -314,7 +317,8 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 				},
 			},
 			applier:           applier,
-			k8sUtilFactory:    tf,
+			restMapper:        mapper,
+			restClientGetter:  tf,
 			applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
 		},
 	}

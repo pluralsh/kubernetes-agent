@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -10,10 +9,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
@@ -25,7 +24,8 @@ type synchronizerConfig struct {
 	agentId           int64
 	project           *agentcfg.ManifestProjectCF
 	applier           Applier
-	k8sUtilFactory    util.Factory
+	restMapper        meta.RESTMapper
+	restClientGetter  resource.RESTClientGetter
 	applierPollConfig retry.PollConfig
 	applyOptions      apply.Options
 }
@@ -66,13 +66,19 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 		}
 	}()
 
+	d := syncDecoder{
+		restMapper:       s.restMapper,
+		restClientGetter: s.restClientGetter,
+		defaultNamespace: s.project.DefaultNamespace,
+	}
+
 	for {
 		select {
 		case state, ok := <-desiredState:
 			if !ok {
 				return // nolint: govet
 			}
-			objs, err := s.decodeObjectsToSynchronize(state.Sources)
+			objs, err := d.Decode(state.Sources)
 			if err != nil {
 				s.log.Error("Failed to decode GitOps objects", logz.Error(err), logz.CommitId(state.CommitId))
 				continue
@@ -98,35 +104,6 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 			jobsCh = nil       // Disable this select case (send to nil channel blocks forever)
 		}
 	}
-}
-
-func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([]*unstructured.Unstructured, error) {
-	if len(sources) == 0 {
-		return nil, nil
-	}
-	builder := s.k8sUtilFactory.NewBuilder().
-		ContinueOnError().
-		Flatten().
-		NamespaceParam(s.project.DefaultNamespace).
-		DefaultNamespace().
-		Unstructured()
-	for _, source := range sources {
-		builder.Stream(bytes.NewReader(source.Data), source.Name)
-	}
-	result := builder.Do()
-	var res []*unstructured.Unstructured
-	err := result.Visit(func(info *resource.Info, err error) error {
-		if err != nil {
-			return err
-		}
-		un := info.Object.(*unstructured.Unstructured)
-		res = append(res, un)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 func (s *synchronizer) splitObjects(projectId int64, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {

@@ -42,13 +42,18 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	restMapper, err := config.K8sUtilFactory.ToRESTMapper()
+	if err != nil {
+		return nil, err
+	}
 	return &module{
 		log: config.Log,
 		workerFactory: &defaultGitopsWorkerFactory{
-			log:            config.Log,
-			applier:        applier,
-			k8sUtilFactory: config.K8sUtilFactory,
-			gitopsClient:   rpc.NewGitopsClient(config.KasConn),
+			log:              config.Log,
+			applier:          applier,
+			restMapper:       restMapper,
+			restClientGetter: config.K8sUtilFactory,
+			gitopsClient:     rpc.NewGitopsClient(config.KasConn),
 			watchPollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 				getObjectsToSynchronizeInitBackoff,
 				getObjectsToSynchronizeMaxBackoff,

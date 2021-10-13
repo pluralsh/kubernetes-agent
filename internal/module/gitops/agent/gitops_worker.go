@@ -9,10 +9,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/cli-runtime/pkg/resource"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
 	"sigs.k8s.io/cli-utils/pkg/common"
@@ -94,7 +95,8 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 type defaultGitopsWorkerFactory struct {
 	log               *zap.Logger
 	applier           Applier
-	k8sUtilFactory    util.Factory
+	restMapper        meta.RESTMapper
+	restClientGetter  resource.RESTClientGetter
 	gitopsClient      rpc.GitopsClient
 	watchPollConfig   retry.PollConfigFactory
 	applierPollConfig retry.PollConfigFactory
@@ -113,7 +115,8 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 			agentId:           agentId,
 			project:           project,
 			applier:           f.applier,
-			k8sUtilFactory:    f.k8sUtilFactory,
+			restMapper:        f.restMapper,
+			restClientGetter:  f.restClientGetter,
 			applierPollConfig: f.applierPollConfig(),
 			applyOptions: apply.Options{
 				ServerSideOptions: common.ServerSideOptions{
