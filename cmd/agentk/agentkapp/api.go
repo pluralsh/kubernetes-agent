@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -20,8 +21,6 @@ import (
 )
 
 const (
-	maxDataChunkSize = 32 * 1024
-
 	headerFieldNumber  protoreflect.FieldNumber = 1
 	dataFieldNumber    protoreflect.FieldNumber = 2
 	trailerFieldNumber protoreflect.FieldNumber = 3
@@ -113,7 +112,13 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 }
 
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
-	defer errz.SafeClose(config.Body, &retErr)
+	var body io.ReadCloser
+	if config.Body != nil {
+		body = &onceReadCloser{
+			ReadCloser: config.Body,
+		}
+		defer errz.SafeClose(body, &retErr)
+	}
 	extra, err := anypb.New(&gitlab_access_rpc.HeaderExtra{
 		ModuleName: a.moduleName,
 	})
@@ -139,31 +144,10 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		}
 		return fmt.Errorf("send request header: %w", err) // wrap
 	}
-	if config.Body != nil {
-		buffer := make([]byte, maxDataChunkSize)
-		for {
-			var n int
-			n, err = config.Body.Read(buffer)
-			if err != nil && !errors.Is(err, io.EOF) {
-				return fmt.Errorf("send request body: %w", err) // wrap
-			}
-			if n > 0 { // handle n=0, err=io.EOF case
-				sendErr := client.Send(&grpctool.HttpRequest{
-					Message: &grpctool.HttpRequest_Data_{
-						Data: &grpctool.HttpRequest_Data{
-							Data: buffer[:n],
-						}},
-				})
-				if sendErr != nil {
-					if errors.Is(sendErr, io.EOF) { // the other goroutine will receive the error in RecvMsg()
-						return nil
-					}
-					return fmt.Errorf("send request data: %w", sendErr) // wrap
-				}
-			}
-			if errors.Is(err, io.EOF) {
-				break
-			}
+	if body != nil {
+		err = a.sendRequestBody(client, body)
+		if err != nil {
+			return err
 		}
 	}
 	err = client.Send(&grpctool.HttpRequest{
@@ -180,6 +164,36 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 	err = client.CloseSend()
 	if err != nil {
 		return fmt.Errorf("close request stream: %w", err) // wrap
+	}
+	return nil
+}
+
+func (a *agentAPI) sendRequestBody(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, body io.ReadCloser) (retErr error) {
+	defer errz.SafeClose(body, &retErr) // close ASAP
+	buffer := memz.Get32k()
+	defer memz.Put32k(buffer)
+	for {
+		n, err := body.Read(buffer)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("send request body: %w", err) // wrap
+		}
+		if n > 0 { // handle n=0, err=io.EOF case
+			sendErr := client.Send(&grpctool.HttpRequest{
+				Message: &grpctool.HttpRequest_Data_{
+					Data: &grpctool.HttpRequest_Data{
+						Data: buffer[:n],
+					}},
+			})
+			if sendErr != nil {
+				if errors.Is(sendErr, io.EOF) { // the other goroutine will receive the error in RecvMsg()
+					return nil
+				}
+				return fmt.Errorf("send request data: %w", sendErr) // wrap
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
 	}
 	return nil
 }
@@ -267,4 +281,19 @@ func (v *valueOrError) Wait() (interface{}, error) {
 		v.locker.Wait()
 	}
 	return v.value, v.err
+}
+
+type onceReadCloser struct {
+	io.ReadCloser
+	once     sync.Once
+	closeErr error
+}
+
+func (oc *onceReadCloser) Close() error {
+	oc.once.Do(oc.close)
+	return oc.closeErr
+}
+
+func (oc *onceReadCloser) close() {
+	oc.closeErr = oc.ReadCloser.Close()
 }

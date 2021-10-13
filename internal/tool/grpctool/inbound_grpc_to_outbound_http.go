@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -20,8 +21,6 @@ const (
 	httpRequestHeaderFieldNumber  protoreflect.FieldNumber = 1
 	httpRequestDataFieldNumber    protoreflect.FieldNumber = 2
 	httpRequestTrailerFieldNumber protoreflect.FieldNumber = 3
-
-	maxDataChunkSize = 32 * 1024
 )
 
 type InboundGrpcToOutboundHttpStream interface {
@@ -110,45 +109,7 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 }
 
 func (x *InboundGrpcToOutboundHttp) pipeOutboundToInbound(inbound InboundGrpcToOutboundHttpStream, resp *http.Response) error {
-	err := func() (retErr error) { // closure to close resp.Body ASAP
-		defer errz.SafeClose(resp.Body, &retErr)
-		err := inbound.Send(&HttpResponse{
-			Message: &HttpResponse_Header_{
-				Header: &HttpResponse_Header{
-					Response: &prototool.HttpResponse{
-						StatusCode: int32(resp.StatusCode),
-						Status:     resp.Status,
-						Header:     prototool.HttpHeaderToValuesMap(resp.Header),
-					},
-				},
-			},
-		})
-		if err != nil {
-			return x.HandleSendError("SendMsg(HttpResponse_Header) failed", err)
-		}
-
-		buffer := make([]byte, maxDataChunkSize)
-		for err == nil { // loop while not EOF
-			var n int
-			n, err = resp.Body.Read(buffer)
-			if err != nil && !errors.Is(err, io.EOF) {
-				return status.Errorf(codes.Canceled, "read HTTP response body: %v", err)
-			}
-			if n > 0 { // handle n=0, err=io.EOF case
-				sendErr := inbound.Send(&HttpResponse{
-					Message: &HttpResponse_Data_{
-						Data: &HttpResponse_Data{
-							Data: buffer[:n],
-						},
-					},
-				})
-				if sendErr != nil {
-					return x.HandleSendError("SendMsg(HttpResponse_Data) failed", sendErr)
-				}
-			}
-		}
-		return nil
-	}()
+	err := x.sendResponseHeaderAndBody(inbound, resp)
 	if err != nil {
 		return err
 	}
@@ -160,6 +121,49 @@ func (x *InboundGrpcToOutboundHttp) pipeOutboundToInbound(inbound InboundGrpcToO
 	})
 	if err != nil {
 		return x.HandleSendError("SendMsg(HttpResponse_Trailer) failed", err)
+	}
+	return nil
+}
+
+func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrpcToOutboundHttpStream, resp *http.Response) (retErr error) {
+	defer errz.SafeClose(resp.Body, &retErr)
+	err := inbound.Send(&HttpResponse{
+		Message: &HttpResponse_Header_{
+			Header: &HttpResponse_Header{
+				Response: &prototool.HttpResponse{
+					StatusCode: int32(resp.StatusCode),
+					Status:     resp.Status,
+					Header:     prototool.HttpHeaderToValuesMap(resp.Header),
+				},
+			},
+		},
+	})
+	if err != nil {
+		return x.HandleSendError("SendMsg(HttpResponse_Header) failed", err)
+	}
+
+	buffer := memz.Get32k()
+	defer memz.Put32k(buffer)
+	for {
+		n, err := resp.Body.Read(buffer)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return status.Errorf(codes.Canceled, "read HTTP response body: %v", err)
+		}
+		if n > 0 { // handle n=0, err=io.EOF case
+			sendErr := inbound.Send(&HttpResponse{
+				Message: &HttpResponse_Data_{
+					Data: &HttpResponse_Data{
+						Data: buffer[:n],
+					},
+				},
+			})
+			if sendErr != nil {
+				return x.HandleSendError("SendMsg(HttpResponse_Data) failed", sendErr)
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
 	}
 	return nil
 }
