@@ -117,6 +117,7 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			AgentId:       agentInfo.Id,
 			ProjectId:     agentInfo.ProjectId,
 			CiAccess:      configFile.CiAccess,
+			Starboard:     configFile.Starboard,
 		},
 		CommitId: commitId,
 	})

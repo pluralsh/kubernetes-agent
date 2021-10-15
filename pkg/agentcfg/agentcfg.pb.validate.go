@@ -1179,6 +1179,228 @@ var _ interface {
 	ErrorName() string
 } = ExtraKeyValCFValidationError{}
 
+// Validate checks the field values on StarboardCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *StarboardCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetVulnerabilityReport()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return StarboardCFValidationError{
+				field:  "VulnerabilityReport",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// StarboardCFValidationError is the validation error returned by
+// StarboardCF.Validate if the designated constraints aren't met.
+type StarboardCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e StarboardCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e StarboardCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e StarboardCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e StarboardCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e StarboardCFValidationError) ErrorName() string { return "StarboardCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e StarboardCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sStarboardCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = StarboardCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = StarboardCFValidationError{}
+
+// Validate checks the field values on VulnerabilityReport with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *VulnerabilityReport) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	for idx, item := range m.GetFilters() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return VulnerabilityReportValidationError{
+					field:  fmt.Sprintf("Filters[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// VulnerabilityReportValidationError is the validation error returned by
+// VulnerabilityReport.Validate if the designated constraints aren't met.
+type VulnerabilityReportValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e VulnerabilityReportValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e VulnerabilityReportValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e VulnerabilityReportValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e VulnerabilityReportValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e VulnerabilityReportValidationError) ErrorName() string {
+	return "VulnerabilityReportValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e VulnerabilityReportValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sVulnerabilityReport.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = VulnerabilityReportValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = VulnerabilityReportValidationError{}
+
+// Validate checks the field values on StarboardFilter with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *StarboardFilter) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	return nil
+}
+
+// StarboardFilterValidationError is the validation error returned by
+// StarboardFilter.Validate if the designated constraints aren't met.
+type StarboardFilterValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e StarboardFilterValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e StarboardFilterValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e StarboardFilterValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e StarboardFilterValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e StarboardFilterValidationError) ErrorName() string { return "StarboardFilterValidationError" }
+
+// Error satisfies the builtin error interface
+func (e StarboardFilterValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sStarboardFilter.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = StarboardFilterValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = StarboardFilterValidationError{}
+
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
@@ -1221,6 +1443,16 @@ func (m *ConfigurationFile) Validate() error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "CiAccess",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetStarboard()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "Starboard",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1332,6 +1564,16 @@ func (m *AgentConfiguration) Validate() error {
 		if err := v.Validate(); err != nil {
 			return AgentConfigurationValidationError{
 				field:  "CiAccess",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetStarboard()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
+				field:  "Starboard",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

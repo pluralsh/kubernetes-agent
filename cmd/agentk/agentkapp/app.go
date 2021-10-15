@@ -25,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability/agent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/agent"
+	starboard_vulnerability "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/starboard_vulnerability/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -145,6 +146,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		},
 		&gitops_agent.Factory{},
 		&cilium_agent.Factory{},
+		&starboard_vulnerability.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,
 		},

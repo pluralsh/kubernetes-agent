@@ -141,6 +141,22 @@ message ExtraKeyValCF {
   repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
 }
 
+message StarboardCF {
+  VulnerabilityReport vulnerability_report = 1 [json_name = "vulnerability_report"];
+}
+
+message VulnerabilityReport {
+  repeated string namespaces = 1 [json_name = "namespaces"];
+  repeated StarboardFilter filters = 2 [json_name = "filters"];
+}
+
+message StarboardFilter {
+  repeated string namespaces = 1 [json_name = "namespaces"];
+  repeated string resources = 2 [json_name = "resources"];
+  repeated string containers = 3 [json_name = "containers"];
+  repeated string kinds = 4 [json_name = "kinds"];
+}
+
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
   GitopsCF gitops = 1 [json_name = "gitops"];
@@ -149,6 +165,7 @@ message ConfigurationFile {
   ObservabilityCF observability = 2 [json_name = "observability"];
   CiliumCF cilium = 3 [json_name = "cilium"];
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
+  StarboardCF starboard = 5 [json_name = "starboard"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -164,4 +181,5 @@ message AgentConfiguration {
   // Id of the configuration project.
   int64 project_id = 5;
   CiAccessCF ci_access = 6;
+  StarboardCF starboard = 7;
 }
