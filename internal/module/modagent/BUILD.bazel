@@ -16,6 +16,7 @@ go_library(
         "//internal/module/observability/agent:__subpackages__",
         "//internal/module/reverse_tunnel/agent:__subpackages__",
         "//internal/module/reverse_tunnel/test:__subpackages__",
+        "//internal/module/starboard_vulnerability/agent:__subpackages__",
         "//internal/tool/testing/mock_modagent:__subpackages__",
     ],
     deps = [
