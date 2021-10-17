@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
@@ -25,6 +27,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
 	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
+	"sigs.k8s.io/cli-utils/pkg/object"
 )
 
 const (
@@ -57,7 +60,7 @@ func TestRun_HappyPath_NoObjects(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop run()
 				c := make(chan event.Event)
 				close(c)
@@ -75,7 +78,7 @@ func TestRun_HappyPath_NoInventoryTemplate(t *testing.T) {
 		ProjectId: projectId,
 		Paths:     w.project.Paths,
 	}
-	objs := []*unstructured.Unstructured{
+	objs := object.UnstructuredSet{
 		kube_testing.ToUnstructured(t, testMap1()),
 		kube_testing.ToUnstructured(t, testNs1()),
 		kube_testing.ToUnstructured(t, testMap2()),
@@ -100,8 +103,9 @@ func TestRun_HappyPath_NoInventoryTemplate(t *testing.T) {
 				<-ctx.Done()
 			}),
 		applier.EXPECT().
-			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
+				assertK8sObjectsMatch(t, objs, objects)
 				assert.Equal(t, w.project.DefaultNamespace, invInfo.Namespace())
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
@@ -121,7 +125,7 @@ func TestRun_HappyPath_InventoryTemplate(t *testing.T) {
 		Paths:     w.project.Paths,
 	}
 	inv := invObject("some_id", "some_ns")
-	objs := []*unstructured.Unstructured{kube_testing.ToUnstructured(t, testMap1())}
+	objs := object.UnstructuredSet{kube_testing.ToUnstructured(t, testMap1())}
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
@@ -138,8 +142,9 @@ func TestRun_HappyPath_InventoryTemplate(t *testing.T) {
 				<-ctx.Done()
 			}),
 		applier.EXPECT().
-			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
+				assertK8sObjectsMatch(t, objs, objects)
 				assert.Equal(t, "some_ns", invInfo.Namespace())
 				assert.Equal(t, "inventory-some_id", invInfo.Name())
 				cancel() // all good, stop Run()
@@ -159,7 +164,7 @@ func TestRun_SyncCancellation(t *testing.T) {
 		ProjectId: projectId,
 		Paths:     w.project.Paths,
 	}
-	objs := []*unstructured.Unstructured{
+	objs := object.UnstructuredSet{
 		kube_testing.ToUnstructured(t, testMap1()),
 		kube_testing.ToUnstructured(t, testNs1()),
 		kube_testing.ToUnstructured(t, testMap2()),
@@ -189,8 +194,9 @@ func TestRun_SyncCancellation(t *testing.T) {
 		})
 	gomock.InOrder(
 		applier.EXPECT().
-			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
+				assertK8sObjectsMatch(t, objs, objects)
 				close(job1started) // signal that this job has been started
 				c := make(chan event.Event)
 				go func() {
@@ -201,7 +207,7 @@ func TestRun_SyncCancellation(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
@@ -235,7 +241,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 	gomock.InOrder(
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				c := make(chan event.Event, 1)
 				c <- event.Event{
 					Type: event.ErrorType,
@@ -248,7 +254,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
@@ -278,14 +284,14 @@ func TestRun_PeriodicApply(t *testing.T) {
 	gomock.InOrder(
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				c := make(chan event.Event)
 				close(c)
 				return c
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
@@ -293,6 +299,10 @@ func TestRun_PeriodicApply(t *testing.T) {
 			}),
 	)
 	w.Run(ctx)
+}
+
+func assertK8sObjectsMatch(t *testing.T, expected, actual interface{}) {
+	assert.Empty(t, cmp.Diff(expected, actual, kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()))
 }
 
 func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {

@@ -115,12 +115,12 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	}
 	if o.withJWT {
 		now := time.Now()
-		claims := jwt.StandardClaims{
-			Audience:  jwtGitLabAudience,
-			ExpiresAt: now.Add(jwtValidFor).Unix(),
-			IssuedAt:  now.Unix(),
+		claims := jwt.RegisteredClaims{
 			Issuer:    jwtIssuer,
-			NotBefore: now.Add(-jwtNotBefore).Unix(),
+			Audience:  jwt.ClaimStrings{jwtGitLabAudience},
+			ExpiresAt: jwt.NewNumericDate(now.Add(jwtValidFor)),
+			NotBefore: jwt.NewNumericDate(now.Add(-jwtNotBefore)),
+			IssuedAt:  jwt.NewNumericDate(now),
 		}
 		signedClaims, claimsErr := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 			SignedString(c.AuthSecret)

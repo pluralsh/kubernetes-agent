@@ -10,10 +10,10 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
-	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	apply "sigs.k8s.io/cli-utils/pkg/apply"
 	event "sigs.k8s.io/cli-utils/pkg/apply/event"
 	inventory "sigs.k8s.io/cli-utils/pkg/inventory"
+	object "sigs.k8s.io/cli-utils/pkg/object"
 )
 
 // MockGitopsWorkerFactory is a mock of GitopsWorkerFactory interface.
@@ -112,7 +112,7 @@ func (m *MockApplier) EXPECT() *MockApplierMockRecorder {
 }
 
 // Run mocks base method.
-func (m *MockApplier) Run(arg0 context.Context, arg1 inventory.InventoryInfo, arg2 []*unstructured.Unstructured, arg3 apply.Options) <-chan event.Event {
+func (m *MockApplier) Run(arg0 context.Context, arg1 inventory.InventoryInfo, arg2 object.UnstructuredSet, arg3 apply.Options) <-chan event.Event {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(<-chan event.Event)

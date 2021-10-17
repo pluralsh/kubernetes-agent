@@ -7,8 +7,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -37,11 +35,11 @@ func ErrorEq(expectedError string) gomock.Matcher {
 	}
 }
 
-func K8sObjectEq(t *testing.T, obj interface{}, opts ...cmp.Option) gomock.Matcher {
-	o := []cmp.Option{kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()}
-	o = append(o, opts...)
-	return Cmp(t, obj, o...)
-}
+//func K8sObjectEq(t *testing.T, obj interface{}, opts ...cmp.Option) gomock.Matcher {
+//	o := []cmp.Option{kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()}
+//	o = append(o, opts...)
+//	return Cmp(t, obj, o...)
+//}
 
 func Cmp(t *testing.T, expected interface{}, opts ...cmp.Option) gomock.Matcher {
 	return &cmpMatcher{
