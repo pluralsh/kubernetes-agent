@@ -120,7 +120,7 @@ func TestJWTServerAuth(t *testing.T) {
 
 		now := time.Now()
 		claims := validClams(now)
-		claims.Audience = "blablabla"
+		claims.Audience = jwt.ClaimStrings{"blablabla"}
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 		require.NoError(t, err)
 
@@ -163,13 +163,13 @@ func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpcto
 	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = "+errStr)
 }
 
-func validClams(now time.Time) jwt.StandardClaims {
-	claims := jwt.StandardClaims{
-		Audience:  jwtAudience,
-		ExpiresAt: now.Add(jwtValidFor).Unix(),
-		IssuedAt:  now.Unix(),
+func validClams(now time.Time) jwt.RegisteredClaims {
+	claims := jwt.RegisteredClaims{
 		Issuer:    jwtIssuer,
-		NotBefore: now.Add(-jwtNotBefore).Unix(),
+		Audience:  jwt.ClaimStrings{jwtAudience},
+		ExpiresAt: jwt.NewNumericDate(now.Add(jwtValidFor)),
+		NotBefore: jwt.NewNumericDate(now.Add(-jwtNotBefore)),
+		IssuedAt:  jwt.NewNumericDate(now),
 	}
 	return claims
 }

@@ -21,12 +21,12 @@ type JwtCredentials struct {
 
 func (c *JwtCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	now := time.Now()
-	claims := jwt.StandardClaims{
-		Audience:  c.Audience,
-		ExpiresAt: now.Add(jwtValidFor).Unix(),
-		IssuedAt:  now.Unix(),
+	claims := jwt.RegisteredClaims{
 		Issuer:    c.Issuer,
-		NotBefore: now.Add(-jwtNotBefore).Unix(),
+		Audience:  jwt.ClaimStrings{c.Audience},
+		ExpiresAt: jwt.NewNumericDate(now.Add(jwtValidFor)),
+		NotBefore: jwt.NewNumericDate(now.Add(-jwtNotBefore)),
+		IssuedAt:  jwt.NewNumericDate(now),
 	}
 	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(c.Secret)

@@ -37,6 +37,46 @@ func (m *MockObserverClient) EXPECT() *MockObserverClientMockRecorder {
 	return m.recorder
 }
 
+// GetAgentEvents mocks base method.
+func (m *MockObserverClient) GetAgentEvents(arg0 context.Context, arg1 *observer.GetAgentEventsRequest, arg2 ...grpc.CallOption) (observer.Observer_GetAgentEventsClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAgentEvents", varargs...)
+	ret0, _ := ret[0].(observer.Observer_GetAgentEventsClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAgentEvents indicates an expected call of GetAgentEvents.
+func (mr *MockObserverClientMockRecorder) GetAgentEvents(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentEvents", reflect.TypeOf((*MockObserverClient)(nil).GetAgentEvents), varargs...)
+}
+
+// GetDebugEvents mocks base method.
+func (m *MockObserverClient) GetDebugEvents(arg0 context.Context, arg1 *observer.GetDebugEventsRequest, arg2 ...grpc.CallOption) (observer.Observer_GetDebugEventsClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetDebugEvents", varargs...)
+	ret0, _ := ret[0].(observer.Observer_GetDebugEventsClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDebugEvents indicates an expected call of GetDebugEvents.
+func (mr *MockObserverClientMockRecorder) GetDebugEvents(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDebugEvents", reflect.TypeOf((*MockObserverClient)(nil).GetDebugEvents), varargs...)
+}
+
 // GetFlows mocks base method.
 func (m *MockObserverClient) GetFlows(arg0 context.Context, arg1 *observer.GetFlowsRequest, arg2 ...grpc.CallOption) (observer.Observer_GetFlowsClient, error) {
 	m.ctrl.T.Helper()
@@ -55,6 +95,26 @@ func (mr *MockObserverClientMockRecorder) GetFlows(arg0, arg1 interface{}, arg2 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFlows", reflect.TypeOf((*MockObserverClient)(nil).GetFlows), varargs...)
+}
+
+// GetNodes mocks base method.
+func (m *MockObserverClient) GetNodes(arg0 context.Context, arg1 *observer.GetNodesRequest, arg2 ...grpc.CallOption) (*observer.GetNodesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetNodes", varargs...)
+	ret0, _ := ret[0].(*observer.GetNodesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodes indicates an expected call of GetNodes.
+func (mr *MockObserverClientMockRecorder) GetNodes(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodes", reflect.TypeOf((*MockObserverClient)(nil).GetNodes), varargs...)
 }
 
 // ServerStatus mocks base method.
