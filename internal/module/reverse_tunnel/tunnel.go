@@ -68,6 +68,12 @@ func (t *tunnel) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 	} else {
 		return status.Errorf(codes.Internal, "Invalid state %d", t.state)
 	}
+	pair := t.forwardStream(log, rpcApi, incomingStream, cb)
+	t.tunnelRetErr <- pair.forTunnel
+	return pair.forIncomingStream
+}
+
+func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) errPair {
 	// Here we have a situation where we need to pipe one server stream into another server stream.
 	// One stream is incoming request stream and the other one is incoming tunnel stream.
 	// We need to use at least one extra goroutine in addition to the current one (or two separate ones) to
@@ -163,12 +169,20 @@ func (t *tunnel) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 	})
 	pair := <-res
 	if !pair.isNil() {
-		t.tunnelRetErr <- pair.forTunnel
-		return pair.forIncomingStream
+		return pair
 	}
-	pair = <-res
-	t.tunnelRetErr <- pair.forTunnel
-	return pair.forIncomingStream
+	select {
+	case <-incomingCtx.Done():
+		// incoming stream finished sending all data (i.e. io.EOF was read from it) but
+		// now it signals that it's closing. We need to abort the potentially stuck t.tunnel.RecvMsg().
+		err := status.FromContextError(incomingCtx.Err()).Err()
+		pair = errPair{
+			forTunnel:         err,
+			forIncomingStream: err,
+		}
+	case pair = <-res:
+	}
+	return pair
 }
 
 func (t *tunnel) Done() {
