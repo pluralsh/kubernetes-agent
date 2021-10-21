@@ -466,6 +466,58 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 	require.EqualError(t, err, "Send(descriptor): expected err")
 }
 
+func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
+	client, conn, tunnel, c := setupConnection(t)
+	ctrl := gomock.NewController(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+	var newStreamCtx context.Context
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any(), gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()), // ConnectRequest_Descriptor_
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+				newStreamCtx = ctx
+				return clientStream, nil
+			}),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(errors.New("expected recv error")),
+		tunnel.EXPECT().
+			Header(),
+	)
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header(),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		clientStream.EXPECT().
+			RecvMsg(gomock.Any()).
+			DoAndReturn(func(m interface{}) error {
+				<-newStreamCtx.Done() // block until context is cancelled
+				return newStreamCtx.Err()
+			}),
+		clientStream.EXPECT().
+			Trailer(),
+		tunnel.EXPECT().
+			Send(gomock.Any()).
+			Return(errors.New("expected send error")),
+	)
+
+	err := c.attempt(context.Background())
+	require.EqualError(t, err, "expected recv error")
+}
+
 func setupConnection(t *testing.T) (*mock_reverse_tunnel_rpc.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectClient, *connection) {
 	ctrl := gomock.NewController(t)
 	client := mock_reverse_tunnel_rpc.NewMockReverseTunnelClient(ctrl)

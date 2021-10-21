@@ -125,6 +125,9 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 			return nil
 		}),
 	)
+	if err1 != nil {
+		cancel()
+	}
 	err2 := g.Wait()
 	if err1 == nil {
 		err1 = err2
