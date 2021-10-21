@@ -163,10 +163,13 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 				},
 			})
 			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return nil // the other goroutine will receive the error in RecvMsg()
+				if errors.Is(recvErr, io.EOF) {
+					if errors.Is(err, io.EOF) {
+						return nil // the other goroutine will receive the error in RecvMsg()
+					}
+					return fmt.Errorf("Send(trailer): %w", err) // wrap
 				}
-				return fmt.Errorf("Send(trailer): %w", err) // wrap
+				return fmt.Errorf("Recv(RawFrame): %w", recvErr) // return recvErr as it happened first
 			}
 			if errors.Is(recvErr, io.EOF) {
 				break
