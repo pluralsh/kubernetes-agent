@@ -1780,13 +1780,6 @@ def go_repositories():
         version = "v0.1.1",
     )
     go_repository(
-        name = "com_github_gobuffalo_here",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/gobuffalo/here",
-        sum = "h1:hYrd0a6gDmWxBM4TnrGw8mQg24iSVoIkHEk7FodQcBI=",
-        version = "v0.6.0",
-    )
-    go_repository(
         name = "com_github_gobuffalo_logger",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/gobuffalo/logger",
@@ -2856,13 +2849,6 @@ def go_repositories():
         importpath = "github.com/markbates/oncer",
         sum = "h1:JgVTCPf0uBVcUSWpyXmGpgOc62nK5HWUBKAGc3Qqa5k=",
         version = "v0.0.0-20181203154359-bf2de49a0be2",
-    )
-    go_repository(
-        name = "com_github_markbates_pkger",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/markbates/pkger",
-        sum = "h1:/MKEtWqtc0mZvu9OinB9UzVN9iYCwLWuyUv4Bw+PCno=",
-        version = "v0.17.1",
     )
     go_repository(
         name = "com_github_markbates_safe",
@@ -4870,15 +4856,15 @@ def go_repositories():
         name = "io_k8s_sigs_cli_utils",
         build_file_proto_mode = "disable_global",
         importpath = "sigs.k8s.io/cli-utils",
-        sum = "h1:N1X1NVN19+daTihVimkSVNMgiVPIHG9OO3SJPh6SBQI=",
-        version = "v0.26.0",
+        sum = "h1:u6xjIFhEiDc7w7166CU//0MERoGUYAdZaUEIZKwWdzc=",
+        version = "v0.26.1-0.20211021000409-89b6f0b5b1fe",
     )
     go_repository(
         name = "io_k8s_sigs_controller_runtime",
         build_file_proto_mode = "disable_global",
         importpath = "sigs.k8s.io/controller-runtime",
-        sum = "h1:HgyZmMpjUOrtkaFtCnfxsR1bGRuFoAczSNbn2MoKj5U=",
-        version = "v0.10.0",
+        sum = "h1:+eLHgY/VrJWnfg6iXUqhCUqNXgPH1NZeP9drNAAgWlg=",
+        version = "v0.10.1",
     )
     go_repository(
         name = "io_k8s_sigs_controller_tools",
@@ -4912,8 +4898,8 @@ def go_repositories():
         name = "io_k8s_sigs_kustomize_kyaml",
         build_file_proto_mode = "disable_global",
         importpath = "sigs.k8s.io/kustomize/kyaml",
-        sum = "h1:9KhiCPKaVyuPcgOLJXkvytOvjMJLoxpjodiycb4gHsA=",
-        version = "v0.11.0",
+        sum = "h1:k08l8SLwnKa/eXXB5GW2/OnEc/4gJF90VDFebsOwqw4=",
+        version = "v0.12.0",
     )
     go_repository(
         name = "io_k8s_sigs_structured_merge_diff_v4",
@@ -4933,8 +4919,8 @@ def go_repositories():
         name = "io_k8s_utils",
         build_file_proto_mode = "disable_global",
         importpath = "k8s.io/utils",
-        sum = "h1:8dYfu/Fc9Gz2rNJKB9IQRGgQOh2clmRzNIPPY1xLY5g=",
-        version = "v0.0.0-20210819203725-bdf08cb9a70a",
+        sum = "h1:ldQh+neBabomh7+89dTpiFAB8tGdfVmuIzAHbvtl+9I=",
+        version = "v0.0.0-20210820185131-d34e5cb4466e",
     )
     go_repository(
         name = "io_nhooyr_websocket",
