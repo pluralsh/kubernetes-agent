@@ -51,9 +51,9 @@ func (c *connection) Run(ctx context.Context) {
 		if err != nil {
 			if grpctool.RequestCanceledOrTimedOut(err) {
 				c.log.Debug("Canceled connection", logz.Error(err))
-			} else {
-				c.log.Error("Error handling a connection", logz.Error(err))
+				return nil, retry.ContinueImmediately // handled a connection with a timeout/cancel, re-establish it immediately
 			}
+			c.log.Error("Error handling a connection", logz.Error(err))
 			return nil, retry.Backoff
 		}
 		c.log.Debug("Handled a connection successfully")
