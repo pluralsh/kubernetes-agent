@@ -51,7 +51,6 @@ go_library(
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_grpc_ecosystem_go_grpc_middleware//auth",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
-        "@io_k8s_apimachinery//pkg/util/wait",
         "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

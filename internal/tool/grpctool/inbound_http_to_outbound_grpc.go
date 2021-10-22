@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -75,22 +74,18 @@ func (x *InboundHttpToOutboundGrpc) Pipe(outboundClient HttpRequestClient, w htt
 }
 
 func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w http.ResponseWriter, r *http.Request, headerExtra proto.Message) (bool, errFunc) {
-	var (
-		wg            wait.Group
-		headerWritten = false
-		errFuncRet2   errFunc
-	)
-	// Pipe remote -> client
-	wg.Start(func() {
-		headerWritten, errFuncRet2 = x.pipeOutboundToInbound(outboundClient, w)
-	})
+	// http.ResponseWriter does not support concurrent request body reads and response writes so
+	// consume the request body first and then write the response from remote.
+	// See https://github.com/golang/go/issues/15527
+	// See https://github.com/golang/go/blob/go1.17.2/src/net/http/server.go#L118-L139
+
 	// Pipe client -> remote
-	errFuncRet1 := x.pipeInboundToOutbound(outboundClient, r, headerExtra)
-	wg.Wait()
-	if errFuncRet1 != nil {
-		return headerWritten, errFuncRet1
+	ef := x.pipeInboundToOutbound(outboundClient, r, headerExtra)
+	if ef != nil {
+		return false, ef
 	}
-	return headerWritten, errFuncRet2
+	// Pipe remote -> client
+	return x.pipeOutboundToInbound(outboundClient, w)
 }
 
 func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpRequestClient, w http.ResponseWriter) (bool, errFunc) {
