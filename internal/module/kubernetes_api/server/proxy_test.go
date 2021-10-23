@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -260,7 +259,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 		})
 	extra, err := anypb.New(expectedExtra)
 	require.NoError(t, err)
-	gomock.InOrder(append([]*gomock.Call{mrCall}, mockSendStream(t, mrClient,
+	send := mockSendStream(t, mrClient,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
 				Header: &grpctool.HttpRequest_Header{
@@ -306,8 +305,8 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 				Trailer: &grpctool.HttpRequest_Trailer{},
 			},
 		},
-	)...)...)
-	gomock.InOrder(append([]*gomock.Call{mrCall}, mockRecvStream(mrClient,
+	)
+	recv := mockRecvStream(mrClient,
 		&grpctool.HttpResponse{
 			Message: &grpctool.HttpResponse_Header_{
 				Header: &grpctool.HttpResponse_Header{
@@ -341,7 +340,11 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 				Trailer: &grpctool.HttpResponse_Trailer{},
 			},
 		},
-	)...)...)
+	)
+	calls := []*gomock.Call{mrCall}
+	calls = append(calls, send...)
+	calls = append(calls, recv...)
+	gomock.InOrder(calls...)
 
 	req.Header.Set("Req-Header", "x1")
 	req.Header.Add("Req-Header", "x2")
@@ -357,67 +360,10 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	assert.NotEmpty(t, resp.Header.Get("X-Request-Id"))
 	resp.Header.Del("X-Request-Id")
 	assert.Empty(t, cmp.Diff(map[string][]string{
-		"Resp-Header":    {"a1", "a2"},
-		"Content-Length": {"31"},
-		"Content-Type":   {"application/octet-stream"},
-		"Via":            {"gRPC/1.0 sv1"},
+		"Resp-Header":  {"a1", "a2"},
+		"Content-Type": {"application/octet-stream"},
+		"Via":          {"gRPC/1.0 sv1"},
 	}, (map[string][]string)(resp.Header)))
-}
-
-func TestProxy_RecvHeaderError(t *testing.T) {
-	api, k8sClient, client, req, requestCount := setupProxy(t)
-	requestCount.EXPECT().Inc()
-	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
-	mrClient.EXPECT().
-		Send(gomock.Any()).
-		Return(io.EOF) // error on the stream
-	gomock.InOrder(
-		k8sClient.EXPECT().
-			MakeRequest(gomock.Any()).
-			Return(mrClient, nil),
-		mrClient.EXPECT().
-			RecvMsg(gomock.Any()).
-			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
-				Message: &grpctool.HttpResponse_Header_{
-					Header: &grpctool.HttpResponse_Header{
-						Response: &prototool.HttpResponse{
-							StatusCode: http.StatusOK,
-						},
-					},
-				},
-			})),
-		mrClient.EXPECT().
-			RecvMsg(gomock.Any()).
-			Return(errors.New("expected error")),
-		api.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error")),
-	)
-	_, err := client.Do(req)               // nolint: bodyclose
-	assert.True(t, errors.Is(err, io.EOF)) // dropped connection is io.EOF
-}
-
-func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
-	api, k8sClient, client, req, requestCount := setupProxy(t)
-	requestCount.EXPECT().Inc()
-	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
-	mrClient.EXPECT().
-		Send(gomock.Any()).
-		Return(io.EOF) // error on the stream
-	gomock.InOrder(
-		k8sClient.EXPECT().
-			MakeRequest(gomock.Any()).
-			Return(mrClient, nil),
-		mrClient.EXPECT().
-			RecvMsg(gomock.Any()).
-			Return(errors.New("expected error 2")),
-		api.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(), matcher.ErrorEq("expected error 2")),
-	)
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.EqualValues(t, http.StatusBadGateway, resp.StatusCode)
-	assert.Equal(t, "Proxy failed to read response from agent: expected error 2\n", string(readAll(t, resp.Body)))
 }
 
 func requireCorrectOutgoingMeta(t *testing.T, ctx context.Context) {

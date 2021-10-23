@@ -91,12 +91,22 @@ func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w htt
 func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpRequestClient, w http.ResponseWriter) (bool, errFunc) {
 	writeFailed := false
 	headerWritten := false
+	// ResponseWriter buffers headers and response body writes and that may break use cases like long polling or streaming.
+	// Flusher is used so that when HTTP headers and response body chunks are received from the outbound connection,
+	// they are flushed to the inbound stream ASAP.
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		x.Log.Sugar().Warnf("HTTP->gRPC: %T does not implement http.Flusher, cannot flush data to client", w)
+	}
 	err := HttpResponseStreamVisitor().Visit(outboundClient,
 		WithCallback(httpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
 			fromOutbound := header.Response.HttpHeader()
 			httpz.RemoveConnectionHeaders(fromOutbound)
 			x.MergeHeaders(fromOutbound, w.Header())
 			w.WriteHeader(int(header.Response.StatusCode))
+			if flusher != nil {
+				flusher.Flush()
+			}
 			headerWritten = true
 			return nil
 		}),
@@ -104,6 +114,10 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 			_, err := w.Write(data.Data)
 			if err != nil {
 				writeFailed = true
+			} else {
+				if flusher != nil {
+					flusher.Flush()
+				}
 			}
 			return err
 		}),
@@ -115,9 +129,9 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 		if writeFailed {
 			// there is likely a connection problem so the client will likely not receive this
 			err = errz.NewUserErrorWithCause(err, "")
-			return headerWritten, x.handleProcessingError("Proxy failed to write response to client", err)
+			return headerWritten, x.handleProcessingError("HTTP->gRPC: failed to write HTTP response", err)
 		}
-		return headerWritten, x.handleProcessingError("Proxy failed to read response from agent", err)
+		return headerWritten, x.handleProcessingError("HTTP->gRPC: failed to read gRPC response", err)
 	}
 	return headerWritten, nil
 }
@@ -125,9 +139,9 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpRequestClient, r *http.Request, headerExtra proto.Message) errFunc {
 	extra, err := anypb.New(headerExtra)
 	if err != nil {
-		return x.handleProcessingError("Proxy failed to marshal header extra proto", err)
+		return x.handleProcessingError("HTTP->gRPC: failed to marshal header extra proto", err)
 	}
-	err = outboundClient.Send(&HttpRequest{
+	errF := x.send(outboundClient, "HTTP->gRPC: failed to send request header", &HttpRequest{
 		Message: &HttpRequest_Header_{
 			Header: &HttpRequest_Header{
 				Request: &prototool.HttpRequest{
@@ -140,31 +154,25 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 			},
 		},
 	})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return x.handleSendError("Proxy failed to send request header", err)
+	if errF != nil {
+		return errF
 	}
 
-	errF := x.sendRequestBody(outboundClient, r.Body)
+	errF = x.sendRequestBody(outboundClient, r.Body)
 	if errF != nil {
-		return errF // as is
+		return errF
 	}
-	err = outboundClient.Send(&HttpRequest{
+	errF = x.send(outboundClient, "HTTP->gRPC: failed to send trailer", &HttpRequest{
 		Message: &HttpRequest_Trailer_{
 			Trailer: &HttpRequest_Trailer{},
 		},
 	})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return x.handleSendError("Proxy failed to send trailer", err)
+	if errF != nil {
+		return errF
 	}
 	err = outboundClient.CloseSend()
 	if err != nil {
-		return x.handleSendError("Proxy failed to send close frame to agent", err)
+		return x.handleSendError("HTTP->gRPC: failed to send close frame", err)
 	}
 	return nil
 }
@@ -177,26 +185,34 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 		if err != nil && !errors.Is(err, io.EOF) {
 			// There is likely a connection problem so the client will likely not receive this
 			err = errz.NewUserErrorWithCause(err, "")
-			return x.handleProcessingError("Proxy failed to read request body from client", err)
+			return x.handleProcessingError("HTTP->gRPC: failed to read request body", err)
 		}
 		if n > 0 { // handle n=0, err=io.EOF case
-			sendErr := outboundClient.Send(&HttpRequest{
+			errF := x.send(outboundClient, "HTTP->gRPC: failed to send request body", &HttpRequest{
 				Message: &HttpRequest_Data_{
 					Data: &HttpRequest_Data{
 						Data: buffer[:n],
 					},
 				},
 			})
-			if sendErr != nil {
-				if errors.Is(sendErr, io.EOF) {
-					return nil // the other goroutine will receive the error in RecvMsg()
-				}
-				return x.handleSendError("Proxy failed to send request body", sendErr)
+			if errF != nil {
+				return errF
 			}
 		}
 		if errors.Is(err, io.EOF) {
 			break
 		}
+	}
+	return nil
+}
+
+func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string, msg *HttpRequest) errFunc {
+	err := client.Send(msg)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			_, err = client.Recv()
+		}
+		return x.handleSendError(errMsg, err)
 	}
 	return nil
 }
