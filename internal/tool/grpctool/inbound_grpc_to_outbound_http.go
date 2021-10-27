@@ -85,10 +85,10 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 	return err
 }
 
-func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToOutboundHttpStream, headerMsg chan *HttpRequest_Header, pw *io.PipeWriter) error {
-	ctx := inbound.Context()
+func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToOutboundHttpStream, headerMsg chan<- *HttpRequest_Header, pw *io.PipeWriter) error {
 	return HttpRequestStreamVisitor().Visit(inbound,
 		WithCallback(httpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
+			ctx := inbound.Context()
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
