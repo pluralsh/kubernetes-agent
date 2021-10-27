@@ -76,9 +76,10 @@ func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer, own
 
 func (r *TunnelRegistry) Run(ctx context.Context) error {
 	defer r.cleanup()
+	done := ctx.Done()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-done:
 			return nil
 		case toReg := <-r.tunnelRegister:
 			r.handleTunnelRegister(toReg)
@@ -145,6 +146,7 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 			AgentId:         agentInfo.Id,
 			KasUrl:          r.ownPrivateApiUrl,
 		},
+		state: stateReady,
 	}
 	// Register
 	select {
@@ -203,13 +205,13 @@ func (r *TunnelRegistry) handleTunnelUnregister(toUnreg *tunnel) {
 	}
 }
 
-func (r *TunnelRegistry) unregisterTunnel(toAbort *tunnel) {
-	r.tunnelRegisterer.UnregisterTunnel(context.Background(), toAbort.tunnelInfo)
-	delete(r.tuns, toAbort)
-	tunsByAgentId := r.tunsByAgentId[toAbort.tunnelInfo.AgentId]
-	delete(tunsByAgentId, toAbort)
+func (r *TunnelRegistry) unregisterTunnel(toUnreg *tunnel) {
+	r.tunnelRegisterer.UnregisterTunnel(context.Background(), toUnreg.tunnelInfo)
+	delete(r.tuns, toUnreg)
+	tunsByAgentId := r.tunsByAgentId[toUnreg.tunnelInfo.AgentId]
+	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
-		delete(r.tunsByAgentId, toAbort.tunnelInfo.AgentId)
+		delete(r.tunsByAgentId, toUnreg.tunnelInfo.AgentId)
 	}
 }
 
