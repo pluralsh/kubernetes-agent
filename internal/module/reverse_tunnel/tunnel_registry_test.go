@@ -105,6 +105,77 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// Two tunnels with the same agent id. Both register. Then one of them is retrieved via FindTunnel()
+// and then its context is cancelled. If this test gets stuck, we have a problem.
+// Reproducer for https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/183.
+func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
+	gomock.InOrder(
+		connectServer1.EXPECT().
+			Recv().
+			Return(&rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Descriptor_{
+					Descriptor_: descriptor(),
+				},
+			}, nil),
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	gomock.InOrder(
+		connectServer2.EXPECT().
+			Recv().
+			Return(&rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Descriptor_{
+					Descriptor_: descriptor(),
+				},
+			}, nil),
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	require.NoError(t, err)
+	var wg wait.Group
+	defer wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg.Start(func() {
+		assert.NoError(t, r.Run(ctx))
+	})
+	agentInfo := testhelpers.AgentInfoObj()
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	wg.Start(func() {
+		assert.NoError(t, r.HandleTunnel(ctx1, agentInfo, connectServer1))
+	})
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+	wg.Start(func() {
+		assert.NoError(t, r.HandleTunnel(ctx2, agentInfo, connectServer2))
+	})
+	time.Sleep(50 * time.Millisecond) // wait for both to register
+	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	require.NoError(t, err)
+	// cancel context for the found tunnel
+	switch tun.(*tunnel).tunnel {
+	case connectServer1:
+		cancel1()
+	case connectServer2:
+		cancel2()
+	default:
+		t.FailNow()
+	}
+	tun.Done()
+}
+
 func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)

@@ -199,9 +199,9 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 }
 
 func (r *TunnelRegistry) handleTunnelUnregister(toUnreg *tunnel) {
-	if r.tunsByAgentId[toUnreg.tunnelInfo.AgentId] != nil { // Tunnel might not be there if it's been obtained from the map already
+	if r.isTunnelRegistered(toUnreg) { // Tunnel might not be there if it's been obtained from the map already
+		toUnreg.Done() // unblock HandleTunnel() ASAP, then do all the bookkeeping
 		r.unregisterTunnel(toUnreg)
-		toUnreg.tunnelRetErr <- nil
 	}
 }
 
@@ -213,6 +213,11 @@ func (r *TunnelRegistry) unregisterTunnel(toUnreg *tunnel) {
 	if len(tunsByAgentId) == 0 {
 		delete(r.tunsByAgentId, toUnreg.tunnelInfo.AgentId)
 	}
+}
+
+func (r *TunnelRegistry) isTunnelRegistered(tun *tunnel) bool {
+	_, isRegistered := r.tuns[tun]
+	return isRegistered
 }
 
 func (r *TunnelRegistry) handleFindRequest(ftr *findTunnelRequest) {
