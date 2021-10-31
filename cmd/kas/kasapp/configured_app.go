@@ -170,7 +170,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	internalServer := a.constructInternalServer(ctx, tracer, rpcApiFactory)
 
 	// Kas to agentk router
-	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
+	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, csh, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,8 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 	return f.New, fAgent.New
 }
 
-func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar) (kasRouter, error) {
+func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh stats.Handler, tunnelQuerier tracker.Querier,
+	tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar) (kasRouter, error) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return nopKasRouter{}, nil
@@ -307,29 +308,33 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 		return nil, err
 	}
 	return &router{
-		kasPool: &defaultKasPool{
-			dialOpts: []grpc.DialOption{
-				grpc.WithInsecure(), // TODO support TLS
-				grpc.WithPerRPCCredentials(&grpctool.JwtCredentials{
-					Secret:   jwtSecret,
-					Audience: kasName,
-					Issuer:   kasName,
-					Insecure: true, // TODO support TLS
-				}),
-				grpc.WithChainStreamInterceptor(
-					grpc_prometheus.StreamClientInterceptor,
-					grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
-					grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-					grpctool.StreamClientValidatingInterceptor,
-				),
-				grpc.WithChainUnaryInterceptor(
-					grpc_prometheus.UnaryClientInterceptor,
-					grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
-					grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-					grpctool.UnaryClientValidatingInterceptor,
-				),
-			},
-		},
+		kasPool: grpctool.NewPool(a.Log,
+			grpc.WithInsecure(), // TODO support TLS
+			grpc.WithUserAgent(kasServerName()),
+			grpc.WithStatsHandler(csh),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                55 * time.Second,
+				PermitWithoutStream: true,
+			}),
+			grpc.WithPerRPCCredentials(&grpctool.JwtCredentials{
+				Secret:   jwtSecret,
+				Audience: kasName,
+				Issuer:   kasName,
+				Insecure: true, // TODO support TLS
+			}),
+			grpc.WithChainStreamInterceptor(
+				grpc_prometheus.StreamClientInterceptor,
+				grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+				grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+				grpctool.StreamClientValidatingInterceptor,
+			),
+			grpc.WithChainUnaryInterceptor(
+				grpc_prometheus.UnaryClientInterceptor,
+				grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+				grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+				grpctool.UnaryClientValidatingInterceptor,
+			),
+		),
 		tunnelQuerier: tunnelQuerier,
 		tunnelFinder:  tunnelFinder,
 		pollConfig: retry.NewPollConfigFactory(getTunnelsAttemptInterval, retry.NewExponentialBackoffFactory(
