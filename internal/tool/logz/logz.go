@@ -116,6 +116,10 @@ func KasUrl(kasUrl string) zap.Field {
 	return zap.String("kas_url", kasUrl)
 }
 
+func PoolConnectionUrl(poolConnUrl string) zap.Field {
+	return zap.String("pool_conn_url", poolConnUrl)
+}
+
 func UrlPathPrefix(urlPrefix string) zap.Field {
 	return zap.String("url_path_prefix", urlPrefix)
 }

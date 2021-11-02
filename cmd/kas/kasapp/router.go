@@ -1,6 +1,8 @@
 package kasapp
 
 import (
+	"context"
+	"io"
 	"strconv"
 	"time"
 
@@ -28,6 +30,11 @@ const (
 
 type kasRouter interface {
 	RegisterAgentApi(desc *grpc.ServiceDesc)
+}
+
+type KasPool interface {
+	Dial(ctx context.Context, targetUrl string) (grpctool.PoolConn, error)
+	io.Closer
 }
 
 // router is quite dumb at the moment, but we'll make it much better in the next iterations:

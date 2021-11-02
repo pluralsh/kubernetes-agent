@@ -41,6 +41,7 @@ require (
 	k8s.io/client-go v0.22.2
 	k8s.io/klog/v2 v2.10.0
 	k8s.io/kubectl v0.22.2
+	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e
 	nhooyr.io/websocket v1.8.7
 	sigs.k8s.io/cli-utils v0.26.1-0.20211021000409-89b6f0b5b1fe
 	sigs.k8s.io/yaml v1.3.0
@@ -182,7 +183,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.22.2 // indirect
 	k8s.io/component-base v0.22.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
-	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e // indirect
 	sigs.k8s.io/controller-runtime v0.10.1 // indirect
 	sigs.k8s.io/kustomize/api v0.8.11 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.12.0 // indirect

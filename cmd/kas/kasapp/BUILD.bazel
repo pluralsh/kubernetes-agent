@@ -22,7 +22,6 @@ go_library(
         "configured_app.go",
         "defaulting.go",
         "doc.go",
-        "kas_pool.go",
         "kasapp.extra_methods.go",
         "kasapp.pb.go",
         "kasapp.pb.validate.go",

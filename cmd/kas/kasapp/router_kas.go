@@ -110,7 +110,7 @@ func (r *router) attemptToRouteViaTunnel(log *zap.Logger, rpcApi modserver.RpcAp
 	if err != nil {
 		return err, false
 	}
-	defer kasClient.Close() // nolint:errcheck
+	defer kasClient.Done()
 	md, _ := metadata.FromIncomingContext(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure outbound stream is cleaned up

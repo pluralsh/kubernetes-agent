@@ -297,6 +297,7 @@ func mdContains(t *testing.T, expectedMd metadata.MD, actualMd metadata.MD) {
 // router_agent handler --> tunnel finder --> tunnel.ForwardStream()
 func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelForwardStream *gomock.Call, runTest func(client test.TestingClient)) {
 	ctrl := gomock.NewController(t)
+	log := zaptest.NewLogger(t)
 	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
 	internalServerListener := grpctool.NewDialListener()
@@ -321,7 +322,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
-				Logger:    zaptest.NewLogger(t),
+				Logger:    log,
 				StreamCtx: ctx,
 			},
 		}
@@ -350,12 +351,10 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
 	r := &router{
-		kasPool: &defaultKasPool{
-			dialOpts: []grpc.DialOption{
-				grpc.WithInsecure(),
-				grpc.WithContextDialer(privateApiServerListener.DialContext),
-			},
-		},
+		kasPool: grpctool.NewPool(log,
+			grpc.WithInsecure(),
+			grpc.WithContextDialer(privateApiServerListener.DialContext),
+		),
 		tunnelQuerier:        querier,
 		tunnelFinder:         finder,
 		pollConfig:           testhelpers.NewPollConfig(time.Minute),
