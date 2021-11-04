@@ -75,18 +75,18 @@ func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer, own
 }
 
 func (r *TunnelRegistry) Run(ctx context.Context) error {
-	defer r.cleanup()
+	defer r.cleanup() // nolint: contextcheck
 	done := ctx.Done()
 	for {
 		select {
 		case <-done:
 			return nil
 		case toReg := <-r.tunnelRegister:
-			r.handleTunnelRegister(toReg)
+			r.handleTunnelRegister(toReg) // nolint: contextcheck
 		case toUnreg := <-r.tunnelUnregister:
-			r.handleTunnelUnregister(toUnreg)
+			r.handleTunnelUnregister(toUnreg) // nolint: contextcheck
 		case ftr := <-r.findRequest:
-			r.handleFindRequest(ftr)
+			r.handleFindRequest(ftr) // nolint: contextcheck
 		case ftr := <-r.findRequestAbort:
 			r.handleFindRequestAbort(ftr)
 		}
@@ -200,8 +200,8 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 
 func (r *TunnelRegistry) handleTunnelUnregister(toUnreg *tunnel) {
 	if r.isTunnelRegistered(toUnreg) { // Tunnel might not be there if it's been obtained from the map already
-		toUnreg.Done() // unblock HandleTunnel() ASAP, then do all the bookkeeping
-		r.unregisterTunnel(toUnreg)
+		toUnreg.Done()              // unblock HandleTunnel() ASAP, then do all the bookkeeping
+		r.unregisterTunnel(toUnreg) // nolint: contextcheck
 	}
 }
 
@@ -227,8 +227,8 @@ func (r *TunnelRegistry) handleFindRequest(ftr *findTunnelRequest) {
 			continue
 		}
 		// Suitable tunnel found!
-		ftr.retTun <- tun // respond ASAP, then do all the bookkeeping
-		r.unregisterTunnel(tun)
+		ftr.retTun <- tun       // respond ASAP, then do all the bookkeeping
+		r.unregisterTunnel(tun) // nolint: contextcheck
 		return
 	}
 
@@ -256,7 +256,7 @@ func (r *TunnelRegistry) deleteFindRequest(ftr *findTunnelRequest) {
 func (r *TunnelRegistry) cleanup() {
 	// Abort all tunnels
 	for c := range r.tuns {
-		r.handleTunnelUnregister(c)
+		r.handleTunnelUnregister(c) // nolint: contextcheck
 	}
 	// Abort all waiting new stream requests
 	for _, findRequestsForAgentId := range r.findRequestsByAgentId {

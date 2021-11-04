@@ -47,7 +47,7 @@ type MetricServer struct {
 
 func (s *MetricServer) Run(ctx context.Context) error {
 	srv := &http.Server{
-		Handler:      s.constructHandler(),
+		Handler:      s.constructHandler(), // nolint: contextcheck
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
@@ -57,7 +57,7 @@ func (s *MetricServer) Run(ctx context.Context) error {
 
 func (s *MetricServer) constructHandler() http.Handler {
 	mux := http.NewServeMux()
-	s.probesHandler(mux)
+	s.probesHandler(mux) // nolint: contextcheck
 	s.pprofHandler(mux)
 	s.prometheusHandler(mux)
 	return mux

@@ -153,8 +153,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:4CF52PCseTFt4bE+Yk3dIpdVi7XWuPVMhPtm4FaIJPM=",
-    version = "v0.6.1",
+    sum = "h1:JiO+kJTpmYGjEodY7O1Zk8oZcNz1+f30UtwtXoFUPzE=",
+    version = "v0.6.2",
 )
 
 # Copied from rules_go to keep patches in place
@@ -185,8 +185,8 @@ go_repository(
     name = "com_github_lyft_protoc_gen_star",
     build_file_proto_mode = "default",
     importpath = "github.com/lyft/protoc-gen-star",
-    sum = "h1:sImehRT+p7lW9n6R7MQc5hVgzWGEkDVZU4AsBQ4Isu8=",
-    version = "v0.5.1",
+    sum = "h1:zSGLzsUew8RT+ZKPHc3jnf8XLaVyHzTcAFBzHtCNR20=",
+    version = "v0.5.3",
 )
 
 load("//build:repositories.bzl", "go_repositories")

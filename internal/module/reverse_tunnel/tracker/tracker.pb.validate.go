@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -31,23 +32,62 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on TunnelInfo with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *TunnelInfo) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on TunnelInfo with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in TunnelInfoMultiError, or
+// nil if none found.
+func (m *TunnelInfo) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *TunnelInfo) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if m.GetAgentDescriptor() == nil {
-		return TunnelInfoValidationError{
+		err := TunnelInfoValidationError{
 			field:  "AgentDescriptor",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetAgentDescriptor()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetAgentDescriptor()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, TunnelInfoValidationError{
+					field:  "AgentDescriptor",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, TunnelInfoValidationError{
+					field:  "AgentDescriptor",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetAgentDescriptor()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return TunnelInfoValidationError{
 				field:  "AgentDescriptor",
@@ -62,14 +102,37 @@ func (m *TunnelInfo) Validate() error {
 	// no validation rules for AgentId
 
 	if !_TunnelInfo_KasUrl_Pattern.MatchString(m.GetKasUrl()) {
-		return TunnelInfoValidationError{
+		err := TunnelInfoValidationError{
 			field:  "KasUrl",
 			reason: "value does not match regex pattern \"(?:^$|^grpcs?://)\"",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
+	if len(errors) > 0 {
+		return TunnelInfoMultiError(errors)
+	}
 	return nil
 }
+
+// TunnelInfoMultiError is an error wrapping multiple validation errors
+// returned by TunnelInfo.ValidateAll() if the designated constraints aren't met.
+type TunnelInfoMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m TunnelInfoMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m TunnelInfoMultiError) AllErrors() []error { return m }
 
 // TunnelInfoValidationError is the validation error returned by
 // TunnelInfo.Validate if the designated constraints aren't met.

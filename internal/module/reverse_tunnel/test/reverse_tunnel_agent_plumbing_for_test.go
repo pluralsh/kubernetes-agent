@@ -21,7 +21,7 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 	log := zaptest.NewLogger(t)
 	internalListener := grpctool.NewDialListener()
 	internalServer := agentConstructInternalServer(ctx)
-	internalServerConn, err := agentConstructInternalServerConn(internalListener.DialContext)
+	internalServerConn, err := agentConstructInternalServerConn(internalListener.DialContext) // nolint: contextcheck
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		assert.NoError(t, internalServerConn.Close())

@@ -56,7 +56,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)
-	internalServerConn, err := serverConstructInternalServerConn(internalListener.DialContext)
+	internalServerConn, err := serverConstructInternalServerConn(internalListener.DialContext) // nolint: contextcheck
 	require.NoError(t, err)
 
 	serverFactory := reverse_tunnel_server.Factory{
@@ -77,7 +77,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	serverModule, err := serverFactory.New(serverConfig)
 	require.NoError(t, err)
 
-	kasConn, err := serverConstructKasConnection(testhelpers.AgentkToken, agentServerListener.DialContext)
+	kasConn, err := serverConstructKasConnection(testhelpers.AgentkToken, agentServerListener.DialContext) // nolint: contextcheck
 	require.NoError(t, err)
 
 	registerTestingServer(internalServer, &serverTestingServer{

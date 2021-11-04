@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -31,17 +32,51 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on Values with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *Values) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Values with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in ValuesMultiError, or nil if none found.
+func (m *Values) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Values) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return ValuesMultiError(errors)
+	}
 	return nil
 }
+
+// ValuesMultiError is an error wrapping multiple validation errors returned by
+// Values.ValidateAll() if the designated constraints aren't met.
+type ValuesMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ValuesMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ValuesMultiError) AllErrors() []error { return m }
 
 // ValuesValidationError is the validation error returned by Values.Validate if
 // the designated constraints aren't met.
@@ -98,63 +133,162 @@ var _ interface {
 } = ValuesValidationError{}
 
 // Validate checks the field values on HttpRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *HttpRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on HttpRequest with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in HttpRequestMultiError, or
+// nil if none found.
+func (m *HttpRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *HttpRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if len(m.GetMethod()) < 1 {
-		return HttpRequestValidationError{
+		err := HttpRequestValidationError{
 			field:  "Method",
 			reason: "value length must be at least 1 bytes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	for key, val := range m.GetHeader() {
-		_ = val
+	{
+		sorted_keys := make([]string, len(m.GetHeader()))
+		i := 0
+		for key := range m.GetHeader() {
+			sorted_keys[i] = key
+			i++
+		}
+		sort.Slice(sorted_keys, func(i, j int) bool { return sorted_keys[i] < sorted_keys[j] })
+		for _, key := range sorted_keys {
+			val := m.GetHeader()[key]
+			_ = val
 
-		// no validation rules for Header[key]
+			// no validation rules for Header[key]
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return HttpRequestValidationError{
-					field:  fmt.Sprintf("Header[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
+			if all {
+				switch v := interface{}(val).(type) {
+				case interface{ ValidateAll() error }:
+					if err := v.ValidateAll(); err != nil {
+						errors = append(errors, HttpRequestValidationError{
+							field:  fmt.Sprintf("Header[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				case interface{ Validate() error }:
+					if err := v.Validate(); err != nil {
+						errors = append(errors, HttpRequestValidationError{
+							field:  fmt.Sprintf("Header[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				}
+			} else if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+				if err := v.Validate(); err != nil {
+					return HttpRequestValidationError{
+						field:  fmt.Sprintf("Header[%v]", key),
+						reason: "embedded message failed validation",
+						cause:  err,
+					}
 				}
 			}
-		}
 
+		}
 	}
 
 	if len(m.GetUrlPath()) < 1 {
-		return HttpRequestValidationError{
+		err := HttpRequestValidationError{
 			field:  "UrlPath",
 			reason: "value length must be at least 1 bytes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	for key, val := range m.GetQuery() {
-		_ = val
+	{
+		sorted_keys := make([]string, len(m.GetQuery()))
+		i := 0
+		for key := range m.GetQuery() {
+			sorted_keys[i] = key
+			i++
+		}
+		sort.Slice(sorted_keys, func(i, j int) bool { return sorted_keys[i] < sorted_keys[j] })
+		for _, key := range sorted_keys {
+			val := m.GetQuery()[key]
+			_ = val
 
-		// no validation rules for Query[key]
+			// no validation rules for Query[key]
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return HttpRequestValidationError{
-					field:  fmt.Sprintf("Query[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
+			if all {
+				switch v := interface{}(val).(type) {
+				case interface{ ValidateAll() error }:
+					if err := v.ValidateAll(); err != nil {
+						errors = append(errors, HttpRequestValidationError{
+							field:  fmt.Sprintf("Query[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				case interface{ Validate() error }:
+					if err := v.Validate(); err != nil {
+						errors = append(errors, HttpRequestValidationError{
+							field:  fmt.Sprintf("Query[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				}
+			} else if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+				if err := v.Validate(); err != nil {
+					return HttpRequestValidationError{
+						field:  fmt.Sprintf("Query[%v]", key),
+						reason: "embedded message failed validation",
+						cause:  err,
+					}
 				}
 			}
-		}
 
+		}
 	}
 
+	if len(errors) > 0 {
+		return HttpRequestMultiError(errors)
+	}
 	return nil
 }
+
+// HttpRequestMultiError is an error wrapping multiple validation errors
+// returned by HttpRequest.ValidateAll() if the designated constraints aren't met.
+type HttpRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HttpRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HttpRequestMultiError) AllErrors() []error { return m }
 
 // HttpRequestValidationError is the validation error returned by
 // HttpRequest.Validate if the designated constraints aren't met.
@@ -211,36 +345,98 @@ var _ interface {
 } = HttpRequestValidationError{}
 
 // Validate checks the field values on HttpResponse with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *HttpResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on HttpResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in HttpResponseMultiError, or
+// nil if none found.
+func (m *HttpResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *HttpResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for StatusCode
 
 	// no validation rules for Status
 
-	for key, val := range m.GetHeader() {
-		_ = val
+	{
+		sorted_keys := make([]string, len(m.GetHeader()))
+		i := 0
+		for key := range m.GetHeader() {
+			sorted_keys[i] = key
+			i++
+		}
+		sort.Slice(sorted_keys, func(i, j int) bool { return sorted_keys[i] < sorted_keys[j] })
+		for _, key := range sorted_keys {
+			val := m.GetHeader()[key]
+			_ = val
 
-		// no validation rules for Header[key]
+			// no validation rules for Header[key]
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return HttpResponseValidationError{
-					field:  fmt.Sprintf("Header[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
+			if all {
+				switch v := interface{}(val).(type) {
+				case interface{ ValidateAll() error }:
+					if err := v.ValidateAll(); err != nil {
+						errors = append(errors, HttpResponseValidationError{
+							field:  fmt.Sprintf("Header[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				case interface{ Validate() error }:
+					if err := v.Validate(); err != nil {
+						errors = append(errors, HttpResponseValidationError{
+							field:  fmt.Sprintf("Header[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				}
+			} else if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+				if err := v.Validate(); err != nil {
+					return HttpResponseValidationError{
+						field:  fmt.Sprintf("Header[%v]", key),
+						reason: "embedded message failed validation",
+						cause:  err,
+					}
 				}
 			}
-		}
 
+		}
 	}
 
+	if len(errors) > 0 {
+		return HttpResponseMultiError(errors)
+	}
 	return nil
 }
+
+// HttpResponseMultiError is an error wrapping multiple validation errors
+// returned by HttpResponse.ValidateAll() if the designated constraints aren't met.
+type HttpResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HttpResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HttpResponseMultiError) AllErrors() []error { return m }
 
 // HttpResponseValidationError is the validation error returned by
 // HttpResponse.Validate if the designated constraints aren't met.

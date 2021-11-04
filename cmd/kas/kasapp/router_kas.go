@@ -64,7 +64,7 @@ func (r *router) attemptToRoute(agentId int64, stream grpc.ServerStream) retry.C
 			// Redefines log variable to eliminate the chance of using the original one
 			log := log.With(logz.ConnectionId(tunnel.ConnectionId), logz.KasUrl(tunnel.KasUrl)) // nolint:govet
 			log.Debug("Trying tunnel")
-			err, done := r.attemptToRouteViaTunnel(log, rpcApi, tunnel, stream)
+			err, done := r.attemptToRouteViaTunnel(log, rpcApi, tunnel, stream) // nolint: contextcheck
 			switch {
 			case done:
 				// Request was routed successfully. The remote may have returned an error, but that's still a

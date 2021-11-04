@@ -723,6 +723,26 @@ func (mr *MockSmartHTTPServiceClientMockRecorder) PostUploadPack(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUploadPack", reflect.TypeOf((*MockSmartHTTPServiceClient)(nil).PostUploadPack), varargs...)
 }
 
+// PostUploadPackWithSidechannel mocks base method.
+func (m *MockSmartHTTPServiceClient) PostUploadPackWithSidechannel(arg0 context.Context, arg1 *gitalypb.PostUploadPackWithSidechannelRequest, arg2 ...grpc.CallOption) (*gitalypb.PostUploadPackWithSidechannelResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PostUploadPackWithSidechannel", varargs...)
+	ret0, _ := ret[0].(*gitalypb.PostUploadPackWithSidechannelResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostUploadPackWithSidechannel indicates an expected call of PostUploadPackWithSidechannel.
+func (mr *MockSmartHTTPServiceClientMockRecorder) PostUploadPackWithSidechannel(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUploadPackWithSidechannel", reflect.TypeOf((*MockSmartHTTPServiceClient)(nil).PostUploadPackWithSidechannel), varargs...)
+}
+
 // MockSmartHTTPService_InfoRefsUploadPackClient is a mock of SmartHTTPService_InfoRefsUploadPackClient interface.
 type MockSmartHTTPService_InfoRefsUploadPackClient struct {
 	ctrl     *gomock.Controller

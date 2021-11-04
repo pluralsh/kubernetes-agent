@@ -101,7 +101,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		if err != nil {
 			return rpcApi.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
 		}
-		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, info.CommitId)
+		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, info.CommitId) // nolint: contextcheck
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
