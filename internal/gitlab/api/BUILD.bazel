@@ -7,6 +7,7 @@ go_proto_generate(
     workspace_relative_target_directory = "internal/gitlab/api",
     deps = [
         "//pkg/agentcfg:proto",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )
 
@@ -14,6 +15,7 @@ go_library(
     name = "api",
     srcs = [
         "api.pb.go",
+        "api.pb.validate.go",
         "get_agent_info.go",
         "get_allowed_agents.go",
         "get_project_info.go",
@@ -29,8 +31,10 @@ go_library(
         "//internal/gitlab",
         "//internal/tool/prototool",
         "//pkg/agentcfg",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )
 
@@ -40,6 +44,7 @@ go_custom_test(
         "get_agent_info_test.go",
         "get_project_info_test.go",
         "post_agent_configuration_test.go",
+        "validation_test.go",
     ],
     embed = [":api"],
     deps = [

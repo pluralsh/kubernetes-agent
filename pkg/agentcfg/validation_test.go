@@ -19,6 +19,27 @@ func TestValidation_Valid(t *testing.T) {
 				DefaultNamespace: "", // empty is ok
 			},
 		},
+		{
+			Name:  "empty CiAccessAsAgentCF",
+			Valid: &CiAccessAsAgentCF{},
+		},
+		{
+			Name:  "empty CiAccessAsCiJobCF",
+			Valid: &CiAccessAsCiJobCF{},
+		},
+		{
+			Name: "minimal CiAccessAsImpersonateCF",
+			Valid: &CiAccessAsImpersonateCF{
+				Username: "abc",
+			},
+		},
+		{
+			Name: "one group CiAccessAsImpersonateCF",
+			Valid: &CiAccessAsImpersonateCF{
+				Username: "abc",
+				Groups:   []string{"g"},
+			},
+		},
 	}
 	testhelpers.AssertValid(t, tests)
 }

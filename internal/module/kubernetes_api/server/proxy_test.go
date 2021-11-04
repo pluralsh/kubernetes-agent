@@ -151,7 +151,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil))
+	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil, nil))
 	req.URL.Path = requestPath
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -175,6 +175,7 @@ func TestProxy_HappyPath(t *testing.T) {
 		name          string
 		urlPathPrefix string
 		config        *gapi.Configuration
+		env           *gapi.Environment
 		expectedExtra *rpc.HeaderExtra
 	}{
 		{
@@ -239,10 +240,103 @@ func TestProxy_HappyPath(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:          "impersonate ci job no env",
+			urlPathPrefix: "/",
+			config: &gapi.Configuration{
+				AccessAs: &agentcfg.CiAccessAsCF{
+					As: &agentcfg.CiAccessAsCF_CiJob{
+						CiJob: &agentcfg.CiAccessAsCiJobCF{},
+					},
+				},
+			},
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{
+					Username: "gitlab:ci_job:1",
+					Groups:   []string{"gitlab:ci_job", "gitlab:group:6", "gitlab:project:3"},
+					Extra: []*rpc.ExtraKeyVal{
+						{
+							Key: "agent.gitlab.com/id",
+							Val: []string{"123"},
+						},
+						{
+							Key: "agent.gitlab.com/config_project_id",
+							Val: []string{"5"},
+						},
+						{
+							Key: "agent.gitlab.com/project_id",
+							Val: []string{"3"},
+						},
+						{
+							Key: "agent.gitlab.com/ci_pipeline_id",
+							Val: []string{"2"},
+						},
+						{
+							Key: "agent.gitlab.com/ci_job_id",
+							Val: []string{"1"},
+						},
+						{
+							Key: "agent.gitlab.com/username",
+							Val: []string{"testuser"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "impersonate ci job prod env",
+			urlPathPrefix: "/",
+			config: &gapi.Configuration{
+				AccessAs: &agentcfg.CiAccessAsCF{
+					As: &agentcfg.CiAccessAsCF_CiJob{
+						CiJob: &agentcfg.CiAccessAsCiJobCF{},
+					},
+				},
+			},
+			env: &gapi.Environment{
+				Slug: "prod",
+			},
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{
+					Username: "gitlab:ci_job:1",
+					Groups:   []string{"gitlab:ci_job", "gitlab:group:6", "gitlab:project:3", "gitlab:project_env:3:prod"},
+					Extra: []*rpc.ExtraKeyVal{
+						{
+							Key: "agent.gitlab.com/id",
+							Val: []string{"123"},
+						},
+						{
+							Key: "agent.gitlab.com/config_project_id",
+							Val: []string{"5"},
+						},
+						{
+							Key: "agent.gitlab.com/project_id",
+							Val: []string{"3"},
+						},
+						{
+							Key: "agent.gitlab.com/ci_pipeline_id",
+							Val: []string{"2"},
+						},
+						{
+							Key: "agent.gitlab.com/ci_job_id",
+							Val: []string{"1"},
+						},
+						{
+							Key: "agent.gitlab.com/username",
+							Val: []string{"testuser"},
+						},
+						{
+							Key: "agent.gitlab.com/environment_slug",
+							Val: []string{"prod"},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testProxyHappyPath(t, tc.urlPathPrefix, tc.expectedExtra, configGitLabHandler(t, tc.config))
+			testProxyHappyPath(t, tc.urlPathPrefix, tc.expectedExtra, configGitLabHandler(t, tc.config, tc.env))
 		})
 	}
 }
@@ -380,10 +474,10 @@ func assertToken(t *testing.T, r *http.Request) bool {
 }
 
 func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
-	return setupProxyWithHandler(t, "/", configGitLabHandler(t, nil))
+	return setupProxyWithHandler(t, "/", configGitLabHandler(t, nil, nil))
 }
 
-func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.ResponseWriter, r *http.Request) {
+func configGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Environment) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !assertToken(t, r) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -407,11 +501,17 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration) func(w http.R
 			},
 			Project: &gapi.Project{
 				Id: 3,
+				Groups: []*gapi.Group{
+					{
+						Id: 6,
+					},
+				},
 			},
 			User: &gapi.User{
-				Id:       3,
+				Id:       4,
 				Username: "testuser",
 			},
+			Environment: env,
 		}})
 	}
 }

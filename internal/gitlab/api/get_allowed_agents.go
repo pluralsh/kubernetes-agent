@@ -12,8 +12,9 @@ const (
 )
 
 func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, jobToken string, opts ...gitlab.DoOption) (*AllowedAgentsForJob, error) {
+	aa := &AllowedAgentsForJob{}
 	resp := &prototool.JsonBox{
-		Message: &AllowedAgentsForJob{},
+		Message: aa,
 	}
 	err := client.Do(ctx,
 		joinOpts(opts,
@@ -25,5 +26,9 @@ func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, 
 	if err != nil {
 		return nil, err
 	}
-	return resp.Message.(*AllowedAgentsForJob), nil
+	err = aa.Validate()
+	if err != nil {
+		return nil, err
+	}
+	return aa, nil
 }
