@@ -173,7 +173,7 @@ func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
 	}
 	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
 	testKeepalive(t, false, kp, sh, srv, func(t *testing.T, client test.TestingClient) {
-		resp, err := client.StreamingRequestResponse(context.Background())
+		resp, err := client.StreamingRequestResponse(context.Background()) // nolint: contextcheck
 		require.NoError(t, err)
 		_, err = resp.Recv()
 		require.Equal(t, io.EOF, err)

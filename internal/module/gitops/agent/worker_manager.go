@@ -88,7 +88,7 @@ func (m *workerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.Gitop
 
 	// Start new workers for new projects or because of updated configuration.
 	for _, project := range projectsToStartWorkersFor {
-		m.startNewWorker(agentId, project)
+		m.startNewWorker(agentId, project) // nolint: contextcheck
 	}
 	return nil
 }

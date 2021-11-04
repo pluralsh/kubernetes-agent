@@ -25,6 +25,6 @@ func DialerForGRPC(readLimit int64, dialOpts *websocket.DialOptions) func(contex
 		if readLimit != 0 {
 			conn.SetReadLimit(readLimit)
 		}
-		return websocket.NetConn(context.Background(), conn, websocket.MessageBinary), nil
+		return websocket.NetConn(context.Background(), conn, websocket.MessageBinary), nil // nolint: contextcheck
 	}
 }

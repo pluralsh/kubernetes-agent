@@ -31,7 +31,8 @@ func (m *module) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			ctxExit, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			m.sendUsage(ctxExit) // Flush metrics before exiting
+			// Flush metrics before exiting
+			m.sendUsage(ctxExit) // nolint: contextcheck
 			cancel()
 			return nil
 		case <-ticker.C:

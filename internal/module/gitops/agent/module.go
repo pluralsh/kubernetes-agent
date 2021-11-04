@@ -33,7 +33,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	wm := newWorkerManager(m.log, m.workerFactory)
 	defer wm.stopAllWorkers()
 	for config := range cfg {
-		err := wm.ApplyConfiguration(config.AgentId, config.Gitops)
+		err := wm.ApplyConfiguration(config.AgentId, config.Gitops) // nolint: contextcheck
 		if err != nil {
 			m.log.Error("Failed to apply manifest projects configuration", logz.Error(err))
 			continue

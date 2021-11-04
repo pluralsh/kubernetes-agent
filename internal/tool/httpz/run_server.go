@@ -20,7 +20,7 @@ func RunServer(ctx context.Context, srv *http.Server, listener net.Listener, shu
 		<-ctx.Done()
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer shutdownCancel()
-		if srv.Shutdown(shutdownCtx) != nil {
+		if srv.Shutdown(shutdownCtx) != nil { // nolint: contextcheck
 			srv.Close() // nolint: errcheck,gas,gosec
 			// unhandled error above, but we are terminating anyway
 		}
