@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -31,36 +32,78 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on ObjectsToSynchronizeRequest with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ObjectsToSynchronizeRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ObjectsToSynchronizeRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ObjectsToSynchronizeRequestMultiError, or nil if none found.
+func (m *ObjectsToSynchronizeRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ObjectsToSynchronizeRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if len(m.GetProjectId()) < 1 {
-		return ObjectsToSynchronizeRequestValidationError{
+		err := ObjectsToSynchronizeRequestValidationError{
 			field:  "ProjectId",
 			reason: "value length must be at least 1 bytes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for CommitId
 
 	if len(m.GetPaths()) < 1 {
-		return ObjectsToSynchronizeRequestValidationError{
+		err := ObjectsToSynchronizeRequestValidationError{
 			field:  "Paths",
 			reason: "value must contain at least 1 item(s)",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	for idx, item := range m.GetPaths() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeRequestValidationError{
+						field:  fmt.Sprintf("Paths[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeRequestValidationError{
+						field:  fmt.Sprintf("Paths[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeRequestValidationError{
 					field:  fmt.Sprintf("Paths[%v]", idx),
@@ -72,8 +115,28 @@ func (m *ObjectsToSynchronizeRequest) Validate() error {
 
 	}
 
+	if len(errors) > 0 {
+		return ObjectsToSynchronizeRequestMultiError(errors)
+	}
 	return nil
 }
+
+// ObjectsToSynchronizeRequestMultiError is an error wrapping multiple
+// validation errors returned by ObjectsToSynchronizeRequest.ValidateAll() if
+// the designated constraints aren't met.
+type ObjectsToSynchronizeRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObjectsToSynchronizeRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObjectsToSynchronizeRequestMultiError) AllErrors() []error { return m }
 
 // ObjectsToSynchronizeRequestValidationError is the validation error returned
 // by ObjectsToSynchronizeRequest.Validate if the designated constraints
@@ -134,17 +197,50 @@ var _ interface {
 
 // Validate checks the field values on ObjectsToSynchronizeResponse with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ObjectsToSynchronizeResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ObjectsToSynchronizeResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ObjectsToSynchronizeResponseMultiError, or nil if none found.
+func (m *ObjectsToSynchronizeResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	switch m.Message.(type) {
 
 	case *ObjectsToSynchronizeResponse_Header_:
 
-		if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetHeader()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Header",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Header",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeResponseValidationError{
 					field:  "Header",
@@ -156,7 +252,26 @@ func (m *ObjectsToSynchronizeResponse) Validate() error {
 
 	case *ObjectsToSynchronizeResponse_Object_:
 
-		if v, ok := interface{}(m.GetObject()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetObject()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Object",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Object",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetObject()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeResponseValidationError{
 					field:  "Object",
@@ -168,7 +283,26 @@ func (m *ObjectsToSynchronizeResponse) Validate() error {
 
 	case *ObjectsToSynchronizeResponse_Trailer_:
 
-		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetTrailer()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Trailer",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ObjectsToSynchronizeResponseValidationError{
+						field:  "Trailer",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeResponseValidationError{
 					field:  "Trailer",
@@ -179,15 +313,39 @@ func (m *ObjectsToSynchronizeResponse) Validate() error {
 		}
 
 	default:
-		return ObjectsToSynchronizeResponseValidationError{
+		err := ObjectsToSynchronizeResponseValidationError{
 			field:  "Message",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 
 	}
 
+	if len(errors) > 0 {
+		return ObjectsToSynchronizeResponseMultiError(errors)
+	}
 	return nil
 }
+
+// ObjectsToSynchronizeResponseMultiError is an error wrapping multiple
+// validation errors returned by ObjectsToSynchronizeResponse.ValidateAll() if
+// the designated constraints aren't met.
+type ObjectsToSynchronizeResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObjectsToSynchronizeResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObjectsToSynchronizeResponseMultiError) AllErrors() []error { return m }
 
 // ObjectsToSynchronizeResponseValidationError is the validation error returned
 // by ObjectsToSynchronizeResponse.Validate if the designated constraints
@@ -248,23 +406,63 @@ var _ interface {
 
 // Validate checks the field values on ObjectsToSynchronizeResponse_Header with
 // the rules defined in the proto definition for this message. If any rules
-// are violated, an error is returned.
+// are violated, the first error encountered is returned, or nil if there are
+// no violations.
 func (m *ObjectsToSynchronizeResponse_Header) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ObjectsToSynchronizeResponse_Header
+// with the rules defined in the proto definition for this message. If any
+// rules are violated, the result is a list of violation errors wrapped in
+// ObjectsToSynchronizeResponse_HeaderMultiError, or nil if none found.
+func (m *ObjectsToSynchronizeResponse_Header) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ObjectsToSynchronizeResponse_Header) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if len(m.GetCommitId()) < 1 {
-		return ObjectsToSynchronizeResponse_HeaderValidationError{
+		err := ObjectsToSynchronizeResponse_HeaderValidationError{
 			field:  "CommitId",
 			reason: "value length must be at least 1 bytes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for ProjectId
 
+	if len(errors) > 0 {
+		return ObjectsToSynchronizeResponse_HeaderMultiError(errors)
+	}
 	return nil
 }
+
+// ObjectsToSynchronizeResponse_HeaderMultiError is an error wrapping multiple
+// validation errors returned by
+// ObjectsToSynchronizeResponse_Header.ValidateAll() if the designated
+// constraints aren't met.
+type ObjectsToSynchronizeResponse_HeaderMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObjectsToSynchronizeResponse_HeaderMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObjectsToSynchronizeResponse_HeaderMultiError) AllErrors() []error { return m }
 
 // ObjectsToSynchronizeResponse_HeaderValidationError is the validation error
 // returned by ObjectsToSynchronizeResponse_Header.Validate if the designated
@@ -325,23 +523,63 @@ var _ interface {
 
 // Validate checks the field values on ObjectsToSynchronizeResponse_Object with
 // the rules defined in the proto definition for this message. If any rules
-// are violated, an error is returned.
+// are violated, the first error encountered is returned, or nil if there are
+// no violations.
 func (m *ObjectsToSynchronizeResponse_Object) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ObjectsToSynchronizeResponse_Object
+// with the rules defined in the proto definition for this message. If any
+// rules are violated, the result is a list of violation errors wrapped in
+// ObjectsToSynchronizeResponse_ObjectMultiError, or nil if none found.
+func (m *ObjectsToSynchronizeResponse_Object) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ObjectsToSynchronizeResponse_Object) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if len(m.GetSource()) < 1 {
-		return ObjectsToSynchronizeResponse_ObjectValidationError{
+		err := ObjectsToSynchronizeResponse_ObjectValidationError{
 			field:  "Source",
 			reason: "value length must be at least 1 bytes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for Data
 
+	if len(errors) > 0 {
+		return ObjectsToSynchronizeResponse_ObjectMultiError(errors)
+	}
 	return nil
 }
+
+// ObjectsToSynchronizeResponse_ObjectMultiError is an error wrapping multiple
+// validation errors returned by
+// ObjectsToSynchronizeResponse_Object.ValidateAll() if the designated
+// constraints aren't met.
+type ObjectsToSynchronizeResponse_ObjectMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObjectsToSynchronizeResponse_ObjectMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObjectsToSynchronizeResponse_ObjectMultiError) AllErrors() []error { return m }
 
 // ObjectsToSynchronizeResponse_ObjectValidationError is the validation error
 // returned by ObjectsToSynchronizeResponse_Object.Validate if the designated
@@ -402,14 +640,50 @@ var _ interface {
 
 // Validate checks the field values on ObjectsToSynchronizeResponse_Trailer
 // with the rules defined in the proto definition for this message. If any
-// rules are violated, an error is returned.
+// rules are violated, the first error encountered is returned, or nil if
+// there are no violations.
 func (m *ObjectsToSynchronizeResponse_Trailer) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ObjectsToSynchronizeResponse_Trailer
+// with the rules defined in the proto definition for this message. If any
+// rules are violated, the result is a list of violation errors wrapped in
+// ObjectsToSynchronizeResponse_TrailerMultiError, or nil if none found.
+func (m *ObjectsToSynchronizeResponse_Trailer) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ObjectsToSynchronizeResponse_Trailer) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return ObjectsToSynchronizeResponse_TrailerMultiError(errors)
+	}
 	return nil
 }
+
+// ObjectsToSynchronizeResponse_TrailerMultiError is an error wrapping multiple
+// validation errors returned by
+// ObjectsToSynchronizeResponse_Trailer.ValidateAll() if the designated
+// constraints aren't met.
+type ObjectsToSynchronizeResponse_TrailerMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObjectsToSynchronizeResponse_TrailerMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObjectsToSynchronizeResponse_TrailerMultiError) AllErrors() []error { return m }
 
 // ObjectsToSynchronizeResponse_TrailerValidationError is the validation error
 // returned by ObjectsToSynchronizeResponse_Trailer.Validate if the designated

@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -31,15 +32,30 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on GetConnectedAgentsRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *GetConnectedAgentsRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetConnectedAgentsRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetConnectedAgentsRequestMultiError, or nil if none found.
+func (m *GetConnectedAgentsRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetConnectedAgentsRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	switch m.Request.(type) {
 
@@ -50,15 +66,39 @@ func (m *GetConnectedAgentsRequest) Validate() error {
 		// no validation rules for AgentId
 
 	default:
-		return GetConnectedAgentsRequestValidationError{
+		err := GetConnectedAgentsRequestValidationError{
 			field:  "Request",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 
 	}
 
+	if len(errors) > 0 {
+		return GetConnectedAgentsRequestMultiError(errors)
+	}
 	return nil
 }
+
+// GetConnectedAgentsRequestMultiError is an error wrapping multiple validation
+// errors returned by GetConnectedAgentsRequest.ValidateAll() if the
+// designated constraints aren't met.
+type GetConnectedAgentsRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetConnectedAgentsRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetConnectedAgentsRequestMultiError) AllErrors() []error { return m }
 
 // GetConnectedAgentsRequestValidationError is the validation error returned by
 // GetConnectedAgentsRequest.Validate if the designated constraints aren't met.
@@ -118,16 +158,49 @@ var _ interface {
 
 // Validate checks the field values on GetConnectedAgentsResponse with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *GetConnectedAgentsResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetConnectedAgentsResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetConnectedAgentsResponseMultiError, or nil if none found.
+func (m *GetConnectedAgentsResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetConnectedAgentsResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	for idx, item := range m.GetAgents() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, GetConnectedAgentsResponseValidationError{
+						field:  fmt.Sprintf("Agents[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, GetConnectedAgentsResponseValidationError{
+						field:  fmt.Sprintf("Agents[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return GetConnectedAgentsResponseValidationError{
 					field:  fmt.Sprintf("Agents[%v]", idx),
@@ -139,8 +212,28 @@ func (m *GetConnectedAgentsResponse) Validate() error {
 
 	}
 
+	if len(errors) > 0 {
+		return GetConnectedAgentsResponseMultiError(errors)
+	}
 	return nil
 }
+
+// GetConnectedAgentsResponseMultiError is an error wrapping multiple
+// validation errors returned by GetConnectedAgentsResponse.ValidateAll() if
+// the designated constraints aren't met.
+type GetConnectedAgentsResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetConnectedAgentsResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetConnectedAgentsResponseMultiError) AllErrors() []error { return m }
 
 // GetConnectedAgentsResponseValidationError is the validation error returned
 // by GetConnectedAgentsResponse.Validate if the designated constraints aren't met.

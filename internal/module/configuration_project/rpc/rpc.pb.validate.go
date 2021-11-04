@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -31,24 +32,62 @@ var (
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on ListAgentConfigFilesRequest with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ListAgentConfigFilesRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListAgentConfigFilesRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListAgentConfigFilesRequestMultiError, or nil if none found.
+func (m *ListAgentConfigFilesRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if m.GetRepository() == nil {
-		return ListAgentConfigFilesRequestValidationError{
+		err := ListAgentConfigFilesRequestValidationError{
 			field:  "Repository",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetRepository()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetRepository()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ListAgentConfigFilesRequestValidationError{
+					field:  "Repository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ListAgentConfigFilesRequestValidationError{
+					field:  "Repository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRepository()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ListAgentConfigFilesRequestValidationError{
 				field:  "Repository",
@@ -59,13 +98,36 @@ func (m *ListAgentConfigFilesRequest) Validate() error {
 	}
 
 	if m.GetGitalyAddress() == nil {
-		return ListAgentConfigFilesRequestValidationError{
+		err := ListAgentConfigFilesRequestValidationError{
 			field:  "GitalyAddress",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetGitalyAddress()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetGitalyAddress()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ListAgentConfigFilesRequestValidationError{
+					field:  "GitalyAddress",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ListAgentConfigFilesRequestValidationError{
+					field:  "GitalyAddress",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitalyAddress()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ListAgentConfigFilesRequestValidationError{
 				field:  "GitalyAddress",
@@ -75,8 +137,28 @@ func (m *ListAgentConfigFilesRequest) Validate() error {
 		}
 	}
 
+	if len(errors) > 0 {
+		return ListAgentConfigFilesRequestMultiError(errors)
+	}
 	return nil
 }
+
+// ListAgentConfigFilesRequestMultiError is an error wrapping multiple
+// validation errors returned by ListAgentConfigFilesRequest.ValidateAll() if
+// the designated constraints aren't met.
+type ListAgentConfigFilesRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListAgentConfigFilesRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListAgentConfigFilesRequestMultiError) AllErrors() []error { return m }
 
 // ListAgentConfigFilesRequestValidationError is the validation error returned
 // by ListAgentConfigFilesRequest.Validate if the designated constraints
@@ -137,16 +219,49 @@ var _ interface {
 
 // Validate checks the field values on ListAgentConfigFilesResponse with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ListAgentConfigFilesResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListAgentConfigFilesResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListAgentConfigFilesResponseMultiError, or nil if none found.
+func (m *ListAgentConfigFilesResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListAgentConfigFilesResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	for idx, item := range m.GetConfigFiles() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ListAgentConfigFilesResponseValidationError{
+						field:  fmt.Sprintf("ConfigFiles[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ListAgentConfigFilesResponseValidationError{
+						field:  fmt.Sprintf("ConfigFiles[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ListAgentConfigFilesResponseValidationError{
 					field:  fmt.Sprintf("ConfigFiles[%v]", idx),
@@ -158,8 +273,28 @@ func (m *ListAgentConfigFilesResponse) Validate() error {
 
 	}
 
+	if len(errors) > 0 {
+		return ListAgentConfigFilesResponseMultiError(errors)
+	}
 	return nil
 }
+
+// ListAgentConfigFilesResponseMultiError is an error wrapping multiple
+// validation errors returned by ListAgentConfigFilesResponse.ValidateAll() if
+// the designated constraints aren't met.
+type ListAgentConfigFilesResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListAgentConfigFilesResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListAgentConfigFilesResponseMultiError) AllErrors() []error { return m }
 
 // ListAgentConfigFilesResponseValidationError is the validation error returned
 // by ListAgentConfigFilesResponse.Validate if the designated constraints
@@ -219,19 +354,53 @@ var _ interface {
 } = ListAgentConfigFilesResponseValidationError{}
 
 // Validate checks the field values on AgentConfigFile with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
 func (m *AgentConfigFile) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AgentConfigFile with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AgentConfigFileMultiError, or nil if none found.
+func (m *AgentConfigFile) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AgentConfigFile) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Name
 
 	// no validation rules for AgentName
 
+	if len(errors) > 0 {
+		return AgentConfigFileMultiError(errors)
+	}
 	return nil
 }
+
+// AgentConfigFileMultiError is an error wrapping multiple validation errors
+// returned by AgentConfigFile.ValidateAll() if the designated constraints
+// aren't met.
+type AgentConfigFileMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AgentConfigFileMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AgentConfigFileMultiError) AllErrors() []error { return m }
 
 // AgentConfigFileValidationError is the validation error returned by
 // AgentConfigFile.Validate if the designated constraints aren't met.
