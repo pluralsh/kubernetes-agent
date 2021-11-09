@@ -7,6 +7,7 @@ package gitlab.agent.gitlab.api;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api";
 
 import "pkg/agentcfg/agentcfg.proto";
+import "validate/validate.proto";
 
 // Configuration contains shared fields from agentcfg.CiAccessProjectCF and agentcfg.CiAccessGroupCF.
 // It is used to parse response from the allowed_agents API endpoint.
@@ -18,7 +19,7 @@ message Configuration {
 
 message AllowedAgent {
   int64 id = 1 [json_name = "id"];
-  ConfigProject config_project = 2 [json_name = "config_project"];
+  ConfigProject config_project = 2 [json_name = "config_project", (validate.rules).message.required = true];
   Configuration configuration = 3 [json_name = "configuration"];
 }
 
@@ -32,6 +33,11 @@ message Pipeline {
 
 message Project {
   int64 id = 1 [json_name = "id"];
+  repeated Group groups = 2 [json_name = "groups"];
+}
+
+message Group {
+  int64 id = 1 [json_name = "id"];
 }
 
 message Job {
@@ -40,13 +46,18 @@ message Job {
 
 message User {
   int64 id = 1 [json_name = "id"];
-  string username = 2 [json_name = "username"];
+  string username = 2 [json_name = "username", (validate.rules).string.min_bytes = 1];
+}
+
+message Environment {
+  string slug = 1 [json_name = "slug", (validate.rules).string.min_bytes = 1];
 }
 
 message AllowedAgentsForJob {
   repeated AllowedAgent allowed_agents = 1 [json_name = "allowed_agents"];
-  Job job = 2 [json_name = "job"];
-  Pipeline pipeline = 3 [json_name = "pipeline"];
-  Project project = 4 [json_name = "project"];
-  User user = 5 [json_name = "user"];
+  Job job = 2 [json_name = "job", (validate.rules).message.required = true];
+  Pipeline pipeline = 3 [json_name = "pipeline", (validate.rules).message.required = true];
+  Project project = 4 [json_name = "project", (validate.rules).message.required = true];
+  User user = 5 [json_name = "user", (validate.rules).message.required = true];
+  Environment environment = 6 [json_name = "environment"]; // optional
 }

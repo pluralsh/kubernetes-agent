@@ -115,7 +115,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	p.requestCount.Inc() // Count only authenticated and authorized requests
 
-	impConfig, err := constructImpersonationConfig(aa)
+	impConfig, err := constructImpersonationConfig(allowedForJob, aa)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		p.api.HandleProcessingError(ctx, log, agentId, "Failed to construct impersonation config", err)
@@ -222,29 +222,35 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 	return agentId, token, nil
 }
 
-func constructImpersonationConfig(aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
+func constructImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
 	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
 	if as == nil {
 		as = &agentcfg.CiAccessAsCF_Agent{} // default value
 	}
 	switch imp := as.(type) {
+	case *agentcfg.CiAccessAsCF_Agent:
+		return &rpc.ImpersonationConfig{}, nil
 	case *agentcfg.CiAccessAsCF_Impersonate:
 		i := imp.Impersonate
 		return &rpc.ImpersonationConfig{
 			Username: i.Username,
 			Groups:   i.Groups,
 			Uid:      i.Uid,
-			Extra:    convertExtra(i.Extra),
+			Extra:    impImpersonationExtra(i.Extra),
 		}, nil
-	case *agentcfg.CiAccessAsCF_Agent:
-		return &rpc.ImpersonationConfig{}, nil
+	case *agentcfg.CiAccessAsCF_CiJob:
+		return &rpc.ImpersonationConfig{
+			Username: fmt.Sprintf("gitlab:ci_job:%d", allowedForJob.Job.Id),
+			Groups:   impCiJobGroups(allowedForJob),
+			Extra:    impCiJobExtra(allowedForJob, aa),
+		}, nil
 	default:
 		// Normally this should never happen
 		return nil, fmt.Errorf("unexpected impersonation mode: %T", imp)
 	}
 }
 
-func convertExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
+func impImpersonationExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
 	out := make([]*rpc.ExtraKeyVal, 0, len(in))
 	for _, kv := range in {
 		out = append(out, &rpc.ExtraKeyVal{
@@ -253,4 +259,57 @@ func convertExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
 		})
 	}
 	return out
+}
+
+func impCiJobGroups(allowedForJob *gapi.AllowedAgentsForJob) []string {
+	// 1. gitlab:ci_job to identify all requests coming from CI jobs.
+	groups := make([]string, 0, 3+len(allowedForJob.Project.Groups))
+	groups = append(groups, "gitlab:ci_job")
+	// 2. The list of ids of groups the project is in.
+	for _, projectGroup := range allowedForJob.Project.Groups {
+		groups = append(groups, fmt.Sprintf("gitlab:group:%d", projectGroup.Id))
+	}
+	// 3. The project id.
+	groups = append(groups, fmt.Sprintf("gitlab:project:%d", allowedForJob.Project.Id))
+	// 4. The slug of the environment this job belongs to, if set.
+	if allowedForJob.Environment != nil {
+		groups = append(groups, fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Slug))
+	}
+	return groups
+}
+
+func impCiJobExtra(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) []*rpc.ExtraKeyVal {
+	extra := []*rpc.ExtraKeyVal{
+		{
+			Key: "agent.gitlab.com/id",
+			Val: []string{strconv.FormatInt(aa.Id, 10)}, // agent id
+		},
+		{
+			Key: "agent.gitlab.com/config_project_id",
+			Val: []string{strconv.FormatInt(aa.ConfigProject.Id, 10)}, // agent's configuration project id
+		},
+		{
+			Key: "agent.gitlab.com/project_id",
+			Val: []string{strconv.FormatInt(allowedForJob.Project.Id, 10)}, // CI project id
+		},
+		{
+			Key: "agent.gitlab.com/ci_pipeline_id",
+			Val: []string{strconv.FormatInt(allowedForJob.Pipeline.Id, 10)}, // CI pipeline id
+		},
+		{
+			Key: "agent.gitlab.com/ci_job_id",
+			Val: []string{strconv.FormatInt(allowedForJob.Job.Id, 10)}, // CI job id
+		},
+		{
+			Key: "agent.gitlab.com/username",
+			Val: []string{allowedForJob.User.Username}, // username of the user the CI job is running as
+		},
+	}
+	if allowedForJob.Environment != nil {
+		extra = append(extra, &rpc.ExtraKeyVal{
+			Key: "agent.gitlab.com/environment_slug",
+			Val: []string{allowedForJob.Environment.Slug}, // slug of the environment, if set
+		})
+	}
+	return extra
 }

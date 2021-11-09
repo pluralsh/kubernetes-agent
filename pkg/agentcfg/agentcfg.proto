@@ -114,17 +114,17 @@ message CiAccessAsCF {
 
     CiAccessAsAgentCF agent = 1 [json_name = "agent"];
     CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate"];
-//    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job"];
-//    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user"];
+    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job"];
+    //    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user"];
   }
 }
 
 message CiAccessAsAgentCF {
 }
 
-//message CiAccessAsCiJobCF {
-//}
-//
+message CiAccessAsCiJobCF {
+}
+
 //message CiAccessAsCiUserCF {
 //}
 
