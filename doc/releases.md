@@ -10,6 +10,8 @@
 1. Make an MR to update `kas` image tag for `pre` and `gstg` in
    https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com, and get an SRE to deploy that MR.
    [Example MR](https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com/-/merge_requests/1318).
+   This MR should bump the image tag to the desired version, and should use the
+   `-race` images that include [data race detection](https://golang.org/doc/articles/race_detector).
 1. We should test the new version of `kas` on `gstg` with a real agent. An end-to-end QA test with a real agent
    and GitLab that runs automatically as part of the nightly QA process.
    is [planned](https://gitlab.com/groups/gitlab-org/-/epics/4949). For now, you can use `gstg` + an agent in
