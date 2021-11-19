@@ -7,3 +7,6 @@ It's implemented as two communicating pieces - GitLab Kubernetes Agent (`agentk`
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Third-party trademarks
+[Kubernetes](https://kubernetes.io/) is a registered trademark of The Linux Foundation.
