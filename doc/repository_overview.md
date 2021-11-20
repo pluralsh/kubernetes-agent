@@ -1,9 +1,9 @@
 # Repository overview
 
-This page describes the subfolders of the Kubernetes Agent repository.
+This page describes the subfolders of the GitLab Agent repository.
 
 For a video overview, see
-[GitLab Kubernetes Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
+[GitLab Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
 
 ## `build`
 
@@ -19,8 +19,8 @@ to create a custom package to install `agentk`.
 
 Commands are binaries that this repository produces. They are:
 
-- `kas` is the GitLab Kubernetes Agent Server binary.
-- `agentk` is the GitLab Kubernetes Agent binary.
+- `kas` is the GitLab Agent Server binary.
+- `agentk` is the GitLab Agent binary.
 - `cli` is the quick installation command line tool.
 
 Each of these directories contain application bootstrap code for:
