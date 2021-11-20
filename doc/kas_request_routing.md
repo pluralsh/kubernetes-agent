@@ -1,7 +1,7 @@
-# Routing `kas` requests in the Kubernetes Agent
+# Routing `kas` requests in the Agent
 
 This document describes how `kas` routes requests to concrete `agentk` instances.
-GitLab must talk to GitLab Kubernetes Agent Server (`kas`) to:
+GitLab must talk to GitLab Agent Server (`kas`) to:
 
 - Get information about connected agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/249560).
 - Interact with agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/230571).
@@ -132,7 +132,7 @@ how a request is routed, rather than distributing the decision across several `k
 This section explains how the `kas`-> `kas` -> `agentk` gRPC request routing is implemented.
 
 For a video overview of how some of the blocks map to code, see
-[GitLab Kubernetes Agent reverse gRPC tunnel architecture and code overview
+[GitLab Agent reverse gRPC tunnel architecture and code overview
 ](https://www.youtube.com/watch?v=9pnQF76hyZc).
 
 #### High level schema
