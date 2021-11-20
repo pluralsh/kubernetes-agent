@@ -1,7 +1,7 @@
 # Identity and authentication
 
 This page uses the word `agent` to describe the concept of the
-GitLab Kubernetes Agent. The program that implements the concept is called `agentk`.
+GitLab Agent for Kubernetes. The program that implements the concept is called `agentk`.
 Read the
 [architecture page](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/architecture.md)
 for more information.
@@ -43,7 +43,7 @@ These permissions enable the agent administrator to follow the
 [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
 and minimize the permissions each particular agent needs.
 
-## Kubernetes Agent authentication
+## Agent authentication
 
 When adding a new agent, GitLab provides the user with a bearer access token. The
 agent uses this token to authenticate with GitLab. This token is a random string
@@ -80,7 +80,7 @@ For each request, GitLab checks the token's validity:
 
 This information may be cached for some time to reduce load on the database.
 
-## Kubernetes Agent authorization
+## Agent authorization
 
 GitLab provides the following information in its response for a given Agent access token:
 
