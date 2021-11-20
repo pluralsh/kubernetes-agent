@@ -1,8 +1,8 @@
-# GitLab Kubernetes Agent
+# GitLab Agent for Kubernetes
 
 ## Description
 
-Package for installing GitLab Kubernetes Agent.
+Package for installing GitLab Agent.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Package for installing GitLab Kubernetes Agent.
 
 ## Configuration
 
-GitLab Kubernetes Agent needs two pieces of configuration to connect to a GitLab instance:
+GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 
 1. URL. The agent can use WebSockets or gRPC protocols to connect to GitLab. Depending
    on how your GitLab instance is configured, you may need to use one or the other.
@@ -64,7 +64,7 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
                                                                   e.g. from kind.
     name-prefix                                                   Prefix for resource names          1       No         No
     namespace           gitlab-agent            package-default   Namespace to install GitLab        1       No         No
-                                                                  Kubernetes Agent into
+                                                                  Agent into
     prometheus-scrape   true                    package-default   Enable or disable Prometheus       1       No         No
                                                                   scraping of agentk metrics.
     kustomize cfg set . namespace custom-place
