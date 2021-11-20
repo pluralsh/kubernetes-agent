@@ -3,7 +3,7 @@
 ## Problem to solve
 
 As an Application Operator, I would like certain CI jobs to be able to access my Kubernetes cluster, connected
-via GitLab Kubernetes Agent. That way I don't have to open up my cluster to access it from CI.
+via GitLab Agent. That way I don't have to open up my cluster to access it from CI.
 
 ## Intended users
 
@@ -12,15 +12,15 @@ via GitLab Kubernetes Agent. That way I don't have to open up my cluster to acce
 
 ## User experience goal
 
-The user can allow certain CI jobs to access Kubernetes clusters connected via GitLab Kubernetes Agent.
+The user can allow certain CI jobs to access Kubernetes clusters connected via the GitLab Agent.
 
-A single CI job can access multiple clusters, that is to access multiple Kubernetes Agents.
+A single CI job can access multiple clusters, that is to access multiple Agents.
 This is often required in production environments, where the production environment is composed of multiple clusters
 in different regions/availability zones.
 
 ## Proposal
 
-In the Kubernetes Agent's configuration file, managed as code in the configuration project, user specifies a list of
+In the Agent's configuration file, managed as code in the configuration project, user specifies a list of
 projects and groups, CI jobs from which can access this particular agent. CI jobs of the configuration project itself
 can access all agents configured via this project (TODO security review).
 
@@ -59,7 +59,7 @@ When a CI job, that has access to one or more agents, runs, GitLab injects a
 [`KUBECONFIG` environment variable](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#the-kubeconfig-environment-variable)
 to its location on disk. The file contains a
 [context](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#context)
-per GitLab Kubernetes Agent that this CI job is allowed to access.
+per GitLab Agent that this CI job is allowed to access.
 
 The `ci_access.projects[].default_namespace` specifies the namespace for the context used in the CI/CD tunnel. Omitting `default_namespace` does not set a namespace in the context.
 
