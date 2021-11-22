@@ -1,6 +1,6 @@
 # GitOps support
 
-The GitLab Kubernetes Agent supports the
+The GitLab Agent for Kubernetes supports the
 [pull-based version](https://www.gitops.tech/#pull-based-deployments) of
 [GitOps](https://www.gitops.tech/). To be useful, the feature must be able to perform these tasks:
 
