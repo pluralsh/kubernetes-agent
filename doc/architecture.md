@@ -1,4 +1,4 @@
-# Kubernetes Agent architecture
+# Agent architecture
 
 ## Issues the agent is trying to address
 
@@ -22,16 +22,16 @@
 
 ## High-level architecture
 
-The GitLab Kubernetes Agent and the GitLab Kubernetes Agent Server use
+The GitLab Agent and the GitLab Agent Server use
 [bidirectional streaming](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
-to allow the connection acceptor (the gRPC server, GitLab Kubernetes Agent Server) to
+to allow the connection acceptor (the gRPC server, GitLab Agent Server) to
 act as a client. The connection acceptor sends requests as gRPC replies. The client-server
 relationship is inverted because the connection must be initiated from inside the
 Kubernetes cluster to bypass any firewall or NAT the cluster may be located behind.
 To learn more about this inversion, read
 [issue #212810](https://gitlab.com/gitlab-org/gitlab/-/issues/212810).
 
-This diagram describes how GitLab (`GitLab RoR`), the GitLab Kubernetes Agent (`agentk`), and the GitLab Kubernetes Agent Server (`kas`) work together.
+This diagram describes how GitLab (`GitLab RoR`), the GitLab Agent (`agentk`), and the GitLab Agent Server (`kas`) work together.
 
 ```mermaid
 graph TB
@@ -50,10 +50,10 @@ graph TB
 ```
 
 - `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kas`.
-- `agentk` is the GitLab Kubernetes Agent. It keeps a connection established to a
+- `agentk` is the GitLab Agent. It keeps a connection established to a
   `kas` instance, waiting for requests to process. It may also actively send information
   about things happening in the cluster.
-- `kas` is the GitLab Kubernetes Agent Server, and is responsible for:
+- `kas` is the GitLab Agent Server, and is responsible for:
   - Accepting requests from `agentk`.
   - [Authentication of requests](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md) from `agentk` by querying `GitLab RoR`.
   - Fetching agent's configuration from a corresponding Git repository by querying Gitaly.
@@ -64,7 +64,7 @@ graph TB
 
 <i class="fa fa-youtube-play youtube" aria-hidden="true"></i>
 To learn more about how the repository is structured, see
-[GitLab Kubernetes Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
+[GitLab Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
 
 ## Guiding principles
 
