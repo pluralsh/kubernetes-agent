@@ -1,7 +1,7 @@
-# Kubernetes Agent user stories
+# GitLab Agent user stories
 
 The [personas in action](https://about.gitlab.com/handbook/marketing/strategic-marketing/roles-personas/#user-personas)
-for the Kubernetes Agent are:
+for the Agent are:
 
 - [Sasha, the Software Developer](https://about.gitlab.com/handbook/marketing/strategic-marketing/roles-personas/#sasha-software-developer).
 - [Allison, the Application Operator](https://about.gitlab.com/handbook/marketing/strategic-marketing/roles-personas/#allison-application-ops).
