@@ -5,11 +5,11 @@
 You can watch the video below to understand how this repository is
 structured:
 
-[![GitLab Kubernetes Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/0.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "GitLab Kubernetes Agent repository overview")
+[![GitLab Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/0.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "GitLab Agent repository overview")
 
 ## Running kas and agentk locally
 
-You can run `kas` and `agentk` locally to test the Kubernetes Agent yourself.
+You can run `kas` and `agentk` locally to test the Agent yourself.
 
 1. Create a `token.txt`. This is the token for
    [the agent you created](https://docs.gitlab.com/ee/user/clusters/agent/index.html#create-an-agent-record-in-gitlab).
