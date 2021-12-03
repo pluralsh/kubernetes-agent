@@ -41,6 +41,14 @@ stages:
         echo "build --remote_download_minimal" >> .bazelrc
         echo "run --remote_download_outputs=toplevel" >> .bazelrc
       fi
+    # https://docs.buildbuddy.io/docs/guide-metadata/
+    - |
+      if [ -n "$BUILDBUDDY_API_KEY" ]; then
+        echo "build --build_metadata=VISIBILITY=PUBLIC" >> .bazelrc
+        echo "build --bes_results_url=https://app.buildbuddy.io/invocation/" >> .bazelrc
+        echo "build --bes_backend=grpcs://cloud.buildbuddy.io" >> .bazelrc
+        echo "build --remote_header=x-buildbuddy-api-key=$BUILDBUDDY_API_KEY" >> .bazelrc
+      fi
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
   #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
