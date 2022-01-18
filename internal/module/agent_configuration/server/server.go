@@ -135,7 +135,9 @@ func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	configYAML, err := pf.FetchFile(ctx, agentInfo.Repository, []byte(commitId), []byte(filename), s.maxConfigurationFileSize)
 	if err != nil {
 		switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
-		case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+		case gitaly.NotFound:
+			configYAML = nil // Missing config is the same as empty config
+		case gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
 			return nil, errz.NewUserErrorWithCause(err, "agent configuration file")
 		default:
 			return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
