@@ -67,6 +67,10 @@ func TestEmptyConfig(t *testing.T) {
 		data := []byte("\n")
 		assertEmpty(t, data)
 	})
+	t.Run("missing", func(t *testing.T) {
+		var data []byte
+		assertEmpty(t, data)
+	})
 }
 
 func assertEmpty(t *testing.T, data []byte) {
@@ -190,9 +194,44 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetConfiguration_ConfigNotFound(t *testing.T) {
+	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
+	resp.EXPECT().
+		Send(matcher.ProtoEq(t, &rpc.ConfigurationResponse{
+			Configuration: &agentcfg.AgentConfiguration{
+				AgentId:   agentInfo.Id,
+				ProjectId: agentInfo.ProjectId,
+			},
+			CommitId: revision,
+		}))
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
+	configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				UpdateAvailable: true,
+				CommitId:        revision,
+			}, nil),
+		gitalyPool.EXPECT().
+			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(pf, nil),
+		pf.EXPECT().
+			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
+			Return(nil, gitaly.NewNotFoundError("Bla", "some/file")),
+	)
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
+	require.NoError(t, err)
+}
+
 func TestGetConfiguration_UserErrors(t *testing.T) {
 	gitalyErrs := []error{
-		gitaly.NewNotFoundError("Bla", "some/file"),
 		gitaly.NewFileTooBigError(nil, "Bla", "some/file"),
 		gitaly.NewUnexpectedTreeEntryTypeError("Bla", "some/file"),
 	}
