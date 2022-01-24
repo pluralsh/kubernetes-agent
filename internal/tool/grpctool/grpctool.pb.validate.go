@@ -167,6 +167,7 @@ func (m *HttpRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -372,6 +373,7 @@ func (m *HttpResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpResponseMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -539,6 +541,7 @@ func (m *HttpRequest_Header) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpRequest_HeaderMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -642,6 +645,7 @@ func (m *HttpRequest_Data) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpRequest_DataMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -741,6 +745,7 @@ func (m *HttpRequest_Trailer) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpRequest_TrailerMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -882,6 +887,7 @@ func (m *HttpResponse_Header) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpResponse_HeaderMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -985,6 +991,7 @@ func (m *HttpResponse_Data) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpResponse_DataMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1086,6 +1093,7 @@ func (m *HttpResponse_Trailer) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpResponse_TrailerMultiError(errors)
 	}
+
 	return nil
 }
 

@@ -70,6 +70,7 @@ func (m *PathCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return PathCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -313,6 +314,7 @@ func (m *ManifestProjectCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return ManifestProjectCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -469,6 +471,7 @@ func (m *GitopsCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return GitopsCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -596,6 +599,7 @@ func (m *ObservabilityCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObservabilityCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -697,6 +701,7 @@ func (m *LoggingCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return LoggingCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -806,6 +811,7 @@ func (m *CiliumCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiliumCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -972,6 +978,7 @@ func (m *CiAccessCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1112,6 +1119,7 @@ func (m *CiAccessProjectCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessProjectCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1255,6 +1263,7 @@ func (m *CiAccessGroupCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessGroupCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1461,6 +1470,7 @@ func (m *CiAccessAsCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessAsCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1559,6 +1569,7 @@ func (m *CiAccessAsAgentCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessAsAgentCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1660,6 +1671,7 @@ func (m *CiAccessAsCiJobCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessAsCiJobCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1824,6 +1836,7 @@ func (m *CiAccessAsImpersonateCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return CiAccessAsImpersonateCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1963,6 +1976,7 @@ func (m *ExtraKeyValCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return ExtraKeyValCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -2091,6 +2105,7 @@ func (m *StarboardCF) validate(all bool) error {
 	if len(errors) > 0 {
 		return StarboardCFMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -2223,6 +2238,7 @@ func (m *VulnerabilityReport) validate(all bool) error {
 	if len(errors) > 0 {
 		return VulnerabilityReportMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -2324,6 +2340,7 @@ func (m *StarboardFilter) validate(all bool) error {
 	if len(errors) > 0 {
 		return StarboardFilterMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -2568,6 +2585,7 @@ func (m *ConfigurationFile) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConfigurationFileMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -2818,6 +2836,7 @@ func (m *AgentConfiguration) validate(all bool) error {
 	if len(errors) > 0 {
 		return AgentConfigurationMultiError(errors)
 	}
+
 	return nil
 }
 

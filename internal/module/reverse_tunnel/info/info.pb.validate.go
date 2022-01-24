@@ -70,6 +70,7 @@ func (m *Method) validate(all bool) error {
 	if len(errors) > 0 {
 		return MethodMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -212,6 +213,7 @@ func (m *Service) validate(all bool) error {
 	if len(errors) > 0 {
 		return ServiceMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -344,6 +346,7 @@ func (m *AgentDescriptor) validate(all bool) error {
 	if len(errors) > 0 {
 		return AgentDescriptorMultiError(errors)
 	}
+
 	return nil
 }
 

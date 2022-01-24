@@ -80,6 +80,7 @@ func (m *GetConnectedAgentsRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return GetConnectedAgentsRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -215,6 +216,7 @@ func (m *GetConnectedAgentsResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return GetConnectedAgentsResponseMultiError(errors)
 	}
+
 	return nil
 }
 

@@ -91,6 +91,7 @@ func (m *ConfigurationRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConfigurationRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -232,6 +233,7 @@ func (m *ConfigurationResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConfigurationResponseMultiError(errors)
 	}
+
 	return nil
 }
 

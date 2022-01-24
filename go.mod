@@ -8,7 +8,7 @@ require (
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.10.5
-	github.com/envoyproxy/protoc-gen-validate v0.6.2
+	github.com/envoyproxy/protoc-gen-validate v0.6.3
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/go-redis/redis/v8 v8.11.4

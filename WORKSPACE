@@ -17,32 +17,32 @@ http_archive(
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "62ca106be173579c0a167deb23358fdfe71ffa1e4cfdddf5582af26520f1c66f",
+    sha256 = "de69a09dc70417580aabf20a28619bb3ef60d038470c7cf8442fafcf627c21cb",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
     ],
 )
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "92779d3445e7bdc79b961030b996cb0c91820ade7ffa7edca69273f404b085d5",
-    strip_prefix = "rules_docker-0.20.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.20.0/rules_docker-v0.20.0.tar.gz"],
+    sha256 = "59536e6ae64359b716ba9c46c39183403b01eabfbd57578e84398b4829ca499a",
+    strip_prefix = "rules_docker-0.22.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.22.0/rules_docker-v0.22.0.tar.gz"],
 )
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "ae34c344514e08c23e90da0e2d6cb700fcd28e80c02e23e4d5715dddcb42f7b3",
-    strip_prefix = "buildtools-4.2.2",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/4.2.2.tar.gz"],
+    sha256 = "d368c47bbfc055010f118efb2962987475418737e901f7782d2a966d1dc80296",
+    strip_prefix = "buildtools-4.2.5",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/4.2.5.tar.gz"],
 )
 
 http_archive(
     name = "com_github_ash2k_bazel_tools",
-    sha256 = "9c03ae41411d3e27d3a84a5f9498939162fcbb1d3ae1b2b3ec9300bd0f32a081",
-    strip_prefix = "bazel-tools-f8b27b99cae951099385655e0bb0fc9cc1c7baa4",
-    urls = ["https://github.com/ash2k/bazel-tools/archive/f8b27b99cae951099385655e0bb0fc9cc1c7baa4.tar.gz"],
+    sha256 = "f12cdb947d8c92c7bbed24f4f4492a23b9b1cf7f384d3662d99ee3753d14c15a",
+    strip_prefix = "bazel-tools-4daedde3ec61a03db841c8a9ca68288972e25a82",
+    urls = ["https://github.com/ash2k/bazel-tools/archive/4daedde3ec61a03db841c8a9ca68288972e25a82.tar.gz"],
 )
 
 http_archive(
@@ -56,9 +56,9 @@ http_archive(
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "28724736b7ff49a48cb4b2b8cfa373f89edfcb9e8e492a8d5ab60aa3459314c8",
-    strip_prefix = "rules_proto_grpc-4.0.1",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.0.1.tar.gz"],
+    sha256 = "507e38c8d95c7efa4f3b1c0595a8e8f139c885cb41a76cab7e20e4e67ae87731",
+    strip_prefix = "rules_proto_grpc-4.1.1",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.1.1.tar.gz"],
 )
 
 http_archive(
@@ -79,11 +79,13 @@ http_archive(
     ],
 )
 
-git_repository(
+http_archive(
     name = "bazelruby_rules_ruby",
-    commit = "91a94051bd383affe61bb92134a6f2d7fc831a0d",
-    remote = "https://github.com/bazelruby/rules_ruby.git",
-    shallow_since = "1625867882 -0700",
+    sha256 = "5035393cb5043d49ca9de78acb9e8c8622a193f6463a57ad02383a622b6dc663",
+    strip_prefix = "rules_ruby-0.6.0",
+    urls = [
+        "https://github.com/bazelruby/rules_ruby/archive/v0.6.0.tar.gz",
+    ],
 )
 
 http_archive(
@@ -153,8 +155,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:JiO+kJTpmYGjEodY7O1Zk8oZcNz1+f30UtwtXoFUPzE=",
-    version = "v0.6.2",
+    sum = "h1:HkntewfZJ9RofA/FX38zBCeIAqlLDFLbAI6eTpZqFJw=",
+    version = "v0.6.3",
 )
 
 # Copied from rules_go to keep patches in place
@@ -185,8 +187,8 @@ go_repository(
     name = "com_github_lyft_protoc_gen_star",
     build_file_proto_mode = "default",
     importpath = "github.com/lyft/protoc-gen-star",
-    sum = "h1:zSGLzsUew8RT+ZKPHc3jnf8XLaVyHzTcAFBzHtCNR20=",
-    version = "v0.5.3",
+    sum = "h1:xOpFu4vwmIoUeUrRuAtdCrZZymT/6AkW/bsUWA506Fo=",
+    version = "v0.6.0",
 )
 
 load("//build:repositories.bzl", "go_repositories")

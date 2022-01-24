@@ -100,6 +100,7 @@ func (m *Descriptor) validate(all bool) error {
 	if len(errors) > 0 {
 		return DescriptorMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -243,6 +244,7 @@ func (m *Header) validate(all bool) error {
 	if len(errors) > 0 {
 		return HeaderMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -342,6 +344,7 @@ func (m *Message) validate(all bool) error {
 	if len(errors) > 0 {
 		return MessageMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -485,6 +488,7 @@ func (m *Trailer) validate(all bool) error {
 	if len(errors) > 0 {
 		return TrailerMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -622,6 +626,7 @@ func (m *Error) validate(all bool) error {
 	if len(errors) > 0 {
 		return ErrorMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -889,6 +894,7 @@ func (m *ConnectRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConnectRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1036,6 +1042,7 @@ func (m *RequestInfo) validate(all bool) error {
 	if len(errors) > 0 {
 		return RequestInfoMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1134,6 +1141,7 @@ func (m *CloseSend) validate(all bool) error {
 	if len(errors) > 0 {
 		return CloseSendMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1339,6 +1347,7 @@ func (m *ConnectResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConnectResponseMultiError(errors)
 	}
+
 	return nil
 }
 

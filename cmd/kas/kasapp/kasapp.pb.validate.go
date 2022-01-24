@@ -60,6 +60,7 @@ func (m *StartStreaming) validate(all bool) error {
 	if len(errors) > 0 {
 		return StartStreamingMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -328,6 +329,7 @@ func (m *GatewayKasResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponseMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -429,6 +431,7 @@ func (m *GatewayKasResponse_TunnelReady) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponse_TunnelReadyMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -577,6 +580,7 @@ func (m *GatewayKasResponse_Header) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponse_HeaderMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -680,6 +684,7 @@ func (m *GatewayKasResponse_Message) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponse_MessageMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -827,6 +832,7 @@ func (m *GatewayKasResponse_Trailer) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponse_TrailerMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -968,6 +974,7 @@ func (m *GatewayKasResponse_Error) validate(all bool) error {
 	if len(errors) > 0 {
 		return GatewayKasResponse_ErrorMultiError(errors)
 	}
+
 	return nil
 }
 

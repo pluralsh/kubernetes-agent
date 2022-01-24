@@ -91,6 +91,7 @@ func (m *Configuration) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConfigurationMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -261,6 +262,7 @@ func (m *AllowedAgent) validate(all bool) error {
 	if len(errors) > 0 {
 		return AllowedAgentMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -361,6 +363,7 @@ func (m *ConfigProject) validate(all bool) error {
 	if len(errors) > 0 {
 		return ConfigProjectMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -462,6 +465,7 @@ func (m *Pipeline) validate(all bool) error {
 	if len(errors) > 0 {
 		return PipelineMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -595,6 +599,7 @@ func (m *Project) validate(all bool) error {
 	if len(errors) > 0 {
 		return ProjectMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -694,6 +699,7 @@ func (m *Group) validate(all bool) error {
 	if len(errors) > 0 {
 		return GroupMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -793,6 +799,7 @@ func (m *Job) validate(all bool) error {
 	if len(errors) > 0 {
 		return JobMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -903,6 +910,7 @@ func (m *User) validate(all bool) error {
 	if len(errors) > 0 {
 		return UserMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1012,6 +1020,7 @@ func (m *Environment) validate(all bool) error {
 	if len(errors) > 0 {
 		return EnvironmentMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1333,6 +1342,7 @@ func (m *AllowedAgentsForJob) validate(all bool) error {
 	if len(errors) > 0 {
 		return AllowedAgentsForJobMultiError(errors)
 	}
+
 	return nil
 }
 
