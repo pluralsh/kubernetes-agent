@@ -70,6 +70,7 @@ func (m *Request) validate(all bool) error {
 	if len(errors) > 0 {
 		return RequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -250,6 +251,7 @@ func (m *Response) validate(all bool) error {
 	if len(errors) > 0 {
 		return ResponseMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -348,6 +350,7 @@ func (m *NoOneofs) validate(all bool) error {
 	if len(errors) > 0 {
 		return NoOneofsMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -466,6 +469,7 @@ func (m *TwoOneofs) validate(all bool) error {
 	if len(errors) > 0 {
 		return TwoOneofsMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -584,6 +588,7 @@ func (m *TwoValidOneofs) validate(all bool) error {
 	if len(errors) > 0 {
 		return TwoValidOneofsMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -695,6 +700,7 @@ func (m *OutOfOneof) validate(all bool) error {
 	if len(errors) > 0 {
 		return OutOfOneofMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -806,6 +812,7 @@ func (m *NotAllReachable) validate(all bool) error {
 	if len(errors) > 0 {
 		return NotAllReachableMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -907,6 +914,7 @@ func (m *Response_Data) validate(all bool) error {
 	if len(errors) > 0 {
 		return Response_DataMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -1006,6 +1014,7 @@ func (m *Response_Last) validate(all bool) error {
 	if len(errors) > 0 {
 		return Response_LastMultiError(errors)
 	}
+
 	return nil
 }
 

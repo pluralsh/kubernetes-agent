@@ -59,6 +59,7 @@ func (m *Values) validate(all bool) error {
 	if len(errors) > 0 {
 		return ValuesMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -271,6 +272,7 @@ func (m *HttpRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -419,6 +421,7 @@ func (m *HttpResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return HttpResponseMultiError(errors)
 	}
+
 	return nil
 }
 

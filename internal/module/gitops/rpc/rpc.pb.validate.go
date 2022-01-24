@@ -118,6 +118,7 @@ func (m *ObjectsToSynchronizeRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObjectsToSynchronizeRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -327,6 +328,7 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObjectsToSynchronizeResponseMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -443,6 +445,7 @@ func (m *ObjectsToSynchronizeResponse_Header) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObjectsToSynchronizeResponse_HeaderMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -560,6 +563,7 @@ func (m *ObjectsToSynchronizeResponse_Object) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObjectsToSynchronizeResponse_ObjectMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -664,6 +668,7 @@ func (m *ObjectsToSynchronizeResponse_Trailer) validate(all bool) error {
 	if len(errors) > 0 {
 		return ObjectsToSynchronizeResponse_TrailerMultiError(errors)
 	}
+
 	return nil
 }
 

@@ -140,6 +140,7 @@ func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 	if len(errors) > 0 {
 		return ListAgentConfigFilesRequestMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -276,6 +277,7 @@ func (m *ListAgentConfigFilesResponse) validate(all bool) error {
 	if len(errors) > 0 {
 		return ListAgentConfigFilesResponseMultiError(errors)
 	}
+
 	return nil
 }
 
@@ -382,6 +384,7 @@ func (m *AgentConfigFile) validate(all bool) error {
 	if len(errors) > 0 {
 		return AgentConfigFileMultiError(errors)
 	}
+
 	return nil
 }
 
