@@ -157,6 +157,7 @@ code_navigation:
       lsif: dump.lsif
 
 container_scanning:
+  stage: scan
   variables:
     CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/kas"
     CI_APPLICATION_TAG: latest
