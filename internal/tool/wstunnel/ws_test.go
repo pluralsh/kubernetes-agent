@@ -55,7 +55,7 @@ func testEcho(t *testing.T, writeSize, writeCount int, stuff *testStuff) {
 		assert.NoError(t, err)
 	}()
 
-	conn, _, err := Dial(stuff.ctx, fmt.Sprintf("ws://%s", stuff.serverAddr.String()), &websocket.DialOptions{})
+	conn, _, err := Dial(stuff.ctx, fmt.Sprintf("ws://%s", stuff.serverAddr.String()), &websocket.DialOptions{}) // nolint: bodyclose
 	require.NoError(t, err)
 	defer conn.Close(websocket.StatusNormalClosure, "")
 	conn.SetReadLimit(1024 * 1024)

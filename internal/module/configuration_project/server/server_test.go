@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -126,7 +127,7 @@ func constructKasConnection(t *testing.T, kasAddress, kasSecretFile string) *grp
 		grpc.WithChainUnaryInterceptor(
 			grpctool.UnaryClientValidatingInterceptor,
 		),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(&grpctool.JwtCredentials{
 			Secret:   jwtSecret,
 			Audience: "gitlab-kas",

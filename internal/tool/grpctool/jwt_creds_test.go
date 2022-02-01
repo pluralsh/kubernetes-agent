@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -64,7 +65,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 	})
 	conn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(listener.DialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(c),
 	)
 	require.NoError(t, err)

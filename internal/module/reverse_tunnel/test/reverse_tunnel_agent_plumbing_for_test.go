@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modagent"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockApi) (func(context.Context) error, *grpc.Server) {
@@ -76,7 +77,7 @@ func agentStartInternalServer(stage stager.Stage, internalServer *grpc.Server, i
 func agentConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(grpctool.RawCodec{})),
 	)
 }

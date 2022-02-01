@@ -37,13 +37,13 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
-	"sigs.k8s.io/cli-utils/pkg/util/factory"
 )
 
 const (
@@ -253,7 +253,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
 	if !secure {
-		opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(api.AgentToken(tokenData), !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
@@ -298,7 +298,7 @@ func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Serve
 func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, "pipe",
 		grpc.WithContextDialer(dialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(grpctool.RawCodec{})),
 	)
 }
@@ -312,9 +312,7 @@ func NewCommand() *cobra.Command {
 			PodNamespace: os.Getenv(envVarPodNamespace),
 			PodName:      os.Getenv(envVarPodName),
 		},
-		K8sClientGetter: &factory.CachingRESTClientGetter{
-			Delegate: kubeConfigFlags,
-		},
+		K8sClientGetter: kubeConfigFlags,
 	}
 	c := &cobra.Command{
 		Use:   "agentk",

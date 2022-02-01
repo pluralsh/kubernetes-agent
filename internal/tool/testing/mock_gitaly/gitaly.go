@@ -97,26 +97,6 @@ func (mr *MockCommitServiceClientMockRecorder) CommitStats(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitStats", reflect.TypeOf((*MockCommitServiceClient)(nil).CommitStats), varargs...)
 }
 
-// CommitsBetween mocks base method.
-func (m *MockCommitServiceClient) CommitsBetween(arg0 context.Context, arg1 *gitalypb.CommitsBetweenRequest, arg2 ...grpc.CallOption) (gitalypb.CommitService_CommitsBetweenClient, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CommitsBetween", varargs...)
-	ret0, _ := ret[0].(gitalypb.CommitService_CommitsBetweenClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CommitsBetween indicates an expected call of CommitsBetween.
-func (mr *MockCommitServiceClientMockRecorder) CommitsBetween(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitsBetween", reflect.TypeOf((*MockCommitServiceClient)(nil).CommitsBetween), varargs...)
-}
-
 // CommitsByMessage mocks base method.
 func (m *MockCommitServiceClient) CommitsByMessage(arg0 context.Context, arg1 *gitalypb.CommitsByMessageRequest, arg2 ...grpc.CallOption) (gitalypb.CommitService_CommitsByMessageClient, error) {
 	m.ctrl.T.Helper()

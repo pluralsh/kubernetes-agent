@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/clock"
 )
 
 type AttemptResult int

@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -352,7 +353,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	require.NoError(t, err)
 	r := &router{
 		kasPool: grpctool.NewPool(log,
-			grpc.WithInsecure(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithContextDialer(privateApiServerListener.DialContext),
 		),
 		tunnelQuerier:        querier,
@@ -376,7 +377,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	})
 	internalServerConn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(internalServerListener.DialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
 			grpctool.StreamClientValidatingInterceptor,
 		),

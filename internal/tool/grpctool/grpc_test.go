@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -105,7 +106,7 @@ func TestGrpcErrors_AbruptConnectionDrop(t *testing.T) {
 	}()
 	conn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(l.DialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 
@@ -142,7 +143,7 @@ func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 	cConn, sConn := net.Pipe()
 	conn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(onceDialer(cConn)),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 
@@ -185,7 +186,7 @@ func TestGrpcErrors_ErrorWritingResponse(t *testing.T) {
 	cConn, sConn := net.Pipe()
 	conn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(onceDialer(cConn)),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 
@@ -258,7 +259,7 @@ func setup(t *testing.T, srv test.TestingServer, opt ...grpc.ServerOption) *grpc
 	})
 	conn, err := grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(l.DialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {

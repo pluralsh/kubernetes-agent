@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/wstunnel"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -204,7 +205,7 @@ func testKeepalive(t *testing.T, websocket bool, kp keepalive.ServerParameters, 
 		context.Background(),
 		"ws://pipe",
 		grpc.WithContextDialer(dial),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 	defer func() {
