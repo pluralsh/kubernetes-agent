@@ -86,12 +86,12 @@ verify:
     - make verify-ci
 
 lint:
-  # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2021-06-16
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images@sha256:66e3dbbc387e033d6d9fcda83624cdd7d124b88d5114eb032ff165d9423d15ce
+  image: golangci/golangci-lint:v1.44.0-alpine
   stage: test
   script:
     # Write the code coverage report to gl-code-quality-report.json
     # and print linting issues to stdout in the format: path/to/file:line description
+    - apk --no-cache add jq
     - golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
   artifacts:
     reports:
