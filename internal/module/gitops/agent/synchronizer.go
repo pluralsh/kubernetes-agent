@@ -27,7 +27,7 @@ type synchronizerConfig struct {
 	restMapper        meta.RESTMapper
 	restClientGetter  resource.RESTClientGetter
 	applierPollConfig retry.PollConfig
-	applyOptions      apply.Options
+	applyOptions      apply.ApplierOptions
 }
 
 type synchronizer struct {

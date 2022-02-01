@@ -55,7 +55,7 @@ var (
 )
 
 type Applier interface {
-	Run(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.Options) <-chan event.Event
+	Run(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
 }
 
 type GitopsWorkerFactory interface {
@@ -118,7 +118,7 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 			restMapper:        f.restMapper,
 			restClientGetter:  f.restClientGetter,
 			applierPollConfig: f.applierPollConfig(),
-			applyOptions: apply.Options{
+			applyOptions: apply.ApplierOptions{
 				ServerSideOptions: common.ServerSideOptions{
 					// It's supported since Kubernetes 1.16, so there should be no reason not to use it.
 					// https://kubernetes.io/docs/reference/using-api/server-side-apply/

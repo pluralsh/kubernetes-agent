@@ -43,7 +43,7 @@ require (
 	k8s.io/kubectl v0.23.2
 	k8s.io/utils v0.0.0-20220127004650-9b3446523e65
 	nhooyr.io/websocket v1.8.7
-	sigs.k8s.io/cli-utils v0.27.1-0.20220128001245-5fb19a18af59
+	sigs.k8s.io/cli-utils v0.27.1-0.20220201030018-4444c2c2aafd
 	sigs.k8s.io/yaml v1.3.0
 )
 

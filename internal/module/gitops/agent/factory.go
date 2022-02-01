@@ -33,7 +33,10 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	applier, err := apply.NewApplier(config.K8sUtilFactory, invClient)
+	applier, err := apply.NewApplierBuilder().
+		WithFactory(config.K8sUtilFactory).
+		WithInventoryClient(invClient).
+		Build()
 	if err != nil {
 		return nil, err
 	}

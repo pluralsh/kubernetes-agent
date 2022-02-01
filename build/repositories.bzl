@@ -5052,8 +5052,8 @@ def go_repositories():
         name = "io_k8s_sigs_cli_utils",
         build_file_proto_mode = "disable_global",
         importpath = "sigs.k8s.io/cli-utils",
-        sum = "h1:fuS2NxYDFkfiGu1TI6fk/vjcPox+0Kad/JpWMCg7xfI=",
-        version = "v0.27.1-0.20220128001245-5fb19a18af59",
+        sum = "h1:WK/YXWaLmwcbAmceFMS0luPwnDfgHk4V25lkFT7auvc=",
+        version = "v0.27.1-0.20220201030018-4444c2c2aafd",
     )
     go_repository(
         name = "io_k8s_sigs_controller_runtime",

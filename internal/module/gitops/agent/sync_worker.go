@@ -28,7 +28,7 @@ type syncWorker struct {
 	log               *zap.Logger
 	applier           Applier
 	applierPollConfig retry.PollConfig
-	applyOptions      apply.Options
+	applyOptions      apply.ApplierOptions
 }
 
 func (s *syncWorker) Run(jobs <-chan syncJob) {
