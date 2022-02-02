@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
-	"sigs.k8s.io/cli-utils/pkg/util/factory"
 )
 
 const (
@@ -30,15 +29,14 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
-	statusPoller, err := factory.NewStatusPoller(config.K8sUtilFactory)
-	if err != nil {
-		return nil, err
-	}
 	invClient, err := inventory.ClusterInventoryClientFactory{}.NewInventoryClient(config.K8sUtilFactory)
 	if err != nil {
 		return nil, err
 	}
-	applier, err := apply.NewApplier(config.K8sUtilFactory, invClient, statusPoller)
+	applier, err := apply.NewApplierBuilder().
+		WithFactory(config.K8sUtilFactory).
+		WithInventoryClient(invClient).
+		Build()
 	if err != nil {
 		return nil, err
 	}

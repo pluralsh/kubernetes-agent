@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -128,7 +129,7 @@ func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.S
 func serverConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
 			grpctool.StreamClientValidatingInterceptor,
 		),
@@ -141,7 +142,7 @@ func serverConstructInternalServerConn(dialContext func(ctx context.Context, add
 func serverConstructKasConnection(agentToken api.AgentToken, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(agentToken, true)),
 		grpc.WithChainStreamInterceptor(
 			grpctool.StreamClientValidatingInterceptor,

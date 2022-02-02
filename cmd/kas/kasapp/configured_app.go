@@ -59,6 +59,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
@@ -309,7 +310,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 	}
 	return &router{
 		kasPool: grpctool.NewPool(a.Log,
-			grpc.WithInsecure(), // TODO support TLS
+			grpc.WithTransportCredentials(insecure.NewCredentials()), // TODO support TLS
 			grpc.WithUserAgent(kasServerName()),
 			grpc.WithStatsHandler(csh),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -609,7 +610,7 @@ func (a *ConfiguredApp) constructInternalServer(auxCtx context.Context, tracer o
 func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer opentracing.Tracer, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, "pipe",
 		grpc.WithContextDialer(dialContext),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
 			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
 			grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),

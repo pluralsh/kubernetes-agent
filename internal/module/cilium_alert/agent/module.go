@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -59,8 +60,8 @@ func (m *module) applyNewConfiguration(ctx context.Context, holder *workerHolder
 		// Not configured
 		return nil
 	}
-	// TODO parse the address and check the scheme to see if we need to add WithInsecure()
-	clientConn, err := grpc.Dial(config.Cilium.HubbleRelayAddress, grpc.WithInsecure())
+	// TODO parse the address and check the scheme to see if we need to add insecure.NewCredentials()
+	clientConn, err := grpc.Dial(config.Cilium.HubbleRelayAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		m.log.Error("Failed to apply Cilium configuration", logz.Error(err))
 		return nil

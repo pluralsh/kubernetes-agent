@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	clocktesting "k8s.io/utils/clock/testing"
 )
 
@@ -19,7 +20,7 @@ const (
 )
 
 func TestKasPool_DialConnDifferentPort(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), grpc.WithInsecure())
+	p := NewPool(zaptest.NewLogger(t), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -31,7 +32,7 @@ func TestKasPool_DialConnDifferentPort(t *testing.T) {
 }
 
 func TestKasPool_DialConnSequentialReuse(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), grpc.WithInsecure())
+	p := NewPool(zaptest.NewLogger(t), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -43,7 +44,7 @@ func TestKasPool_DialConnSequentialReuse(t *testing.T) {
 }
 
 func TestKasPool_DialConnConcurrentReuse(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), grpc.WithInsecure())
+	p := NewPool(zaptest.NewLogger(t), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -55,7 +56,7 @@ func TestKasPool_DialConnConcurrentReuse(t *testing.T) {
 }
 
 func TestKasPool_CloseClosesAllConnections(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), grpc.WithInsecure())
+	p := NewPool(zaptest.NewLogger(t), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	c, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
 	c.Done()
@@ -64,7 +65,7 @@ func TestKasPool_CloseClosesAllConnections(t *testing.T) {
 }
 
 func TestKasPool_DonePanicsOnMultipleInvocations(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), grpc.WithInsecure())
+	p := NewPool(zaptest.NewLogger(t), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer clz(t, p)
 	c, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -79,7 +80,7 @@ func TestKasPool_DoneEvictsExpiredIdleConnections(t *testing.T) {
 	tClock := clocktesting.NewFakePassiveClock(start)
 	p := &Pool{
 		log:      zaptest.NewLogger(t),
-		dialOpts: []grpc.DialOption{grpc.WithInsecure()},
+		dialOpts: []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
 		conns:    map[string]*connHolder{},
 		clk:      tClock,
 	}

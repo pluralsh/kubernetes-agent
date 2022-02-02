@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestValidator(t *testing.T) {
@@ -32,7 +33,7 @@ func TestValidator(t *testing.T) {
 	}()
 
 	conn, err := grpc.DialContext(context.Background(), "bufnet",
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(StreamClientValidatingInterceptor),
 		grpc.WithChainUnaryInterceptor(UnaryClientValidatingInterceptor),
 		grpc.WithContextDialer(lis.DialContext),

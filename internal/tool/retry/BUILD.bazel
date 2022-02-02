@@ -6,7 +6,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry",
     visibility = ["//:__subpackages__"],
     deps = [
-        "@io_k8s_apimachinery//pkg/util/clock",
         "@io_k8s_apimachinery//pkg/util/wait",
+        "@io_k8s_utils//clock",
     ],
 )

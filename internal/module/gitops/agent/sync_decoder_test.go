@@ -65,14 +65,14 @@ spec:
     secretName: ca-key-pair
 `
 
-//	yamlCRv2 = `apiVersion: cert-manager.io/v2
-//kind: Issuer
-//metadata:
-//  name: ca-issuer
-//spec:
-//  ca:
-//    secretName: ca-key-pair
-//`
+	yamlCRv2 = `apiVersion: cert-manager.io/v2
+kind: Issuer
+metadata:
+  name: ca-issuer
+spec:
+  ca:
+    secretName: ca-key-pair
+`
 )
 
 func TestSyncDecoder_HappyPath(t *testing.T) {
@@ -165,23 +165,22 @@ func TestSyncDecoder_HappyPath(t *testing.T) {
 					Data: []byte(yamlCRv1),
 				},
 			},
-			expectedErr: "unknown resource types: Issuer.cert-manager.io",
+			expectedErr: "unknown resource types: cert-manager.io/v1/Issuer",
 		},
-		// TODO pick up https://github.com/kubernetes-sigs/cli-utils/pull/430
-		//{
-		//	name: "CRD and CRv2",
-		//	sources: []rpc.ObjectSource{
-		//		{
-		//			Name: "crv2",
-		//			Data: []byte(yamlCRv2),
-		//		},
-		//		{
-		//			Name: "crd",
-		//			Data: []byte(yamlCRD),
-		//		},
-		//	},
-		//	expectedErr: `unable to get rest mapping for cert-manager.io/v2, Kind=Issuer: no matches for kind "Issuer" in version "cert-manager.io/v2"`,
-		//},
+		{
+			name: "CRD and CRv2",
+			sources: []rpc.ObjectSource{
+				{
+					Name: "crv2",
+					Data: []byte(yamlCRv2),
+				},
+				{
+					Name: "crd",
+					Data: []byte(yamlCRD),
+				},
+			},
+			expectedErr: "unknown resource types: cert-manager.io/v2/Issuer",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
