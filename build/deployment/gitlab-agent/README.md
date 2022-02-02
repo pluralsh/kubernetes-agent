@@ -6,8 +6,11 @@ Package for installing GitLab Agent.
 
 ## Prerequisites
 
-- [Kustomize](https://kustomize.io/) version 3.8 or newer.
-- *Optional, but recommended* - [`kpt`](https://googlecontainertools.github.io/kpt/) version 0.32.0 or newer.
+- [Kustomize](https://kustomize.io/) version v3.8 or newer.
+- *Optional, but recommended* - [`kpt`](https://googlecontainertools.github.io/kpt/) version v0.32.0 or newer, but
+  not v1.0+. This package
+  [needs to be updated](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/205) to support
+  newer versions. The latest pre-v1.0 version is [v0.39.3](https://github.com/GoogleContainerTools/kpt/releases/tag/v0.39.3).
 
 ## Configuration
 
