@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -32,8 +31,6 @@ const (
 	inventoryPolicyMustMatch          = "must_match"
 	inventoryPolicyAdoptIfNoInventory = "adopt_if_no_inventory"
 	inventoryPolicyAdoptAll           = "adopt_all"
-
-	defaultReapplyInterval = 5 * time.Minute
 )
 
 var (

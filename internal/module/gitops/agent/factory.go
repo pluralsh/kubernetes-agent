@@ -18,11 +18,12 @@ const (
 	getObjectsToSynchronizeBackoffFactor = 2.0
 	getObjectsToSynchronizeJitter        = 1.0
 
-	applierInitBackoff   = 10 * time.Second
-	applierMaxBackoff    = time.Minute
-	applierResetDuration = time.Minute
-	applierBackoffFactor = 2.0
-	applierJitter        = 1.0
+	defaultReapplyInterval = 5 * time.Minute
+	applierInitBackoff     = 10 * time.Second
+	applierMaxBackoff      = time.Minute
+	applierResetDuration   = time.Minute
+	applierBackoffFactor   = 2.0
+	applierJitter          = 1.0
 )
 
 type Factory struct {
