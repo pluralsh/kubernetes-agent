@@ -211,12 +211,12 @@ gazelle_dependencies()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-# Latest images as of 2020-08-09
+# Latest images as of 2022-02-03
 
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:59c28ab04d4e855511de684942355bb07b84ca31a1bebc37e75ee79df03009f4",
+    digest = "sha256:088848d05d9905feb943f6b08a356282b3e54f955decbcb9e24ca9c8a539591e",
     registry = "gcr.io",
     repository = "distroless/base-debian10",
 )
@@ -224,7 +224,25 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
 container_pull(
     name = "go_image_static",
-    digest = "sha256:b871bb2b01374c0a9ed93fdeaa2cdb25b515cd1999170b5ec816ed6c2fd85aca",
+    digest = "sha256:0873c953bb3afbc90a3e86ceda9cdd5543b71dc0b473f38653b687842f0c4e31",
+    registry = "gcr.io",
+    repository = "distroless/static-debian10",
+)
+
+# debug-nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
+container_pull(
+    name = "go_debug_image_base_arm64",
+    architecture = "arm64",
+    digest = "sha256:af16b5ba57384c582b54c7dd883dbb7b07d0aac3e9f820da10f95e63cd8cedec",
+    registry = "gcr.io",
+    repository = "distroless/base-debian10",
+)
+
+# nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
+container_pull(
+    name = "go_image_static_arm64",
+    architecture = "arm64",
+    digest = "sha256:5fec0b554fa1b5f1ffba4168e102d0ece16174b82cd9492449e5a6b1c35fdb4e",
     registry = "gcr.io",
     repository = "distroless/static-debian10",
 )

@@ -4,19 +4,23 @@ load("cmd.bzl", "push_bundle")
 prefix = "{STABLE_CI_REGISTRY}/{STABLE_CONTAINER_REPOSITORY_PATH}/"
 
 TAG = {
-    prefix + "agentk:{STABLE_BUILD_GIT_TAG}": "//cmd/agentk:container",
     prefix + "kas:{STABLE_BUILD_GIT_TAG}": "//cmd/kas:container",
-    prefix + "cli:{STABLE_BUILD_GIT_TAG}": "//cmd/cli:container",
-    prefix + "agentk:{STABLE_BUILD_GIT_TAG}-race": "//cmd/agentk:container_race",
     prefix + "kas:{STABLE_BUILD_GIT_TAG}-race": "//cmd/kas:container_race",
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}": "//cmd/agentk:container",
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm64": "//cmd/agentk:container_arm64",
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}-race": "//cmd/agentk:container_race",
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm64-race": "//cmd/agentk:container_arm64_race",
+    prefix + "cli:{STABLE_BUILD_GIT_TAG}": "//cmd/cli:container",
 }
 
 STABLE = {
-    prefix + "agentk:stable": "//cmd/agentk:container",
     prefix + "kas:stable": "//cmd/kas:container",
-    prefix + "cli:stable": "//cmd/cli:container",
-    prefix + "agentk:stable-race": "//cmd/agentk:container_race",
     prefix + "kas:stable-race": "//cmd/kas:container_race",
+    prefix + "agentk:stable": "//cmd/agentk:container",
+    prefix + "agentk:stable-arm64": "//cmd/agentk:container_arm64",
+    prefix + "agentk:stable-race": "//cmd/agentk:container_race",
+    prefix + "agentk:stable-arm64-race": "//cmd/agentk:container_arm64_race",
+    prefix + "cli:stable": "//cmd/cli:container",
 }
 
 TAG_AND_STABLE = {}
@@ -28,22 +32,26 @@ TAG_AND_STABLE.update(STABLE)
 push_bundle(
     name = "push-commit",
     images = {
-        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}": "//cmd/agentk:container",
         prefix + "kas:{STABLE_BUILD_GIT_COMMIT}": "//cmd/kas:container",
-        prefix + "cli:{STABLE_BUILD_GIT_COMMIT}": "//cmd/cli:container",
-        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/agentk:container_race",
         prefix + "kas:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/kas:container_race",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}": "//cmd/agentk:container",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm64": "//cmd/agentk:container_arm64",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/agentk:container_race",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm64-race": "//cmd/agentk:container_arm64_race",
+        prefix + "cli:{STABLE_BUILD_GIT_COMMIT}": "//cmd/cli:container",
     },
 )
 
 push_bundle(
     name = "push-latest",
     images = {
-        prefix + "agentk:latest": "//cmd/agentk:container",
         prefix + "kas:latest": "//cmd/kas:container",
-        prefix + "cli:latest": "//cmd/cli:container",
-        prefix + "agentk:latest-race": "//cmd/agentk:container_race",
         prefix + "kas:latest-race": "//cmd/kas:container_race",
+        prefix + "agentk:latest": "//cmd/agentk:container",
+        prefix + "agentk:latest-arm64": "//cmd/agentk:container_arm64",
+        prefix + "agentk:latest-race": "//cmd/agentk:container_race",
+        prefix + "agentk:latest-arm64-race": "//cmd/agentk:container_arm64_race",
+        prefix + "cli:latest": "//cmd/cli:container",
     },
 )
 

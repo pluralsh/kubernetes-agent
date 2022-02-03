@@ -57,6 +57,7 @@ container_image(
 
 define_command_targets(
     name = "cli",
+    arm64_targets = False,
     base_image = ":kpt_package",
     binary_embed = [":cli_lib"],
     race_targets = False,
