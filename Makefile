@@ -7,6 +7,13 @@ GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
 
 SHELL = /usr/bin/env bash -eo pipefail
 
+GIT_COMMIT = $(shell git rev-parse --short HEAD)
+GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
+BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
+ifeq ($(GIT_TAG), )
+	GIT_TAG = "v0.0.0"
+endif
+
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
 .PHONY: lint
@@ -148,24 +155,29 @@ docker-export-race: update-bazel
 .PHONY: release-latest
 release-latest:
 	bazel run //cmd:push-latest
+	build/push_multiarch_agentk.sh 'latest'
 
 # Build and push all docker images tagged with the tag on the current commit and as "stable".
 # This only works on a linux machine
 .PHONY: release-tag-and-stable
 release-tag-and-stable:
 	bazel run //cmd:push-tag-and-stable
+	build/push_multiarch_agentk.sh 'stable'
+	build/push_multiarch_agentk.sh "$(GIT_TAG)"
 
 # Build and push all docker images tagged with the tag on the current commit.
 # This only works on a linux machine
 .PHONY: release-tag
 release-tag:
 	bazel run //cmd:push-tag
+	build/push_multiarch_agentk.sh "$(GIT_TAG)"
 
 # Build and push all docker images tagged with as the current commit.
 # This only works on a linux machine
 .PHONY: release-commit
 release-commit:
 	bazel run //cmd:push-commit
+	build/push_multiarch_agentk.sh "$(GIT_COMMIT)"
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
@@ -173,12 +185,6 @@ gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
-GIT_COMMIT = $(shell git rev-parse --short HEAD)
-GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
-BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
-ifeq ($(GIT_TAG), )
-	GIT_TAG = "v0.0.0"
-endif
 .PHONY: kas
 kas:
 	go build \
