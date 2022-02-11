@@ -18,7 +18,7 @@ STABLE = {
     prefix + "kas:stable-race": "//cmd/kas:container_race",
     prefix + "agentk:stable-amd64": "//cmd/agentk:container",
     prefix + "agentk:stable-arm64": "//cmd/agentk:container_arm64",
-    prefix + "agentk:stable-race": "//cmd/agentk:container_race",
+    prefix + "agentk:stable-amd64-race": "//cmd/agentk:container_race",
     prefix + "agentk:stable-arm64-race": "//cmd/agentk:container_arm64_race",
     prefix + "cli:stable": "//cmd/cli:container",
 }
