@@ -2,7 +2,6 @@ package grpctool
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
@@ -50,17 +49,14 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 	if err != nil {
 		return err // returns gRPC status error
 	}
-	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
+	var claims jwt.RegisteredClaims
+	_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return a.secret, nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256", "HS384", "HS512"}))
 	if err != nil {
 		a.loggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
-	claims := parsedToken.Claims.(jwt.MapClaims) // jwt.Parse() uses jwt.MapClaims
 	if a.jwtAudience != "" {
 		if !claims.VerifyAudience(a.jwtAudience, true) {
 			return status.Error(codes.Unauthenticated, "JWT audience validation failed")
