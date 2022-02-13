@@ -316,7 +316,7 @@ func NewCommand() *cobra.Command {
 	}
 	c := &cobra.Command{
 		Use:   "agentk",
-		Short: "GitLab Kubernetes Agent",
+		Short: "GitLab Agent for Kubernetes",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
