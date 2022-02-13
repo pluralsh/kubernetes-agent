@@ -30,8 +30,8 @@ func (c *impersonatingClient) Do(impConfig *rpc.ImpersonationConfig, r *http.Req
 		// Impersonation is configured in the agent config
 		config = rest.CopyConfig(c.restConfig) // copy to avoid mutating a potentially shared config object
 		config.Impersonate.UserName = impConfig.Username
+		config.Impersonate.UID = impConfig.Uid
 		config.Impersonate.Groups = impConfig.Groups
-		// TODO Add uid when we upgrade to Kubernetes 1.22 libraries
 		config.Impersonate.Extra = impConfig.GetExtraAsMap()
 	case !restImp && !cfgImp && reqImp:
 		// Impersonation is configured in the HTTP request
@@ -80,8 +80,10 @@ func hasImpersonationHeaders(r *http.Request) bool {
 }
 
 func isImpersonationHeader(header string) bool {
-	// header==transport.ImpersonateUidHeader: TODO add when we upgrade to Kubernetes 1.22 libraries
-	return header == transport.ImpersonateUserHeader || header == transport.ImpersonateGroupHeader || strings.HasPrefix(header, transport.ImpersonateUserExtraHeaderPrefix)
+	return header == transport.ImpersonateUserHeader ||
+		header == transport.ImpersonateUIDHeader ||
+		header == transport.ImpersonateGroupHeader ||
+		strings.HasPrefix(header, transport.ImpersonateUserExtraHeaderPrefix)
 }
 
 func useLastResponse(req *http.Request, via []*http.Request) error {
