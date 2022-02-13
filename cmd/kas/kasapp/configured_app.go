@@ -471,7 +471,7 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		keepaliveOpt,
 	}
 
-	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +525,7 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 		keepaliveOpt,
 	}
 
-	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +579,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 		keepaliveOpt,
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
-	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -864,19 +864,15 @@ func gitlabBuildInfoGauge() prometheus.Gauge {
 	return buildInfoGauge
 }
 
-func maybeTlsCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {
-	switch {
-	case certFile != "" && keyFile != "":
-		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-		return []grpc.ServerOption{grpc.Creds(credentials.NewTLS(config))}, nil
-	case certFile == "" && keyFile == "":
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+func maybeTLSCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {
+	config, err := tlstool.MaybeDefaultServerTLSConfig(certFile, keyFile)
+	if err != nil {
+		return nil, err
 	}
+	if config != nil {
+		return []grpc.ServerOption{grpc.Creds(credentials.NewTLS(config))}, nil
+	}
+	return nil, nil
 }
 
 func kasServerName() string {
