@@ -69,22 +69,19 @@ const (
 	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
-	envVarOwnPrivateApiUrl = "OWN_PRIVATE_API_URL"
-
 	kasName = "gitlab-kas"
 )
 
 type ConfiguredApp struct {
-	Log           *zap.Logger
-	Configuration *kascfg.ConfigurationFile
+	Log              *zap.Logger
+	Configuration    *kascfg.ConfigurationFile
+	OwnPrivateApiUrl string
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
-	// This should become required later
-	ownPrivateApiUrl := os.Getenv(envVarOwnPrivateApiUrl)
-	// TODO make it mandatory?
-	if ownPrivateApiUrl == "" {
-		a.Log.Warn(envVarOwnPrivateApiUrl + " is not set, this kas instance will not be accessible to other kas instances")
+	// TODO This should become required later?
+	if a.OwnPrivateApiUrl == "" {
+		a.Log.Warn(envVarOwnPrivateApiUrl + " environment variable is not set, this kas instance will not be accessible to other kas instances and certain features will not work")
 	}
 	// Metrics
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
@@ -162,7 +159,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	tunnelTracker := a.constructTunnelTracker(redisClient)
 
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker, ownPrivateApiUrl)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker, a.OwnPrivateApiUrl)
 	if err != nil {
 		return err
 	}
