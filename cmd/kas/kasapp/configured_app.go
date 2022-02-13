@@ -355,25 +355,40 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server) {
 	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Agent.Listen
-		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
-		if err != nil {
-			return nil, err
-		}
-
-		a.Log.Info("Agentk API endpoint is up",
-			logz.NetNetworkFromAddr(lis.Addr()),
-			logz.NetAddressFromAddr(lis.Addr()),
-			logz.IsWebSocket(listenCfg.Websocket),
-		)
-
-		if listenCfg.Websocket {
+		var lis net.Listener
+		if listenCfg.Websocket { // Explicitly handle TLS for a WebSocket server
+			tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
+			if err != nil {
+				return nil, err
+			}
+			if tlsConfig != nil {
+				tlsConfig.NextProtos = []string{"http/1.1"} // like http.Server.ServeTLS(), but only http/1.1
+				lis, err = tls.Listen(listenCfg.Network.String(), listenCfg.Address, tlsConfig)
+			} else {
+				lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)
+			}
+			if err != nil {
+				return nil, err
+			}
 			wsWrapper := wstunnel.ListenerWrapper{
 				// TODO set timeouts
 				ReadLimit:  defaultMaxMessageSize,
 				ServerName: kasServerName(),
 			}
 			lis = wsWrapper.Wrap(lis)
+		} else {
+			var err error
+			lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)
+			if err != nil {
+				return nil, err
+			}
 		}
+		addr := lis.Addr()
+		a.Log.Info("Agentk API endpoint is up",
+			logz.NetNetworkFromAddr(addr),
+			logz.NetAddressFromAddr(addr),
+			logz.IsWebSocket(listenCfg.Websocket),
+		)
 		return lis, nil
 	})
 }
@@ -389,9 +404,10 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 		if err != nil {
 			return nil, err
 		}
+		addr := lis.Addr()
 		a.Log.Info("API endpoint is up",
-			logz.NetNetworkFromAddr(lis.Addr()),
-			logz.NetAddressFromAddr(lis.Addr()),
+			logz.NetNetworkFromAddr(addr),
+			logz.NetAddressFromAddr(addr),
 		)
 		return lis, nil
 	})
@@ -408,9 +424,10 @@ func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grp
 		if err != nil {
 			return nil, err
 		}
+		addr := lis.Addr()
 		a.Log.Info("Private API endpoint is up",
-			logz.NetNetworkFromAddr(lis.Addr()),
-			logz.NetAddressFromAddr(lis.Addr()),
+			logz.NetNetworkFromAddr(addr),
+			logz.NetAddressFromAddr(addr),
 		)
 		return lis, nil
 	})
@@ -471,11 +488,15 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 		keepaliveOpt,
 	}
 
-	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-	if err != nil {
-		return nil, err
+	if !listenCfg.Websocket {
+		// If we are listening for WebSocket connections, gRPC server doesn't need TLS.
+		// TLS is handled by the HTTP/WebSocket server in this case.
+		credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		serverOpts = append(serverOpts, credsOpt...)
 	}
-	serverOpts = append(serverOpts, credsOpt...)
 
 	return grpc.NewServer(serverOpts...), nil
 }
