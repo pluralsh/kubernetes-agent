@@ -10,8 +10,7 @@ import (
 )
 
 func LevelFromString(levelStr string) (zapcore.Level, error) {
-	var level zapcore.Level
-	err := level.Set(levelStr)
+	level, err := zapcore.ParseLevel(levelStr)
 	if err != nil {
 		return level, fmt.Errorf("log level: %w", err)
 	}
