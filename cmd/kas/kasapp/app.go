@@ -16,8 +16,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	envVarOwnPrivateApiUrl = "OWN_PRIVATE_API_URL"
+)
+
 type App struct {
 	ConfigurationFile string
+	OwnPrivateApiUrl  string
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -38,8 +43,9 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(logger))
 	app := ConfiguredApp{
-		Log:           logger,
-		Configuration: cfg,
+		Log:              logger,
+		Configuration:    cfg,
+		OwnPrivateApiUrl: a.OwnPrivateApiUrl,
 	}
 	return app.Run(ctx)
 }
@@ -66,7 +72,9 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 }
 
 func NewCommand() *cobra.Command {
-	a := App{}
+	a := App{
+		OwnPrivateApiUrl: os.Getenv(envVarOwnPrivateApiUrl), // TODO This should become required later?
+	}
 	c := &cobra.Command{
 		Use:   "kas",
 		Short: "GitLab Kubernetes Agent Server",
