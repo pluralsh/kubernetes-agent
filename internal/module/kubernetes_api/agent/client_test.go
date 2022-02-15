@@ -23,9 +23,9 @@ var (
 )
 
 func TestClientImpersonation(t *testing.T) {
-	// TODO test uid with Kubernetes 1.22
 	restImpConfig := rest.ImpersonationConfig{
 		UserName: "ruser1",
+		UID:      "ruid1",
 		Groups:   []string{"rg1", "rg2"},
 		Extra: map[string][]string{
 			"rx": {"rx1", "rx2"},
@@ -44,6 +44,7 @@ func TestClientImpersonation(t *testing.T) {
 	}
 	requestHeader := http.Header{}
 	requestHeader.Set(transport.ImpersonateUserHeader, "huser1")
+	requestHeader.Set(transport.ImpersonateUIDHeader, "huid1")
 	requestHeader.Set(transport.ImpersonateGroupHeader, "hg1")
 	requestHeader.Add(transport.ImpersonateGroupHeader, "hg2")
 	requestHeader.Set(transport.ImpersonateUserExtraHeaderPrefix+"Hx", "hx1")
@@ -68,6 +69,7 @@ func TestClientImpersonation(t *testing.T) {
 			impConfig:     &rpc.ImpersonationConfig{},
 			expectedRequestHeader: http.Header{
 				transport.ImpersonateUserHeader:                   {"ruser1"},
+				transport.ImpersonateUIDHeader:                    {"ruid1"},
 				transport.ImpersonateGroupHeader:                  {"rg1", "rg2"},
 				transport.ImpersonateUserExtraHeaderPrefix + "Rx": {"rx1", "rx2"},
 			},
@@ -103,6 +105,7 @@ func TestClientImpersonation(t *testing.T) {
 			requestHeader: requestHeader,
 			expectedRequestHeader: http.Header{
 				transport.ImpersonateUserHeader:                   {"huser1"},
+				transport.ImpersonateUIDHeader:                    {"huid1"},
 				transport.ImpersonateGroupHeader:                  {"hg1", "hg2"},
 				transport.ImpersonateUserExtraHeaderPrefix + "Hx": {"hx1", "hx2"},
 			},
