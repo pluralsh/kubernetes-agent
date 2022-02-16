@@ -33,21 +33,18 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	keyFile := listenCfg.KeyFile
 	var listener func() (net.Listener, error)
 
-	switch {
-	case certFile != "" && keyFile != "":
-		tlsConfig, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
+	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
 			return tls.Listen(listenCfg.Network.String(), listenCfg.Address, tlsConfig)
 		}
-	case certFile == "" && keyFile == "":
+	} else {
 		listener = func() (net.Listener, error) {
 			return net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		}
-	default:
-		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
 	}
 	m := &module{
 		log: config.Log,
