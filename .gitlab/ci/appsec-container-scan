@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require 'gitlab'
+require 'json'
+
+TRIGGER_TOKEN = ENV['PIPELINE_TRIGGER_TOKEN']
+COMPLETED_STATUSES = %w[success failed canceled skipped].freeze
+PROJECT_ID = 'gitlab-com/gl-security/appsec/container-scanners'
+
+Gitlab.endpoint = 'https://gitlab.com/api/v4'
+Gitlab.private_token = ENV['CONTAINER_SCAN_PROJECT_API_TOKEN']
+
+def trigger_appsec_pipeline(image)
+  STDERR.puts "Triggering pipeline for image '#{image}'"
+  Gitlab.run_trigger(PROJECT_ID, TRIGGER_TOKEN, 'master', { IMAGES: image }).tap do |pipeline|
+    STDERR.puts "Triggered pipeline #{pipeline.web_url}"
+  end
+end
+
+def wait_for_appsec_pipeline(pipeline, timeout: 600, sleep_time: 30)
+  result = nil
+  STDERR.print "Waiting for pipeline."
+  loop do
+    STDERR.print '.'
+    result = Gitlab.pipeline(PROJECT_ID, pipeline.id)
+    break if COMPLETED_STATUSES.include?(result.status)
+
+    sleep sleep_time
+    timeout -= sleep_time
+    raise "Timed out waiting for pipeline #{result.web_url}" if timeout <= 0
+  end
+  STDERR.puts " Done!\nPipeline status '#{result.status}'."
+  result
+end
+
+def merge_appsec_container_scanning_artifacts(pipeline, job_names)
+  STDERR.puts "Retrieving pipeline jobs"
+  jobs = Gitlab.pipeline_jobs(PROJECT_ID, pipeline.id)
+
+  version = nil
+  remediations = []
+  vulnerabilities = []
+
+  jobs.each do |job|
+    next unless job_names.include?(job.name)
+
+    STDERR.puts "Downloading report artifact for job '#{job.name}' (ID #{job.id})"
+    file = Gitlab.download_job_artifact_file(PROJECT_ID, job.id, 'gl-container-scanning-report.json')
+    data = JSON.parse(file.read, symbolize_names: true)
+
+    version ||= data[:version]
+    remediations.concat(data[:remediations])
+    vulnerabilities.concat(data[:vulnerabilities])
+  end
+
+  { version: version, remediations: remediations, vulnerabilities: vulnerabilities }
+end
+
+def main(image)
+  raise 'An image name argument is required' unless image
+
+  triggered_pipeline = trigger_appsec_pipeline(image)
+  completed_pipeline = wait_for_appsec_pipeline(triggered_pipeline)
+
+  unless completed_pipeline.status == 'success'
+    raise "Upstream pipeline did not succeed, see #{completed_pipeline.web_url}"
+  end
+
+  merged = merge_appsec_container_scanning_artifacts(completed_pipeline, %w[transform:t2g transform:a2g])
+
+  puts JSON.dump(merged)
+end
+
+main(*ARGV)
