@@ -16,8 +16,8 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2085783744
-  BUILD_IMAGE_SHA: "28b868c763081cb95056c3e1a7fc348e9c9de8b991023789b631a5e252be0256"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2103475024
+  BUILD_IMAGE_SHA: "91d3a37c850336b621ba026e3ee4eb8151eb6c9eb1ea2ce64431de216e1d1880"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
 
@@ -183,7 +183,7 @@ appsec_container_scanning:
   artifacts:
     reports:
       container_scanning: .gitlab/ci/gl-container-scanning-report.json
-  rules: 
+  rules:
     # Skip on forks, because external contributors can't run this pipeline
     - if: $PIPELINE_TRIGGER_TOKEN
       allow_failure: true

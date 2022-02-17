@@ -211,40 +211,40 @@ gazelle_dependencies()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-# Latest images as of 2022-02-03
+# Latest images as of 2022-02-17
 
-# debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
+# debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:088848d05d9905feb943f6b08a356282b3e54f955decbcb9e24ca9c8a539591e",
+    digest = "sha256:5210a189f21caa4d8384da9b3a197226effeac5b5d25d0a2d558979d1f18bc41",
     registry = "gcr.io",
-    repository = "distroless/base-debian10",
+    repository = "distroless/base-debian11",
 )
 
-# nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
+# nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 container_pull(
     name = "go_image_static",
-    digest = "sha256:0873c953bb3afbc90a3e86ceda9cdd5543b71dc0b473f38653b687842f0c4e31",
+    digest = "sha256:957bbd91e4bfe8186bd218c08b2bbc5c852e6ebe6a7b2dcc42a86b22ea2b6bb6",
     registry = "gcr.io",
-    repository = "distroless/static-debian10",
+    repository = "distroless/static-debian11",
 )
 
-# debug-nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
+# debug-nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base_arm64",
     architecture = "arm64",
-    digest = "sha256:af16b5ba57384c582b54c7dd883dbb7b07d0aac3e9f820da10f95e63cd8cedec",
+    digest = "sha256:8fde1b102571cc2dd6468ab69dce423338f4e970792a39650bb84b3f75bdac95",
     registry = "gcr.io",
-    repository = "distroless/base-debian10",
+    repository = "distroless/base-debian11",
 )
 
-# nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
+# nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 container_pull(
     name = "go_image_static_arm64",
     architecture = "arm64",
-    digest = "sha256:5fec0b554fa1b5f1ffba4168e102d0ece16174b82cd9492449e5a6b1c35fdb4e",
+    digest = "sha256:f85ec5facdc6db7fee1241f872007979fb6ef062b3bfb1cd510d7c61e0e88121",
     registry = "gcr.io",
-    repository = "distroless/static-debian10",
+    repository = "distroless/static-debian11",
 )
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
