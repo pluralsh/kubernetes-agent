@@ -229,6 +229,24 @@ container_pull(
     repository = "distroless/static-debian11",
 )
 
+# debug-nonroot-arm from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
+container_pull(
+    name = "go_debug_image_base_arm",
+    architecture = "arm",
+    digest = "sha256:77cb441e16f00e9c6040e6551f977186bd848d9f2333f9864fea9d7b3e3c0e28",
+    registry = "gcr.io",
+    repository = "distroless/base-debian11",
+)
+
+# nonroot-arm from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
+container_pull(
+    name = "go_image_static_arm",
+    architecture = "arm",
+    digest = "sha256:4da4fc86823ed27faf4e40bc464425acb18fb44067b2d1c5fb9dbb9a5e98bb60",
+    registry = "gcr.io",
+    repository = "distroless/static-debian11",
+)
+
 # debug-nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base_arm64",

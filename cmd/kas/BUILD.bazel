@@ -16,6 +16,7 @@ go_library(
 define_command_targets(
     name = "kas",
     arm64_targets = False,
+    arm_targets = False,
     binary_embed = [":kas_lib"],
 )
 

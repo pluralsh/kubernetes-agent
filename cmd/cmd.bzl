@@ -27,10 +27,13 @@ def define_command_targets(
         name,
         binary_embed,
         race_targets = True,
+        arm_targets = True,
         arm64_targets = True,
         base_image = "@go_image_static//image",
+        base_image_arm = "@go_image_static_arm//image",
         base_image_arm64 = "@go_image_static_arm64//image",
         base_image_race = "@go_debug_image_base//image",
+        base_image_arm_race = "@go_debug_image_base_arm//image",
         base_image_arm64_race = "@go_debug_image_base_arm64//image"):
     x_defs = {
         "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
@@ -61,6 +64,26 @@ def define_command_targets(
         tags = ["manual"],
         visibility = ["//visibility:public"],
     )
+
+    if arm_targets:
+        go_binary(
+            name = "%s_linux_arm" % name,
+            embed = binary_embed,
+            goarch = "arm",
+            goos = "linux",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+            x_defs = x_defs,
+        )
+
+        go_image(
+            name = "container_arm",
+            base = base_image_arm,
+            binary = ":%s_linux_arm" % name,
+            architecture = "arm",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
     if arm64_targets:
         go_binary(
@@ -107,6 +130,28 @@ def define_command_targets(
             name = "container_race",
             base = base_image_race,
             binary = ":%s_linux_race" % name,
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
+
+    if race_targets and arm_targets:
+        # Will only work on an arm machine because otherwise cross compilation with CGO requires a properly setup crosstool.
+        #        go_binary(
+        #            name = "%s_linux_arm_race" % name,
+        #            embed = binary_embed,
+        #            goarch = "arm",
+        #            goos = "linux",
+        #            race = "on",
+        #            tags = ["manual"],
+        #            visibility = ["//visibility:public"],
+        #            x_defs = x_defs,
+        #        )
+        #
+        go_image(
+            name = "container_arm_race",
+            base = base_image_arm_race,
+            binary = ":%s_linux_arm" % name,  # not a race binary, but this image is still good for debugging
+            architecture = "arm",
             tags = ["manual"],
             visibility = ["//visibility:public"],
         )
