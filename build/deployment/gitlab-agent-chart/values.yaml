@@ -18,21 +18,15 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   # name: ""
 
-cilium:
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  # DEPRECATED: See https://docs.gitlab.com/ee/user/clusters/agent/repository.html#surface-network-security-alerts-from-cluster-to-gitlab
-  enabled: true
-
-podAnnotations: 
+podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/path: "/metrics"
   prometheus.io/port: "8080"
-        
+
 config:
   kasAddress: 'wss://kas.gitlab.com'
   # token: "put your token here"
-  # secretName: "default: token" 
+  # secretName: "default: token"
 
 resources: {}
   # limits:
