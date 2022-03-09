@@ -137,6 +137,8 @@ func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for DefaultBranch
+
 	if len(errors) > 0 {
 		return ListAgentConfigFilesRequestMultiError(errors)
 	}

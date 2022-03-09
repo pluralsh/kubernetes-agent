@@ -13,6 +13,7 @@ import "internal/module/modserver/modserver.proto";
 message ListAgentConfigFilesRequest {
   modserver.Repository repository = 1 [(validate.rules).message.required = true];
   modserver.GitalyAddress gitaly_address = 2 [(validate.rules).message.required = true];
+  string default_branch = 3;
 }
 
 message ListAgentConfigFilesResponse {

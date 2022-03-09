@@ -9,6 +9,7 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     add_message "gitlab.agent.configuration_project.rpc.ListAgentConfigFilesRequest" do
       optional :repository, :message, 1, "gitlab.agent.modserver.Repository", json_name: "repository"
       optional :gitaly_address, :message, 2, "gitlab.agent.modserver.GitalyAddress", json_name: "gitalyAddress"
+      optional :default_branch, :string, 3, json_name: "defaultBranch"
     end
     add_message "gitlab.agent.configuration_project.rpc.ListAgentConfigFilesResponse" do
       repeated :config_files, :message, 1, "gitlab.agent.configuration_project.rpc.AgentConfigFile", json_name: "config_files"

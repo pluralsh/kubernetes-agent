@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/git"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 	"google.golang.org/grpc/codes"
@@ -55,7 +56,8 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 		GlProjectPath:                 req.Repository.GlProjectPath,
 	}
 	v := &configVisitor{}
-	err = pf.Visit(ctx, r, []byte("HEAD"), []byte(agent_configuration.Directory), true, v)
+	ref := git.ExplicitRefOrHead(req.DefaultBranch)
+	err = pf.Visit(ctx, r, []byte(ref), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
 		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
 		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)
