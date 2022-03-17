@@ -50,3 +50,10 @@ openAPI:
         setter:
           name: name-prefix
           value: ""
+    io.k8s.cli.setters.cluster-admin-name-prefix:
+      type: string
+      description: Prefix for resource names when using the cluster-admin overlay
+      x-k8s-cli:
+        setter:
+          name: cluster-admin-name-prefix
+          value: ""

@@ -9,3 +9,5 @@ secretGenerator:
   - name: gitlab-agent-token
     files:
       - token=secrets/agent.token
+configurations:
+  - namereference.yaml

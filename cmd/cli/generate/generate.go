@@ -63,9 +63,11 @@ func NewCommand() *cobra.Command {
 
 func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
 	overlay := kustomizationRbacOverlay
+	namePrefixSetter := "cluster-admin-name-prefix"
 
 	if c.NoRbac {
 		overlay = kustomizationBaseOverlay
+		namePrefixSetter = "name-prefix"
 	}
 
 	if err := c.writeTokenFile(); err != nil {
@@ -80,7 +82,7 @@ func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
 	if err := c.kustomizeSet(ctx, "namespace", c.Namespace); err != nil {
 		return err
 	}
-	if err := c.kustomizeSet(ctx, "name-prefix", c.NamePrefix); err != nil {
+	if err := c.kustomizeSet(ctx, namePrefixSetter, c.NamePrefix); err != nil {
 		return err
 	}
 
