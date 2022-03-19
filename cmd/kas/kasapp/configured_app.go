@@ -66,6 +66,13 @@ import (
 )
 
 const (
+	routingAttemptInterval = 50 * time.Millisecond
+	routingInitBackoff     = 100 * time.Millisecond
+	routingMaxBackoff      = 1 * time.Second
+	routingResetDuration   = 10 * time.Second
+	routingBackoffFactor   = 2.0
+	routingJitter          = 1.0
+
 	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
@@ -335,17 +342,16 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 		),
 		tunnelQuerier: tunnelQuerier,
 		tunnelFinder:  tunnelFinder,
-		pollConfig: retry.NewPollConfigFactory(getTunnelsAttemptInterval, retry.NewExponentialBackoffFactory(
+		pollConfig: retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
 			routingInitBackoff,
 			routingMaxBackoff,
 			routingResetDuration,
 			routingBackoffFactor,
 			routingJitter,
 		)),
-		internalServer:       internalServer,
-		privateApiServer:     privateApiServer,
-		gatewayKasVisitor:    gatewayKasVisitor,
-		routeAttemptInterval: routeAttemptInterval,
+		internalServer:    internalServer,
+		privateApiServer:  privateApiServer,
+		gatewayKasVisitor: gatewayKasVisitor,
 	}, nil
 }
 

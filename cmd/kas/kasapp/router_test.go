@@ -356,13 +356,12 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithContextDialer(privateApiServerListener.DialContext),
 		),
-		tunnelQuerier:        querier,
-		tunnelFinder:         finder,
-		pollConfig:           testhelpers.NewPollConfig(time.Minute),
-		internalServer:       internalServer,
-		privateApiServer:     privateApiServer,
-		gatewayKasVisitor:    gatewayKasVisitor,
-		routeAttemptInterval: time.Minute,
+		tunnelQuerier:     querier,
+		tunnelFinder:      finder,
+		pollConfig:        testhelpers.NewPollConfig(time.Minute),
+		internalServer:    internalServer,
+		privateApiServer:  privateApiServer,
+		gatewayKasVisitor: gatewayKasVisitor,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group
