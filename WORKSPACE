@@ -8,35 +8,34 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "2b1641428dff9018f9e85c0384f03ec6c10660d935b750e3fa1492a281a53b0f",
+    sha256 = "f2dcd210c7095febe54b804bb1cd3a58fe8435a909db2ec04e31542631cf715c",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.29.0/rules_go-v0.29.0.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.29.0/rules_go-v0.29.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.31.0/rules_go-v0.31.0.zip",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.31.0/rules_go-v0.31.0.zip",
     ],
 )
 
-# Don't update to 0.24.0 https://github.com/bazelbuild/bazel-gazelle/issues/1117
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "62ca106be173579c0a167deb23358fdfe71ffa1e4cfdddf5582af26520f1c66f",
+    sha256 = "5982e5463f171da99e3bdaeff8c0f48283a7a5f396ec5282910b9e8a49c0dd7e",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.25.0/bazel-gazelle-v0.25.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.25.0/bazel-gazelle-v0.25.0.tar.gz",
     ],
 )
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "59536e6ae64359b716ba9c46c39183403b01eabfbd57578e84398b4829ca499a",
-    strip_prefix = "rules_docker-0.22.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.22.0/rules_docker-v0.22.0.tar.gz"],
+    sha256 = "85ffff62a4c22a74dbd98d05da6cf40f497344b3dbf1e1ab0a37ab2a1a6ca014",
+    strip_prefix = "rules_docker-0.23.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.23.0/rules_docker-v0.23.0.tar.gz"],
 )
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "d368c47bbfc055010f118efb2962987475418737e901f7782d2a966d1dc80296",
-    strip_prefix = "buildtools-4.2.5",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/4.2.5.tar.gz"],
+    sha256 = "7f43df3cca7bb4ea443b4159edd7a204c8d771890a69a50a190dc9543760ca21",
+    strip_prefix = "buildtools-5.0.1",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/5.0.1.tar.gz"],
 )
 
 http_archive(
@@ -172,14 +171,13 @@ http_archive(
         "@io_bazel_rules_go//third_party:org_golang_x_tools-deletegopls.patch",
         # releaser:patch-cmd gazelle -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
-        "@io_bazel_rules_go//third_party:org_golang_x_tools-public-visibility.patch",
     ],
-    sha256 = "c069fd1d1dcbbfd2e396993307adf0edde5ef5d419c5db92649ab8cfabec255e",
-    strip_prefix = "tools-0.1.7",
-    # v0.1.7, latest as of 2021-10-06
+    sha256 = "1d338afb3cd8013cfb035da6831dea2210efb0386c17b9c99b5e84724e3d733a",
+    strip_prefix = "tools-0.1.9",
+    # v0.1.9, latest as of 2022-03-14
     urls = [
-        "https://github.com/golang/tools/archive/v0.1.7.zip",
-        "https://mirror.bazel.build/github.com/golang/tools/archive/v0.1.7.zip",
+        "https://github.com/golang/tools/archive/v0.1.9.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/v0.1.9.zip",
     ],
 )
 
@@ -204,7 +202,7 @@ bazel_skylib_workspace()
 go_rules_dependencies()
 
 go_register_toolchains(
-    version = "1.17.7",
+    version = "1.18",
 )
 
 gazelle_dependencies()

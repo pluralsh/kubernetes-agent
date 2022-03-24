@@ -30,7 +30,7 @@ require (
 	go.uber.org/zap v1.21.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
-	golang.org/x/tools v0.1.7
+	golang.org/x/tools v0.1.9
 	google.golang.org/api v0.68.0
 	google.golang.org/genproto v0.0.0-20220211171837-173942840c17
 	google.golang.org/grpc v1.44.0
@@ -171,7 +171,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/mod v0.5.0 // indirect
+	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sys v0.0.0-20220204135822-1c1b9b1eba6a // indirect
@@ -200,7 +200,7 @@ replace (
 	// https://github.com/ash2k/cobra/commits/remove-cli
 	github.com/spf13/cobra => github.com/ash2k/cobra v1.2.2-0.20210706005132-e91bfee91527
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
-	golang.org/x/tools => golang.org/x/tools v0.1.7
+	golang.org/x/tools => golang.org/x/tools v0.1.9
 
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.23.3

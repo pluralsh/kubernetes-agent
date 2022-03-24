@@ -4445,8 +4445,8 @@ def go_repositories():
         name = "com_github_yuin_goldmark",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/yuin/goldmark",
-        sum = "h1:OtISOGfH6sOWa1/qXqqAiOIAO6Z5J3AEAE18WAq6BiQ=",
-        version = "v1.4.0",
+        sum = "h1:/vn0k+RBvwlxEmP5E7SZMqNxPhfMVFEJiykr15/0XKM=",
+        version = "v1.4.1",
     )
     go_repository(
         name = "com_github_yvasiyarov_go_metrics",
@@ -5388,8 +5388,8 @@ def go_repositories():
         name = "org_golang_x_mod",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/mod",
-        sum = "h1:UG21uOlmZabA4fW5i7ZX6bjw1xELEGg/ZLgZq9auk/Q=",
-        version = "v0.5.0",
+        sum = "h1:OJxoQ/rynoF0dcCdI7cLPktw/hR2cueqYfjm43oqK38=",
+        version = "v0.5.1",
     )
     go_repository(
         name = "org_golang_x_net",
