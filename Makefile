@@ -71,7 +71,6 @@ regenerate-mocks: internal-regenerate-mocks fmt update-bazel
 .PHONY: update-repos
 update-repos:
 	go mod tidy
-	./build/update_repos.sh
 	bazel run \
 		//:gazelle -- \
 		update-repos \
