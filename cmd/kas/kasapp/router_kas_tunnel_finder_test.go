@@ -101,10 +101,10 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	var wg sync.WaitGroup
-	wg.Add(2)
+	var dialStartWg, dialStopWg sync.WaitGroup
+	dialStartWg.Add(2)
 	go func() {
-		wg.Wait()
+		dialStartWg.Wait()
 		time.Sleep(200 * time.Millisecond)
 		cancel()
 	}()
@@ -127,22 +127,28 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
-			wg.Done()
+			dialStartWg.Done()
 			<-ctx.Done() // block to simulate a long running dial
+			dialStopWg.Wait()
 			return nil, ctx.Err()
 		})
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe2").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
-			wg.Done()
+			dialStartWg.Done()
 			<-ctx.Done() // block to simulate a long running dial
+			dialStopWg.Wait()
 			return nil, ctx.Err()
 		})
 	rpcApi.EXPECT().
 		HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
 		Times(2)
 
-	go tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
+	dialStopWg.Add(1)
+	go func() {
+		defer dialStopWg.Done() // unblock dials once polling is done. This is to avoid flakes.
+		tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
+	}()
 	select {
 	case <-ctx.Done():
 	case <-tChan:
