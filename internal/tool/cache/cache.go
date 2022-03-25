@@ -28,7 +28,7 @@ func (e *Entry) IsExpiredLocked(t time.Time) bool {
 }
 
 type Cache struct {
-	lock                  sync.Mutex
+	mu                    sync.Mutex
 	data                  map[interface{}]*Entry
 	expirationCheckPeriod time.Duration
 	nextExpirationCheck   time.Time
@@ -42,8 +42,8 @@ func New(expirationCheckPeriod time.Duration) *Cache {
 }
 
 func (c *Cache) EvictExpiredEntries() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	now := time.Now()
 	if now.Before(c.nextExpirationCheck) {
 		return
@@ -64,8 +64,8 @@ func (c *Cache) EvictExpiredEntries() {
 }
 
 func (c *Cache) GetOrCreateCacheEntry(key interface{}) *Entry {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	entry := c.data[key]
 	if entry != nil {
 		return entry

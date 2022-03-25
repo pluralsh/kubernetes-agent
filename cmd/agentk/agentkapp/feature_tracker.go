@@ -8,7 +8,7 @@ import (
 )
 
 type featureTracker struct {
-	mx          sync.Mutex
+	mu          sync.Mutex
 	log         *zap.Logger
 	status      map[modagent.Feature]map[string]struct{} // feature -> set of consumers
 	subscribers map[modagent.Feature][]modagent.SubscribeCb
@@ -23,8 +23,8 @@ func newFeatureTracker(log *zap.Logger) *featureTracker {
 }
 
 func (f *featureTracker) ToggleFeature(feature modagent.Feature, consumer string, enabled bool) {
-	f.mx.Lock()
-	defer f.mx.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	notify := false
 	status := f.status[feature]
 	if enabled {
@@ -59,7 +59,7 @@ func (f *featureTracker) ToggleFeature(feature modagent.Feature, consumer string
 }
 
 func (f *featureTracker) Subscribe(feature modagent.Feature, cb modagent.SubscribeCb) {
-	f.mx.Lock()
-	defer f.mx.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.subscribers[feature] = append(f.subscribers[feature], cb)
 }
