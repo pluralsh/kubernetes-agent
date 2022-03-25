@@ -234,7 +234,7 @@ func (c cancelingReadCloser) Close() error {
 // has already been set.
 // Thread safe.
 type valueOrError struct {
-	mx      sync.Mutex
+	mu      sync.Mutex
 	locker  *sync.Cond
 	onError func(error) error
 	value   interface{}
@@ -246,13 +246,13 @@ func newValueOrError(onError func(error) error) *valueOrError {
 	v := &valueOrError{
 		onError: onError,
 	}
-	v.locker = sync.NewCond(&v.mx)
+	v.locker = sync.NewCond(&v.mu)
 	return v
 }
 
 func (v *valueOrError) SetValue(value interface{}) {
-	v.mx.Lock()
-	defer v.mx.Unlock()
+	v.mu.Lock()
+	defer v.mu.Unlock()
 	if v.isSet {
 		return
 	}
@@ -262,8 +262,8 @@ func (v *valueOrError) SetValue(value interface{}) {
 }
 
 func (v *valueOrError) SetError(err error) {
-	v.mx.Lock()
-	defer v.mx.Unlock()
+	v.mu.Lock()
+	defer v.mu.Unlock()
 	err = v.onError(err)
 	if v.isSet {
 		return
@@ -275,8 +275,8 @@ func (v *valueOrError) SetError(err error) {
 
 // Wait returns a value or an error, blocking the caller until one of them is set.
 func (v *valueOrError) Wait() (interface{}, error) {
-	v.mx.Lock()
-	defer v.mx.Unlock()
+	v.mu.Lock()
+	defer v.mu.Unlock()
 	if !v.isSet {
 		v.locker.Wait()
 	}

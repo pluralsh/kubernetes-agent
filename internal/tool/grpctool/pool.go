@@ -28,7 +28,7 @@ var (
 )
 
 type Pool struct {
-	mx       sync.Mutex
+	mu       sync.Mutex
 	log      *zap.Logger
 	dialOpts []grpc.DialOption
 	conns    map[string]*connHolder // target -> conn
@@ -36,8 +36,8 @@ type Pool struct {
 }
 
 func (p *Pool) Close() error {
-	p.mx.Lock()
-	defer p.mx.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	for target, conn := range p.conns {
 		delete(p.conns, target)
 		log := p.log.With(logz.PoolConnectionUrl(conn.targetUrl))
@@ -77,8 +77,8 @@ func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
 	default:
 		return nil, fmt.Errorf("unsupported pool URL scheme in %s", targetUrl)
 	}
-	p.mx.Lock()
-	defer p.mx.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	conn := p.conns[target]
 	if conn == nil {
 		grpcConn, err := grpc.DialContext(ctx, target, p.dialOpts...)
@@ -99,8 +99,8 @@ func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
 }
 
 func (p *Pool) connDone(conn *connHolder) {
-	p.mx.Lock()
-	defer p.mx.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	conn.numUsers--
 	conn.lastUsed = p.clk.Now()
 	p.runGcLocked()

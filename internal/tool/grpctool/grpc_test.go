@@ -92,8 +92,8 @@ func TestGrpcErrors_InterceptorVsStatsHandlerError(t *testing.T) {
 	_, err := client.RequestResponse(ctx, &test.Request{})
 	assert.EqualError(t, err, "rpc error: code = Canceled desc = context canceled")
 	time.Sleep(50 * time.Millisecond) // give gRPC a moment to actually call the stats handler
-	sh.mx.Lock()
-	defer sh.mx.Unlock()
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
 
 	assert.Equal(t, 1, sh.times)
 	assert.EqualError(t, sh.err, "rpc error: code = Unavailable desc = Unavailable :(") // StatsHandler too sees error from the handler
@@ -275,7 +275,7 @@ var (
 )
 
 type statsHandler struct {
-	mx    sync.Mutex
+	mu    sync.Mutex
 	times int
 	err   error
 }
@@ -289,8 +289,8 @@ func (h *statsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
 	if !ok {
 		return
 	}
-	h.mx.Lock()
-	defer h.mx.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.times++
 	h.err = x.Error
 }
@@ -387,7 +387,7 @@ func (c *brokenConn) SetWriteDeadline(t time.Time) error {
 }
 
 type onceListener struct {
-	mx       sync.Mutex
+	mu       sync.Mutex
 	cond     *sync.Cond
 	conn     net.Conn
 	isClosed bool
@@ -397,13 +397,13 @@ func newOnceListener(conn net.Conn) *onceListener {
 	l := &onceListener{
 		conn: conn,
 	}
-	l.cond = sync.NewCond(&l.mx)
+	l.cond = sync.NewCond(&l.mu)
 	return l
 }
 
 func (l *onceListener) Accept() (net.Conn, error) {
-	l.mx.Lock()
-	defer l.mx.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if !l.isClosed {
 		if l.conn != nil {
 			c := l.conn
@@ -416,8 +416,8 @@ func (l *onceListener) Accept() (net.Conn, error) {
 }
 
 func (l *onceListener) Close() error {
-	l.mx.Lock()
-	defer l.mx.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if l.isClosed {
 		return nil
 	}
