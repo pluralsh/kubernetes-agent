@@ -47,7 +47,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		panic(err)
 	}
 	lastProcessedCommitId := req.CommitId
-	_ = retry.PollWithBackoff(ctx, o.PollConfig(), func() (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, o.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
 		req.CommitId = lastProcessedCommitId

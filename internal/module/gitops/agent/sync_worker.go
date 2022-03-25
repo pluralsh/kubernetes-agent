@@ -34,9 +34,9 @@ type syncWorker struct {
 func (s *syncWorker) Run(jobs <-chan syncJob) {
 	for job := range jobs {
 		l := s.log.With(logz.CommitId(job.commitId))
-		_ = retry.PollWithBackoff(job.ctx, s.applierPollConfig, func() (error, retry.AttemptResult) {
+		_ = retry.PollWithBackoff(job.ctx, s.applierPollConfig, func(ctx context.Context) (error, retry.AttemptResult) {
 			l.Info("Synchronizing objects")
-			err := s.synchronize(job)
+			err := s.synchronize(ctx, job)
 			if err != nil {
 				if errz.ContextDone(err) {
 					l.Info("Synchronization was canceled", logz.Error(err))
@@ -51,8 +51,8 @@ func (s *syncWorker) Run(jobs <-chan syncJob) {
 	}
 }
 
-func (s *syncWorker) synchronize(job syncJob) error {
-	events := s.applier.Run(job.ctx, job.invInfo, job.objects, s.applyOptions)
+func (s *syncWorker) synchronize(ctx context.Context, job syncJob) error {
+	events := s.applier.Run(ctx, job.invInfo, job.objects, s.applyOptions)
 	//The printer will print updates from the channel. It will block
 	//until the channel is closed.
 	printer := printers.GetPrinter(printers.JSONPrinter, genericclioptions.IOStreams{
