@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"strconv"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
@@ -17,17 +16,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	routeAttemptInterval      = 3 * time.Second
-	getTunnelsAttemptInterval = 50 * time.Millisecond
-
-	routingInitBackoff   = 100 * time.Millisecond
-	routingMaxBackoff    = 1 * time.Second
-	routingResetDuration = 10 * time.Second
-	routingBackoffFactor = 2.0
-	routingJitter        = 1.0
-)
-
 type kasRouter interface {
 	RegisterAgentApi(desc *grpc.ServiceDesc)
 }
@@ -36,17 +24,6 @@ type KasPool interface {
 	Dial(ctx context.Context, targetUrl string) (grpctool.PoolConn, error)
 	io.Closer
 }
-
-// router is quite dumb at the moment, but we'll make it much better in the next iterations:
-// - potentially maintain a short lived cache of per-agent id tunnel info so than subsequent requests can
-//   avoid making a tracker.Querier lookup (i.e. Redis lookup)
-// - if no tunnels are available for an agent id, block and wait for a notification from
-//   the tracker.Querier, which can use a pub-sub for notifications about new tunnels.
-// - connections to kas are single use only. They should be cached for reuse and removed if the destination kas
-//   goes away. This should be achieved by pub/sub notifications on kas come/go events and/or periodic relisting
-//   of currently registered kas instances.
-//
-// Optimizations above would reduce worst case latency quite a bit.
 
 // router routes traffic from kas to another kas to agentk.
 // routing kas -> gateway kas -> agentk
@@ -60,9 +37,8 @@ type router struct {
 	internalServer grpc.ServiceRegistrar
 	// privateApiServer is the gRPC server that other kas instances can talk to.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
-	privateApiServer     grpc.ServiceRegistrar
-	gatewayKasVisitor    *grpctool.StreamVisitor
-	routeAttemptInterval time.Duration
+	privateApiServer  grpc.ServiceRegistrar
+	gatewayKasVisitor *grpctool.StreamVisitor
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {

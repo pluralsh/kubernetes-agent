@@ -108,10 +108,6 @@ func ModuleName(name string) zap.Field {
 	return zap.String("mod_name", name)
 }
 
-func ConnectionId(connectionId int64) zap.Field {
-	return zap.Int64("connection_id", connectionId)
-}
-
 func KasUrl(kasUrl string) zap.Field {
 	return zap.String("kas_url", kasUrl)
 }
