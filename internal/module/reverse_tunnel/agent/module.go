@@ -13,7 +13,6 @@ import (
 type module struct {
 	server            *grpc.Server
 	numConnections    int
-	featureChan       <-chan bool
 	connectionFactory func(*info.AgentDescriptor) connectionInterface // helps testing
 }
 
@@ -21,34 +20,12 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	descriptor := m.agentDescriptor()
 	var wg wait.Group
 	defer wg.Wait()
-	var (
-		nestedCtx    context.Context
-		nestedCancel context.CancelFunc
-	)
-	for {
-		select {
-		case <-ctx.Done():
-			return nil // nolint:govet
-		case enabled := <-m.featureChan:
-			if enabled {
-				if nestedCancel != nil { // already enabled
-					continue
-				}
-				nestedCtx, nestedCancel = context.WithCancel(ctx) // nolint:govet
-				for i := 0; i < m.numConnections; i++ {
-					conn := m.connectionFactory(descriptor)
-					wg.StartWithContext(nestedCtx, conn.Run)
-				}
-			} else {
-				if nestedCancel == nil { // already disabled
-					continue
-				}
-				nestedCancel()
-				nestedCancel = nil
-				nestedCtx = nil // nolint:ineffassign
-			}
-		}
+	for i := 0; i < m.numConnections; i++ {
+		conn := m.connectionFactory(descriptor)
+		wg.StartWithContext(ctx, conn.Run)
 	}
+	<-ctx.Done()
+	return nil
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {

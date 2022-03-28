@@ -28,14 +28,10 @@ const (
 	// Invalid is an invalid sentinel value.
 	// Treat default value as "invalid" to avoid accidental confusion.
 	Invalid Feature = iota
-	// Tunnel represent reverse tunnel feature.
-	Tunnel
 )
 
 var (
-	KnownFeatures = map[Feature]string{
-		Tunnel: "tunnel",
-	}
+	KnownFeatures = map[Feature]string{}
 )
 
 // Config holds configuration for a Module.
