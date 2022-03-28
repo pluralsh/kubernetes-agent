@@ -85,7 +85,7 @@ func (w *worker) Run(ctx context.Context) {
 	}
 
 	since := timestamppb.Now()
-	_ = retry.PollWithBackoff(ctx, w.pollConfig(), func() (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, w.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()
 		flc, err := w.observerClient.GetFlows(ctx, &observer.GetFlowsRequest{

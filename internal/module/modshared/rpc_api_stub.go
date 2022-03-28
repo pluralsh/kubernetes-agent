@@ -17,7 +17,9 @@ type RpcApiStub struct {
 func (a *RpcApiStub) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
 	// this context must only be used here, not inside of f() - connection should be closed only when idle.
 	ageCtx := grpctool.MaxConnectionAgeContextFromStreamContext(a.StreamCtx)
-	err := retry.PollWithBackoff(ageCtx, cfg, f)
+	err := retry.PollWithBackoff(ageCtx, cfg, func(ctx context.Context) (error, retry.AttemptResult) {
+		return f()
+	})
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}

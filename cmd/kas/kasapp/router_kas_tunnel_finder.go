@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
@@ -54,8 +55,8 @@ func (f *tunnelFinder) poll(ctx context.Context, pollConfig retry.PollConfig) {
 	var tunnels []*tracker.TunnelInfo
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
-	getTunnelsFunc := f.attemptToGetTunnels(pollCtx, &tunnels)
-	_ = retry.PollImmediateUntil(pollCtx, pollConfig.Interval, func() ( /*done*/ bool, error) {
+	getTunnelsFunc := f.attemptToGetTunnels(&tunnels)
+	_ = wait.PollImmediateUntilWithContext(pollCtx, pollConfig.Interval, func(pollCtx context.Context) ( /*done*/ bool, error) {
 		err := retry.PollWithBackoff(pollCtx, pollConfig, getTunnelsFunc)
 		if err != nil {
 			return false, err // err can only be retry.ErrWaitTimeout
@@ -175,9 +176,9 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 
 // attemptToGetTunnels
 // must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (f *tunnelFinder) attemptToGetTunnels(ctx context.Context, infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
+func (f *tunnelFinder) attemptToGetTunnels(infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffCtxFunc {
 	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
-	return func() (error, retry.AttemptResult) {
+	return func(ctx context.Context) (error, retry.AttemptResult) {
 		var infos tunnelInfoCollector = (*infosTarget)[:0] // reuse target backing array
 		err := f.tunnelQuerier.GetTunnelsByAgentId(ctx, f.agentId, infos.Collect(service, method))
 		if err != nil {

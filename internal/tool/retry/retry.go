@@ -26,13 +26,16 @@ var (
 	ErrWaitTimeout = wait.ErrWaitTimeout
 )
 
-type ConditionFunc = wait.ConditionFunc
 type BackoffManager = wait.BackoffManager
 type BackoffManagerFactory func() BackoffManager
 
 // PollWithBackoffFunc is a function that is called to perform polling.
 // Signature is unusual because AttemptResult must be checked, not the error.
 type PollWithBackoffFunc func() (error, AttemptResult)
+
+// PollWithBackoffCtxFunc is a function that is called to perform polling.
+// Signature is unusual because AttemptResult must be checked, not the error.
+type PollWithBackoffCtxFunc func(ctx context.Context) (error, AttemptResult)
 
 type PollConfig struct {
 	Backoff  BackoffManager
@@ -42,14 +45,6 @@ type PollConfig struct {
 
 type PollConfigFactory func() PollConfig
 
-// PollImmediateUntil is a wrapper to make the function more convenient to use.
-// - ctx is used instead of a channel.
-// - ctx is the first argument to follow the convention.
-// - condition is the last argument because code is more readable this way when used with inline functions.
-func PollImmediateUntil(ctx context.Context, interval time.Duration, f ConditionFunc) error {
-	return wait.PollImmediateUntil(interval, f, ctx.Done())
-}
-
 // PollWithBackoff runs f every duration given by BackoffManager.
 //
 // If sliding is true, the period is computed after f runs. If it is false then
@@ -57,7 +52,7 @@ func PollImmediateUntil(ctx context.Context, interval time.Duration, f Condition
 // It returns when:
 // - context signals done. ErrWaitTimeout is returned in this case.
 // - f returns Done
-func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffFunc) error {
+func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFunc) error {
 	var t clock.Timer
 	defer func() {
 		if t != nil && !t.Stop() {
@@ -77,7 +72,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffFunc)
 				return ErrWaitTimeout
 			default:
 			}
-			err, result := f()
+			err, result := f(ctx)
 			switch result {
 			case Continue: // sleep and continue
 				timer := time.NewTimer(cfg.Interval)
