@@ -36,10 +36,6 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if numConnections == 0 {
 		numConnections = defaultNumConnections
 	}
-	featureChan := make(chan bool)
-	config.Api.SubscribeToFeatureStatus(modagent.Tunnel, func(enabled bool) {
-		featureChan <- enabled
-	})
 	client := rpc.NewReverseTunnelClient(config.KasConn)
 	pollConfig := retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 		connectionInitBackoff,
@@ -51,7 +47,6 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	return &module{
 		server:         config.Server,
 		numConnections: numConnections,
-		featureChan:    featureChan,
 		connectionFactory: func(descriptor *info.AgentDescriptor) connectionInterface {
 			return &connection{
 				log:                config.Log,

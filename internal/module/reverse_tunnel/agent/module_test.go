@@ -19,24 +19,9 @@ var (
 	_ connectionInterface = &mockConnection{}
 )
 
-func TestModule_FeatureDefaultState(t *testing.T) {
-	t.Parallel()
-	featureChan := make(chan bool)
+func TestModule(t *testing.T) {
 	mockConn := &mockConnection{}
-	m := setupModule(featureChan, mockConn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	err := m.Run(ctx, nil)
-	require.NoError(t, err)
-	assert.Zero(t, mockConn.runCalled)
-}
-
-func TestModule_FeatureEnabled(t *testing.T) {
-	t.Parallel()
-	featureChan := make(chan bool, 1)
-	featureChan <- true
-	mockConn := &mockConnection{}
-	m := setupModule(featureChan, mockConn)
+	m := setupModule(mockConn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	err := m.Run(ctx, nil)
@@ -44,26 +29,10 @@ func TestModule_FeatureEnabled(t *testing.T) {
 	assert.EqualValues(t, 1, mockConn.runCalled)
 }
 
-func TestModule_FeatureEnabledDisabledEnabled(t *testing.T) {
-	t.Parallel()
-	featureChan := make(chan bool, 3)
-	featureChan <- true
-	featureChan <- false
-	featureChan <- true
-	mockConn := &mockConnection{}
-	m := setupModule(featureChan, mockConn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	err := m.Run(ctx, nil)
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, mockConn.runCalled)
-}
-
-func setupModule(featureChan <-chan bool, mockConn *mockConnection) module {
+func setupModule(mockConn *mockConnection) module {
 	return module{
 		server:         grpc.NewServer(),
 		numConnections: 1,
-		featureChan:    featureChan,
 		connectionFactory: func(descriptor *info.AgentDescriptor) connectionInterface {
 			return mockConn
 		},

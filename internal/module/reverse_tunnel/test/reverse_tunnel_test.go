@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -277,13 +276,6 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	defer cancel()
 
 	agentApi := mock_modagent.NewMockApi(gomock.NewController(t))
-	var featureCb modagent.SubscribeCb
-	agentApi.EXPECT().
-		SubscribeToFeatureStatus(modagent.Tunnel, gomock.Any()).
-		Do(func(feature modagent.Feature, cb modagent.SubscribeCb) {
-			featureCb = cb
-		})
-
 	runAgent, agentInternalServer := agentConstructComponents(ctx, t, kasConn, agentApi)
 	agentInfo := testhelpers.AgentInfoObj()
 
@@ -302,10 +294,6 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	test.RegisterTestingServer(agentInternalServer, ats)
 
 	// Run all
-	g.Go(func() error {
-		featureCb(true) // enable the tunnel
-		return nil
-	})
 	g.Go(func() error {
 		return runServer(ctx)
 	})

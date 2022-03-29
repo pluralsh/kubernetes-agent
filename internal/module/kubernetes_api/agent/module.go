@@ -4,18 +4,13 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 )
 
 type module struct {
-	api modagent.Api
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	// The tunnel feature is always required because CI for the agent's configuration project
-	// can always access the agent.
-	m.api.ToggleFeature(modagent.Tunnel, true)
 	return nil
 }
 
