@@ -101,13 +101,3 @@ Later, you can pull in package updates using
 ```shell
 kpt pkg update gitlab-agent --strategy resource-merge
 ```
-
-
-## Using Helm chart
-
-`cd build/deployment/gitlab-agent-chart`
-
-Check the values.yaml file to ensure defaults are sensible (Please note - This is still in testing)
-
-Once you are happy with the values run: </br>
-`helm install gitlab-agent --namespace=gitlab-agent . --create-namespace --set config.token=<your_gitlab_agent_token>`
