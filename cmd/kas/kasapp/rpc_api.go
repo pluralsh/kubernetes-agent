@@ -54,9 +54,9 @@ func (f *serverRpcApiFactory) hub(service, method, correlationId string) SentryH
 	scope := hub.Scope()
 	scope.SetTag(modserver.GrpcServiceSentryField, service)
 	scope.SetTag(modserver.GrpcMethodSentryField, method)
-	transaction := service + "::" + method              // Like in Gitaly
-	scope.SetTransaction(transaction)                   // Like in Gitaly
-	scope.SetFingerprint([]string{"grpc", transaction}) // Like in Gitaly
+	transaction := service + "::" + method                               // Like in Gitaly
+	scope.SetTransaction(transaction)                                    // Like in Gitaly
+	scope.SetFingerprint([]string{"{{ default }}", "grpc", transaction}) // use Sentry's default error hash but also split by gRPC transaction
 	if correlationId != "" {
 		scope.SetTag(modserver.CorrelationIdSentryField, correlationId)
 	}
