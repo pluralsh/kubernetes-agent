@@ -3,6 +3,11 @@
 1. On the 15th, an automatic Slack notification reminds the Configure team to create a monthly release.
 1. On the 15th we should always tag a new version that matches the upcoming GitLab minor version. E.g. If GitLab 13.7
    will be released on the 22nd, then we should tag `v13.7.0`.
+1. Make a release of the [gitlab-agent chart](https://gitlab.com/gitlab-org/charts/gitlab-agent#publishing-a-new-release):
+   - In `Chart.yaml`
+      - Update `appVersion` to be the exactly the same as the version tag in `cluster-integrations/gitlab-agent`
+      - Bump `version` according to semantic versioning. For a GitLab milestone release, this will generally be the minor version.
+   - Push a tag `vX.Y.Z` where `X.Y.Z` is the `version` in `Chart.yaml`
 1. The [`GITLAB_KAS_VERSION`](https://gitlab.com/gitlab-org/gitlab/-/blob/master/GITLAB_KAS_VERSION) file in
    the GitLab rails monolith is updated to that new tag in a new MR.
    This MR should be accepted by the maintainer with no questions asked, typically.
