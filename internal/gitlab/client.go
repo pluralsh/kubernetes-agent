@@ -17,7 +17,7 @@ import (
 const (
 	// This header carries the JWT token for gitlab-rails
 	jwtRequestHeader  = "Gitlab-Kas-Api-Request"
-	jwtValidFor       = 5 * time.Second
+	jwtValidFor       = 30 * time.Second
 	jwtNotBefore      = 5 * time.Second
 	jwtIssuer         = "gitlab-kas"
 	jwtGitLabAudience = "gitlab"
