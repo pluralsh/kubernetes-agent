@@ -2077,8 +2077,8 @@ def go_repositories():
         name = "com_github_google_pprof",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/pprof",
-        sum = "h1:1FjCyPC+syAzJ5/2S8fqdZK1R22vvA0J7JZKcuOIQ7Y=",
-        version = "v0.0.0-20211214055906-6f57359322fd",
+        sum = "h1:hQb7P4XOakoaN+LET7TJ7PNoBsGm8Tf4lNtAdNwkxDE=",
+        version = "v0.0.0-20220113144219-d25a53d42d00",
     )
     go_repository(
         name = "com_github_google_renameio",
@@ -4585,8 +4585,8 @@ def go_repositories():
         name = "com_google_cloud_go_profiler",
         build_file_proto_mode = "disable_global",
         importpath = "cloud.google.com/go/profiler",
-        sum = "h1:QKCWcmQA9kVXsDGlCpRH0tudZg7xg/jfgw7m0Kc4nfo=",
-        version = "v0.1.2",
+        sum = "h1:TZEKR39niWTuvpak6VNg+D8J5qTzJnyaD1Yl4BOU+d8=",
+        version = "v0.2.0",
     )
     go_repository(
         name = "com_google_cloud_go_pubsub",

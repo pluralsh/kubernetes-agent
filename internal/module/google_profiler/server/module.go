@@ -22,6 +22,7 @@ func (m *module) Run(ctx context.Context) error {
 	config := profiler.Config{
 		Service:        m.service,
 		ServiceVersion: m.version,
+		DebugLogging:   m.cfg.DebugLogging,
 		MutexProfiling: true, // like in LabKit
 		ProjectID:      m.cfg.ProjectId,
 	}

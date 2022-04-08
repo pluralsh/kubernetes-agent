@@ -60,6 +60,7 @@ observability:
     enabled: false
     # project_id: ""
     # credentials_file: /some/file
+    # debug_logging: false
   liveness_probe:
     url_path: /liveness
   readiness_probe:
