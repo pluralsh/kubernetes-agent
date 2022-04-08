@@ -146,15 +146,16 @@ create_release:
     ref: '$CI_COMMIT_TAG'
     description: 'Release for tag $CI_COMMIT_TAG'
 
-# see https://docs.gitlab.com/ee/user/project/code_intelligence.html#configuration
-code_navigation:
-  image: sourcegraph/lsif-go:v1
-  allow_failure: true # recommended
-  script:
-    - lsif-go
-  artifacts:
-    reports:
-      lsif: dump.lsif
+# Broken, disable for now https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/jobs/2308411911
+## see https://docs.gitlab.com/ee/user/project/code_intelligence.html#configuration
+#code_navigation:
+#  image: sourcegraph/lsif-go:v1
+#  allow_failure: true # recommended
+#  script:
+#    - lsif-go
+#  artifacts:
+#    reports:
+#      lsif: dump.lsif
 
 container_scanning:
   stage: scan
