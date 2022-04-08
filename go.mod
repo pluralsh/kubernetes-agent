@@ -3,7 +3,7 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14
 go 1.17
 
 require (
-	cloud.google.com/go/profiler v0.1.2
+	cloud.google.com/go/profiler v0.2.0
 	github.com/aquasecurity/starboard v0.12.0
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -50,7 +50,6 @@ require (
 require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.2.0 // indirect
-	cloud.google.com/go/iam v0.1.1 // indirect
 	cloud.google.com/go/monitoring v1.0.0 // indirect
 	cloud.google.com/go/trace v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.8 // indirect
@@ -104,7 +103,7 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/go-containerregistry v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
+	github.com/google/pprof v0.0.0-20220113144219-d25a53d42d00 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect

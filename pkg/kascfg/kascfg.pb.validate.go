@@ -1883,6 +1883,8 @@ func (m *GoogleProfilerCF) validate(all bool) error {
 
 	// no validation rules for CredentialsFile
 
+	// no validation rules for DebugLogging
+
 	if len(errors) > 0 {
 		return GoogleProfilerCFMultiError(errors)
 	}

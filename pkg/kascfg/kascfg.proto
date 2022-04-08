@@ -180,6 +180,7 @@ message GoogleProfilerCF {
   bool enabled = 1 [json_name = "enabled"];
   string project_id = 2 [json_name = "project_id"];
   string credentials_file = 3 [json_name = "credentials_file"];
+  bool debug_logging = 4 [json_name = "debug_logging"];
 }
 
 message LivenessProbeCF {
