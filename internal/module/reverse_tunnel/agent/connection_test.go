@@ -23,6 +23,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	_ connectionInterface = (*connection)(nil)
+)
+
 func TestPropagateUntilStop(t *testing.T) {
 	ctxParent, cancelParent := context.WithCancel(context.Background())
 	ctx, cancel, stop := propagateUntil(ctxParent)
@@ -531,6 +535,8 @@ func setupConnection(t *testing.T) (*mock_reverse_tunnel_rpc.MockReverseTunnelCl
 		client:             client,
 		internalServerConn: conn,
 		streamVisitor:      sv,
+		onIdle:             func(c connectionInterface) {},
+		onActive:           func(c connectionInterface) {},
 	}
 	return client, conn, tunnel, c
 }

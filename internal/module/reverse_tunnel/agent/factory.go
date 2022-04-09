@@ -13,7 +13,11 @@ import (
 )
 
 const (
-	defaultNumConnections = 10
+	minIdleConnections = 2
+	maxConnections     = 100
+	maxIdleTime        = time.Minute
+	// scaleUpStep defines how many new connections are started when there is not enough idle connections.
+	scaleUpStep = 10
 
 	connectionInitBackoff   = 10 * time.Second
 	connectionMaxBackoff    = 5 * time.Minute
@@ -24,17 +28,12 @@ const (
 
 type Factory struct {
 	InternalServerConn grpc.ClientConnInterface
-	NumConnections     int
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	sv, err := grpctool.NewStreamVisitor(&rpc.ConnectResponse{})
 	if err != nil {
 		return nil, err
-	}
-	numConnections := f.NumConnections
-	if numConnections == 0 {
-		numConnections = defaultNumConnections
 	}
 	client := rpc.NewReverseTunnelClient(config.KasConn)
 	pollConfig := retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
@@ -45,9 +44,12 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		connectionJitter,
 	))
 	return &module{
-		server:         config.Server,
-		numConnections: numConnections,
-		connectionFactory: func(descriptor *info.AgentDescriptor) connectionInterface {
+		server:             config.Server,
+		minIdleConnections: minIdleConnections,
+		maxConnections:     maxConnections,
+		scaleUpStep:        scaleUpStep,
+		maxIdleTime:        maxIdleTime,
+		connectionFactory: func(descriptor *info.AgentDescriptor, onActive, onIdle func(c connectionInterface)) connectionInterface {
 			return &connection{
 				log:                config.Log,
 				descriptor:         descriptor,
@@ -55,6 +57,8 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				internalServerConn: f.InternalServerConn,
 				streamVisitor:      sv,
 				pollConfig:         pollConfig,
+				onActive:           onActive,
+				onIdle:             onIdle,
 			}
 		},
 	}, nil
