@@ -9,7 +9,7 @@ terms.
 
 [DCO + License](https://gitlab.com/gitlab-org/dco/blob/master/README.md)
 
-All Documentation content that resides under the [docs/ directory](/docs) of this
+All Documentation content that resides under the [doc/ directory](/doc) of this
 repository is licensed under Creative Commons:
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
