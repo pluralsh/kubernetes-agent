@@ -1,8 +1,8 @@
 # Release Process
 
 1. On the 15th, an automatic Slack notification reminds the Configure team to create a monthly release.
-1. On the 15th we should always tag a new version that matches the upcoming GitLab minor version. E.g. If GitLab 13.7
-   will be released on the 22nd, then we should tag `v13.7.0`.
+1. On the 15th, tag a new version that matches the upcoming GitLab minor version. E.g. If the upcoming milestone is 13.7,
+   then tag `v13.7.0`.
 1. Make a release of the [gitlab-agent chart](https://gitlab.com/gitlab-org/charts/gitlab-agent#publishing-a-new-release):
    - In `Chart.yaml`
       - Update `appVersion` to be the exactly the same as the version tag in `cluster-integrations/gitlab-agent`
@@ -12,11 +12,30 @@
    the GitLab rails monolith is updated to that new tag in a new MR.
    This MR should be accepted by the maintainer with no questions asked, typically.
    [Example MR](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/74462).
+1. Wait for the MR to get deployed to a .com environment (can be pre, gstg, gprd etc; this is shown in the MR widget).
+1. Find the latest image built of KAS in the [dev.gitlab.org registry]( https://dev.gitlab.org/gitlab/charts/components/images/container_registry/426?orderBy=NAME&sort=asc):
+   - Go to [`#releases` in Slack](https://gitlab.slack.com/archives/C0XM5UU6B) (internal link)
+   - Look at the latest comment from `auto-deploy-bot`. It should be something like:
+
+     > New auto-deploy branch: `14-10-auto-deploy-2022041215`
+
+     Pick out the timestamp from there, e.g. `2022041215` and enter it into the search box. This should give the tag, e.g. `dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5`.
+   - Ensure that the version is correct. Running the image with `--help` should match `GITLAB_KAS_VERSION` from `gitlab-org/gitlab`. For example:
+
+     ```shell
+     docker login dev.gitlab.org:5005 # use your username and a personal access token with the read_registry scope
+     docker run --rm -it dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5 --version
+     ```
+
+     outputs
+
+     ```
+     kas version v14.10.0-rc2, commit: 68ae893, built: 20220412.152619
+     ```
+
 1. Make an MR to update `kas` image tag for `pre` and `gstg` in
    https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com, and get an SRE to deploy that MR.
    [Example MR](https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com/-/merge_requests/1318).
-   This MR should bump the image tag to the desired version, and should use the
-   `-race` images that include [data race detection](https://golang.org/doc/articles/race_detector).
 1. We should test the new version of `kas` on `gstg` with a real agent. An end-to-end QA test with a real agent
    and GitLab that runs automatically as part of the nightly QA process.
    is [planned](https://gitlab.com/groups/gitlab-org/-/epics/4949). For now, you can use `gstg` + an agent in
