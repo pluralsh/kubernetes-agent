@@ -5,6 +5,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker"
@@ -37,8 +38,10 @@ type router struct {
 	internalServer grpc.ServiceRegistrar
 	// privateApiServer is the gRPC server that other kas instances can talk to.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
-	privateApiServer  grpc.ServiceRegistrar
-	gatewayKasVisitor *grpctool.StreamVisitor
+	privateApiServer          grpc.ServiceRegistrar
+	gatewayKasVisitor         *grpctool.StreamVisitor
+	kasRoutingDurationSuccess prometheus.Observer
+	kasRoutingDurationError   prometheus.Observer
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {

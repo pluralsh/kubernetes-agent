@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
@@ -356,12 +357,14 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithContextDialer(privateApiServerListener.DialContext),
 		),
-		tunnelQuerier:     querier,
-		tunnelFinder:      finder,
-		pollConfig:        testhelpers.NewPollConfig(time.Minute),
-		internalServer:    internalServer,
-		privateApiServer:  privateApiServer,
-		gatewayKasVisitor: gatewayKasVisitor,
+		tunnelQuerier:             querier,
+		tunnelFinder:              finder,
+		pollConfig:                testhelpers.NewPollConfig(time.Minute),
+		internalServer:            internalServer,
+		privateApiServer:          privateApiServer,
+		gatewayKasVisitor:         gatewayKasVisitor,
+		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationError:   prometheus.ObserverFunc(func(f float64) {}),
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group
