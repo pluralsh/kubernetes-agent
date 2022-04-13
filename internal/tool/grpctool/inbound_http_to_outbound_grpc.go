@@ -49,7 +49,7 @@ type HttpRequestClient interface {
 	grpc.ClientStream
 }
 
-type MergeHeadersFunc func(fromOutbound, toInbound http.Header)
+type MergeHeadersFunc func(outboundResponse, inboundResponse http.Header)
 
 type InboundHttpToOutboundGrpc struct {
 	Log                   *zap.Logger
@@ -100,9 +100,9 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 	}
 	err := HttpResponseStreamVisitor().Visit(outboundClient,
 		WithCallback(httpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
-			fromOutbound := header.Response.HttpHeader()
-			httpz.RemoveConnectionHeaders(fromOutbound)
-			x.MergeHeaders(fromOutbound, w.Header())
+			outboundResponse := header.Response.HttpHeader()
+			httpz.RemoveConnectionHeaders(outboundResponse)
+			x.MergeHeaders(outboundResponse, w.Header())
 			w.WriteHeader(int(header.Response.StatusCode))
 			if flusher != nil {
 				flusher.Flush()
