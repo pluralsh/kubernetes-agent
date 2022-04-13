@@ -77,6 +77,11 @@ const (
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
 	kasName = "gitlab-kas"
+
+	kasRoutingMetricName              = "k8s_api_proxy_routing_duration_seconds"
+	kasRoutingStatusLabelName         = "status"
+	kasRoutingStatusSuccessLabelValue = "success"
+	kasRoutingStatusErrorLabelValue   = "error"
 )
 
 type ConfiguredApp struct {
@@ -175,7 +180,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	internalServer := a.constructInternalServer(ctx, tracer, rpcApiFactory)
 
 	// Kas to agentk router
-	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, csh, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
+	kasToAgentRouter, err := a.constructKasToAgentRouter(
+		tracer,
+		csh,
+		tunnelTracker,
+		tunnelRegistry,
+		internalServer,
+		privateApiServer,
+		registerer)
 	if err != nil {
 		return err
 	}
@@ -298,7 +310,8 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 }
 
 func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh stats.Handler, tunnelQuerier tracker.Querier,
-	tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar) (kasRouter, error) {
+	tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar,
+	registerer prometheus.Registerer) (kasRouter, error) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return nopKasRouter{}, nil
@@ -309,6 +322,11 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	if err != nil {
+		return nil, err
+	}
+	kasRoutingDuration := constructKasRoutingDurationHistogram()
+	_, err = metric.Register(registerer, kasRoutingDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -349,9 +367,11 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 			routingBackoffFactor,
 			routingJitter,
 		)),
-		internalServer:    internalServer,
-		privateApiServer:  privateApiServer,
-		gatewayKasVisitor: gatewayKasVisitor,
+		internalServer:            internalServer,
+		privateApiServer:          privateApiServer,
+		gatewayKasVisitor:         gatewayKasVisitor,
+		kasRoutingDurationSuccess: kasRoutingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
+		kasRoutingDurationError:   kasRoutingDuration.WithLabelValues(kasRoutingStatusErrorLabelValue),
 	}, nil
 }
 
@@ -859,6 +879,14 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
+}
+
+func constructKasRoutingDurationHistogram() *prometheus.HistogramVec {
+	return prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    kasRoutingMetricName,
+		Help:    "The time it takes the routing kas to find a suitable tunnel in seconds",
+		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 10), // 10 buckets of milliseconds as seconds (1,4,16,64,256,1k,4k,16k,32k,64k)
+	}, []string{kasRoutingStatusLabelName})
 }
 
 func constructReadinessProbe(redisClient redis.UniversalClient) observability.Probe {

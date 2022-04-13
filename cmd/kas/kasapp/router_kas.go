@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"context"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -14,6 +15,7 @@ import (
 // Must return a gRPC status-compatible error.
 func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStream) error {
 	// 0. boilerplate
+	startRouting := time.Now()
 	ctx := stream.Context()
 	md, _ := metadata.FromIncomingContext(ctx)
 	agentId, err := agentIdFromMeta(md)
@@ -24,10 +26,13 @@ func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStr
 
 	// 1. find a ready, suitable tunnel
 	kasStream, kasUrl, done, err := r.findReadyTunnel(ctx, rpcApi, md, agentId)
+	routingDuration := time.Since(startRouting).Seconds()
 	if err != nil {
+		r.kasRoutingDurationError.Observe(routingDuration)
 		return err
 	}
 	defer done()
+	r.kasRoutingDurationSuccess.Observe(routingDuration)
 
 	// 2. start streaming via the found tunnel
 	f := kasStreamForwarder{
