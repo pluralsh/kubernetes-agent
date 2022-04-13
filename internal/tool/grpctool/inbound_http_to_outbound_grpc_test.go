@@ -260,9 +260,9 @@ func setupHttp2grpc(t *testing.T) (*mock_kubernetes_api.MockKubernetesApi_MakeRe
 		Log: zaptest.NewLogger(t),
 		HandleProcessingError: func(msg string, err error) {
 		},
-		MergeHeaders: func(fromOutbound, toInbound http.Header) {
-			for k, v := range fromOutbound {
-				toInbound[k] = append(toInbound[k], v...)
+		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
+			for k, v := range outboundResponse {
+				inboundResponse[k] = append(inboundResponse[k], v...)
 			}
 		},
 	}
@@ -272,7 +272,7 @@ func setupHttp2grpc(t *testing.T) (*mock_kubernetes_api.MockKubernetesApi_MakeRe
 func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message) []*gomock.Call {
 	extra, err := anypb.New(headerExtra)
 	require.NoError(t, err)
-	return mockSendHtto2grpcStream(t, mrClient,
+	return mockSendHttp2grpcStream(t, mrClient,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
 				Header: &grpctool.HttpRequest_Header{
@@ -309,7 +309,7 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 	)
 }
 
-func mockSendHtto2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
+func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
 	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().

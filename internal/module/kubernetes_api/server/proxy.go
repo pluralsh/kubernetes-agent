@@ -158,12 +158,12 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 		HandleProcessingError: func(msg string, err error) {
 			p.api.HandleProcessingError(r.Context(), log, agentId, msg, err)
 		},
-		MergeHeaders: func(fromOutbound, toInbound http.Header) {
-			toInbound.Del(serverHeader) // remove the header we've added above. We use Via instead.
-			for k, vals := range fromOutbound {
-				toInbound[k] = vals
+		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
+			inboundResponse.Del(serverHeader) // remove the header we've added above. We use Via instead.
+			for k, vals := range outboundResponse {
+				inboundResponse[k] = vals
 			}
-			toInbound.Add(viaHeader, serverProto)
+			inboundResponse.Add(viaHeader, serverProto)
 		},
 	}
 	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
