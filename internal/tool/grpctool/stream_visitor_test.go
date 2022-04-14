@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -325,6 +326,42 @@ func TestStreamingVisitorUnreachableMissingCallback(t *testing.T) {
 		grpctool.WithCallback(dataNumber, func(message *test.Response) error { return nil }),
 		grpctool.WithCallback(lastNumber, func(message *test.Response) error { return nil }),
 	)
+	require.NoError(t, err)
+}
+
+func TestStreamVisitor_UnexpectedFieldReceived(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, false,
+		&test.Response{
+			Message: &test.Response_Scalar{},
+		},
+	)
+	gomock.InOrder(calls...)
+
+	v, err := grpctool.NewStreamVisitor(&test.Response{})
+	require.NoError(t, err)
+
+	err = v.Visit(stream, grpctool.WithNotExpectingToGet(codes.DataLoss, scalarNumber, x1Number, dataNumber, lastNumber))
+	require.EqualError(t, err, "rpc error: code = DataLoss desc = unexpected field number received: 1")
+}
+
+func TestStreamVisitor_WithNotExpectingToGet_HappyPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
+		&test.Response{
+			Message: &test.Response_Last_{},
+		},
+	)
+	gomock.InOrder(calls...)
+
+	v, err := grpctool.NewStreamVisitor(&test.Response{})
+	require.NoError(t, err)
+
+	err = v.Visit(stream,
+		grpctool.WithStartState(dataNumber),
+		// even though WithStartState(dataNumber), dataNumber is still required because there is dataNumber -> dataNumber transition
+		grpctool.WithNotExpectingToGet(codes.DataLoss, dataNumber),
+		grpctool.WithCallback(lastNumber, func(l *test.Response_Last) error { return nil }))
 	require.NoError(t, err)
 }
 
