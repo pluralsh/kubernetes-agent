@@ -2,29 +2,40 @@ package agent
 
 import (
 	"context"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"google.golang.org/grpc"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+// connectionFactory helps to inject fake connections for testing.
+type connectionFactory func(agentDescriptor *info.AgentDescriptor, onActive, onIdle func(connectionInterface)) connectionInterface
+
 type module struct {
-	server            *grpc.Server
-	numConnections    int
-	connectionFactory func(*info.AgentDescriptor) connectionInterface // helps testing
+	server *grpc.Server
+	// minIdleConnections is the minimum number of connections that are not streaming a request.
+	minIdleConnections int32
+	// maxConnections is the maximum number of connections (idle and active).
+	maxConnections int32
+	scaleUpStep    int32
+	// maxIdleTime is the maximum duration of time a connection can stay in an idle state.
+	maxIdleTime       time.Duration
+	connectionFactory connectionFactory
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	descriptor := m.agentDescriptor()
-	var wg wait.Group
-	defer wg.Wait()
-	for i := 0; i < m.numConnections; i++ {
-		conn := m.connectionFactory(descriptor)
-		wg.StartWithContext(ctx, conn.Run)
+	cm := connectionManager{
+		connections:        make(map[connectionInterface]connectionInfo),
+		minIdleConnections: m.minIdleConnections,
+		maxConnections:     m.maxConnections,
+		scaleUpStep:        m.scaleUpStep,
+		maxIdleTime:        m.maxIdleTime,
+		connectionFactory:  m.connectionFactory,
+		agentDescriptor:    m.agentDescriptor(),
 	}
-	<-ctx.Done()
+	cm.Run(ctx)
 	return nil
 }
 

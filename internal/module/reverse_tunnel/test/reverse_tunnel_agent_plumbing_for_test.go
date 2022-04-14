@@ -30,7 +30,6 @@ func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.Cl
 
 	f := reverse_tunnel_agent.Factory{
 		InternalServerConn: internalServerConn,
-		NumConnections:     1,
 	}
 	config := &modagent.Config{
 		Log:     log,

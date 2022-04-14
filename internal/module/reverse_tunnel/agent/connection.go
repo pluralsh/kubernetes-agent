@@ -43,6 +43,8 @@ type connection struct {
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
 	pollConfig         retry.PollConfigFactory
+	onActive           func(connectionInterface)
+	onIdle             func(connectionInterface)
 }
 
 func (c *connection) Run(ctx context.Context) {
@@ -62,6 +64,7 @@ func (c *connection) Run(ctx context.Context) {
 }
 
 func (c *connection) attempt(ctx context.Context) (retErr error) {
+	defer c.onIdle(c)
 	ctx, cancel, stopPropagation := propagateUntil(ctx)
 	defer cancel()
 
@@ -90,6 +93,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 	// pipe tunnel -> internal client
 	err1 := c.streamVisitor.Visit(tunnel,
 		grpctool.WithCallback(requestInfoNumber, func(reqInfo *rpc.RequestInfo) error {
+			c.onActive(c)
 			outgoingCtx := metadata.NewOutgoingContext(ctx, reqInfo.Metadata())
 			clientStream, err = c.internalServerConn.NewStream(outgoingCtx, &proxyStreamDesc, reqInfo.MethodName)
 			if err != nil {
