@@ -823,7 +823,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	var err error
 	var tlsConfig *tls.Config
 	if cfg.Tls != nil && cfg.Tls.Enabled {
-		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.CaCertificateFile, cfg.Tls.KeyFile)
+		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.CertificateFile, cfg.Tls.KeyFile)
 		if err != nil {
 			return nil, err
 		}
