@@ -51,6 +51,7 @@ func TestTunnelFinder_NoDialsForNonMatchingService(t *testing.T) {
 func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	exitDial := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -79,13 +80,17 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
+				<-exitDial   // avoid race with poller. Otherwise, poller might manage to start another dial.
 				return nil, ctx.Err()
 			}),
 		rpcApi.EXPECT().
 			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
 	)
 
-	go tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
+	go func() {
+		defer close(exitDial)
+		tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
+	}()
 	select {
 	case <-ctx.Done():
 	case <-tChan:
