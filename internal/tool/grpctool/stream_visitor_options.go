@@ -21,6 +21,7 @@ type config struct {
 	eofCallback               EOFCallback
 	invalidTransitionCallback InvalidTransitionCallback
 	startState                protoreflect.FieldNumber
+	notExpectingFields        map[protoreflect.FieldNumber]codes.Code    // fields that are not expected during this invocation
 	msgCallbacks              map[protoreflect.FieldNumber]reflect.Value // callbacks that accept the whole message
 	fieldCallbacks            map[protoreflect.FieldNumber]reflect.Value // callbacks that accept a specific field type of the oneof
 }
@@ -29,9 +30,27 @@ type config struct {
 // Must return nil or an error, compatible with the gRPC status package.
 type StreamVisitorOption func(*config) error
 
+// WithEOFCallback sets a callback for end of stream.
 func WithEOFCallback(cb EOFCallback) StreamVisitorOption {
 	return func(c *config) error {
 		c.eofCallback = cb
+		return nil
+	}
+}
+
+// WithNotExpectingToGet is used to list fields that the caller is not expecting to get during this Visit() invocation.
+func WithNotExpectingToGet(code codes.Code, transitionTo ...protoreflect.FieldNumber) StreamVisitorOption {
+	return func(c *config) error {
+		if len(transitionTo) == 0 {
+			return status.Error(codes.Internal, "at least one field number is required")
+		}
+		for _, f := range transitionTo {
+			_, err := checkField(c, f)
+			if err != nil {
+				return err
+			}
+			c.notExpectingFields[f] = code
+		}
 		return nil
 	}
 }
@@ -52,15 +71,9 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 		if cbType.Out(0) != errorType {
 			return status.Errorf(codes.Internal, "cb must return an error, got: %T", cb)
 		}
-		if existingCb, exists := c.msgCallbacks[transitionTo]; exists {
-			return status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
-		}
-		if existingCb, exists := c.fieldCallbacks[transitionTo]; exists {
-			return status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
-		}
-		field := c.oneof.Fields().ByNumber(transitionTo)
-		if field == nil {
-			return status.Errorf(codes.Internal, "oneof %s does not have a field %d", c.oneof.FullName(), transitionTo)
+		field, err := checkField(c, transitionTo)
+		if err != nil {
+			return err
 		}
 		inType := cbType.In(0)
 		if c.goMessageType.AssignableTo(inType) {
@@ -102,6 +115,23 @@ func WithStartState(startState protoreflect.FieldNumber) StreamVisitorOption {
 		c.startState = startState
 		return nil
 	}
+}
+
+func checkField(c *config, transitionTo protoreflect.FieldNumber) (protoreflect.FieldDescriptor, error) {
+	if _, exists := c.notExpectingFields[transitionTo]; exists {
+		return nil, status.Errorf(codes.Internal, "field %d has already been marked as unexpected", transitionTo)
+	}
+	if existingCb, exists := c.msgCallbacks[transitionTo]; exists {
+		return nil, status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
+	}
+	if existingCb, exists := c.fieldCallbacks[transitionTo]; exists {
+		return nil, status.Errorf(codes.Internal, "callback for %d has already been defined: %v", transitionTo, existingCb)
+	}
+	field := c.oneof.Fields().ByNumber(transitionTo)
+	if field == nil {
+		return nil, status.Errorf(codes.Internal, "oneof %s does not have a field %d", c.oneof.FullName(), transitionTo)
+	}
+	return field, nil
 }
 
 func defaultInvalidTransitionCallback(from, to protoreflect.FieldNumber, allowed []protoreflect.FieldNumber, message proto.Message) error {

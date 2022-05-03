@@ -97,6 +97,10 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 			return cfg.invalidTransitionCallback(currentState, newState, allowedTransitions, msg)
 		}
 
+		if c, ok := cfg.notExpectingFields[newState]; ok {
+			return status.Errorf(c, "unexpected field number received: %d", newState)
+		}
+
 		var param reflect.Value
 		cb, ok := cfg.msgCallbacks[newState]
 		if ok { // a message callback
@@ -148,6 +152,10 @@ func (s *StreamVisitor) applyOptions(opts []StreamVisitorOption) (config, error)
 		if ok {
 			continue
 		}
+		_, ok = cfg.notExpectingFields[fieldNumber]
+		if ok {
+			continue
+		}
 		_, ok = cfg.msgCallbacks[fieldNumber]
 		if ok {
 			continue
@@ -169,6 +177,7 @@ func (s *StreamVisitor) defaultOptions() config {
 		eofCallback:               defaultEOFCallback,
 		invalidTransitionCallback: defaultInvalidTransitionCallback,
 		startState:                startState,
+		notExpectingFields:        make(map[protoreflect.FieldNumber]codes.Code),
 		msgCallbacks:              make(map[protoreflect.FieldNumber]reflect.Value),
 		fieldCallbacks:            make(map[protoreflect.FieldNumber]reflect.Value),
 	}
