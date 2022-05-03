@@ -11,12 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const (
-	// Proxy can be used by many clients, so increase the number of QPS.
-	defaultProxyQPS   = 150
-	defaultProxyBurst = 150
-)
-
 type Factory struct {
 }
 
@@ -26,8 +20,9 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		return nil, err
 	}
 	restConfig = rest.CopyConfig(restConfig)
-	restConfig.QPS = defaultProxyQPS
-	restConfig.Burst = defaultProxyBurst
+	// Clients and the server already do rate limiting. agentk doesn't need to add an extra layer.
+	// See https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
+	restConfig.QPS = -1
 	baseUrl, _, err := defaultServerUrlFor(restConfig)
 	if err != nil {
 		return nil, err
