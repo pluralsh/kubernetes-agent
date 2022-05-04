@@ -14,13 +14,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/reflect/protoreflect"
-)
-
-const (
-	httpRequestHeaderFieldNumber  protoreflect.FieldNumber = 1
-	httpRequestDataFieldNumber    protoreflect.FieldNumber = 2
-	httpRequestTrailerFieldNumber protoreflect.FieldNumber = 3
 )
 
 type InboundGrpcToOutboundHttpStream interface {
@@ -87,7 +80,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 
 func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToOutboundHttpStream, headerMsg chan<- *HttpRequest_Header, pw *io.PipeWriter) error {
 	return HttpRequestStreamVisitor().Visit(inbound,
-		WithCallback(httpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
+		WithCallback(HttpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
 			ctx := inbound.Context()
 			select {
 			case <-ctx.Done():
@@ -96,11 +89,11 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 				return nil
 			}
 		}),
-		WithCallback(httpRequestDataFieldNumber, func(data *HttpRequest_Data) error {
+		WithCallback(HttpRequestDataFieldNumber, func(data *HttpRequest_Data) error {
 			_, err := pw.Write(data.Data)
 			return err
 		}),
-		WithCallback(httpRequestTrailerFieldNumber, func(trailer *HttpRequest_Trailer) error {
+		WithCallback(HttpRequestTrailerFieldNumber, func(trailer *HttpRequest_Trailer) error {
 			// Nothing to do
 			return nil
 		}),
