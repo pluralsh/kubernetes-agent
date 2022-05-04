@@ -72,6 +72,10 @@ gitaly:
   per_server_api_rate_limit:
     refill_rate_per_second: 15.0
     bucket_size: 40
+private_api:
+  listen:
+    authentication_secret_file: /some/file
+    max_connection_age: 1800s
 redis:
   server:
     address: "localhost:6380" # required
