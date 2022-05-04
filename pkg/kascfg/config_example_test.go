@@ -46,13 +46,25 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 				AuthenticationSecretFile: "/some/file",
 			},
 		},
+		PrivateApi: &kascfg.PrivateApiCF{
+			Listen: &kascfg.ListenApiCF{
+				AuthenticationSecretFile: "/some/file",
+			},
+		},
 	}
 	kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)
 
+	printCorrectYAML := false
+
 	cfgFromFile, err := kasapp.LoadConfigurationFile(kasConfigExampleFile)
 	if assert.NoError(t, err) {
-		assert.Empty(t, cmp.Diff(cfgDefaulted, cfgFromFile, protocmp.Transform()))
+		if !assert.Empty(t, cmp.Diff(cfgDefaulted, cfgFromFile, protocmp.Transform())) {
+			printCorrectYAML = true
+		}
 	} else {
+		printCorrectYAML = true
+	}
+	if printCorrectYAML {
 		// Failed to load. Just print what it should be
 		data, err := protojson.Marshal(cfgDefaulted)
 		require.NoError(t, err)
