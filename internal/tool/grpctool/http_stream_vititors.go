@@ -1,6 +1,20 @@
 package grpctool
 
-import "sync"
+import (
+	"sync"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
+)
+
+const (
+	HttpRequestHeaderFieldNumber  protoreflect.FieldNumber = 1
+	HttpRequestDataFieldNumber    protoreflect.FieldNumber = 2
+	HttpRequestTrailerFieldNumber protoreflect.FieldNumber = 3
+
+	HttpResponseHeaderFieldNumber  protoreflect.FieldNumber = 1
+	HttpResponseDataFieldNumber    protoreflect.FieldNumber = 2
+	HttpResponseTrailerFieldNumber protoreflect.FieldNumber = 3
+)
 
 var (
 	httpRequestSVOnce        sync.Once

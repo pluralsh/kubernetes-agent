@@ -14,16 +14,11 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
 	hostHeader = "Host"
-
-	httpResponseHeaderFieldNumber  protoreflect.FieldNumber = 1
-	httpResponseDataFieldNumber    protoreflect.FieldNumber = 2
-	httpResponseTrailerFieldNumber protoreflect.FieldNumber = 3
 )
 
 var (
@@ -99,7 +94,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 		x.Log.Sugar().Warnf("HTTP->gRPC: %T does not implement http.Flusher, cannot flush data to client", w)
 	}
 	err := HttpResponseStreamVisitor().Visit(outboundClient,
-		WithCallback(httpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
+		WithCallback(HttpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
 			outboundResponse := header.Response.HttpHeader()
 			httpz.RemoveConnectionHeaders(outboundResponse)
 			x.MergeHeaders(outboundResponse, w.Header())
@@ -110,7 +105,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 			headerWritten = true
 			return nil
 		}),
-		WithCallback(httpResponseDataFieldNumber, func(data *HttpResponse_Data) error {
+		WithCallback(HttpResponseDataFieldNumber, func(data *HttpResponse_Data) error {
 			_, err := w.Write(data.Data)
 			if err != nil {
 				writeFailed = true
@@ -121,7 +116,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 			}
 			return err
 		}),
-		WithCallback(httpResponseTrailerFieldNumber, func(trailer *HttpResponse_Trailer) error {
+		WithCallback(HttpResponseTrailerFieldNumber, func(trailer *HttpResponse_Trailer) error {
 			return nil
 		}),
 	)
