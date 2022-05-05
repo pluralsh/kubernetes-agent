@@ -21,6 +21,7 @@ go_library(
     ],
     deps = [
         "//internal/module/modshared",
+        "//internal/tool/httpz",
         "//pkg/agentcfg",
         "@com_github_grpc_ecosystem_go_grpc_middleware//:go-grpc-middleware",
         "@io_k8s_kubectl//pkg/cmd/util",

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
@@ -165,7 +166,7 @@ func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request))
 
 func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload interface{}) {
 	testhelpers.AssertRequestMethod(t, r, http.MethodPost)
-	assert.Empty(t, r.Header.Values("Accept"))
+	assert.Empty(t, r.Header[httpz.AcceptHeader])
 	testhelpers.AssertRequestContentTypeJson(t, r)
 	testhelpers.AssertRequestUserAgent(t, r, testhelpers.KasUserAgent)
 	assert.Equal(t, testhelpers.KasCorrelationClientName, r.Header.Get(testhelpers.CorrelationClientNameHeader))

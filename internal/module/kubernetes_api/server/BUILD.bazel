@@ -46,6 +46,7 @@ go_custom_test(
         "//internal/module/modserver",
         "//internal/tool/cache",
         "//internal/tool/grpctool",
+        "//internal/tool/httpz",
         "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",

@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 )
 
 type ResponseHandler interface {
@@ -104,7 +105,7 @@ func WithJWT(withJWT bool) DoOption {
 func WithAgentToken(agentToken api.AgentToken) DoOption {
 	return func(config *doConfig) error {
 		config.ensureHeaderNotNil()
-		config.header.Set("Authorization", "Bearer "+string(agentToken))
+		config.header[httpz.AuthorizationHeader] = []string{"Bearer " + string(agentToken)}
 		return nil
 	}
 }
@@ -112,7 +113,7 @@ func WithAgentToken(agentToken api.AgentToken) DoOption {
 func WithJobToken(jobToken string) DoOption {
 	return func(config *doConfig) error {
 		config.ensureHeaderNotNil()
-		config.header.Set("Job-Token", jobToken)
+		config.header["Job-Token"] = []string{jobToken}
 		return nil
 	}
 }
@@ -123,7 +124,7 @@ func WithRequestBody(body io.Reader, contentType string) DoOption {
 		config.body = body
 		if contentType != "" {
 			config.ensureHeaderNotNil()
-			config.header.Set("Content-Type", contentType)
+			config.header[httpz.ContentTypeHeader] = []string{contentType}
 		}
 		return nil
 	}
@@ -145,7 +146,7 @@ func WithResponseHandler(handler ResponseHandler) DoOption {
 		accept := handler.Accept()
 		if accept != "" {
 			config.ensureHeaderNotNil()
-			config.header.Set("Accept", accept)
+			config.header[httpz.AcceptHeader] = []string{accept}
 		}
 		return nil
 	}

@@ -28,6 +28,7 @@ go_library(
         "//internal/module/starboard_vulnerability/agent",
         "//internal/tool/errz",
         "//internal/tool/grpctool",
+        "//internal/tool/httpz",
         "//internal/tool/logz",
         "//internal/tool/memz",
         "//internal/tool/prototool",

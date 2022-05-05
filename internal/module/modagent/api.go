@@ -11,6 +11,7 @@ import (
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -159,7 +160,7 @@ func WithRequestBody(body io.Reader, contentType string) GitLabRequestOption {
 			c.Body = io.NopCloser(body)
 		}
 		if contentType != "" {
-			c.Header.Set("Content-Type", contentType)
+			c.Header[httpz.ContentTypeHeader] = []string{contentType}
 		}
 		return nil
 	}

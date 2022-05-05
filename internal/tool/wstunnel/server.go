@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"nhooyr.io/websocket"
 )
 
@@ -121,7 +122,7 @@ type HttpHandler struct {
 }
 
 func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Server", h.ServerName)
+	w.Header()[httpz.ServerHeader] = []string{h.ServerName}
 	conn, err := websocket.Accept(w, r, &h.AcceptOptions)
 	if err != nil {
 		return

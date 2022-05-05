@@ -11,11 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
-)
-
-const (
-	// https://datatracker.ietf.org/doc/html/rfc7230#section-5.7.1
-	httpViaHeader = "Via"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 )
 
 type httpClient interface {
@@ -74,7 +70,7 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 		}
 	}
 	req.Header = h.Request.HttpHeader()
-	req.Header.Add(httpViaHeader, s.via)
+	req.Header[httpz.ViaHeader] = append(req.Header[httpz.ViaHeader], s.via)
 	resp, err := s.client.Do(headerExtra.ImpConfig, req)
 	if err != nil {
 		select {
@@ -84,6 +80,6 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 			return nil, err
 		}
 	}
-	resp.Header.Add(httpViaHeader, fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, s.userAgent))
+	resp.Header[httpz.ViaHeader] = append(resp.Header[httpz.ViaHeader], fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, s.userAgent))
 	return resp, nil
 }

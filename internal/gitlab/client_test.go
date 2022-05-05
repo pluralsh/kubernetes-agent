@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 )
@@ -26,7 +27,7 @@ func TestRequestOptions(t *testing.T) {
 		testhelpers.AssertRequestMethod(t, r, "CUSTOM_METHOD")
 		testhelpers.AssertRequestAccept(t, r, "Bla")
 		testhelpers.AssertAgentToken(t, r, testhelpers.AgentkToken)
-		assert.Empty(t, r.Header.Values("Content-Type"))
+		assert.Empty(t, r.Header[httpz.ContentTypeHeader])
 		testhelpers.AssertCommonRequestParams(t, r, correlationId)
 		testhelpers.AssertJWTSignature(t, r)
 		assert.Equal(t, "val1", r.URL.Query().Get("key"))
@@ -192,5 +193,5 @@ func TestNoContentResponseHandler_Cancellation(t *testing.T) {
 
 func assertNoContentRequest(t *testing.T, r *http.Request) {
 	testhelpers.AssertRequestMethod(t, r, http.MethodGet)
-	assert.Empty(t, r.Header.Values("Accept"))
+	assert.Empty(t, r.Header.Values(httpz.AcceptHeader))
 }

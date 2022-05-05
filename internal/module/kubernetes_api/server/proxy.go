@@ -32,9 +32,6 @@ const (
 	writeTimeout              = defaultMaxRequestDuration
 	idleTimeout               = 1 * time.Minute
 
-	authorizationHeader             = "Authorization"
-	serverHeader                    = "Server"
-	viaHeader                       = "Via"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
@@ -71,7 +68,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	correlationId := correlation.ExtractFromContext(ctx)
 	log := p.log.With(logz.CorrelationId(correlationId))
-	w.Header().Set(serverHeader, p.serverName) // It will be removed just before responding with actual headers from upstream
+	w.Header()[httpz.ServerHeader] = []string{p.serverName} // It will be removed just before responding with actual headers from upstream
 
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
 	if err != nil {
@@ -149,9 +146,9 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
-	r.Header.Del(authorizationHeader) // Remove Authorization header - we got the CI job token in it
+	delete(r.Header, httpz.AuthorizationHeader) // Remove Authorization header - we got the CI job token in it
 	serverProto := "gRPC/1.0 " + p.serverName
-	r.Header.Add(viaHeader, serverProto)
+	r.Header[httpz.ViaHeader] = append(r.Header[httpz.ViaHeader], serverProto)
 
 	http2grpc := grpctool.InboundHttpToOutboundGrpc{
 		Log: log,
@@ -159,11 +156,11 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 			p.api.HandleProcessingError(r.Context(), log, agentId, msg, err)
 		},
 		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
-			inboundResponse.Del(serverHeader) // remove the header we've added above. We use Via instead.
+			delete(inboundResponse, httpz.ServerHeader) // remove the header we've added above. We use Via instead.
 			for k, vals := range outboundResponse {
 				inboundResponse[k] = vals
 			}
-			inboundResponse.Add(viaHeader, serverProto)
+			inboundResponse[httpz.ViaHeader] = append(inboundResponse[httpz.ViaHeader], serverProto)
 		},
 	}
 	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
@@ -181,12 +178,12 @@ func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *ga
 }
 
 func getAgentIdAndJobTokenFromRequest(r *http.Request) (int64, string, error) {
-	h := r.Header.Values(authorizationHeader)
+	h := r.Header[httpz.AuthorizationHeader]
 	if len(h) == 0 {
-		return 0, "", fmt.Errorf("%s header: expecting token", authorizationHeader)
+		return 0, "", fmt.Errorf("%s header: expecting token", httpz.AuthorizationHeader)
 	}
 	if len(h) > 1 {
-		return 0, "", fmt.Errorf("%s header: expecting a single header, got %d", authorizationHeader, len(h))
+		return 0, "", fmt.Errorf("%s header: expecting a single header, got %d", httpz.AuthorizationHeader, len(h))
 	}
 	return getAgentIdAndJobTokenFromHeader(h[0])
 }
@@ -194,30 +191,30 @@ func getAgentIdAndJobTokenFromRequest(r *http.Request) (int64, string, error) {
 func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 	if !strings.HasPrefix(header, authorizationHeaderBearerPrefix) {
 		// "missing" space in message - it's in the authorizationHeaderBearerPrefix constant already
-		return 0, "", fmt.Errorf("%s header: expecting %stoken", authorizationHeader, authorizationHeaderBearerPrefix)
+		return 0, "", fmt.Errorf("%s header: expecting %stoken", httpz.AuthorizationHeader, authorizationHeaderBearerPrefix)
 	}
 	tokenValue := header[len(authorizationHeaderBearerPrefix):]
 	tokenValueParts := strings.SplitN(tokenValue, tokenSeparator, 2)
 	if len(tokenValueParts) != 2 {
-		return 0, "", fmt.Errorf("%s header: invalid value", authorizationHeader)
+		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
 	switch tokenValueParts[0] {
 	case tokenTypeCi:
 	default:
-		return 0, "", fmt.Errorf("%s header: unknown token type", authorizationHeader)
+		return 0, "", fmt.Errorf("%s header: unknown token type", httpz.AuthorizationHeader)
 	}
 	agentIdAndToken := tokenValueParts[1]
 	agentIdAndTokenParts := strings.SplitN(agentIdAndToken, tokenSeparator, 2)
 	if len(agentIdAndTokenParts) != 2 {
-		return 0, "", fmt.Errorf("%s header: invalid value", authorizationHeader)
+		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
 	agentId, err := strconv.ParseInt(agentIdAndTokenParts[0], 10, 64)
 	if err != nil {
-		return 0, "", fmt.Errorf("%s header: failed to parse: %w", authorizationHeader, err)
+		return 0, "", fmt.Errorf("%s header: failed to parse: %w", httpz.AuthorizationHeader, err)
 	}
 	token := agentIdAndTokenParts[1]
 	if token == "" {
-		return 0, "", fmt.Errorf("%s header: empty token", authorizationHeader)
+		return 0, "", fmt.Errorf("%s header: empty token", httpz.AuthorizationHeader)
 	}
 	return agentId, token, nil
 }

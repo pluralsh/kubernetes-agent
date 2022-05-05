@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 )
 
 type ResponseHandlerStruct struct {
@@ -47,7 +48,7 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 			switch resp.StatusCode {
 			case http.StatusOK:
 				if !isApplicationJSON(resp) {
-					return fmt.Errorf("unexpected Content-Type in response: %q", resp.Header.Get("Content-Type"))
+					return fmt.Errorf("unexpected %s in response: %q", httpz.ContentTypeHeader, resp.Header.Get(httpz.ContentTypeHeader))
 				}
 				data, err := io.ReadAll(resp.Body)
 				if err != nil {
@@ -97,6 +98,6 @@ func isContentType(expected, actual string) bool {
 }
 
 func isApplicationJSON(r *http.Response) bool {
-	contentType := r.Header.Get("Content-Type")
+	contentType := r.Header.Get(httpz.ContentTypeHeader)
 	return isContentType("application/json", contentType)
 }
