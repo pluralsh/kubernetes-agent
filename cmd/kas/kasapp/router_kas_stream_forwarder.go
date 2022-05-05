@@ -31,7 +31,7 @@ type kasStreamForwarder struct {
 func (f *kasStreamForwarder) ForwardStream(kasStream grpc.ClientStream, stream grpc.ServerStream) error {
 	// kasStream is an outbound client stream (this/routing kas -> gateway kas)
 	// stream is an inbound server stream (internal/external gRPC client -> this/routing kas)
-	x := grpctool.InboundGrpcToOutboundStream{
+	x := grpctool.InboundStreamToOutboundStream{
 		PipeInboundToOutbound: func() error {
 			return f.pipeFromStreamToKas(kasStream, stream)
 		},
