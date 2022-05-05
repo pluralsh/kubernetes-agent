@@ -110,8 +110,7 @@ quick-test:
 docker: update-bazel
 	bazel build \
 		//cmd/agentk:container \
-		//cmd/kas:container \
-		//cmd/cli:container \
+		//cmd/kas:container
 
 # This only works from a linux machine
 .PHONY: docker-race
@@ -129,10 +128,6 @@ docker-export: update-bazel
 		--norun
 	bazel run \
 		//cmd/kas:container \
-		-- \
-		--norun
-	bazel run \
-		//cmd/cli:container \
 		-- \
 		--norun
 
