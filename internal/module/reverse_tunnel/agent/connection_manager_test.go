@@ -44,26 +44,24 @@ func TestConnManager_ScalesIdleConnectionsToMaxAndThenToMin(t *testing.T) {
 	// Scale to max
 	require.Eventually(t, func() bool {
 		mu.Lock()
-		assert.LessOrEqual(t, len(*conns), int(cm.maxConnections))
-		toActivate := make([]*mockConnection, len(*conns)-activated)
+		lenConns := len(*conns)
+		assert.LessOrEqual(t, lenConns, int(cm.maxConnections))
+		toActivate := make([]*mockConnection, lenConns-activated)
 		copy(toActivate, (*conns)[activated:])
 		mu.Unlock()
 		for _, c := range toActivate { // activate any new connections, must not hold the mutex
 			activated++
 			c.onActive(c)
 		}
-		return len(*conns) == int(cm.maxConnections)
+		return lenConns == int(cm.maxConnections)
 	}, time.Minute, 10*time.Millisecond)
 	// Scale to min
 	allConnectionsToIdle(cm)
 	require.Eventually(t, func() bool { // poll until 50ms expire
 		cm.mu.Lock()
 		defer cm.mu.Unlock()
-		return cm.idleConnections == cm.minIdleConnections && cm.activeConnections == 0
+		return cm.idleConnections == cm.minIdleConnections && cm.activeConnections == 0 && len(cm.connections) == int(cm.minIdleConnections)
 	}, time.Minute, 10*time.Millisecond)
-	cm.mu.Lock()
-	assert.Len(t, cm.connections, int(cm.minIdleConnections), "expecting idle connections only")
-	cm.mu.Unlock()
 	cancel()
 	cm.wg.Wait()
 	require.Len(t, *conns, int(cm.maxConnections))
