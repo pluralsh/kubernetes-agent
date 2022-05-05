@@ -37,7 +37,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 
 	pr, pw := io.Pipe()
 	headerMsg := make(chan *HttpRequest_Header)
-	s := InboundGrpcToOutboundStream{
+	s := InboundStreamToOutboundStream{
 		// Pipe gRPC request -> HTTP request
 		PipeInboundToOutbound: func() error {
 			return x.pipeInboundToOutbound(inbound, headerMsg, pw)
