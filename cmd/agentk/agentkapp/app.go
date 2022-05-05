@@ -17,7 +17,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
-	cilium_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/agent"
 	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/agent"
@@ -146,7 +145,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			LogLevel: a.LogLevel,
 		},
 		&gitops_agent.Factory{},
-		&cilium_agent.Factory{},
 		&starboard_vulnerability.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,

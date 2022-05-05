@@ -17,7 +17,6 @@ go_library(
         "//cmd",
         "//internal/api",
         "//internal/module/agent_configuration/rpc",
-        "//internal/module/cilium_alert/agent",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/gitops/agent",
         "//internal/module/kubernetes_api/agent",

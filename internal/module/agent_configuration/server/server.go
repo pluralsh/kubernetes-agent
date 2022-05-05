@@ -113,7 +113,6 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 		Configuration: &agentcfg.AgentConfiguration{
 			Gitops:        configFile.Gitops,
 			Observability: configFile.Observability,
-			Cilium:        configFile.Cilium,
 			AgentId:       agentInfo.Id,
 			ProjectId:     agentInfo.ProjectId,
 			CiAccess:      configFile.CiAccess,

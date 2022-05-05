@@ -86,10 +86,6 @@ message LoggingCF {
   logging_level_enum level = 1 [json_name = "level"];
 }
 
-message CiliumCF {
-  string hubble_relay_address = 1 [json_name = "hubble_relay_address", (validate.rules).string.min_bytes = 1];
-}
-
 // https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
 message CiAccessCF {
   repeated CiAccessProjectCF projects = 1 [json_name = "projects"];
@@ -163,7 +159,7 @@ message ConfigurationFile {
   // Configuration related to all things observability. This is about the
   // agent itself, not any observability-related features.
   ObservabilityCF observability = 2 [json_name = "observability"];
-  CiliumCF cilium = 3 [json_name = "cilium"];
+  reserved 3;
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
   StarboardCF starboard = 5 [json_name = "starboard"];
 }
@@ -175,7 +171,7 @@ message ConfigurationFile {
 message AgentConfiguration {
   GitopsCF gitops = 1;
   ObservabilityCF observability = 2;
-  CiliumCF cilium = 3;
+  reserved 3;
   // GitLab-wide unique id of the agent.
   int64 agent_id = 4;
   // Id of the configuration project.
