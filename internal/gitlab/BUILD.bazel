@@ -33,6 +33,7 @@ go_custom_test(
     srcs = ["client_test.go"],
     deps = [
         ":gitlab",
+        "//internal/tool/httpz",
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/testhelpers",
         "@com_github_stretchr_testify//assert",

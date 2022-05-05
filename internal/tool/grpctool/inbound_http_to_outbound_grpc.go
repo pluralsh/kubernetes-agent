@@ -17,24 +17,20 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-const (
-	hostHeader = "Host"
-)
-
 var (
 	// See https://httpwg.org/http-core/draft-ietf-httpbis-semantics-latest.html#field.connection
-	// See https://tools.ietf.org/html/rfc2616#section-13.5.1
+	// See https://datatracker.ietf.org/doc/html/rfc2616#section-13.5.1
 	// See https://github.com/golang/go/blob/81ea89adf38b90c3c3a8c4eed9e6c093a8634d59/src/net/http/httputil/reverseproxy.go#L169-L184
 	hopHeaders = []string{
-		"Connection",
-		"Proxy-Connection",
-		"Keep-Alive",
-		"Proxy-Authenticate",
-		"Proxy-Authorization",
-		"Te",      // canonicalized version of "TE"
-		"Trailer", // not Trailers as per rfc2616; See errata https://www.rfc-editor.org/errata_search.php?eid=4522
-		"Transfer-Encoding",
-		"Upgrade",
+		httpz.ConnectionHeader,
+		httpz.ProxyConnectionHeader,
+		httpz.KeepAliveHeader,
+		httpz.ProxyAuthenticateHeader,
+		httpz.ProxyAuthorizationHeader,
+		httpz.TeHeader,
+		httpz.TrailerHeader,
+		httpz.TransferEncodingHeader,
+		httpz.UpgradeHeader,
 	}
 )
 
@@ -224,14 +220,14 @@ func (x *InboundHttpToOutboundGrpc) handleProcessingError(msg string, err error)
 
 func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Values {
 	header = header.Clone()
-	header.Del(hostHeader) // Use the destination host name
+	delete(header, httpz.HostHeader) // Use the destination host name
 
 	// Remove hop-by-hop headers
 	// 1. Remove headers listed in the Connection header
 	httpz.RemoveConnectionHeaders(header)
 	// 2. Remove well-known headers
 	for _, name := range hopHeaders {
-		header.Del(name)
+		delete(header, name)
 	}
 
 	return prototool.HttpHeaderToValuesMap(header)
@@ -239,7 +235,7 @@ func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Value
 
 func writeError(msg string, err error) errFunc {
 	return func(w http.ResponseWriter) {
-		// See https://tools.ietf.org/html/rfc7231#section-6.6.3
+		// See https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.3
 		http.Error(w, fmt.Sprintf("%s: %v", msg, err), http.StatusBadGateway)
 	}
 }

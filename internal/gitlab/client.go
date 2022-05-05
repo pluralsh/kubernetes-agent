@@ -127,10 +127,10 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		if claimsErr != nil {
 			return fmt.Errorf("sign JWT: %w", claimsErr)
 		}
-		r.Header.Set(jwtRequestHeader, signedClaims)
+		r.Header[jwtRequestHeader] = []string{signedClaims}
 	}
 	if c.UserAgent != "" {
-		r.Header.Set("User-Agent", c.UserAgent)
+		r.Header[httpz.UserAgentHeader] = []string{c.UserAgent}
 	}
 
 	client := c.HTTPClient

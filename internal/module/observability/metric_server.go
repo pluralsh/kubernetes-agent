@@ -65,7 +65,7 @@ func (s *MetricServer) constructHandler() http.Handler {
 
 func (s *MetricServer) setHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", s.Name)
+		w.Header()[httpz.ServerHeader] = []string{s.Name}
 		next.ServeHTTP(w, r)
 	})
 }

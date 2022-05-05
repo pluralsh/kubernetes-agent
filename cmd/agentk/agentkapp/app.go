@@ -28,6 +28,7 @@ import (
 	starboard_vulnerability "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/starboard_vulnerability/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
@@ -241,7 +242,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 				},
 			},
 			HTTPHeader: http.Header{
-				"User-Agent": []string{userAgent},
+				httpz.UserAgentHeader: []string{userAgent},
 			},
 		})))
 	case "grpc":

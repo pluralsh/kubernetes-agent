@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -42,7 +43,7 @@ func RespondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header()[httpz.ContentTypeHeader] = []string{"application/json"}
 	_, err = w.Write(data)
 	assert.NoError(t, err)
 }
@@ -52,11 +53,11 @@ func AssertRequestMethod(t *testing.T, r *http.Request, method string) {
 }
 
 func AssertRequestAccept(t *testing.T, r *http.Request, accept string) {
-	assert.Equal(t, accept, r.Header.Get("Accept"))
+	assert.Equal(t, accept, r.Header.Get(httpz.AcceptHeader))
 }
 
 func AssertRequestUserAgent(t *testing.T, r *http.Request, userAgent string) {
-	assert.Equal(t, userAgent, r.Header.Get("User-Agent"))
+	assert.Equal(t, userAgent, r.Header.Get(httpz.UserAgentHeader))
 }
 
 func AssertRequestAcceptJson(t *testing.T, r *http.Request) {
@@ -64,7 +65,7 @@ func AssertRequestAcceptJson(t *testing.T, r *http.Request) {
 }
 
 func AssertRequestContentTypeJson(t *testing.T, r *http.Request) {
-	assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json", r.Header.Get(httpz.ContentTypeHeader))
 }
 
 func AssertGetJsonRequest(t *testing.T, r *http.Request) {
@@ -73,7 +74,7 @@ func AssertGetJsonRequest(t *testing.T, r *http.Request) {
 }
 
 func AssertAgentToken(t *testing.T, r *http.Request, agentToken api.AgentToken) {
-	assert.EqualValues(t, "Bearer "+agentToken, r.Header.Get("Authorization"))
+	assert.EqualValues(t, "Bearer "+agentToken, r.Header.Get(httpz.AuthorizationHeader))
 }
 
 func AssertGetJsonRequestIsCorrect(t *testing.T, r *http.Request, correlationId string) {
@@ -84,7 +85,7 @@ func AssertGetJsonRequestIsCorrect(t *testing.T, r *http.Request, correlationId 
 func AssertGetRequestIsCorrect(t *testing.T, r *http.Request, correlationId string) {
 	AssertRequestMethod(t, r, http.MethodGet)
 	AssertAgentToken(t, r, AgentkToken)
-	assert.Empty(t, r.Header.Values("Content-Type"))
+	assert.Empty(t, r.Header[httpz.ContentTypeHeader])
 	AssertCommonRequestParams(t, r, correlationId)
 	AssertJWTSignature(t, r)
 }

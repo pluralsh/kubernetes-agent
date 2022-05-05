@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab"
@@ -93,9 +94,9 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 			_, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 				t.Fail() // unexpected invocation
 			})
-			req.Header.Del("Authorization")
+			delete(req.Header, httpz.AuthorizationHeader)
 			if len(tc.auth) > 0 {
-				req.Header["Authorization"] = tc.auth
+				req.Header[httpz.AuthorizationHeader] = tc.auth
 			}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
@@ -162,7 +163,7 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
 	_, _, client, req, _ := setupProxy(t)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, 15 /* disallowed id */, jobToken))
+	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, 15 /* disallowed id */, jobToken))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -366,13 +367,13 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 							"Accept-Encoding": { // added by the Go client
 								Value: []string{"gzip"},
 							},
-							"User-Agent": {
+							httpz.UserAgentHeader: {
 								Value: []string{"test-agent"},
 							},
 							"Content-Length": { // added by the Go client
 								Value: []string{strconv.Itoa(len(requestPayload))},
 							},
-							"Via": {
+							httpz.ViaHeader: {
 								Value: []string{"gRPC/1.0 sv1"},
 							},
 						},
@@ -442,7 +443,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 
 	req.Header.Set("Req-Header", "x1")
 	req.Header.Add("Req-Header", "x2")
-	req.Header.Set("User-Agent", "test-agent") // added manually to override what is added by the Go client
+	req.Header.Set(httpz.UserAgentHeader, "test-agent") // added manually to override what is added by the Go client
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer func() {
@@ -450,9 +451,9 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	}()
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
-	resp.Header.Del("Date")
+	delete(resp.Header, "Date")
 	assert.NotEmpty(t, resp.Header.Get("X-Request-Id"))
-	resp.Header.Del("X-Request-Id")
+	delete(resp.Header, "X-Request-Id")
 	assert.Empty(t, cmp.Diff(map[string][]string{
 		"Resp-Header":  {"a1", "a2"},
 		"Content-Type": {"application/octet-stream"},
@@ -560,7 +561,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		strings.NewReader(requestPayload),
 	)
 	require.NoError(t, err)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
+	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 	return mockApi, k8sClient, client, req, requestCount
 }
 

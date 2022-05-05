@@ -10,6 +10,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/tool/httpz",
         "//internal/tool/retry",
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_stretchr_testify//assert",
