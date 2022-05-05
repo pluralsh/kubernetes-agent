@@ -12,7 +12,6 @@ TAG = {
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-amd64-race": "//cmd/agentk:container_race",
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm-race": "//cmd/agentk:container_arm_race",
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm64-race": "//cmd/agentk:container_arm64_race",
-    prefix + "cli:{STABLE_BUILD_GIT_TAG}": "//cmd/cli:container",
 }
 
 STABLE = {
@@ -24,7 +23,6 @@ STABLE = {
     prefix + "agentk:stable-amd64-race": "//cmd/agentk:container_race",
     prefix + "agentk:stable-arm-race": "//cmd/agentk:container_arm_race",
     prefix + "agentk:stable-arm64-race": "//cmd/agentk:container_arm64_race",
-    prefix + "cli:stable": "//cmd/cli:container",
 }
 
 TAG_AND_STABLE = {}
@@ -44,7 +42,6 @@ push_bundle(
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-amd64-race": "//cmd/agentk:container_race",
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm-race": "//cmd/agentk:container_arm_race",
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm64-race": "//cmd/agentk:container_arm64_race",
-        prefix + "cli:{STABLE_BUILD_GIT_COMMIT}": "//cmd/cli:container",
     },
 )
 
@@ -59,7 +56,6 @@ push_bundle(
         prefix + "agentk:latest-amd64-race": "//cmd/agentk:container_race",
         prefix + "agentk:latest-arm-race": "//cmd/agentk:container_arm_race",
         prefix + "agentk:latest-arm64-race": "//cmd/agentk:container_arm64_race",
-        prefix + "cli:latest": "//cmd/cli:container",
     },
 )
 
