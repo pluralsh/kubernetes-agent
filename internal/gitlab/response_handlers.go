@@ -8,8 +8,8 @@ import (
 	"mime"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 )
 
 type ResponseHandlerStruct struct {

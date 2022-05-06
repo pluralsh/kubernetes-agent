@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"cloud.google.com/go/profiler"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/google_profiler"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"google.golang.org/api/option"
 )
 

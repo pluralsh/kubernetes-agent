@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 )
 

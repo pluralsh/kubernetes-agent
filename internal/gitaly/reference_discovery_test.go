@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly/pktline"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/pktline"
 )
 
 const (

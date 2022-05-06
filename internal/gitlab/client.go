@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/go-retryablehttp"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tracing"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tracing"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"

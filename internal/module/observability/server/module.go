@@ -5,10 +5,10 @@ import (
 	"net"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"go.uber.org/zap"
 )
 

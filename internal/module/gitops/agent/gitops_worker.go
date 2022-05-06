@@ -3,10 +3,10 @@ package agent
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

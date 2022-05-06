@@ -2,7 +2,7 @@ package mock_modserver
 
 import (
 	"github.com/golang/mock/gomock"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 )
 
 func NewMockAgentRpcApiWithMockPoller(ctrl *gomock.Controller, pollTimes int) *MockAgentRpcApi {

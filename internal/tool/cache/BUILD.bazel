@@ -7,7 +7,7 @@ go_library(
         "cache.go",
         "cache_with_err.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache",
     visibility = ["//:__subpackages__"],
 )
 

@@ -13,7 +13,7 @@ go_library(
         "modshared.pb.go",
         "rpc_api_stub.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared",
     visibility = [
         "//cmd/agentk:__subpackages__",
         "//cmd/kas:__subpackages__",

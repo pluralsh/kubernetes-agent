@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/klog/v2"
