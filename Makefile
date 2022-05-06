@@ -46,7 +46,6 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/kas/kasapp" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/redistool" \
