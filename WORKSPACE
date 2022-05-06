@@ -71,15 +71,6 @@ http_archive(
 )
 
 http_archive(
-    name = "rules_pkg",
-    sha256 = "a89e203d3cf264e564fcb96b6e06dd70bc0557356eb48400ce4b5d97c2c3720d",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
-        "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
-    ],
-)
-
-http_archive(
     name = "bazelruby_rules_ruby",
     sha256 = "5035393cb5043d49ca9de78acb9e8c8622a193f6463a57ad02383a622b6dc663",
     strip_prefix = "rules_ruby-0.6.0",
@@ -250,7 +241,6 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load("@com_github_envoyproxy_protoc_gen_validate//:dependencies.bzl", pgv_third_party = "go_third_party")
-load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 
 go_image_repositories()
 
@@ -273,5 +263,3 @@ load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 grpc_deps()
 
 pgv_third_party()
-
-rules_pkg_dependencies()
