@@ -1,6 +1,6 @@
 workspace(name = "gitlab_k8s_agent")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 # When updating rules_go make sure to update org_golang_x_tools dependency below by copying it from
@@ -86,41 +86,6 @@ http_archive(
     urls = [
         "https://github.com/bazelruby/rules_ruby/archive/v0.6.0.tar.gz",
     ],
-)
-
-http_archive(
-    name = "tool_kpt",
-    build_file_content = 'exports_files(["kpt"])',
-    sha256 = "e423802ab65e77c0d79d22effcd81ea726153f5347f42fb09f84b275ca5bb67f",
-    urls = ["https://github.com/GoogleContainerTools/kpt/releases/download/v0.37.1/kpt_linux_amd64-0.37.1.tar.gz"],
-)
-
-http_archive(
-    name = "tool_kustomize",
-    build_file_content = 'exports_files(["kustomize"])',
-    sha256 = "bab4ab8881718c29ba174bdf677fd89986ad25c40eb363fec9e78c1aff2ff0ea",
-    urls = ["https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.10.0/kustomize_v3.10.0_linux_amd64.tar.gz"],
-)
-
-http_file(
-    name = "tool_git",
-    downloaded_file_path = "git.deb",
-    sha256 = "1efbc55de3ca1211fe4c0afc559f2edbded30ed3095d94dd602311bf604b3fd7",
-    urls = ["http://ftp.debian.org/debian/pool/main/g/git/git_2.30.2-1_amd64.deb"],
-)
-
-http_file(
-    name = "tool_libpcre2",
-    downloaded_file_path = "libpcre2.deb",
-    sha256 = "18fa901205ed21c833ff669daae26f675803147f4cc64ddc95fc9cddd7f654c8",
-    urls = ["http://ftp.debian.org/debian/pool/main/p/pcre2/libpcre2-8-0_10.32-5_amd64.deb"],
-)
-
-http_file(
-    name = "tool_zlib1g",
-    downloaded_file_path = "zlib1g.deb",
-    sha256 = "61bc9085aadd3007433ce6f560a08446a3d3ceb0b5e061db3fc62c42fbfe3eff",
-    urls = ["http://ftp.debian.org/debian/pool/main/z/zlib/zlib1g_1.2.11.dfsg-1_amd64.deb"],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
