@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 )
 
 const (

@@ -8,7 +8,7 @@ go_library(
         "errz.go",
         "user_error.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz",
     visibility = ["//:__subpackages__"],
 )
 

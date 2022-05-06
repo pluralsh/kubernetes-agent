@@ -4,7 +4,7 @@ load("//build:build.bzl", "go_custom_test")
 go_library(
     name = "git",
     srcs = ["git.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/git",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/git",
     visibility = ["//:__subpackages__"],
 )
 

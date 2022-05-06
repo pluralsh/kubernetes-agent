@@ -1,4 +1,4 @@
-module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14
+module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15
 
 go 1.17
 

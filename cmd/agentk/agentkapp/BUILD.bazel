@@ -11,7 +11,7 @@ go_library(
         "module_runner.go",
         "rpc_api.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/agentk/agentkapp",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",

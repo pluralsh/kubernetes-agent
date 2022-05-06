@@ -7,7 +7,7 @@ go_library(
         "api.go",
         "rpc_api.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent",
     visibility = [
         "//cmd/agentk:__subpackages__",
         "//internal/module/cilium_alert/agent:__subpackages__",

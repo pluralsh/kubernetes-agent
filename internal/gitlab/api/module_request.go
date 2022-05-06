@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 )
 
 const (

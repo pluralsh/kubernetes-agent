@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitlab_access"
 )
 
 type module struct {
