@@ -20,7 +20,7 @@ import (
 type syncJob struct {
 	ctx      context.Context
 	commitId string
-	invInfo  inventory.InventoryInfo
+	invInfo  inventory.Info
 	objects  []*unstructured.Unstructured
 }
 

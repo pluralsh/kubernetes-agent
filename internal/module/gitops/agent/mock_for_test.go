@@ -112,7 +112,7 @@ func (m *MockApplier) EXPECT() *MockApplierMockRecorder {
 }
 
 // Run mocks base method.
-func (m *MockApplier) Run(arg0 context.Context, arg1 inventory.InventoryInfo, arg2 object.UnstructuredSet, arg3 apply.ApplierOptions) <-chan event.Event {
+func (m *MockApplier) Run(arg0 context.Context, arg1 inventory.Info, arg2 object.UnstructuredSet, arg3 apply.ApplierOptions) <-chan event.Event {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(<-chan event.Event)

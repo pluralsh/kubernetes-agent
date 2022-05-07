@@ -37,6 +37,26 @@ func (m *MockCommitServiceClient) EXPECT() *MockCommitServiceClientMockRecorder 
 	return m.recorder
 }
 
+// CheckObjectsExist mocks base method.
+func (m *MockCommitServiceClient) CheckObjectsExist(arg0 context.Context, arg1 ...grpc.CallOption) (gitalypb.CommitService_CheckObjectsExistClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CheckObjectsExist", varargs...)
+	ret0, _ := ret[0].(gitalypb.CommitService_CheckObjectsExistClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckObjectsExist indicates an expected call of CheckObjectsExist.
+func (mr *MockCommitServiceClientMockRecorder) CheckObjectsExist(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckObjectsExist", reflect.TypeOf((*MockCommitServiceClient)(nil).CheckObjectsExist), varargs...)
+}
+
 // CommitIsAncestor mocks base method.
 func (m *MockCommitServiceClient) CommitIsAncestor(arg0 context.Context, arg1 *gitalypb.CommitIsAncestorRequest, arg2 ...grpc.CallOption) (*gitalypb.CommitIsAncestorResponse, error) {
 	m.ctrl.T.Helper()

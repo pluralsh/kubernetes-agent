@@ -96,8 +96,8 @@ go_repository(
         "tracer_static_jaeger",
     ],  # keep
     importpath = "gitlab.com/gitlab-org/labkit",
-    sum = "h1:XVwGqXfHrhEr2bzZbYy/eA7xulAeyvk9HB3Q7nH2H4I=",
-    version = "v1.12.0",
+    sum = "h1:LSrvHgybidPyH8fHnsy1GBghrLR4kFObFrtZwUfCgAI=",
+    version = "v1.14.0",
 )
 
 go_repository(
@@ -111,8 +111,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:HkntewfZJ9RofA/FX38zBCeIAqlLDFLbAI6eTpZqFJw=",
-    version = "v0.6.3",
+    sum = "h1:qcZcULcd/abmQg6dwigimCNEyi4gg31M/xaciQlDml8=",
+    version = "v0.6.7",
 )
 
 # Copied from rules_go to keep patches in place

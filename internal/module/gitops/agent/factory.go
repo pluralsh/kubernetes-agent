@@ -30,7 +30,9 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
-	invClient, err := inventory.ClusterInventoryClientFactory{}.NewInventoryClient(config.K8sUtilFactory)
+	invClient, err := inventory.ClusterClientFactory{
+		StatusPolicy: inventory.StatusPolicyNone,
+	}.NewClient(config.K8sUtilFactory)
 	if err != nil {
 		return nil, err
 	}

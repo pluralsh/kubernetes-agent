@@ -60,7 +60,7 @@ func TestRun_HappyPath_NoObjects(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				cancel() // all good, stop run()
 				c := make(chan event.Event)
 				close(c)
@@ -104,7 +104,7 @@ func TestRun_HappyPath_NoInventoryTemplate(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				assertK8sObjectsMatch(t, objs, objects)
 				assert.Equal(t, w.project.DefaultNamespace, invInfo.Namespace())
 				cancel() // all good, stop Run()
@@ -143,7 +143,7 @@ func TestRun_HappyPath_InventoryTemplate(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				assertK8sObjectsMatch(t, objs, objects)
 				assert.Equal(t, "some_ns", invInfo.Namespace())
 				assert.Equal(t, "inventory-some_id", invInfo.Name())
@@ -195,7 +195,7 @@ func TestRun_SyncCancellation(t *testing.T) {
 	gomock.InOrder(
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				assertK8sObjectsMatch(t, objs, objects)
 				close(job1started) // signal that this job has been started
 				c := make(chan event.Event)
@@ -207,7 +207,7 @@ func TestRun_SyncCancellation(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
@@ -241,7 +241,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 	gomock.InOrder(
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				c := make(chan event.Event, 1)
 				c <- event.Event{
 					Type: event.ErrorType,
@@ -254,7 +254,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
@@ -284,14 +284,14 @@ func TestRun_PeriodicApply(t *testing.T) {
 	gomock.InOrder(
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				c := make(chan event.Event)
 				close(c)
 				return c
 			}),
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
+			DoAndReturn(func(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event {
 				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)

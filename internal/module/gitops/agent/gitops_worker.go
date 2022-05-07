@@ -44,15 +44,15 @@ var (
 		prunePropagationPolicyBackground: metav1.DeletePropagationBackground,
 		prunePropagationPolicyForeground: metav1.DeletePropagationForeground,
 	}
-	inventoryPolicyMapping = map[string]inventory.InventoryPolicy{
-		inventoryPolicyMustMatch:          inventory.InventoryPolicyMustMatch,
-		inventoryPolicyAdoptIfNoInventory: inventory.AdoptIfNoInventory,
-		inventoryPolicyAdoptAll:           inventory.AdoptAll,
+	inventoryPolicyMapping = map[string]inventory.Policy{
+		inventoryPolicyMustMatch:          inventory.PolicyMustMatch,
+		inventoryPolicyAdoptIfNoInventory: inventory.PolicyAdoptIfNoInventory,
+		inventoryPolicyAdoptAll:           inventory.PolicyAdoptAll,
 	}
 )
 
 type Applier interface {
-	Run(ctx context.Context, invInfo inventory.InventoryInfo, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
+	Run(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
 }
 
 type GitopsWorkerFactory interface {
@@ -161,13 +161,13 @@ func (f *defaultGitopsWorkerFactory) mapPrunePropagationPolicy(policy string) me
 	return ret
 }
 
-func (f *defaultGitopsWorkerFactory) mapInventoryPolicy(policy string) inventory.InventoryPolicy {
+func (f *defaultGitopsWorkerFactory) mapInventoryPolicy(policy string) inventory.Policy {
 	ret, ok := inventoryPolicyMapping[policy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
 		// Just being extra cautious.
 		f.log.Sugar().Errorf("Invalid inventory policy: %q, defaulting to 'must match'", policy)
-		ret = inventory.InventoryPolicyMustMatch
+		ret = inventory.PolicyMustMatch
 	}
 	return ret
 }
