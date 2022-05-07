@@ -168,7 +168,6 @@ require (
 )
 
 replace (
-	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	// Use a fork to avoid all the dependencies https://github.com/spf13/cobra/issues/1240#issuecomment-874387919
 	// https://github.com/ash2k/cobra/commits/remove-cli
 	github.com/spf13/cobra => github.com/ash2k/cobra v1.2.2-0.20210706005132-e91bfee91527
