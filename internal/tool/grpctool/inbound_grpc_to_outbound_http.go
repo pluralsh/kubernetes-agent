@@ -22,13 +22,13 @@ type InboundGrpcToOutboundHttpStream interface {
 }
 
 type HandleProcessingErrorFunc func(msg string, err error)
-type HandleSendErrorFunc func(msg string, err error) error
+type HandleIoErrorFunc func(msg string, err error) error
 type HttpDo func(ctx context.Context, header *HttpRequest_Header, body io.Reader) (*http.Response, error)
 
 type InboundGrpcToOutboundHttp struct {
 	Log                   *zap.Logger
 	HandleProcessingError HandleProcessingErrorFunc
-	HandleSendError       HandleSendErrorFunc
+	HandleIoError         HandleIoErrorFunc
 	HttpDo                HttpDo
 }
 
@@ -113,7 +113,7 @@ func (x *InboundGrpcToOutboundHttp) pipeOutboundToInbound(inbound InboundGrpcToO
 		},
 	})
 	if err != nil {
-		return x.HandleSendError("SendMsg(HttpResponse_Trailer) failed", err)
+		return x.HandleIoError("SendMsg(HttpResponse_Trailer) failed", err)
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 		},
 	})
 	if err != nil {
-		return x.HandleSendError("SendMsg(HttpResponse_Header) failed", err)
+		return x.HandleIoError("SendMsg(HttpResponse_Header) failed", err)
 	}
 
 	buffer := memz.Get32k()
@@ -151,7 +151,7 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 				},
 			})
 			if sendErr != nil {
-				return x.HandleSendError("SendMsg(HttpResponse_Data) failed", sendErr)
+				return x.HandleIoError("SendMsg(HttpResponse_Data) failed", sendErr)
 			}
 		}
 		if errors.Is(err, io.EOF) {

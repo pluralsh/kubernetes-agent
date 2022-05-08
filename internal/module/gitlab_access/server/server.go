@@ -32,8 +32,8 @@ func (s *server) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		HandleProcessingError: func(msg string, err error) {
 			rpcApi.HandleProcessingError(log, modshared.NoAgentId, msg, err)
 		},
-		HandleSendError: func(msg string, err error) error {
-			return rpcApi.HandleSendError(log, msg, err)
+		HandleIoError: func(msg string, err error) error {
+			return rpcApi.HandleIoError(log, msg, err)
 		},
 		HttpDo: s.httpDo,
 	}

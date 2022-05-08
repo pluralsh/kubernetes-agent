@@ -163,7 +163,7 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 	}
 	err = outboundClient.CloseSend()
 	if err != nil {
-		return x.handleSendError("HTTP->gRPC: failed to send close frame", err)
+		return x.handleIoError("HTTP->gRPC: failed to send close frame", err)
 	}
 	return nil
 }
@@ -203,12 +203,12 @@ func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string
 		if errors.Is(err, io.EOF) {
 			_, err = client.Recv()
 		}
-		return x.handleSendError(errMsg, err)
+		return x.handleIoError(errMsg, err)
 	}
 	return nil
 }
 
-func (x *InboundHttpToOutboundGrpc) handleSendError(msg string, err error) errFunc {
+func (x *InboundHttpToOutboundGrpc) handleIoError(msg string, err error) errFunc {
 	x.Log.Debug(msg, logz.Error(err))
 	return writeError(msg, err)
 }

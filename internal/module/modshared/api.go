@@ -25,9 +25,9 @@ type RpcApi interface {
 	// HandleProcessingError can be used to handle errors occurring while processing a request.
 	// If err is a (or wraps a) errz.UserError, it might be handled specially.
 	HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error)
-	// HandleSendError can be used to handle error produced by gRPC Send() or SendMsg() method.
+	// HandleIoError can be used to handle I/O error produced by gRPC Send(), Recv() methods or any other I/O error.
 	// It returns an error, compatible with gRPC status package.
-	HandleSendError(log *zap.Logger, msg string, err error) error
+	HandleIoError(log *zap.Logger, msg string, err error) error
 	// PollWithBackoff runs f every duration given by BackoffManager.
 	//
 	// PollWithBackoff should be used by the top-level polling, so that it can be gracefully interrupted

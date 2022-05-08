@@ -49,7 +49,7 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 		grpctool.WithCallback(headerFieldNumber, func(header *GatewayKasResponse_Header) error {
 			err := stream.SetHeader(header.Metadata())
 			if err != nil {
-				return f.rpcApi.HandleSendError(f.log, "router kas->stream SetHeader() failed", err)
+				return f.rpcApi.HandleIoError(f.log, "router kas->stream SetHeader() failed", err)
 			}
 			return nil
 		}),
@@ -58,7 +58,7 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 				Data: message.Data,
 			})
 			if err != nil {
-				return f.rpcApi.HandleSendError(f.log, "router kas->stream SendMsg() failed", err)
+				return f.rpcApi.HandleIoError(f.log, "router kas->stream SendMsg() failed", err)
 			}
 			return nil
 		}),
@@ -94,12 +94,12 @@ func (f *kasStreamForwarder) pipeFromStreamToKas(kasStream grpc.ClientStream, st
 			if errors.Is(err, io.EOF) {
 				return nil // the other goroutine will receive the error in RecvMsg()
 			}
-			return f.rpcApi.HandleSendError(f.log, "stream->router kas SendMsg() failed", err)
+			return f.rpcApi.HandleIoError(f.log, "stream->router kas SendMsg() failed", err)
 		}
 	}
 	err := kasStream.CloseSend()
 	if err != nil {
-		return f.rpcApi.HandleSendError(f.log, "stream->router kas CloseSend() failed", err)
+		return f.rpcApi.HandleIoError(f.log, "stream->router kas CloseSend() failed", err)
 	}
 	return nil
 }
