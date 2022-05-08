@@ -89,7 +89,7 @@ func TestRequestTimedOut(t *testing.T) {
 	})
 }
 
-func TestHandleSendError(t *testing.T) {
+func TestHandleIoError(t *testing.T) {
 	tests := []struct {
 		in       error
 		expected error
@@ -125,7 +125,7 @@ func TestHandleSendError(t *testing.T) {
 	}
 	for i, tc := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			actual := grpctool.HandleSendError("msg", tc.in)
+			actual := grpctool.HandleIoError("msg", tc.in)
 			assert.Equal(t, tc.expected.Error(), actual.Error())
 		})
 	}

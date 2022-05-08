@@ -47,7 +47,7 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		},
 	})
 	if err != nil {
-		return rpcApi.HandleSendError(log, "SendMsg(GatewayKasResponse_TunnelReady) failed", err)
+		return rpcApi.HandleIoError(log, "SendMsg(GatewayKasResponse_TunnelReady) failed", err)
 	}
 	var start StartStreaming
 	err = stream.RecvMsg(&start)
@@ -128,7 +128,7 @@ func (c wrappingCallback) Error(stat *statuspb.Status) error {
 func (c wrappingCallback) sendMsg(errMsg string, msg *GatewayKasResponse) error {
 	err := c.stream.SendMsg(msg)
 	if err != nil {
-		return c.rpcApi.HandleSendError(c.log, errMsg, err)
+		return c.rpcApi.HandleIoError(c.log, errMsg, err)
 	}
 	return nil
 }

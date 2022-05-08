@@ -92,7 +92,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		})
 		err = s.sendConfigResponse(server, agentInfo, configFile, info.CommitId)
 		if err != nil {
-			return rpcApi.HandleSendError(log, "Config: failed to send config", err), retry.Done
+			return rpcApi.HandleIoError(log, "Config: failed to send config", err), retry.Done
 		}
 		lastProcessedCommitId = info.CommitId
 		return nil, retry.Continue

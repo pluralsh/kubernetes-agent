@@ -35,6 +35,20 @@ func (m *MockRpcApi) EXPECT() *MockRpcApiMockRecorder {
 	return m.recorder
 }
 
+// HandleIoError mocks base method.
+func (m *MockRpcApi) HandleIoError(arg0 *zap.Logger, arg1 string, arg2 error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleIoError", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleIoError indicates an expected call of HandleIoError.
+func (mr *MockRpcApiMockRecorder) HandleIoError(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleIoError", reflect.TypeOf((*MockRpcApi)(nil).HandleIoError), arg0, arg1, arg2)
+}
+
 // HandleProcessingError mocks base method.
 func (m *MockRpcApi) HandleProcessingError(arg0 *zap.Logger, arg1 int64, arg2 string, arg3 error) {
 	m.ctrl.T.Helper()
@@ -45,20 +59,6 @@ func (m *MockRpcApi) HandleProcessingError(arg0 *zap.Logger, arg1 int64, arg2 st
 func (mr *MockRpcApiMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockRpcApi)(nil).HandleProcessingError), arg0, arg1, arg2, arg3)
-}
-
-// HandleSendError mocks base method.
-func (m *MockRpcApi) HandleSendError(arg0 *zap.Logger, arg1 string, arg2 error) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleSendError", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// HandleSendError indicates an expected call of HandleSendError.
-func (mr *MockRpcApiMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockRpcApi)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
 // Log mocks base method.

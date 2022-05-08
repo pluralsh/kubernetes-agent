@@ -20,9 +20,9 @@ func (a *agentRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg 
 	handleProcessingError(a.StreamCtx, log, agentId, msg, err)
 }
 
-func (a *agentRpcApi) HandleSendError(log *zap.Logger, msg string, err error) error {
+func (a *agentRpcApi) HandleIoError(log *zap.Logger, msg string, err error) error {
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
 	log.Debug(msg, logz.Error(err))
-	return grpctool.HandleSendError(msg, err)
+	return grpctool.HandleIoError(msg, err)
 }

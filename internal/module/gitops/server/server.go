@@ -99,7 +99,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		log.Info("GitOps: new commit")
 		err = s.sendObjectsToSynchronizeHeader(server, info.CommitId, projectInfo.ProjectId)
 		if err != nil {
-			return rpcApi.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
+			return rpcApi.HandleIoError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
 		}
 		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, info.CommitId) // nolint: contextcheck
 		if err != nil {
@@ -107,7 +107,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		}
 		err = s.sendObjectsToSynchronizeTrailer(server)
 		if err != nil {
-			return rpcApi.HandleSendError(log, "GitOps: failed to send trailer for objects to synchronize", err), retry.Done
+			return rpcApi.HandleIoError(log, "GitOps: failed to send trailer for objects to synchronize", err), retry.Done
 		}
 		log.Info("GitOps: fetched files", logz.NumberOfFilesVisited(filesVisited), logz.NumberOfFilesSent(filesSent))
 		s.syncCount.Inc()
@@ -189,7 +189,7 @@ func (s *server) sendObjectsToSynchronizeBody(
 		if err != nil {
 			switch {
 			case v.sendFailed:
-				return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
+				return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleIoError(log, "GitOps: failed to send objects to synchronize", err)
 			case isUserError(err):
 				err = errz.NewUserErrorWithCause(err, "manifest file")
 				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)

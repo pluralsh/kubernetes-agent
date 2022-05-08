@@ -158,7 +158,7 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 			var frame grpctool.RawFrame
 			err = kasStream.RecvMsg(&frame) // get the real error
 		}
-		_ = f.rpcApi.HandleSendError(log, "SendMsg(StartStreaming)", err)
+		_ = f.rpcApi.HandleIoError(log, "SendMsg(StartStreaming)", err)
 		return
 	}
 	rt := readyTunnel{

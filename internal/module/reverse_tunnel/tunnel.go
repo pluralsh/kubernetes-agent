@@ -42,7 +42,7 @@ type TunnelDataCallback interface {
 }
 
 type RpcApi interface {
-	HandleSendError(log *zap.Logger, msg string, err error) error
+	HandleIoError(log *zap.Logger, msg string, err error) error
 }
 
 type Tunnel interface {
@@ -104,7 +104,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 			},
 		})
 		if err != nil {
-			err = rpcApi.HandleSendError(log, "Send(ConnectResponse_RequestInfo)", err)
+			err = rpcApi.HandleIoError(log, "Send(ConnectResponse_RequestInfo)", err)
 			return err, err
 		}
 		for {
@@ -124,7 +124,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 				},
 			})
 			if err != nil {
-				err = rpcApi.HandleSendError(log, "Send(ConnectResponse_Message)", err)
+				err = rpcApi.HandleIoError(log, "Send(ConnectResponse_Message)", err)
 				return err, err
 			}
 		}
@@ -134,7 +134,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 			},
 		})
 		if err != nil {
-			err = rpcApi.HandleSendError(log, "Send(ConnectResponse_CloseSend)", err)
+			err = rpcApi.HandleIoError(log, "Send(ConnectResponse_CloseSend)", err)
 			return err, err
 		}
 		return nil, nil

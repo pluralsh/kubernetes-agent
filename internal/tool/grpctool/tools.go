@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func HandleSendError(msg string, err error) error {
+func HandleIoError(msg string, err error) error {
 	if IsStatusError(err) {
 		s := status.Convert(err).Proto()
 		if isErrIllegalHeaderWriteError(s) {

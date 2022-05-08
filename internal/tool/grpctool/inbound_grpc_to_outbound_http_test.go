@@ -114,7 +114,7 @@ func TestInboundGrpcToOutboundHttp_HappyPath(t *testing.T) {
 		HandleProcessingError: func(msg string, err error) {
 			t.Fail()
 		},
-		HandleSendError: func(msg string, err error) error {
+		HandleIoError: func(msg string, err error) error {
 			t.Fail()
 			return nil
 		},

@@ -192,7 +192,7 @@ func (a *serverRpcApiForTest) HandleProcessingError(log *zap.Logger, agentId int
 	log.Error(msg, logz.Error(err))
 }
 
-func (a *serverRpcApiForTest) HandleSendError(log *zap.Logger, msg string, err error) error {
+func (a *serverRpcApiForTest) HandleIoError(log *zap.Logger, msg string, err error) error {
 	log.Debug(msg, logz.Error(err))
-	return grpctool.HandleSendError(msg, err)
+	return grpctool.HandleIoError(msg, err)
 }
