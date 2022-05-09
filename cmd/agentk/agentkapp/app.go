@@ -33,6 +33,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -266,7 +267,7 @@ func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
 	factory := func(ctx context.Context, method string) modagent.RpcApi {
 		return &agentRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
-				Logger:    a.Log,
+				Logger:    a.Log.With(logz.CorrelationId(correlation.ExtractFromContext(ctx))),
 				StreamCtx: ctx,
 			},
 		}
