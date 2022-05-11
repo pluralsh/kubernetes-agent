@@ -139,10 +139,9 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	}
 	resp, err := client.Do(r) // nolint: bodyclose
 	if err != nil {
-		select {
-		case <-ctx.Done(): // assume request errored out because of context
-			err = ctx.Err()
-		default:
+		ctxErr := ctx.Err()
+		if ctxErr != nil {
+			err = ctxErr // assume request errored out because of context
 		}
 	}
 	return o.responseHandler.Handle(resp, err)
