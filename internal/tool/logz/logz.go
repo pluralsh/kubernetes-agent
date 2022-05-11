@@ -146,6 +146,10 @@ func UID(uid types.UID) zap.Field {
 	return zap.String("k8s_uid", string(uid))
 }
 
+func Kind(kind string) zap.Field {
+	return zap.String("k8s_kind", kind)
+}
+
 func Error(err error) zap.Field {
 	var errCorrelation errz.CorrelationError
 	if errors.As(err, &errCorrelation) {

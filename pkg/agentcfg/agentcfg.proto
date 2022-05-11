@@ -139,6 +139,7 @@ message ExtraKeyValCF {
 
 message StarboardCF {
   VulnerabilityReport vulnerability_report = 1 [json_name = "vulnerability_report"];
+  string cadence = 2 [json_name = "cadence", (validate.rules).string.min_bytes = 1];
 }
 
 message VulnerabilityReport {

@@ -1992,6 +1992,17 @@ func (m *StarboardCF) validate(all bool) error {
 		}
 	}
 
+	if len(m.GetCadence()) < 1 {
+		err := StarboardCFValidationError{
+			field:  "Cadence",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if len(errors) > 0 {
 		return StarboardCFMultiError(errors)
 	}

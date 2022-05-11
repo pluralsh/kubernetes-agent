@@ -47,6 +47,7 @@ internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/kas/kasapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/starboard_vulnerability/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_agent_tracker" \
