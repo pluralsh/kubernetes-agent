@@ -73,12 +73,11 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 	req.Header[httpz.ViaHeader] = append(req.Header[httpz.ViaHeader], s.via)
 	resp, err := s.client.Do(headerExtra.ImpConfig, req)
 	if err != nil {
-		select {
-		case <-ctx.Done(): // assume request errored out because of context
-			return nil, ctx.Err()
-		default:
-			return nil, err
+		ctxErr := ctx.Err()
+		if ctxErr != nil {
+			err = ctxErr // assume request errored out because of context
 		}
+		return nil, err
 	}
 	resp.Header[httpz.ViaHeader] = append(resp.Header[httpz.ViaHeader], fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, s.userAgent))
 	return resp, nil
