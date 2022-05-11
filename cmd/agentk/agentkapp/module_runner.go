@@ -32,9 +32,10 @@ func (h *moduleHolder) runPipe(ctx context.Context) error {
 	// The loop consumes the incoming items from the configuration channel (cfg2pipe) and only sends the last
 	// received item to the module (pipe2module). This allows to skip configuration changes that happened while the module was handling the
 	// previous configuration change.
+	done := ctx.Done()
 	for {
 		select {
-		case <-ctx.Done(): // case #1
+		case <-done: // case #1
 			return nil
 		case cfgToSend = <-h.cfg2pipe: // case #2
 			nilablePipe2module = h.pipe2module // enable case #3

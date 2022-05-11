@@ -27,9 +27,10 @@ func (m *module) Run(ctx context.Context) error {
 	}
 	ticker := time.NewTicker(m.usageReportingPeriod)
 	defer ticker.Stop()
+	done := ctx.Done()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-done:
 			ctxExit, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			// Flush metrics before exiting
 			m.sendUsage(ctxExit) // nolint: contextcheck

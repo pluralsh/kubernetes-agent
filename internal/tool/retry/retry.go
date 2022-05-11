@@ -59,7 +59,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 			<-t.C()
 		}
 	}()
-	doneCh := ctx.Done()
+	done := ctx.Done()
 	for {
 		if !cfg.Sliding {
 			t = cfg.Backoff.Backoff()
@@ -68,7 +68,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 	attempt:
 		for {
 			select {
-			case <-doneCh:
+			case <-done:
 				return ErrWaitTimeout
 			default:
 			}
@@ -77,7 +77,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 			case Continue: // sleep and continue
 				timer := time.NewTimer(cfg.Interval)
 				select {
-				case <-doneCh:
+				case <-done:
 					timer.Stop()
 					return ErrWaitTimeout
 				case <-timer.C:
@@ -103,7 +103,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		// In order to mitigate we re-check stopCh at the beginning
 		// of every loop to prevent extra executions of f().
 		select {
-		case <-doneCh:
+		case <-done:
 			return ErrWaitTimeout
 		case <-t.C():
 			t = nil

@@ -60,9 +60,10 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 	defer refreshTicker.Stop()
 	gcTicker := time.NewTicker(t.gcPeriod)
 	defer gcTicker.Stop()
+	done := ctx.Done()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-done:
 			return nil
 		case <-refreshTicker.C:
 			err := t.refreshRegistrations(ctx)
