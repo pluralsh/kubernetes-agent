@@ -16,8 +16,8 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2401423928
-  BUILD_IMAGE_SHA: "f0127ea55d9599f47e86ce43b84861dea14e0ed1529d149cc4a56f08f669e75c"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2445168744
+  BUILD_IMAGE_SHA: "c429d106882ff754cc2c01242474f516b6b4f4dd94fcf43c21239590cbf66c80"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
 
@@ -86,7 +86,7 @@ verify:
     - make verify-ci
 
 lint:
-  image: golangci/golangci-lint:v1.44.0-alpine
+  image: golangci/golangci-lint:v1.46.0-alpine
   stage: test
   script:
     # Write the code coverage report to gl-code-quality-report.json
