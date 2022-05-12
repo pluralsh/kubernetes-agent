@@ -82,22 +82,14 @@ func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w htt
 func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpRequestClient, w http.ResponseWriter) (bool, errFunc) {
 	writeFailed := false
 	headerWritten := false
-	// ResponseWriter buffers headers and response body writes and that may break use cases like long polling or streaming.
-	// Flusher is used so that when HTTP headers and response body chunks are received from the outbound connection,
-	// they are flushed to the inbound stream ASAP.
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		x.Log.Sugar().Warnf("HTTP->gRPC: %T does not implement http.Flusher, cannot flush data to client", w)
-	}
+	flush := x.flush(w)
 	err := HttpResponseStreamVisitor().Visit(outboundClient,
 		WithCallback(HttpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
 			outboundResponse := header.Response.HttpHeader()
 			httpz.RemoveConnectionHeaders(outboundResponse)
 			x.MergeHeaders(outboundResponse, w.Header())
 			w.WriteHeader(int(header.Response.StatusCode))
-			if flusher != nil {
-				flusher.Flush()
-			}
+			flush()
 			headerWritten = true
 			return nil
 		}),
@@ -106,9 +98,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 			if err != nil {
 				writeFailed = true
 			} else {
-				if flusher != nil {
-					flusher.Flush()
-				}
+				flush()
 			}
 			return err
 		}),
@@ -125,6 +115,18 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 		return headerWritten, x.handleProcessingError("HTTP->gRPC: failed to read gRPC response", err)
 	}
 	return headerWritten, nil
+}
+
+func (x *InboundHttpToOutboundGrpc) flush(w http.ResponseWriter) func() {
+	// ResponseWriter buffers headers and response body writes and that may break use cases like long polling or streaming.
+	// Flusher is used so that when HTTP headers and response body chunks are received from the outbound connection,
+	// they are flushed to the inbound stream ASAP.
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		x.Log.Sugar().Warnf("HTTP->gRPC: %T does not implement http.Flusher, cannot flush data to client", w)
+		return func() {}
+	}
+	return flusher.Flush
 }
 
 func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpRequestClient, r *http.Request, headerExtra proto.Message) errFunc {
