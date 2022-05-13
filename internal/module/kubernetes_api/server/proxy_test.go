@@ -534,6 +534,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 			return next
 		},
 		serverName:    "sv1",
+		serverVia:     "gRPC/1.0 sv1",
 		urlPathPrefix: urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
