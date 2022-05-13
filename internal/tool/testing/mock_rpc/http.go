@@ -5,6 +5,8 @@
 package mock_rpc
 
 import (
+	bufio "bufio"
+	net "net"
 	http "net/http"
 	reflect "reflect"
 
@@ -58,6 +60,22 @@ func (m *MockResponseWriterFlusher) Header() http.Header {
 func (mr *MockResponseWriterFlusherMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockResponseWriterFlusher)(nil).Header))
+}
+
+// Hijack mocks base method.
+func (m *MockResponseWriterFlusher) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Hijack")
+	ret0, _ := ret[0].(net.Conn)
+	ret1, _ := ret[1].(*bufio.ReadWriter)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Hijack indicates an expected call of Hijack.
+func (mr *MockResponseWriterFlusherMockRecorder) Hijack() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hijack", reflect.TypeOf((*MockResponseWriterFlusher)(nil).Hijack))
 }
 
 // Write mocks base method.

@@ -48,6 +48,7 @@ go_library(
         "@io_k8s_kubectl//pkg/cmd/util",
         "@io_nhooyr_websocket//:websocket",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//credentials",
         "@org_golang_google_grpc//credentials/insecure",
         "@org_golang_google_grpc//encoding/gzip",

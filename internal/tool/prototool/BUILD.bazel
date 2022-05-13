@@ -22,6 +22,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/tool/httpz",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//proto",

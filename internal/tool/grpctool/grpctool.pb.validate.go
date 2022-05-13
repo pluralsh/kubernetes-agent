@@ -152,6 +152,37 @@ func (m *HttpRequest) validate(all bool) error {
 			}
 		}
 
+	case *HttpRequest_UpgradeData_:
+
+		if all {
+			switch v := interface{}(m.GetUpgradeData()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, HttpRequestValidationError{
+						field:  "UpgradeData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, HttpRequestValidationError{
+						field:  "UpgradeData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetUpgradeData()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HttpRequestValidationError{
+					field:  "UpgradeData",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	default:
 		err := HttpRequestValidationError{
 			field:  "Message",
@@ -352,6 +383,37 @@ func (m *HttpResponse) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return HttpResponseValidationError{
 					field:  "Trailer",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *HttpResponse_UpgradeData_:
+
+		if all {
+			switch v := interface{}(m.GetUpgradeData()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, HttpResponseValidationError{
+						field:  "UpgradeData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, HttpResponseValidationError{
+						field:  "UpgradeData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetUpgradeData()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HttpResponseValidationError{
+					field:  "UpgradeData",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -822,6 +884,110 @@ var _ interface {
 	ErrorName() string
 } = HttpRequest_TrailerValidationError{}
 
+// Validate checks the field values on HttpRequest_UpgradeData with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *HttpRequest_UpgradeData) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on HttpRequest_UpgradeData with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// HttpRequest_UpgradeDataMultiError, or nil if none found.
+func (m *HttpRequest_UpgradeData) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *HttpRequest_UpgradeData) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Data
+
+	if len(errors) > 0 {
+		return HttpRequest_UpgradeDataMultiError(errors)
+	}
+
+	return nil
+}
+
+// HttpRequest_UpgradeDataMultiError is an error wrapping multiple validation
+// errors returned by HttpRequest_UpgradeData.ValidateAll() if the designated
+// constraints aren't met.
+type HttpRequest_UpgradeDataMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HttpRequest_UpgradeDataMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HttpRequest_UpgradeDataMultiError) AllErrors() []error { return m }
+
+// HttpRequest_UpgradeDataValidationError is the validation error returned by
+// HttpRequest_UpgradeData.Validate if the designated constraints aren't met.
+type HttpRequest_UpgradeDataValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e HttpRequest_UpgradeDataValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e HttpRequest_UpgradeDataValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e HttpRequest_UpgradeDataValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e HttpRequest_UpgradeDataValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e HttpRequest_UpgradeDataValidationError) ErrorName() string {
+	return "HttpRequest_UpgradeDataValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e HttpRequest_UpgradeDataValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sHttpRequest_UpgradeData.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = HttpRequest_UpgradeDataValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = HttpRequest_UpgradeDataValidationError{}
+
 // Validate checks the field values on HttpResponse_Header with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -1169,3 +1335,107 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = HttpResponse_TrailerValidationError{}
+
+// Validate checks the field values on HttpResponse_UpgradeData with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *HttpResponse_UpgradeData) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on HttpResponse_UpgradeData with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// HttpResponse_UpgradeDataMultiError, or nil if none found.
+func (m *HttpResponse_UpgradeData) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *HttpResponse_UpgradeData) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Data
+
+	if len(errors) > 0 {
+		return HttpResponse_UpgradeDataMultiError(errors)
+	}
+
+	return nil
+}
+
+// HttpResponse_UpgradeDataMultiError is an error wrapping multiple validation
+// errors returned by HttpResponse_UpgradeData.ValidateAll() if the designated
+// constraints aren't met.
+type HttpResponse_UpgradeDataMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HttpResponse_UpgradeDataMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HttpResponse_UpgradeDataMultiError) AllErrors() []error { return m }
+
+// HttpResponse_UpgradeDataValidationError is the validation error returned by
+// HttpResponse_UpgradeData.Validate if the designated constraints aren't met.
+type HttpResponse_UpgradeDataValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e HttpResponse_UpgradeDataValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e HttpResponse_UpgradeDataValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e HttpResponse_UpgradeDataValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e HttpResponse_UpgradeDataValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e HttpResponse_UpgradeDataValidationError) ErrorName() string {
+	return "HttpResponse_UpgradeDataValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e HttpResponse_UpgradeDataValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sHttpResponse_UpgradeData.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = HttpResponse_UpgradeDataValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = HttpResponse_UpgradeDataValidationError{}
