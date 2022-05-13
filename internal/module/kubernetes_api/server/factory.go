@@ -46,6 +46,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			return net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		}
 	}
+	serverName := fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId)
 	m := &module{
 		log: config.Log,
 		proxy: kubernetesApiProxy{
@@ -56,7 +57,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			allowedAgentsCache:        cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
 			requestCount:              config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			metricsHttpHandlerFactory: metrics.NewHandlerFactory(metrics.WithNamespace(httpMetricsNamespace)),
-			serverName:                fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
+			serverName:                serverName,
+			serverVia:                 "gRPC/1.0 " + serverName,
 			urlPathPrefix:             k8sApi.UrlPathPrefix,
 		},
 		listener: listener,

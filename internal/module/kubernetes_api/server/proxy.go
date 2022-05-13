@@ -28,7 +28,7 @@ import (
 const (
 	defaultMaxRequestDuration = 15 * time.Second
 	shutdownTimeout           = defaultMaxRequestDuration
-	readTimeout               = 1 * time.Second
+	readTimeout               = 10 * time.Second
 	writeTimeout              = defaultMaxRequestDuration
 	idleTimeout               = 1 * time.Minute
 
@@ -46,6 +46,7 @@ type kubernetesApiProxy struct {
 	requestCount              usage_metrics.Counter
 	metricsHttpHandlerFactory metrics.HandlerFactory
 	serverName                string
+	serverVia                 string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix string
 }
@@ -147,8 +148,7 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
 	delete(r.Header, httpz.AuthorizationHeader) // Remove Authorization header - we got the CI job token in it
-	serverProto := "gRPC/1.0 " + p.serverName
-	r.Header[httpz.ViaHeader] = append(r.Header[httpz.ViaHeader], serverProto)
+	r.Header[httpz.ViaHeader] = append(r.Header[httpz.ViaHeader], p.serverVia)
 
 	http2grpc := grpctool.InboundHttpToOutboundGrpc{
 		Log: log,
@@ -160,7 +160,7 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 			for k, vals := range outboundResponse {
 				inboundResponse[k] = vals
 			}
-			inboundResponse[httpz.ViaHeader] = append(inboundResponse[httpz.ViaHeader], serverProto)
+			inboundResponse[httpz.ViaHeader] = append(inboundResponse[httpz.ViaHeader], p.serverVia)
 		},
 	}
 	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
