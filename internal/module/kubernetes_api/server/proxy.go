@@ -28,7 +28,7 @@ import (
 const (
 	defaultMaxRequestDuration = 15 * time.Second
 	shutdownTimeout           = defaultMaxRequestDuration
-	readTimeout               = 1 * time.Second
+	readTimeout               = 10 * time.Second
 	writeTimeout              = defaultMaxRequestDuration
 	idleTimeout               = 1 * time.Minute
 
