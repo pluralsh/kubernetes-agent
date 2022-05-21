@@ -94,6 +94,7 @@ go_custom_test(
     deps = [
         "//internal/tool/errz",
         "//internal/tool/grpctool/test",
+        "//internal/tool/httpz",
         "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_kubernetes_api",

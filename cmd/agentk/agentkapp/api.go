@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -91,6 +92,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 				return nil
 			}),
 			grpctool.WithEOFCallback(pw.Close),
+			grpctool.WithNotExpectingToGet(codes.Internal, grpctool.HttpResponseUpgradeDataFieldNumber),
 		)
 		if readErr != nil {
 			val.SetError(readErr)

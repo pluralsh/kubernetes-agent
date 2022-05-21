@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	_ httpClient       = (*impersonatingClient)(nil)
 	_ modagent.Module  = (*module)(nil)
 	_ modagent.Factory = (*Factory)(nil)
 )
@@ -56,12 +55,11 @@ func TestClientImpersonation(t *testing.T) {
 		impConfig             *rpc.ImpersonationConfig
 		requestHeader         http.Header
 		expectedRequestHeader http.Header
-		expectedStatus        int
+		expectedErr           string
 	}{
 		{
-			name:           "no impersonation",
-			impConfig:      &rpc.ImpersonationConfig{},
-			expectedStatus: http.StatusOK,
+			name:      "no impersonation",
+			impConfig: &rpc.ImpersonationConfig{},
 		},
 		{
 			name:          "rest config",
@@ -73,32 +71,31 @@ func TestClientImpersonation(t *testing.T) {
 				transport.ImpersonateGroupHeader:                  {"rg1", "rg2"},
 				transport.ImpersonateUserExtraHeaderPrefix + "Rx": {"rx1", "rx2"},
 			},
-			expectedStatus: http.StatusOK,
 		},
 		{
-			name:           "rest config and impConfig",
-			restImpConfig:  restImpConfig,
-			impConfig:      impConfig,
-			expectedStatus: http.StatusBadRequest,
+			name:          "rest config and impConfig",
+			restImpConfig: restImpConfig,
+			impConfig:     impConfig,
+			expectedErr:   "nested impersonation is not supported - agent is already configured to impersonate an identity",
 		},
 		{
-			name:           "rest config and requestHeader",
-			restImpConfig:  restImpConfig,
-			requestHeader:  requestHeader,
-			expectedStatus: http.StatusBadRequest,
+			name:          "rest config and requestHeader",
+			restImpConfig: restImpConfig,
+			requestHeader: requestHeader,
+			expectedErr:   "nested impersonation is not supported - agent is already configured to impersonate an identity",
 		},
 		{
-			name:           "rest config and impConfig and requestHeader",
-			restImpConfig:  restImpConfig,
-			impConfig:      impConfig,
-			requestHeader:  requestHeader,
-			expectedStatus: http.StatusBadRequest,
+			name:          "rest config and impConfig and requestHeader",
+			restImpConfig: restImpConfig,
+			impConfig:     impConfig,
+			requestHeader: requestHeader,
+			expectedErr:   "nested impersonation is not supported - agent is already configured to impersonate an identity",
 		},
 		{
-			name:           "impConfig and requestHeader",
-			impConfig:      impConfig,
-			requestHeader:  requestHeader,
-			expectedStatus: http.StatusBadRequest,
+			name:          "impConfig and requestHeader",
+			impConfig:     impConfig,
+			requestHeader: requestHeader,
+			expectedErr:   "nested impersonation is not supported - agent is already configured to impersonate an identity",
 		},
 		{
 			name:          "requestHeader",
@@ -109,7 +106,6 @@ func TestClientImpersonation(t *testing.T) {
 				transport.ImpersonateGroupHeader:                  {"hg1", "hg2"},
 				transport.ImpersonateUserExtraHeaderPrefix + "Hx": {"hx1", "hx2"},
 			},
-			expectedStatus: http.StatusOK,
 		},
 	}
 	for _, tc := range tests {
@@ -126,23 +122,26 @@ func TestClientImpersonation(t *testing.T) {
 				},
 			}
 			config.Transport = rt
-			c := impersonatingClient{
-				restConfig: config,
-			}
 			r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 			require.NoError(t, err)
 			if tc.requestHeader != nil {
 				r.Header = tc.requestHeader
 			}
-
-			resp, err := c.Do(tc.impConfig, r)
+			config, err = restImpersonationConfig(tc.impConfig, config, r)
+			if tc.expectedErr != "" {
+				require.EqualError(t, err, tc.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			wrappedRT, err := rest.HTTPWrappersForConfig(config, rt)
+			require.NoError(t, err)
+			resp, err := wrappedRT.RoundTrip(r)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			for k, v := range tc.expectedRequestHeader {
 				assert.Equal(t, v, rt.Request.Header[k], k)
 			}
-			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 		})
 	}
 }

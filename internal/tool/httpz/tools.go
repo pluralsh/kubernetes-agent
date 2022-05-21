@@ -17,7 +17,7 @@ const (
 	TeHeader                 = "Te"      // canonicalized version of "TE"
 	TrailerHeader            = "Trailer" // not Trailers as per rfc2616; See errata https://www.rfc-editor.org/errata_search.php?eid=4522
 	TransferEncodingHeader   = "Transfer-Encoding"
-	UpgradeHeader            = "Upgrade"
+	UpgradeHeader            = "Upgrade" // https://datatracker.ietf.org/doc/html/rfc7230#section-6.7
 	UserAgentHeader          = "User-Agent"
 	AuthorizationHeader      = "Authorization"
 	ContentTypeHeader        = "Content-Type"

@@ -3,18 +3,24 @@ package prototool
 import (
 	"net/http"
 	"net/url"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 )
 
 func (x *HttpRequest) HttpHeader() http.Header {
 	return ValuesMapToHttpHeader(x.Header)
 }
 
-func (x *HttpResponse) HttpHeader() http.Header {
-	return ValuesMapToHttpHeader(x.Header)
-}
-
 func (x *HttpRequest) UrlQuery() url.Values {
 	return ValuesMapToUrlValues(x.Query)
+}
+
+func (x *HttpRequest) IsUpgrade() bool {
+	return x.Header[httpz.UpgradeHeader] != nil
+}
+
+func (x *HttpResponse) HttpHeader() http.Header {
+	return ValuesMapToHttpHeader(x.Header)
 }
 
 func ValuesMapToHttpHeader(from map[string]*Values) http.Header {
