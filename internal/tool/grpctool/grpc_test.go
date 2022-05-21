@@ -29,7 +29,7 @@ func TestGrpcErrors_ClientCancel_NilErrReturn(t *testing.T) {
 		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
 			cancel()
 			<-ctx.Done()
-			return nil, nil // nil is still turned into Canceled
+			return &test.Response{}, nil // nil error is still turned into Canceled
 		},
 	}
 	conn := setup(t, ats)

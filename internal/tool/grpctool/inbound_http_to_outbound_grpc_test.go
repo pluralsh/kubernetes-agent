@@ -1,18 +1,21 @@
 package grpctool_test
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool/test"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_kubernetes_api"
@@ -24,15 +27,13 @@ import (
 )
 
 const (
-	requestPath     = "/test"
-	requestPayload  = "abcdefg"
-	responsePayload = "jknkjnjkasdnfkjasdnfkasdnfjnkjn"
+	requestPath = "/test"
 )
 
-func TestHttp2grpc_HappyPath(t *testing.T) {
-	mrClient, w, r, x := setupHttp2grpc(t)
+func TestHttp2Grpc_HappyPath(t *testing.T) {
+	mrClient, w, r, x := setupHttp2grpc(t, false)
 	headerExtra := &test.Request{}
-	send := mockSendHappy(t, mrClient, headerExtra)
+	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
 	recv := []*gomock.Call{
 		mrClient.EXPECT().
@@ -70,12 +71,12 @@ func TestHttp2grpc_HappyPath(t *testing.T) {
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
 				Message: &grpctool.HttpResponse_Data_{
 					Data: &grpctool.HttpResponse_Data{
-						Data: []byte(responsePayload),
+						Data: []byte(responseBodyData),
 					},
 				},
 			})),
 		w.EXPECT().
-			Write([]byte(responsePayload)),
+			Write([]byte(responseBodyData)),
 		w.EXPECT().
 			Flush(),
 		mrClient.EXPECT().
@@ -95,10 +96,221 @@ func TestHttp2grpc_HappyPath(t *testing.T) {
 	x.Pipe(mrClient, w, r, headerExtra)
 }
 
-func TestProxy_HeaderRecvError(t *testing.T) {
-	mrClient, w, r, x := setupHttp2grpc(t)
+func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mrClient, w, r, x := setupHttp2grpc(t, true)
+	conn := mock_rpc.NewMockConn(ctrl)
 	headerExtra := &test.Request{}
-	send := mockSendHappy(t, mrClient, headerExtra)
+	wh := make(http.Header)
+	setReadDeadlineCall := conn.EXPECT().
+		SetReadDeadline(time.Time{})
+	send := mockSendHappy(t, mrClient, headerExtra, true)
+	recv := []*gomock.Call{
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_Header_{
+					Header: &grpctool.HttpResponse_Header{
+						Response: &prototool.HttpResponse{
+							StatusCode: http.StatusSwitchingProtocols,
+							Status:     http.StatusText(http.StatusSwitchingProtocols),
+							Header: map[string]*prototool.Values{
+								"Resp-Header": {
+									Value: []string{"x1", "x2"},
+								},
+								httpz.UpgradeHeader: {
+									Value: []string{"http/x"},
+								},
+								httpz.ConnectionHeader: {
+									Value: []string{"upgrade"},
+								},
+							},
+						},
+					},
+				},
+			})),
+		w.EXPECT().
+			Header().
+			Return(wh),
+		w.EXPECT().
+			WriteHeader(http.StatusSwitchingProtocols).
+			Do(func(status int) {
+				// when WriteHeader is called, headers should have been set already
+				assert.Equal(t, http.Header{
+					"Resp-Header":          []string{"x1", "x2"},
+					httpz.UpgradeHeader:    []string{"http/x"},
+					httpz.ConnectionHeader: []string{"upgrade"},
+				}, wh)
+			}),
+		w.EXPECT().
+			Flush(),
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_Data_{
+					Data: &grpctool.HttpResponse_Data{
+						Data: []byte(responseBodyData),
+					},
+				},
+			})),
+		w.EXPECT().
+			Write([]byte(responseBodyData)),
+		w.EXPECT().
+			Flush(),
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_Trailer_{
+					Trailer: &grpctool.HttpResponse_Trailer{},
+				},
+			})),
+		w.EXPECT().
+			Hijack().
+			Return(conn, bufio.NewReadWriter(bufio.NewReader(strings.NewReader(requestUpgradeBodyData)), nil), nil),
+		setReadDeadlineCall,
+	}
+	calls := send
+	calls = append(calls, recv...)
+	gomock.InOrder(calls...)
+	connCloseCall := conn.EXPECT().Close()
+	// pipeOutboundToInboundUpgraded
+	gomock.InOrder(
+		setReadDeadlineCall,
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_UpgradeData_{
+					UpgradeData: &grpctool.HttpResponse_UpgradeData{
+						Data: []byte(responseUpgradeBodyData),
+					},
+				},
+			})),
+		conn.EXPECT().
+			SetWriteDeadline(gomock.Any()),
+		conn.EXPECT().
+			Write([]byte(responseUpgradeBodyData)),
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
+		connCloseCall,
+	)
+	// pipeInboundToOutboundUpgraded
+	gomock.InOrder(
+		setReadDeadlineCall,
+		mrClient.EXPECT().
+			Send(matcher.ProtoEq(t, &grpctool.HttpRequest{
+				Message: &grpctool.HttpRequest_UpgradeData_{
+					UpgradeData: &grpctool.HttpRequest_UpgradeData{
+						Data: []byte(requestUpgradeBodyData),
+					},
+				},
+			})),
+		mrClient.EXPECT().CloseSend(),
+		connCloseCall,
+	)
+	x.Pipe(mrClient, w, r, headerExtra)
+}
+
+func TestHttp2Grpc_ServerRefusesToUpgrade(t *testing.T) {
+	mrClient, w, r, x := setupHttp2grpc(t, true)
+	headerExtra := &test.Request{}
+	wh := make(http.Header)
+	extra, err := anypb.New(headerExtra)
+	require.NoError(t, err)
+	send := mockSendHttp2grpcStream(t, mrClient, false,
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Header_{
+				Header: &grpctool.HttpRequest_Header{
+					Request: &prototool.HttpRequest{
+						Method: http.MethodGet,
+						Header: map[string]*prototool.Values{
+							"A": {
+								Value: []string{"a1", "a2"},
+							},
+							httpz.UpgradeHeader: {
+								Value: []string{"http/x"},
+							},
+							httpz.ConnectionHeader: {
+								Value: []string{"upgrade"},
+							},
+						},
+						UrlPath: requestPath,
+						Query: map[string]*prototool.Values{
+							"x": {
+								Value: []string{"1"},
+							},
+						},
+					},
+					Extra: extra,
+				},
+			},
+		},
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Data_{
+				Data: &grpctool.HttpRequest_Data{
+					Data: []byte(requestBodyData),
+				},
+			},
+		},
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Trailer_{
+				Trailer: &grpctool.HttpRequest_Trailer{},
+			},
+		},
+	)
+	recv := []*gomock.Call{
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_Header_{
+					Header: &grpctool.HttpResponse_Header{
+						Response: &prototool.HttpResponse{
+							StatusCode: http.StatusOK,
+							Status:     http.StatusText(http.StatusOK),
+							Header: map[string]*prototool.Values{
+								"Resp-Header": {
+									Value: []string{"x1", "x2"},
+								},
+							},
+						},
+					},
+				},
+			})),
+		w.EXPECT().
+			Header().
+			Return(wh),
+		w.EXPECT().
+			WriteHeader(http.StatusOK).
+			Do(func(status int) {
+				// when WriteHeader is called, headers should have been set already
+				assert.Equal(t, http.Header{
+					"Resp-Header": []string{"x1", "x2"},
+				}, wh)
+			}),
+		w.EXPECT().
+			Flush(),
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
+				Message: &grpctool.HttpResponse_Trailer_{
+					Trailer: &grpctool.HttpResponse_Trailer{},
+				},
+			})),
+		mrClient.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
+		mrClient.EXPECT().CloseSend(),
+	}
+	calls := send
+	calls = append(calls, recv...)
+	gomock.InOrder(calls...)
+	x.Pipe(mrClient, w, r, headerExtra)
+}
+
+func TestHttp2Grpc_HeaderRecvError(t *testing.T) {
+	mrClient, w, r, x := setupHttp2grpc(t, false)
+	headerExtra := &test.Request{}
+	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
 	w.EXPECT().
 		Header().
@@ -127,10 +339,10 @@ func TestProxy_HeaderRecvError(t *testing.T) {
 	x.Pipe(mrClient, w, r, headerExtra)
 }
 
-func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
-	mrClient, w, r, x := setupHttp2grpc(t)
+func TestHttp2Grpc_ErrorAfterHeaderWritten(t *testing.T) {
+	mrClient, w, r, x := setupHttp2grpc(t, false)
 	headerExtra := &test.Request{}
-	send := mockSendHappy(t, mrClient, headerExtra)
+	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
 	recv := []*gomock.Call{
 		mrClient.EXPECT().
@@ -176,10 +388,10 @@ func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
 	})
 }
 
-func TestProxy_ErrorAfterBodyWritten(t *testing.T) {
-	mrClient, w, r, x := setupHttp2grpc(t)
+func TestHttp2Grpc_ErrorAfterBodyWritten(t *testing.T) {
+	mrClient, w, r, x := setupHttp2grpc(t, false)
 	headerExtra := &test.Request{}
-	send := mockSendHappy(t, mrClient, headerExtra)
+	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
 	recv := []*gomock.Call{
 		mrClient.EXPECT().
@@ -217,12 +429,12 @@ func TestProxy_ErrorAfterBodyWritten(t *testing.T) {
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
 				Message: &grpctool.HttpResponse_Data_{
 					Data: &grpctool.HttpResponse_Data{
-						Data: []byte(responsePayload),
+						Data: []byte(responseBodyData),
 					},
 				},
 			})),
 		w.EXPECT().
-			Write([]byte(responsePayload)),
+			Write([]byte(responseBodyData)),
 		w.EXPECT().
 			Flush(),
 		mrClient.EXPECT().
@@ -238,7 +450,7 @@ func TestProxy_ErrorAfterBodyWritten(t *testing.T) {
 	})
 }
 
-func setupHttp2grpc(t *testing.T) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, *mock_rpc.MockResponseWriterFlusher, *http.Request, grpctool.InboundHttpToOutboundGrpc) {
+func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, *mock_rpc.MockResponseWriterFlusher, *http.Request, grpctool.InboundHttpToOutboundGrpc) {
 	ctrl := gomock.NewController(t)
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(ctrl)
 	w := mock_rpc.NewMockResponseWriterFlusher(ctrl)
@@ -253,12 +465,17 @@ func setupHttp2grpc(t *testing.T) (*mock_kubernetes_api.MockKubernetesApi_MakeRe
 		Header: http.Header{
 			"A": []string{"a1", "a2"},
 		},
-		Body: io.NopCloser(strings.NewReader(requestPayload)),
+		Body: io.NopCloser(strings.NewReader(requestBodyData)),
+	}
+	if isUpgrade {
+		r.Header[httpz.ConnectionHeader] = []string{"upgrade"}
+		r.Header[httpz.UpgradeHeader] = []string{"http/x"}
 	}
 
 	x := grpctool.InboundHttpToOutboundGrpc{
 		Log: zaptest.NewLogger(t),
 		HandleProcessingError: func(msg string, err error) {
+			t.Error(msg, err)
 		},
 		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
 			for k, v := range outboundResponse {
@@ -269,20 +486,29 @@ func setupHttp2grpc(t *testing.T) (*mock_kubernetes_api.MockKubernetesApi_MakeRe
 	return mrClient, w, r, x
 }
 
-func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message) []*gomock.Call {
+func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message, isUpgrade bool) []*gomock.Call {
 	extra, err := anypb.New(headerExtra)
 	require.NoError(t, err)
-	return mockSendHttp2grpcStream(t, mrClient,
+	header := map[string]*prototool.Values{
+		"A": {
+			Value: []string{"a1", "a2"},
+		},
+	}
+	if isUpgrade {
+		header[httpz.UpgradeHeader] = &prototool.Values{
+			Value: []string{"http/x"},
+		}
+		header[httpz.ConnectionHeader] = &prototool.Values{
+			Value: []string{"upgrade"},
+		}
+	}
+	return mockSendHttp2grpcStream(t, mrClient, !isUpgrade,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
 				Header: &grpctool.HttpRequest_Header{
 					Request: &prototool.HttpRequest{
-						Method: http.MethodGet,
-						Header: map[string]*prototool.Values{
-							"A": {
-								Value: []string{"a1", "a2"},
-							},
-						},
+						Method:  http.MethodGet,
+						Header:  header,
 						UrlPath: requestPath,
 						Query: map[string]*prototool.Values{
 							"x": {
@@ -297,7 +523,7 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Data_{
 				Data: &grpctool.HttpRequest_Data{
-					Data: []byte(requestPayload),
+					Data: []byte(requestBodyData),
 				},
 			},
 		},
@@ -309,13 +535,15 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 	)
 }
 
-func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
+func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, close bool, msgs ...*grpctool.HttpRequest) []*gomock.Call {
 	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))
 		res = append(res, call)
 	}
-	res = append(res, client.EXPECT().CloseSend())
+	if close {
+		res = append(res, client.EXPECT().CloseSend())
+	}
 	return res
 }

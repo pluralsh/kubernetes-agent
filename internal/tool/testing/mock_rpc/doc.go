@@ -1,4 +1,4 @@
-// Mocks for gRPC services.
+// Package mock_rpc contains mocks for gRPC and HTTP interfaces.
 package mock_rpc
 
 import "net/http"
@@ -15,7 +15,10 @@ import "net/http"
 
 //go:generate go run github.com/golang/mock/mockgen -destination "http.go" -package "mock_rpc" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc" "ResponseWriterFlusher"
 
+//go:generate go run github.com/golang/mock/mockgen -destination "stdlib_net.go" -package "mock_rpc" "net" "Conn"
+
 type ResponseWriterFlusher interface {
 	http.ResponseWriter
 	http.Flusher
+	http.Hijacker
 }

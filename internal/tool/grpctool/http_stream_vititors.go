@@ -7,13 +7,15 @@ import (
 )
 
 const (
-	HttpRequestHeaderFieldNumber  protoreflect.FieldNumber = 1
-	HttpRequestDataFieldNumber    protoreflect.FieldNumber = 2
-	HttpRequestTrailerFieldNumber protoreflect.FieldNumber = 3
+	HttpRequestHeaderFieldNumber      protoreflect.FieldNumber = 1
+	HttpRequestDataFieldNumber        protoreflect.FieldNumber = 2
+	HttpRequestTrailerFieldNumber     protoreflect.FieldNumber = 3
+	HttpRequestUpgradeDataFieldNumber protoreflect.FieldNumber = 4
 
-	HttpResponseHeaderFieldNumber  protoreflect.FieldNumber = 1
-	HttpResponseDataFieldNumber    protoreflect.FieldNumber = 2
-	HttpResponseTrailerFieldNumber protoreflect.FieldNumber = 3
+	HttpResponseHeaderFieldNumber      protoreflect.FieldNumber = 1
+	HttpResponseDataFieldNumber        protoreflect.FieldNumber = 2
+	HttpResponseTrailerFieldNumber     protoreflect.FieldNumber = 3
+	HttpResponseUpgradeDataFieldNumber protoreflect.FieldNumber = 4
 )
 
 var (
