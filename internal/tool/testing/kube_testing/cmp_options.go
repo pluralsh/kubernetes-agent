@@ -4,59 +4,14 @@ import (
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
-	runtimeObjectType   = reflect.TypeOf((*runtime.Object)(nil)).Elem()
-	unstructuredType    = reflect.TypeOf((*unstructured.Unstructured)(nil)).Elem()
-	stringType          = reflect.TypeOf("")
-	unstructuredMapType = reflect.TypeOf((map[string]interface{})(nil))
+	runtimeObjectType = reflect.TypeOf((*runtime.Object)(nil)).Elem()
+	unstructuredType  = reflect.TypeOf((*unstructured.Unstructured)(nil)).Elem()
 )
-
-// IgnoreAnnotation allows to ignore a specific annotation when comparing Kubernetes objects.
-func IgnoreAnnotation(annotation string) cmp.Option {
-	return cmp.FilterPath(func(path cmp.Path) bool {
-		if len(path) < 7 {
-			return false
-		}
-		return isType(path.Index(-7), unstructuredType) && // >> unstructured.Unstructured
-			isStructField(path.Index(-6), "Object") && // >> "Object" field
-			isStrMapIndex(path.Index(-5), "metadata") && // >> map["metadata"]
-			isInterfaceOfType(path.Index(-4), unstructuredMapType) && // >> map[string]interface{}
-			isStrMapIndex(path.Index(-3), "annotations") // >> map["annotations"]
-		// Two lines below are done by cmpopts.IgnoreMapEntries
-		//isInterfaceOfType(path.Index(-2), unstructuredMapType) && // >> map[string]interface{}
-		//isStrMapIndex(path.Index(-1), annotation) // >> annotation
-	}, cmpopts.IgnoreMapEntries(func(k string, v interface{}) bool {
-		return k == annotation
-	}))
-}
-
-func isType(step cmp.PathStep, t reflect.Type) bool {
-	return step.Type() == t
-}
-
-func isStructField(step cmp.PathStep, name string) bool {
-	sf, ok := step.(cmp.StructField)
-	return ok && sf.Name() == name
-}
-
-func isStrMapIndex(step cmp.PathStep, name string) bool {
-	mi, ok := step.(cmp.MapIndex)
-	if !ok {
-		return false
-	}
-	key := mi.Key()
-	return key.IsValid() && key.Type() == stringType && key.Interface().(string) == name
-}
-
-func isInterfaceOfType(step cmp.PathStep, t reflect.Type) bool {
-	ta, ok := step.(cmp.TypeAssertion)
-	return ok && ta.Type() == t
-}
 
 // TransformToUnstructured transforms runtime.Object instances into unstructured.Unstructured to facilitate comparisons.
 // This makes it possible to compare a typed object with its unstructured representation.
