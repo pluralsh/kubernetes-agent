@@ -47,16 +47,25 @@ type HttpRequestClient interface {
 }
 
 type MergeHeadersFunc func(outboundResponse, inboundResponse http.Header)
+type WriteErrorResponse func(w http.ResponseWriter, r *http.Request, eResp *ErrResp)
+
+type ErrResp struct {
+	StatusCode int32
+	Msg        string
+	// Err can be nil.
+	Err error
+}
 
 type InboundHttpToOutboundGrpc struct {
 	Log                   *zap.Logger
 	HandleProcessingError HandleProcessingErrorFunc
+	WriteErrorResponse    WriteErrorResponse
 	MergeHeaders          MergeHeadersFunc
 }
 
 func (x *InboundHttpToOutboundGrpc) Pipe(outboundClient HttpRequestClient, w http.ResponseWriter, r *http.Request, headerExtra proto.Message) {
-	headerWritten, errF := x.pipe(outboundClient, w, r, headerExtra)
-	if errF != nil {
+	headerWritten, eResp := x.pipe(outboundClient, w, r, headerExtra)
+	if eResp != nil {
 		if headerWritten {
 			// HTTP status has been written already as part of the normal response flow.
 			// But then something went wrong and an error happened. To let the client know that something isn't right
@@ -65,13 +74,13 @@ func (x *InboundHttpToOutboundGrpc) Pipe(outboundClient HttpRequestClient, w htt
 			// If we try to write the status again here, http package would log a warning, which is not nice.
 			panic(http.ErrAbortHandler)
 		} else {
-			errF(w)
+			x.WriteErrorResponse(w, r, eResp)
 		}
 	}
 }
 
 func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w http.ResponseWriter, r *http.Request,
-	headerExtra proto.Message) (bool /* headerWritten */, errFunc) {
+	headerExtra proto.Message) (bool /* headerWritten */, *ErrResp) {
 	// 0. Check if connection upgrade is requested and if connection can be hijacked.
 	var hijacker http.Hijacker
 	isUpgrade := len(r.Header[httpz.UpgradeHeader]) > 0
@@ -89,20 +98,20 @@ func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w htt
 	// See https://github.com/golang/go/blob/go1.17.2/src/net/http/server.go#L118-L139
 
 	// 1. Pipe client -> remote
-	errF := x.pipeInboundToOutbound(outboundClient, r, headerExtra)
-	if errF != nil {
-		return false, errF
+	eResp := x.pipeInboundToOutbound(outboundClient, r, headerExtra)
+	if eResp != nil {
+		return false, eResp
 	}
 	if !isUpgrade { // Close outbound connection for writes if it's not an upgraded connection
-		errF = x.sendCloseSend(outboundClient)
-		if errF != nil {
-			return false, errF
+		eResp = x.sendCloseSend(outboundClient)
+		if eResp != nil {
+			return false, eResp
 		}
 	}
 	// 2. Pipe remote -> client
-	headerWritten, responseStatusCode, errF := x.pipeOutboundToInbound(outboundClient, w, isUpgrade)
-	if errF != nil {
-		return headerWritten, errF
+	headerWritten, responseStatusCode, eResp := x.pipeOutboundToInbound(outboundClient, w, isUpgrade)
+	if eResp != nil {
+		return headerWritten, eResp
 	}
 	// 3. Pipe client <-> remote if connection upgrade is requested
 	if !isUpgrade { // nothing to do
@@ -115,7 +124,7 @@ func (x *InboundHttpToOutboundGrpc) pipe(outboundClient HttpRequestClient, w htt
 	return true, x.pipeUpgradedConnection(outboundClient, hijacker)
 }
 
-func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpRequestClient, w http.ResponseWriter, isUpgrade bool) (bool, int32, errFunc) {
+func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpRequestClient, w http.ResponseWriter, isUpgrade bool) (bool, int32, *ErrResp) {
 	writeFailed := false
 	headerWritten := false
 	var responseStatusCode int32
@@ -173,12 +182,12 @@ func (x *InboundHttpToOutboundGrpc) flush(w http.ResponseWriter) func() {
 	return flusher.Flush
 }
 
-func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpRequestClient, r *http.Request, headerExtra proto.Message) errFunc {
+func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpRequestClient, r *http.Request, headerExtra proto.Message) *ErrResp {
 	extra, err := anypb.New(headerExtra)
 	if err != nil {
-		return x.handleProcessingError("failed to marshal header extra proto", err)
+		return x.handleInternalError("failed to marshal header extra proto", err)
 	}
-	errF := x.send(outboundClient, "failed to send request header", &HttpRequest{
+	eResp := x.send(outboundClient, "failed to send request header", &HttpRequest{
 		Message: &HttpRequest_Header_{
 			Header: &HttpRequest_Header{
 				Request: &prototool.HttpRequest{
@@ -191,13 +200,13 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 			},
 		},
 	})
-	if errF != nil {
-		return errF
+	if eResp != nil {
+		return eResp
 	}
 
-	errF = x.sendRequestBody(outboundClient, r.Body)
-	if errF != nil {
-		return errF
+	eResp = x.sendRequestBody(outboundClient, r.Body)
+	if eResp != nil {
+		return eResp
 	}
 	return x.send(outboundClient, "failed to send trailer", &HttpRequest{
 		Message: &HttpRequest_Trailer_{
@@ -206,7 +215,7 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 	})
 }
 
-func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestClient, body io.Reader) errFunc {
+func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestClient, body io.Reader) *ErrResp {
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
@@ -216,15 +225,15 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 			return x.handleIoError("failed to read request body", err)
 		}
 		if n > 0 { // handle n=0, err=io.EOF case
-			errF := x.send(outboundClient, "failed to send request body", &HttpRequest{
+			eResp := x.send(outboundClient, "failed to send request body", &HttpRequest{
 				Message: &HttpRequest_Data_{
 					Data: &HttpRequest_Data{
 						Data: buffer[:n],
 					},
 				},
 			})
-			if errF != nil {
-				return errF
+			if eResp != nil {
+				return eResp
 			}
 		}
 		if errors.Is(err, io.EOF) {
@@ -234,7 +243,7 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 	return nil
 }
 
-func (x *InboundHttpToOutboundGrpc) sendCloseSend(outboundClient HttpRequestClient) errFunc {
+func (x *InboundHttpToOutboundGrpc) sendCloseSend(outboundClient HttpRequestClient) *ErrResp {
 	err := outboundClient.CloseSend()
 	if err != nil {
 		return x.handleIoError("failed to send close frame", err)
@@ -242,7 +251,7 @@ func (x *InboundHttpToOutboundGrpc) sendCloseSend(outboundClient HttpRequestClie
 	return nil
 }
 
-func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string, msg *HttpRequest) errFunc {
+func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string, msg *HttpRequest) *ErrResp {
 	err := client.Send(msg)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -253,27 +262,29 @@ func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string
 	return nil
 }
 
-func (x *InboundHttpToOutboundGrpc) handleIoError(msg string, err error) errFunc {
+func (x *InboundHttpToOutboundGrpc) handleIoError(msg string, err error) *ErrResp {
 	msg = "HTTP->gRPC: " + msg
 	x.Log.Debug(msg, logz.Error(err))
-	return writeError(msg, err)
-}
-
-func (x *InboundHttpToOutboundGrpc) handleProcessingError(msg string, err error) errFunc {
-	x.HandleProcessingError(msg, err)
-	return writeError(msg, err)
-}
-
-func (x *InboundHttpToOutboundGrpc) handleInternalError(msg string, err error) errFunc {
-	msg = "HTTP->gRPC: " + msg
-	x.HandleProcessingError(msg, err)
-	return func(w http.ResponseWriter) {
-		// See https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1
-		http.Error(w, fmt.Sprintf("%s: %v", msg, err), http.StatusInternalServerError)
+	return &ErrResp{
+		// See https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.3
+		StatusCode: http.StatusBadGateway,
+		Msg:        msg,
+		Err:        err,
 	}
 }
 
-func (x *InboundHttpToOutboundGrpc) pipeUpgradedConnection(outboundClient HttpRequestClient, hijacker http.Hijacker) (errRet errFunc) {
+func (x *InboundHttpToOutboundGrpc) handleInternalError(msg string, err error) *ErrResp {
+	msg = "HTTP->gRPC: " + msg
+	x.HandleProcessingError(msg, err)
+	return &ErrResp{
+		// See https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1
+		StatusCode: http.StatusInternalServerError,
+		Msg:        msg,
+		Err:        err,
+	}
+}
+
+func (x *InboundHttpToOutboundGrpc) pipeUpgradedConnection(outboundClient HttpRequestClient, hijacker http.Hijacker) (errRet *ErrResp) {
 	conn, bufrw, err := hijacker.Hijack()
 	if err != nil {
 		return x.handleInternalError("unable to upgrade connection: error hijacking response", err)
@@ -390,13 +401,3 @@ func cleanHeader(header http.Header) {
 		header[httpz.ConnectionHeader] = []string{"upgrade"} // this discards any other connection options if they were there
 	}
 }
-
-func writeError(msg string, err error) errFunc {
-	return func(w http.ResponseWriter) {
-		// See https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.3
-		http.Error(w, fmt.Sprintf("%s: %v", msg, err), http.StatusBadGateway)
-	}
-}
-
-// errFunc enhances type safety.
-type errFunc func(http.ResponseWriter)

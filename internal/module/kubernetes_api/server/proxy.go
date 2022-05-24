@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -13,16 +14,21 @@ import (
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
 )
 
 const (
@@ -37,6 +43,29 @@ const (
 	tokenTypeCi                     = "ci"
 )
 
+var (
+	code2reason = map[int32]metav1.StatusReason{
+		// 4xx
+		http.StatusBadRequest:            metav1.StatusReasonBadRequest,
+		http.StatusUnauthorized:          metav1.StatusReasonUnauthorized,
+		http.StatusForbidden:             metav1.StatusReasonForbidden,
+		http.StatusNotFound:              metav1.StatusReasonNotFound,
+		http.StatusMethodNotAllowed:      metav1.StatusReasonMethodNotAllowed,
+		http.StatusNotAcceptable:         metav1.StatusReasonNotAcceptable,
+		http.StatusConflict:              metav1.StatusReasonConflict,
+		http.StatusGone:                  metav1.StatusReasonGone,
+		http.StatusRequestEntityTooLarge: metav1.StatusReasonRequestEntityTooLarge,
+		http.StatusUnsupportedMediaType:  metav1.StatusReasonUnsupportedMediaType,
+		http.StatusUnprocessableEntity:   metav1.StatusReasonInvalid,
+		http.StatusTooManyRequests:       metav1.StatusReasonTooManyRequests,
+
+		// 5xx
+		http.StatusInternalServerError: metav1.StatusReasonInternalError,
+		http.StatusServiceUnavailable:  metav1.StatusReasonServiceUnavailable,
+		http.StatusGatewayTimeout:      metav1.StatusReasonTimeout,
+	}
+)
+
 type kubernetesApiProxy struct {
 	log                       *zap.Logger
 	api                       modserver.Api
@@ -45,6 +74,7 @@ type kubernetesApiProxy struct {
 	allowedAgentsCache        *cache.CacheWithErr
 	requestCount              usage_metrics.Counter
 	metricsHttpHandlerFactory metrics.HandlerFactory
+	responseSerializer        runtime.NegotiatedSerializer
 	serverName                string
 	serverVia                 string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
@@ -66,6 +96,13 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 }
 
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
+	log, agentId, eResp := p.proxyInternal(w, r)
+	if eResp != nil {
+		p.writeErrorResponse(log, agentId)(w, r, eResp)
+	}
+}
+
+func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Request) (*zap.Logger, int64 /* agentId */, *grpctool.ErrResp) {
 	ctx := r.Context()
 	correlationId := correlation.ExtractFromContext(ctx)
 	log := p.log.With(logz.CorrelationId(correlationId))
@@ -73,70 +110,99 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		log.Debug("Unauthorized: header", logz.Error(err))
-		return
+		msg := "Unauthorized"
+		log.Debug(msg, logz.Error(err))
+		return log, modshared.NoAgentId, &grpctool.ErrResp{
+			StatusCode: http.StatusUnauthorized,
+			Msg:        msg,
+			Err:        err,
+		}
 	}
 	log = log.With(logz.AgentId(agentId))
 
-	allowedForJob, err := p.getAllowedAgentsForJob(ctx, jobToken)
-	if err != nil {
-		switch {
-		case gitlab.IsUnauthorized(err):
-			w.WriteHeader(http.StatusUnauthorized)
-			log.Debug("Unauthorized: CI job token")
-		case gitlab.IsForbidden(err):
-			w.WriteHeader(http.StatusForbidden)
-			log.Debug("Forbidden: CI job token")
-		case gitlab.IsNotFound(err):
-			w.WriteHeader(http.StatusNotFound)
-			log.Debug("Not found: agents for CI job token")
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			p.api.HandleProcessingError(ctx, log, agentId, "Failed to get allowed agents for CI job token", err)
-		}
-		return
+	allowedForJob, eResp := p.getAllowedAgentsForJob(ctx, log, agentId, jobToken)
+	if eResp != nil {
+		return log, agentId, eResp
 	}
 
 	aa := findAllowedAgent(agentId, allowedForJob)
 	if aa == nil {
-		w.WriteHeader(http.StatusForbidden)
-		log.Debug("Forbidden: agentId is not allowed")
-		return
+		msg := "Forbidden: agentId is not allowed"
+		log.Debug(msg)
+		return log, agentId, &grpctool.ErrResp{
+			StatusCode: http.StatusForbidden,
+			Msg:        msg,
+		}
 	}
 
 	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Debug("Bad request: URL does not start with expected prefix", logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
-		return
+		msg := "Bad request: URL does not start with expected prefix"
+		log.Debug(msg, logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
+		return log, agentId, &grpctool.ErrResp{
+			StatusCode: http.StatusBadRequest,
+			Msg:        msg,
+		}
 	}
 
 	p.requestCount.Inc() // Count only authenticated and authorized requests
 
 	impConfig, err := constructImpersonationConfig(allowedForJob, aa)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		p.api.HandleProcessingError(ctx, log, agentId, "Failed to construct impersonation config", err)
-		return
+		msg := "Failed to construct impersonation config"
+		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+		return log, agentId, &grpctool.ErrResp{
+			StatusCode: http.StatusInternalServerError,
+			Msg:        msg,
+			Err:        err,
+		}
 	}
 
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		p.api.HandleProcessingError(ctx, log, agentId, "Proxy failed to make outbound request", err)
-		return
+		msg := "Proxy failed to make outbound request"
+		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+		return log, agentId, &grpctool.ErrResp{
+			StatusCode: http.StatusInternalServerError,
+			Msg:        msg,
+			Err:        err,
+		}
 	}
 
 	p.pipeStreams(log, agentId, w, r, mkClient, impConfig)
+	return log, agentId, nil
 }
 
-func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToken string) (*gapi.AllowedAgentsForJob, error) {
+func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *zap.Logger, agentId int64, jobToken string) (*gapi.AllowedAgentsForJob, *grpctool.ErrResp) {
 	allowedForJob, err := p.allowedAgentsCache.GetItem(ctx, jobToken, func() (interface{}, error) {
 		return gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
 	})
 	if err != nil {
-		return nil, err
+		var status int32
+		var msg string
+		switch {
+		case gitlab.IsUnauthorized(err):
+			status = http.StatusUnauthorized
+			msg = "Unauthorized: CI job token"
+			log.Debug(msg, logz.Error(err))
+		case gitlab.IsForbidden(err):
+			status = http.StatusForbidden
+			msg = "Forbidden: CI job token"
+			log.Debug(msg, logz.Error(err))
+		case gitlab.IsNotFound(err):
+			status = http.StatusNotFound
+			msg = "Not found: agents for CI job token"
+			log.Debug(msg, logz.Error(err))
+		default:
+			status = http.StatusInternalServerError
+			msg = "Failed to get allowed agents for CI job token"
+			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+		}
+		return nil, &grpctool.ErrResp{
+			StatusCode: status,
+			Msg:        msg,
+			Err:        err,
+		}
 	}
 	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
 }
@@ -155,6 +221,7 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 		HandleProcessingError: func(msg string, err error) {
 			p.api.HandleProcessingError(r.Context(), log, agentId, msg, err)
 		},
+		WriteErrorResponse: p.writeErrorResponse(log, agentId),
 		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
 			delete(inboundResponse, httpz.ServerHeader) // remove the header we've added above. We use Via instead.
 			for k, vals := range outboundResponse {
@@ -166,6 +233,59 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
 		ImpConfig: impConfig,
 	})
+}
+
+func (p *kubernetesApiProxy) writeErrorResponse(log *zap.Logger, agentId int64) grpctool.WriteErrorResponse {
+	return func(w http.ResponseWriter, r *http.Request, errResp *grpctool.ErrResp) {
+		_, info, err := negotiation.NegotiateOutputMediaType(r, p.responseSerializer, negotiation.DefaultEndpointRestrictions)
+		ctx := r.Context()
+		if err != nil {
+			msg := "Failed to negotiate output media type"
+			log.Debug(msg, logz.Error(err))
+			http.Error(w, formatStatusMessage(ctx, msg, err), http.StatusNotAcceptable)
+			return
+		}
+		message := formatStatusMessage(ctx, errResp.Msg, errResp.Err)
+		s := &metav1.Status{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Status",
+				APIVersion: "v1",
+			},
+			Status:  metav1.StatusFailure,
+			Message: message,
+			Reason:  code2reason[errResp.StatusCode], // if mapping is not present, then "" means metav1.StatusReasonUnknown
+			Code:    errResp.StatusCode,
+		}
+		buf := memz.Get32k() // use a temporary buffer to segregate I/O errors and encoding errors
+		defer memz.Put32k(buf)
+		buf = buf[:0] // don't care what's in the buf, start writing from the start
+		b := bytes.NewBuffer(buf)
+		err = info.Serializer.Encode(s, b) // encoding errors
+		if err != nil {
+			p.api.HandleProcessingError(ctx, log, agentId, "Failed to encode status response", err)
+			http.Error(w, message, int(errResp.StatusCode))
+			return
+		}
+		w.Header()[httpz.ContentTypeHeader] = []string{info.MediaType}
+		w.WriteHeader(int(errResp.StatusCode))
+		_, _ = w.Write(b.Bytes()) // I/O errors
+	}
+}
+
+// err can be nil.
+func formatStatusMessage(ctx context.Context, msg string, err error) string {
+	var b strings.Builder
+	b.WriteString("GitLab Agent Server: ")
+	b.WriteString(msg)
+	if err != nil {
+		_, _ = fmt.Fprintf(&b, ": %v", err)
+	}
+	correlationId := correlation.ExtractFromContext(ctx) // can be empty
+	if correlationId != "" {
+		b.WriteString(". Correlation ID: ")
+		b.WriteString(correlationId)
+	}
+	return b.String()
 }
 
 func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
