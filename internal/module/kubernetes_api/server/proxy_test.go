@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -30,12 +31,17 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/metrics"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -50,43 +56,43 @@ const (
 
 func TestProxy_JobTokenErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		auth     []string
-		response string
+		name    string
+		auth    []string
+		message string
 	}{
 		{
-			name:     "missing header",
-			response: "Authorization header: expecting token\n",
+			name:    "missing header",
+			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting token",
 		},
 		{
-			name:     "multiple headers",
-			auth:     []string{"a", "b"},
-			response: "Authorization header: expecting a single header, got 2\n",
+			name:    "multiple headers",
+			auth:    []string{"a", "b"},
+			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting a single header, got 2",
 		},
 		{
-			name:     "invalid format1",
-			auth:     []string{"Token asdfadsf"},
-			response: "Authorization header: expecting Bearer token\n",
+			name:    "invalid format1",
+			auth:    []string{"Token asdfadsf"},
+			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting Bearer token",
 		},
 		{
-			name:     "invalid format2",
-			auth:     []string{"Bearer asdfadsf"},
-			response: "Authorization header: invalid value\n",
+			name:    "invalid format2",
+			auth:    []string{"Bearer asdfadsf"},
+			message: "GitLab Agent Server: Unauthorized: Authorization header: invalid value",
 		},
 		{
-			name:     "invalid agent id",
-			auth:     []string{"Bearer ci:asdf:as"},
-			response: "Authorization header: failed to parse: strconv.ParseInt: parsing \"asdf\": invalid syntax\n",
+			name:    "invalid agent id",
+			auth:    []string{"Bearer ci:asdf:as"},
+			message: `GitLab Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
 		},
 		{
-			name:     "empty token",
-			auth:     []string{"Bearer ci:1:"},
-			response: "Authorization header: empty token\n",
+			name:    "empty token",
+			auth:    []string{"Bearer ci:1:"},
+			message: "GitLab Agent Server: Unauthorized: Authorization header: empty token",
 		},
 		{
-			name:     "unknown token type",
-			auth:     []string{"Bearer blabla:1:asd"},
-			response: "Authorization header: unknown token type\n",
+			name:    "unknown token type",
+			auth:    []string{"Bearer blabla:1:asd"},
+			message: "GitLab Agent Server: Unauthorized: Authorization header: unknown token type",
 		},
 	}
 	for _, tc := range tests {
@@ -102,7 +108,17 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 			assert.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
-			assert.Equal(t, tc.response, string(readAll(t, resp.Body)))
+			expected := metav1.Status{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Status",
+					APIVersion: "v1",
+				},
+				Status:  metav1.StatusFailure,
+				Message: tc.message + ". Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
+				Reason:  metav1.StatusReasonUnauthorized,
+				Code:    http.StatusUnauthorized,
+			}
+			assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
 		})
 	}
 }
@@ -111,23 +127,28 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 	tests := []struct {
 		allowedAgentsHttpStatus int
 		expectedHttpStatus      int
+		message                 string
 		captureErr              bool
 	}{
 		{
 			allowedAgentsHttpStatus: http.StatusUnauthorized, // token is invalid
 			expectedHttpStatus:      http.StatusUnauthorized,
+			message:                 "GitLab Agent Server: Unauthorized: CI job token: HTTP status code: 401",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusForbidden, // token is forbidden
 			expectedHttpStatus:      http.StatusForbidden,
+			message:                 "GitLab Agent Server: Forbidden: CI job token: HTTP status code: 403",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusNotFound, // agent is not found
 			expectedHttpStatus:      http.StatusNotFound,
+			message:                 "GitLab Agent Server: Not found: agents for CI job token: HTTP status code: 404",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusBadGateway, // some weird error
 			expectedHttpStatus:      http.StatusInternalServerError,
+			message:                 "GitLab Agent Server: Failed to get allowed agents for CI job token: HTTP status code: 502",
 			captureErr:              true,
 		},
 	}
@@ -146,7 +167,17 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 			assert.EqualValues(t, tc.expectedHttpStatus, resp.StatusCode)
-			assert.Empty(t, string(readAll(t, resp.Body)))
+			expected := metav1.Status{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Status",
+					APIVersion: "v1",
+				},
+				Status:  metav1.StatusFailure,
+				Message: tc.message + ". Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
+				Reason:  code2reason[int32(tc.expectedHttpStatus)],
+				Code:    int32(tc.expectedHttpStatus),
+			}
+			assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
 		})
 	}
 }
@@ -158,7 +189,17 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Empty(t, string(readAll(t, resp.Body)))
+	expected := metav1.Status{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Status",
+			APIVersion: "v1",
+		},
+		Status:  metav1.StatusFailure,
+		Message: "GitLab Agent Server: Bad request: URL does not start with expected prefix. Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
+		Reason:  metav1.StatusReasonBadRequest,
+		Code:    http.StatusBadRequest,
+	}
+	assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
 }
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
@@ -168,7 +209,17 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
-	assert.Empty(t, string(readAll(t, resp.Body)))
+	expected := metav1.Status{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Status",
+			APIVersion: "v1",
+		},
+		Status:  metav1.StatusFailure,
+		Message: "GitLab Agent Server: Forbidden: agentId is not allowed. Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
+		Reason:  metav1.StatusReasonForbidden,
+		Code:    http.StatusForbidden,
+	}
+	assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
 }
 
 func TestProxy_HappyPath(t *testing.T) {
@@ -461,6 +512,45 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	}, (map[string][]string)(resp.Header)))
 }
 
+func TestFormatStatusMessage(t *testing.T) {
+	const cid = "abc"
+	tests := []struct {
+		name            string
+		ctx             context.Context
+		err             error
+		expectedMessage string
+	}{
+		{
+			name:            "no err, no correlation",
+			ctx:             context.Background(),
+			expectedMessage: "GitLab Agent Server: msg",
+		},
+		{
+			name:            "no err, correlation",
+			ctx:             correlation.ContextWithCorrelation(context.Background(), cid),
+			expectedMessage: "GitLab Agent Server: msg. Correlation ID: abc",
+		},
+		{
+			name:            "err, no correlation",
+			ctx:             context.Background(),
+			err:             errors.New("boom"),
+			expectedMessage: "GitLab Agent Server: msg: boom",
+		},
+		{
+			name:            "err, correlation",
+			ctx:             correlation.ContextWithCorrelation(context.Background(), cid),
+			err:             errors.New("boom"),
+			expectedMessage: "GitLab Agent Server: msg: boom. Correlation ID: abc",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			msg := formatStatusMessage(test.ctx, "msg", test.err)
+			assert.Equal(t, test.expectedMessage, msg)
+		})
+	}
+}
+
 func requireCorrectOutgoingMeta(t *testing.T, ctx context.Context) {
 	md, _ := metadata.FromOutgoingContext(ctx)
 	vals := md.Get(modserver.RoutingAgentIdMetadataKey)
@@ -533,9 +623,10 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		metricsHttpHandlerFactory: func(next http.Handler, opts ...metrics.HandlerOption) http.Handler {
 			return next
 		},
-		serverName:    "sv1",
-		serverVia:     "gRPC/1.0 sv1",
-		urlPathPrefix: urlPathPrefix,
+		responseSerializer: serializer.NewCodecFactory(runtime.NewScheme()),
+		serverName:         "sv1",
+		serverVia:          "gRPC/1.0 sv1",
+		urlPathPrefix:      urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group
@@ -596,4 +687,15 @@ func readAll(t *testing.T, r io.Reader) []byte {
 	data, err := io.ReadAll(r)
 	require.NoError(t, err)
 	return data
+}
+
+func readStatus(t *testing.T, resp *http.Response) metav1.Status {
+	data := readAll(t, resp.Body)
+	var s metav1.Status
+	negotiator := runtime.NewClientNegotiator(serializer.NewCodecFactory(runtime.NewScheme()), schema.GroupVersion{})
+	decoder, err := negotiator.Decoder(resp.Header.Get(httpz.ContentTypeHeader), nil)
+	require.NoError(t, err)
+	obj, _, err := decoder.Decode(data, nil, &s)
+	require.NoError(t, err)
+	return *obj.(*metav1.Status)
 }

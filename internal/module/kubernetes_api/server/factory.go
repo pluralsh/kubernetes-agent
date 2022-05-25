@@ -12,6 +12,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/labkit/metrics"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 const (
@@ -57,6 +59,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			allowedAgentsCache:        cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
 			requestCount:              config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			metricsHttpHandlerFactory: metrics.NewHandlerFactory(metrics.WithNamespace(httpMetricsNamespace)),
+			responseSerializer:        serializer.NewCodecFactory(runtime.NewScheme()),
 			serverName:                serverName,
 			serverVia:                 "gRPC/1.0 " + serverName,
 			urlPathPrefix:             k8sApi.UrlPathPrefix,

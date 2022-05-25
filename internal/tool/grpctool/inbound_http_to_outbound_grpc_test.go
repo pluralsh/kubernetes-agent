@@ -311,26 +311,12 @@ func TestHttp2Grpc_HeaderRecvError(t *testing.T) {
 	mrClient, w, r, x := setupHttp2grpc(t, false)
 	headerExtra := &test.Request{}
 	send := mockSendHappy(t, mrClient, headerExtra, false)
-	wh := make(http.Header)
-	w.EXPECT().
-		Header().
-		Return(wh).
-		MinTimes(1)
 	recv := []*gomock.Call{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("no headers for you")),
 		w.EXPECT().
-			WriteHeader(http.StatusBadGateway).
-			Do(func(status int) {
-				// when WriteHeader is called, headers should have been set already
-				assert.Equal(t, http.Header{
-					"Content-Type":           []string{"text/plain; charset=utf-8"},
-					"X-Content-Type-Options": []string{"nosniff"},
-				}, wh)
-			}),
-		w.EXPECT().
-			Write([]byte("HTTP->gRPC: failed to read gRPC response: no headers for you\n")),
+			WriteHeader(http.StatusBadGateway),
 	}
 	calls := send
 	calls = append(calls, recv...)
@@ -476,6 +462,9 @@ func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKube
 		Log: zaptest.NewLogger(t),
 		HandleProcessingError: func(msg string, err error) {
 			t.Error(msg, err)
+		},
+		WriteErrorResponse: func(w http.ResponseWriter, r *http.Request, eResp *grpctool.ErrResp) {
+			w.WriteHeader(int(eResp.StatusCode))
 		},
 		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
 			for k, v := range outboundResponse {
