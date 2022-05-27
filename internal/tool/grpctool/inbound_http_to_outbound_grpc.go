@@ -219,13 +219,9 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
-		n, err := body.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			// There is likely a connection problem so the client will likely not receive this
-			return x.handleIoError("failed to read request body", err)
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
-			eResp := x.send(outboundClient, "failed to send request body", &HttpRequest{
+		n, readErr := body.Read(buffer)
+		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
+			eResp := x.send(outboundClient, "failed to send request data", &HttpRequest{
 				Message: &HttpRequest_Data_{
 					Data: &HttpRequest_Data{
 						Data: buffer[:n],
@@ -236,8 +232,12 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 				return eResp
 			}
 		}
-		if errors.Is(err, io.EOF) {
-			break
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			// There is likely a connection problem so the client will likely not receive this
+			return x.handleIoError("failed to read request body", readErr)
 		}
 	}
 	return nil

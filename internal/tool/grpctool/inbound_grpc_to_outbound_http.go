@@ -237,11 +237,8 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
-		n, err := resp.Body.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return x.handleIoError("read HTTP response body", err)
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
+		n, readErr := resp.Body.Read(buffer)
+		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
 			sendErr := inbound.Send(&HttpResponse{
 				Message: &HttpResponse_Data_{
 					Data: &HttpResponse_Data{
@@ -253,8 +250,11 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 				return x.handleIoError("SendMsg(HttpResponse_Data) failed", sendErr)
 			}
 		}
-		if errors.Is(err, io.EOF) {
-			break
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			return x.handleIoError("read HTTP response body", readErr)
 		}
 	}
 	return nil
