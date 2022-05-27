@@ -168,11 +168,8 @@ func (a *agentAPI) sendRequestBody(client gitlab_access_rpc.GitlabAccess_MakeReq
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
-		n, err := body.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("send request body: %w", err) // wrap
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
+		n, readErr := body.Read(buffer)
+		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
 			sendErr := client.Send(&grpctool.HttpRequest{
 				Message: &grpctool.HttpRequest_Data_{
 					Data: &grpctool.HttpRequest_Data{
@@ -186,8 +183,11 @@ func (a *agentAPI) sendRequestBody(client gitlab_access_rpc.GitlabAccess_MakeReq
 				return fmt.Errorf("send request data: %w", sendErr) // wrap
 			}
 		}
-		if errors.Is(err, io.EOF) {
-			break
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			return fmt.Errorf("read request body: %w", readErr) // wrap
 		}
 	}
 	return nil
