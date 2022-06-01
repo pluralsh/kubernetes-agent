@@ -111,10 +111,6 @@ func TestHandleIoError(t *testing.T) {
 			expected: status.Error(codes.Internal, "msg: bla"),
 		},
 		{
-			in:       status.Error(codes.Internal, "bla: transport: the stream is done or WriteHeader was already called"),
-			expected: status.Error(codes.Canceled, "msg: bla: transport: the stream is done or WriteHeader was already called"),
-		},
-		{
 			in:       io.EOF,
 			expected: status.Error(codes.Canceled, "msg: EOF"),
 		},
