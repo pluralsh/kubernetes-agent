@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -103,7 +104,7 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		return err
 	}
 	u := *c.Backend
-	u.Path = o.path
+	u.Path = joinUrlPaths(u.Path, o.path)
 	u.RawQuery = o.query.Encode() // handles query == nil
 	r, err := retryablehttp.NewRequest(o.method, u.String(), o.body)
 	if err != nil {
@@ -150,4 +151,16 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 func errorHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
 	// Just return the last response and error when ran out of retry attempts.
 	return resp, err
+}
+
+func joinUrlPaths(head, tail string) string {
+	if head == "" {
+		return tail
+	}
+	if tail == "" {
+		return head
+	}
+	head = strings.TrimSuffix(head, "/")
+	tail = strings.TrimPrefix(tail, "/")
+	return head + "/" + tail
 }
