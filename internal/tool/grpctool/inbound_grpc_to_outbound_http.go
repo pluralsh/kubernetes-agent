@@ -264,11 +264,8 @@ func (x *InboundGrpcToOutboundHttp) sendUpgradeResponseStream(inbound InboundGrp
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
-		n, err := upgradeConn.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return x.handleIoError("read upgrade response body", err)
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
+		n, readErr := upgradeConn.Read(buffer)
+		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
 			sendErr := inbound.Send(&HttpResponse{
 				Message: &HttpResponse_UpgradeData_{
 					UpgradeData: &HttpResponse_UpgradeData{
@@ -280,8 +277,11 @@ func (x *InboundGrpcToOutboundHttp) sendUpgradeResponseStream(inbound InboundGrp
 				return x.handleIoError("SendMsg(HttpResponse_UpgradeData) failed", sendErr)
 			}
 		}
-		if errors.Is(err, io.EOF) {
-			break
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			return x.handleIoError("read upgrade response body", readErr)
 		}
 	}
 	return nil
