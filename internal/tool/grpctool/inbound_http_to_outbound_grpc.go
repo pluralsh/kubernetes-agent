@@ -326,12 +326,8 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
-		n, err := inboundStream.Read(buffer)
-		if err != nil && !errors.Is(err, io.EOF) {
-			// There is likely a connection problem so the client will likely not receive this
-			return fmt.Errorf("read failed: %w", err)
-		}
-		if n > 0 { // handle n=0, err=io.EOF case
+		n, readErr := inboundStream.Read(buffer)
+		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
 			sendErr := outboundClient.Send(&HttpRequest{
 				Message: &HttpRequest_UpgradeData_{
 					UpgradeData: &HttpRequest_UpgradeData{
@@ -346,8 +342,12 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient
 				return fmt.Errorf("Send(HttpRequest_UpgradeData): %w", sendErr)
 			}
 		}
-		if errors.Is(err, io.EOF) {
-			break
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			// There is likely a connection problem so the client will likely not receive this
+			return fmt.Errorf("read failed: %w", readErr)
 		}
 	}
 	err := outboundClient.CloseSend()
