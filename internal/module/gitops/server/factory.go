@@ -41,7 +41,7 @@ func (f *Factory) Name() string {
 
 func newServerFromConfig(config *modserver.Config) (*server, error) {
 	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
-	_, err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
+	err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
 	if err != nil {
 		return nil, err
 	}
