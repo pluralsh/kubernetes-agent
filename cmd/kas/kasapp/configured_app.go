@@ -103,11 +103,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	ssh := metric.ServerStatsHandler()
 	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
-	cleanup, err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
+	err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
 	if err != nil {
 		return err
 	}
-	defer cleanup()
 
 	cfg := a.Configuration
 
@@ -326,7 +325,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 		return nil, err
 	}
 	kasRoutingDuration := constructKasRoutingDurationHistogram()
-	_, err = metric.Register(registerer, kasRoutingDuration)
+	err = metric.Register(registerer, kasRoutingDuration)
 	if err != nil {
 		return nil, err
 	}
