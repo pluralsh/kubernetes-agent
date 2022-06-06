@@ -100,43 +100,54 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeClose(internalServerConn, &retErr)
 
 	// Construct agent modules
-	modules, err := a.constructModules(internalServer, kasConn, internalServerConn)
+	modules, internalModules, err := a.constructModules(internalServer, kasConn, internalServerConn)
 	if err != nil {
 		return err
 	}
-	runner := a.newModuleRunner(modules, kasConn)
+	runner := a.newModuleRunner(kasConn)
+	modulesRun := runner.RegisterModules(modules)
+	internalModulesRun := runner.RegisterModules(internalModules)
 
 	// Start things up. Stages are shut down in reverse order.
 	return stager.RunStages(ctx,
-		// Start modules.
 		func(stage stager.Stage) {
-			stage.Go(runner.RunModules)
+			// Start modules.
+			stage.Go(modulesRun)
 		},
 		func(stage stager.Stage) {
-			// Start internal gRPC server.
+			// Start internal gRPC server. It is used by internal modules, so it is shut down after them.
 			a.startInternalServer(stage, internalServer, internalListener)
+		},
+		func(stage stager.Stage) {
+			// Start modules that use internal server.
+			stage.Go(internalModulesRun)
+		},
+		func(stage stager.Stage) {
 			// Start configuration refresh.
 			stage.Go(runner.RunConfigurationRefresh)
 		},
 	)
 }
 
-func (a *App) newModuleRunner(modules []modagent.Module, kasConn *grpc.ClientConn) *moduleRunner {
-	return newModuleRunner(a.Log, modules, &rpc.ConfigurationWatcher{
-		Log:       a.Log,
-		AgentMeta: a.AgentMeta,
-		Client:    rpc.NewAgentConfigurationClient(kasConn),
-		PollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
-			getConfigurationInitBackoff,
-			getConfigurationMaxBackoff,
-			getConfigurationResetDuration,
-			getConfigurationBackoffFactor,
-			getConfigurationJitter,
-		)),
-	})
+func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
+	return &moduleRunner{
+		log: a.Log,
+		configurationWatcher: &rpc.ConfigurationWatcher{
+			Log:       a.Log,
+			AgentMeta: a.AgentMeta,
+			Client:    rpc.NewAgentConfigurationClient(kasConn),
+			PollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
+				getConfigurationInitBackoff,
+				getConfigurationMaxBackoff,
+				getConfigurationResetDuration,
+				getConfigurationBackoffFactor,
+				getConfigurationJitter,
+			)),
+		},
+	}
 }
 
-func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, error) {
+func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, []modagent.Module, error) {
 	k8sFactory := util.NewFactory(a.K8sClientGetter)
 	fTracker := newFeatureTracker(a.Log)
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
@@ -152,7 +163,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		},
 		&kubernetes_api_agent.Factory{},
 	}
-	modules := make([]modagent.Module, 0, len(factories))
+	var modules []modagent.Module
+	var internalModules []modagent.Module
 	for _, f := range factories {
 		moduleName := f.Name()
 		module, err := f.New(&modagent.Config{
@@ -169,11 +181,15 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			AgentName:      agentName,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		modules = append(modules, module)
+		if f.UsesInternalServer() {
+			internalModules = append(internalModules, module)
+		} else {
+			modules = append(modules, module)
+		}
 	}
-	return modules, nil
+	return modules, internalModules, nil
 }
 
 func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, error) {

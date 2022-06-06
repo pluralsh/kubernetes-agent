@@ -79,6 +79,8 @@ type Factory interface {
 	New(*Config) (Module, error)
 	// Name returns module's name.
 	Name() string
+	// UsesInternalServer returns true if the module makes requests to the internal API server.
+	UsesInternalServer() bool
 }
 
 type Module interface {

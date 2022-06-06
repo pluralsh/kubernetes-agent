@@ -19,11 +19,11 @@ type moduleHolder struct {
 	pipe2module chan *agentcfg.AgentConfiguration
 }
 
-func (h *moduleHolder) runModule(ctx context.Context) error {
+func (h moduleHolder) runModule(ctx context.Context) error {
 	return h.module.Run(ctx, h.pipe2module)
 }
 
-func (h *moduleHolder) runPipe(ctx context.Context) error {
+func (h moduleHolder) runPipe(ctx context.Context) error {
 	defer close(h.pipe2module)
 	var (
 		nilablePipe2module chan<- *agentcfg.AgentConfiguration
@@ -49,46 +49,41 @@ func (h *moduleHolder) runPipe(ctx context.Context) error {
 
 type moduleRunner struct {
 	log                  *zap.Logger
-	holders              []moduleHolder
 	configurationWatcher agent_configuration_rpc.ConfigurationWatcherInterface
+	holders              []moduleHolder
 }
 
-func newModuleRunner(log *zap.Logger, modules []modagent.Module, configurationWatcher agent_configuration_rpc.ConfigurationWatcherInterface) *moduleRunner {
+// RegisterModules registers modules with the runner. It returns a function to run modules.
+func (r *moduleRunner) RegisterModules(modules []modagent.Module) func(context.Context) error {
 	holders := make([]moduleHolder, 0, len(modules))
 	for _, module := range modules {
-		holders = append(holders, moduleHolder{
+		holder := moduleHolder{
 			module:      module,
 			cfg2pipe:    make(chan *agentcfg.AgentConfiguration),
 			pipe2module: make(chan *agentcfg.AgentConfiguration),
-		})
+		}
+		holders = append(holders, holder)
+		r.holders = append(r.holders, holder)
 	}
-	return &moduleRunner{
-		log:                  log,
-		holders:              holders,
-		configurationWatcher: configurationWatcher,
+	return func(ctx context.Context) error {
+		return stager.RunStages(ctx,
+			func(stage stager.Stage) {
+				for _, holder := range holders {
+					stage.Go(holder.runModule)
+				}
+			},
+			func(stage stager.Stage) {
+				for _, holder := range holders {
+					stage.Go(holder.runPipe)
+				}
+			},
+		)
 	}
-}
-
-func (r *moduleRunner) RunModules(ctx context.Context) error {
-	return stager.RunStages(ctx,
-		func(stage stager.Stage) {
-			for _, holder := range r.holders {
-				holder := holder // capture the right variable
-				stage.Go(holder.runModule)
-			}
-		},
-		func(stage stager.Stage) {
-			for _, holder := range r.holders {
-				holder := holder // capture the right variable
-				stage.Go(holder.runPipe)
-			}
-		},
-	)
 }
 
 func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 	r.configurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
-		err := r.applyConfiguration(r.holders, data.CommitId, data.Config)
+		err := r.applyConfiguration(data.CommitId, data.Config)
 		if err != nil {
 			if !errz.ContextDone(err) {
 				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), logz.Error(err))
@@ -99,17 +94,17 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 	return nil
 }
 
-func (r *moduleRunner) applyConfiguration(holders []moduleHolder, commitId string, config *agentcfg.AgentConfiguration) error {
+func (r *moduleRunner) applyConfiguration(commitId string, config *agentcfg.AgentConfiguration) error {
 	r.log.Debug("Applying configuration", logz.CommitId(commitId), agentConfig(config))
 	// Default and validate before setting for use.
-	for _, holder := range holders {
+	for _, holder := range r.holders {
 		err := holder.module.DefaultAndValidateConfiguration(config)
 		if err != nil {
 			return fmt.Errorf("%s: %w", holder.module.Name(), err)
 		}
 	}
 	// Set for use.
-	for _, holder := range holders {
+	for _, holder := range r.holders {
 		holder.cfg2pipe <- config
 	}
 	return nil

@@ -284,12 +284,17 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 				})
 			}
 		},
-		// Start gRPC servers.
+		// Start internal gRPC server. This one must be shut down after all other servers have stopped to ensure
+		// it's impossible for them to make a request to the internal server and get a failure because
+		// it has stopped already.
+		func(stage stager.Stage) {
+			a.startInternalServer(stage, internalServer, internalListener)
+		},
+		// Start other gRPC servers.
 		func(stage stager.Stage) {
 			a.startAgentServer(stage, agentServer)
 			a.startApiServer(stage, apiServer)
 			a.startPrivateApiServer(stage, privateApiServer)
-			a.startInternalServer(stage, internalServer, internalListener)
 		},
 	)
 }
