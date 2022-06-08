@@ -37,6 +37,11 @@ func (f *Factory) Name() string {
 	return kubernetes_api.ModuleName
 }
 
+func (f *Factory) UsesInternalServer() bool {
+	// This module exposes an API endpoint on the internal server, but it does not make requests to it.
+	return false
+}
+
 // This is a copy from k8s.io/client-go/rest/url_utils.go
 
 // defaultServerUrlFor is shared between IsConfigTransportTLS and RESTClientFor. It

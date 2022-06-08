@@ -24,3 +24,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 func (f *Factory) Name() string {
 	return observability.ModuleName
 }
+
+func (f *Factory) UsesInternalServer() bool {
+	return false
+}

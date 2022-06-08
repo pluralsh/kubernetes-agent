@@ -69,10 +69,14 @@ func TestConfigurationIsApplied(t *testing.T) {
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg2),
 	)
-	a := newModuleRunner(zaptest.NewLogger(t), []modagent.Module{m}, watcher)
+	a := moduleRunner{
+		log:                  zaptest.NewLogger(t),
+		configurationWatcher: watcher,
+	}
+	run := a.RegisterModules([]modagent.Module{m})
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return a.RunModules(ctx)
+		return run(ctx)
 	})
 	g.Go(func() error {
 		return a.RunConfigurationRefresh(ctx)
@@ -122,10 +126,14 @@ func TestConfigurationIsSquashed(t *testing.T) {
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg2),
 	)
-	a := newModuleRunner(zaptest.NewLogger(t), []modagent.Module{m}, watcher)
+	a := moduleRunner{
+		log:                  zaptest.NewLogger(t),
+		configurationWatcher: watcher,
+	}
+	run := a.RegisterModules([]modagent.Module{m})
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return a.RunModules(ctx)
+		return run(ctx)
 	})
 	g.Go(func() error {
 		return a.RunConfigurationRefresh(ctx)

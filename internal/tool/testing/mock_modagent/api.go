@@ -145,6 +145,20 @@ func (mr *MockFactoryMockRecorder) New(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockFactory)(nil).New), arg0)
 }
 
+// UsesInternalServer mocks base method.
+func (m *MockFactory) UsesInternalServer() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UsesInternalServer")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// UsesInternalServer indicates an expected call of UsesInternalServer.
+func (mr *MockFactoryMockRecorder) UsesInternalServer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsesInternalServer", reflect.TypeOf((*MockFactory)(nil).UsesInternalServer))
+}
+
 // MockModule is a mock of Module interface.
 type MockModule struct {
 	ctrl     *gomock.Controller
