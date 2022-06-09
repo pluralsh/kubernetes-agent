@@ -7,8 +7,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-GIT_COMMIT=$(git rev-parse --short HEAD)
-GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
+# If the GIT_COMMIT or GIT_TAG variables are not already set
+# then it will not try and use git commands to set them.
+# See: https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/253
+[ -z "${GIT_COMMIT:-}" ] && GIT_COMMIT=$(git rev-parse --short HEAD)
+[ -z "${GIT_TAG:-}" ] && GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
 GIT_TAG="${GIT_TAG:="latest"}"
 
 CONTAINER_REPOSITORY_PATH="${CI_PROJECT_PATH:-"gitlab-org/cluster-integration/gitlab-agent"}"
