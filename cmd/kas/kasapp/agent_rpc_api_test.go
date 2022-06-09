@@ -74,7 +74,7 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 						assert.Equal(t, correlationId, event.Tags[modserver.CorrelationIdSentryField])
 						assert.Empty(t, event.User.ID)
 						assert.Equal(t, sentry.LevelError, event.Level)
-						assert.Equal(t, "gitlab.ClientError", event.Exception[0].Type)
+						assert.Equal(t, "*gitlab.ClientError", event.Exception[0].Type)
 						assert.Equal(t, "AgentInfo(): "+tc.captureErr, event.Exception[0].Value)
 					})
 			}
