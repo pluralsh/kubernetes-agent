@@ -59,8 +59,8 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 				}
 				return nil
 			default: // Unexpected status
-				return ClientError{
-					StatusCode: resp.StatusCode,
+				return &ClientError{
+					StatusCode: int32(resp.StatusCode),
 				}
 			}
 		},
@@ -84,8 +84,8 @@ func NoContentResponseHandler() ResponseHandler {
 				}
 				return err
 			default: // Unexpected status
-				return ClientError{
-					StatusCode: resp.StatusCode,
+				return &ClientError{
+					StatusCode: int32(resp.StatusCode),
 				}
 			}
 		},

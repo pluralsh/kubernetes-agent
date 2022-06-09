@@ -7,19 +7,15 @@ import (
 )
 
 var (
-	_ error = ClientError{}
+	_ error = (*ClientError)(nil)
 )
 
-type ClientError struct {
-	StatusCode int
-}
-
-func (e ClientError) Error() string {
-	return fmt.Sprintf("HTTP status code: %d", e.StatusCode)
+func (x *ClientError) Error() string {
+	return fmt.Sprintf("HTTP status code: %d", x.StatusCode)
 }
 
 func IsForbidden(err error) bool {
-	var e ClientError
+	var e *ClientError
 	if !errors.As(err, &e) {
 		return false
 	}
@@ -27,7 +23,7 @@ func IsForbidden(err error) bool {
 }
 
 func IsUnauthorized(err error) bool {
-	var e ClientError
+	var e *ClientError
 	if !errors.As(err, &e) {
 		return false
 	}
@@ -35,7 +31,7 @@ func IsUnauthorized(err error) bool {
 }
 
 func IsNotFound(err error) bool {
-	var e ClientError
+	var e *ClientError
 	if !errors.As(err, &e) {
 		return false
 	}

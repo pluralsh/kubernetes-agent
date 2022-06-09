@@ -34,20 +34,6 @@ func (m *MockRpcApi) EXPECT() *MockRpcApiMockRecorder {
 	return m.recorder
 }
 
-// AgentToken mocks base method.
-func (m *MockRpcApi) AgentToken() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AgentToken")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// AgentToken indicates an expected call of AgentToken.
-func (mr *MockRpcApiMockRecorder) AgentToken() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AgentToken", reflect.TypeOf((*MockRpcApi)(nil).AgentToken))
-}
-
 // HandleProcessingError mocks base method.
 func (m *MockRpcApi) HandleProcessingError(arg0 string, arg1 error) {
 	m.ctrl.T.Helper()
@@ -72,4 +58,18 @@ func (m *MockRpcApi) Log() *zap.Logger {
 func (mr *MockRpcApiMockRecorder) Log() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Log", reflect.TypeOf((*MockRpcApi)(nil).Log))
+}
+
+// RequestKey mocks base method.
+func (m *MockRpcApi) RequestKey() []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RequestKey")
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// RequestKey indicates an expected call of RequestKey.
+func (mr *MockRpcApiMockRecorder) RequestKey() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestKey", reflect.TypeOf((*MockRpcApi)(nil).RequestKey))
 }

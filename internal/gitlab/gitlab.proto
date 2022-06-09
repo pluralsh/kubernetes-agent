@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.gitlab;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab";
+
+message ClientError {
+  int32 status_code = 1;
+}

@@ -9,7 +9,7 @@ import (
 
 // IsCacheableError checks if an error is cacheable.
 func IsCacheableError(err error) bool {
-	var e gitlab.ClientError
+	var e *gitlab.ClientError
 	if !errors.As(err, &e) {
 		return false // not a client error, probably a network error
 	}

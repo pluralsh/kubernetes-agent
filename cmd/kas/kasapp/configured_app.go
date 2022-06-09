@@ -20,6 +20,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
@@ -1002,6 +1003,6 @@ func (a *tokenLimiterApi) HandleProcessingError(msg string, err error) {
 	a.rpcApi.HandleProcessingError(a.rpcApi.Log(), modshared.NoAgentId, msg, err)
 }
 
-func (a *tokenLimiterApi) AgentToken() string {
-	return string(a.rpcApi.AgentToken())
+func (a *tokenLimiterApi) RequestKey() []byte {
+	return api.AgentToken2key(a.rpcApi.AgentToken())
 }

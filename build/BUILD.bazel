@@ -21,6 +21,7 @@ multirun(
     name = "extract_generated_proto",
     commands = [
         "//cmd/kas/kasapp:extract_generated",
+        "//internal/gitlab:extract_generated",
         "//internal/gitlab/api:extract_generated",
         "//internal/module/agent_configuration/rpc:extract_generated",
         "//internal/module/agent_tracker/rpc:extract_generated",

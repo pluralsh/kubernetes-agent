@@ -84,11 +84,11 @@ func setup(t *testing.T) (context.Context, *MockRpcApi, redismock.ClientMock, *T
 		AnyTimes()
 	limiter := NewTokenLimiter(client, "key_prefix", 1, func(ctx context.Context) RpcApi {
 		rpcApi.EXPECT().
-			AgentToken().
-			Return(string(ctx.Value(ctxKey).(api.AgentToken)))
+			RequestKey().
+			Return(api.AgentToken2key(ctx.Value(ctxKey).(api.AgentToken)))
 		return rpcApi
 	})
 	ctx := context.WithValue(context.Background(), ctxKey, testhelpers.AgentkToken) // nolint: staticcheck
-	key := limiter.buildKey(string(testhelpers.AgentkToken))
+	key := limiter.buildKey(api.AgentToken2key(testhelpers.AgentkToken))
 	return ctx, rpcApi, mock, limiter, key
 }
