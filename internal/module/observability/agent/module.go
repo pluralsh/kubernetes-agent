@@ -16,10 +16,12 @@ import (
 )
 
 type module struct {
-	log        *zap.Logger
-	logLevel   zap.AtomicLevel
-	api        modshared.Api
-	serverName string
+	log                 *zap.Logger
+	logLevel            zap.AtomicLevel
+	grpcLogLevel        zap.AtomicLevel
+	defaultGrpcLogLevel agentcfg.LogLevelEnum
+	api                 modshared.Api
+	serverName          string
 }
 
 const (
@@ -93,15 +95,34 @@ func (m *module) Name() string {
 }
 
 func (m *module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {
+	if logging.GrpcLevel == nil {
+		logging.GrpcLevel = &m.defaultGrpcLogLevel
+	}
 	_, err := logz.LevelFromString(logging.Level.String())
-	return err
-}
-
-func (m *module) setConfigurationLogging(logging *agentcfg.LoggingCF) error {
-	level, err := logz.LevelFromString(logging.Level.String())
 	if err != nil {
 		return err
 	}
-	m.logLevel.SetLevel(level)
+	_, err = logz.LevelFromString(logging.GrpcLevel.String())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *module) setConfigurationLogging(logging *agentcfg.LoggingCF) error {
+	err := setLogLevel(m.logLevel, logging.Level)
+	if err != nil {
+		return err
+	}
+
+	return setLogLevel(m.grpcLogLevel, *logging.GrpcLevel) // not nil after defaulting
+}
+
+func setLogLevel(logLevel zap.AtomicLevel, val agentcfg.LogLevelEnum) error {
+	level, err := logz.LevelFromString(val.String())
+	if err != nil {
+		return err
+	}
+	logLevel.SetLevel(level)
 	return nil
 }

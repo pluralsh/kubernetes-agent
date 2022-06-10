@@ -10,6 +10,8 @@ const (
 	defaultObservabilityPrometheusUrlPath     = "/metrics"
 	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
 	defaultObservabilityReadinessProbeUrlPath = "/readiness"
+
+	defaultGrpcLogLevel = kascfg.LogLevelEnum_error
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
@@ -27,6 +29,10 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&o.Sentry)
 
 	prototool.NotNil(&o.Logging)
+	if o.Logging.GrpcLevel == nil {
+		x := defaultGrpcLogLevel
+		o.Logging.GrpcLevel = &x
+	}
 
 	prototool.NotNil(&o.LivenessProbe)
 	prototool.String(&o.LivenessProbe.UrlPath, defaultObservabilityLivenessProbeUrlPath)

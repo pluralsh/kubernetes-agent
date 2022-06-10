@@ -62,7 +62,7 @@ message TracingCF {
   string connection_string = 1 [json_name = "connection_string"];
 }
 
-enum logging_level_enum {
+enum log_level_enum {
   info = 0; // default value must be 0
   debug = 1;
   warn = 2;
@@ -70,8 +70,8 @@ enum logging_level_enum {
 }
 
 message LoggingCF {
-  // Supported logging levels are: debug, info, warn, error.
-  logging_level_enum level = 1 [json_name = "level"];
+  log_level_enum level = 1 [json_name = "level"];
+  optional log_level_enum grpc_level = 2 [json_name = "grpc_level"]; // optional to be able to tell when not set and use a different default value.
 }
 
 message GitLabCF {
