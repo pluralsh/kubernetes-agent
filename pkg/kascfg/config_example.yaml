@@ -56,6 +56,7 @@ observability:
     environment: ""
   logging:
     level: info
+    grpc_level: error
   google_profiler:
     enabled: false
     # project_id: ""

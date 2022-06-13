@@ -698,6 +698,10 @@ func (m *LoggingCF) validate(all bool) error {
 
 	// no validation rules for Level
 
+	if m.GrpcLevel != nil {
+		// no validation rules for GrpcLevel
+	}
+
 	if len(errors) > 0 {
 		return LoggingCFMultiError(errors)
 	}

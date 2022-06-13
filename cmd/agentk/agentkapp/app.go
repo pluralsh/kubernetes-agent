@@ -36,10 +36,13 @@ import (
 	"gitlab.com/gitlab-org/labkit/correlation"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
@@ -48,7 +51,8 @@ import (
 )
 
 const (
-	defaultLoggingLevel agentcfg.LoggingLevelEnum = 0 // whatever is 0 is the default value
+	defaultLogLevel     agentcfg.LogLevelEnum = 0 // whatever is 0 is the default value
+	defaultGrpcLogLevel                       = agentcfg.LogLevelEnum_error
 
 	defaultMaxMessageSize = 10 * 1024 * 1024
 	agentName             = "gitlab-agent"
@@ -64,9 +68,10 @@ const (
 )
 
 type App struct {
-	Log       *zap.Logger
-	LogLevel  zap.AtomicLevel
-	AgentMeta *modshared.AgentMeta
+	Log          *zap.Logger
+	LogLevel     zap.AtomicLevel
+	GrpcLogLevel zap.AtomicLevel
+	AgentMeta    *modshared.AgentMeta
 	// KasAddress specifies the address of kas.
 	KasAddress      string
 	CACertFile      string
@@ -75,10 +80,6 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
-	defer errz.SafeCall(a.Log.Sync, &retErr)
-	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
-	klog.SetLogger(zapr.NewLogger(a.Log))
-
 	// Construct gRPC connection to gitlab-kas
 	kasConn, err := a.constructKasConnection(ctx)
 	if err != nil {
@@ -152,9 +153,10 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	fTracker := newFeatureTracker(a.Log)
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
-		//  Should be the first to configure logging ASAP
 		&observability_agent.Factory{
-			LogLevel: a.LogLevel,
+			LogLevel:            a.LogLevel,
+			GrpcLogLevel:        a.GrpcLogLevel,
+			DefaultGrpcLogLevel: defaultGrpcLogLevel,
 		},
 		&gitops_agent.Factory{},
 		&starboard_vulnerability.Factory{},
@@ -334,12 +336,26 @@ func NewCommand() *cobra.Command {
 		Use:   "agentk",
 		Short: "GitLab Agent for Kubernetes",
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
 			var err error
-			a.Log, a.LogLevel, err = logger()
+			a.Log, a.LogLevel, err = logger(defaultLogLevel, lockedSyncer)
 			if err != nil {
 				return err
 			}
+			defer errz.SafeCall(a.Log.Sync, &retErr)
+
+			var grpcLog *zap.Logger
+			grpcLog, a.GrpcLogLevel, err = logger(defaultGrpcLogLevel, lockedSyncer)
+			if err != nil {
+				return err
+			}
+			defer errz.SafeCall(grpcLog.Sync, &retErr)
+
+			grpclog.SetLoggerV2(zapgrpc.NewLogger(grpcLog)) // pipe gRPC logs into zap
+			// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
+			klog.SetLogger(zapr.NewLogger(a.Log))
+
 			return a.Run(cmd.Context())
 		},
 		SilenceErrors: true,
@@ -355,11 +371,11 @@ func NewCommand() *cobra.Command {
 	return c
 }
 
-func logger() (*zap.Logger, zap.AtomicLevel, error) {
-	level, err := logz.LevelFromString(defaultLoggingLevel.String())
+func logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) (*zap.Logger, zap.AtomicLevel, error) {
+	level, err := logz.LevelFromString(levelEnum.String())
 	if err != nil {
 		return nil, zap.NewAtomicLevel(), err
 	}
 	atomicLevel := zap.NewAtomicLevelAt(level)
-	return logz.LoggerWithLevel(atomicLevel), atomicLevel, nil
+	return logz.LoggerWithLevel(atomicLevel, sync), atomicLevel, nil
 }

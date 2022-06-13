@@ -11,6 +11,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapgrpc"
+	"google.golang.org/grpc/grpclog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -35,15 +38,17 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("kascfg.ValidateExtra: %w", err)
 	}
-	logger, err := loggerFromConfig(cfg.Observability.Logging)
+	log, grpcLog, err := loggerFromConfig(cfg.Observability.Logging)
 	if err != nil {
 		return err
 	}
-	defer errz.SafeCall(logger.Sync, &retErr)
+	defer errz.SafeCall(log.Sync, &retErr)
+	defer errz.SafeCall(grpcLog.Sync, &retErr)
+	grpclog.SetLoggerV2(zapgrpc.NewLogger(grpcLog)) // pipe gRPC logs into zap
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
-	klog.SetLogger(zapr.NewLogger(logger))
+	klog.SetLogger(zapr.NewLogger(log))
 	app := ConfiguredApp{
-		Log:              logger,
+		Log:              log,
 		Configuration:    cfg,
 		OwnPrivateApiUrl: a.OwnPrivateApiUrl,
 	}
@@ -91,10 +96,15 @@ func NewCommand() *cobra.Command {
 	return c
 }
 
-func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, error) {
+func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, *zap.Logger, error) {
+	lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
 	level, err := logz.LevelFromString(loggingCfg.Level.String())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return logz.LoggerWithLevel(level), nil
+	grpcLevel, err := logz.LevelFromString(loggingCfg.GrpcLevel.String())
+	if err != nil {
+		return nil, nil, err
+	}
+	return logz.LoggerWithLevel(level, lockedSyncer), logz.LoggerWithLevel(grpcLevel, lockedSyncer), nil
 }
