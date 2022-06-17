@@ -24,7 +24,7 @@
 
      ```shell
      docker login dev.gitlab.org:5005 # use your username and a personal access token with the read_registry scope
-     docker run --rm -it dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5 --version
+     docker run --rm dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5 --version
      ```
 
      outputs
@@ -46,7 +46,7 @@
      https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com.
      [Example MR](https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com/-/merge_requests/1319).
    - Open a [production change issue](https://gitlab.com/gitlab-com/gl-infra/production/-/issues) to get
-     the above MR merged and rolled out. [Example issue](https://gitlab.com/gitlab-com/gl-infra/production/-/issues/5821).
+     the above MR merged and rolled out. [Example issue](https://gitlab.com/gitlab-com/gl-infra/production/-/issues/7266).
 1. If there are breaking changes to the `kas` config file, then MRs need to be raised for
    [Omnibus](https://gitlab.com/gitlab-org/omnibus-gitlab/), and
    [charts](https://gitlab.com/gitlab-org/charts/gitlab/).
