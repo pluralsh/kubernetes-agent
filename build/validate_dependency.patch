@@ -1,9 +1,12 @@
---- protoc-gen-validate/validate/BUILD	2022-01-24 19:46:57.000000000 +1100
-+++ protoc-gen-validate-copy/validate/BUILD	2022-01-24 19:50:54.000000000 +1100
-@@ -31,6 +31,22 @@
-     deps = ["@com_google_protobuf//:protobuf_python"],
- )
-
+--- protoc-gen-validate/validate/BUILD	2022-05-27 19:00:07.000000000 +1000
++++ protoc-gen-validate-copy/validate/BUILD	2022-06-18 17:13:56.000000000 +1000
+@@ -28,7 +28,22 @@
+ py_proto_library(
+     name = "validate_py",
+     srcs = ["validate.proto"],
+-    deps = ["@com_google_protobuf//:protobuf_python"],
++)
++
 +go_library(
 +    name = "go_custom_library",
 +    srcs = [
@@ -18,8 +21,6 @@
 +        "@org_golang_google_protobuf//types/known/durationpb:go_default_library",
 +        "@org_golang_google_protobuf//types/known/timestamppb:go_default_library",
 +    ],
-+)
-+
+ )
+
  go_proto_library(
-     name = "validate_go_proto",
-     importpath = "github.com/envoyproxy/protoc-gen-validate/validate",

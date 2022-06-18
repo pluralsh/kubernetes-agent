@@ -8,10 +8,10 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "f2dcd210c7095febe54b804bb1cd3a58fe8435a909db2ec04e31542631cf715c",
+    sha256 = "685052b498b6ddfe562ca7a97736741d87916fe536623afb7da2824c0211c369",
     urls = [
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.31.0/rules_go-v0.31.0.zip",
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.31.0/rules_go-v0.31.0.zip",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.33.0/rules_go-v0.33.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.33.0/rules_go-v0.33.0.zip",
     ],
 )
 
@@ -26,16 +26,16 @@ http_archive(
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "85ffff62a4c22a74dbd98d05da6cf40f497344b3dbf1e1ab0a37ab2a1a6ca014",
-    strip_prefix = "rules_docker-0.23.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.23.0/rules_docker-v0.23.0.tar.gz"],
+    sha256 = "27d53c1d646fc9537a70427ad7b034734d08a9c38924cc6357cc973fed300820",
+    strip_prefix = "rules_docker-0.24.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.24.0/rules_docker-v0.24.0.tar.gz"],
 )
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "7f43df3cca7bb4ea443b4159edd7a204c8d771890a69a50a190dc9543760ca21",
-    strip_prefix = "buildtools-5.0.1",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/5.0.1.tar.gz"],
+    sha256 = "e3bb0dc8b0274ea1aca75f1f8c0c835adbe589708ea89bf698069d0790701ea3",
+    strip_prefix = "buildtools-5.1.0",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/5.1.0.tar.gz"],
 )
 
 http_archive(
@@ -47,10 +47,10 @@ http_archive(
 
 http_archive(
     name = "rules_proto",
-    sha256 = "66bfdf8782796239d3875d37e7de19b1d94301e8972b3cbd2446b332429b4df1",
-    strip_prefix = "rules_proto-4.0.0",
+    sha256 = "e017528fd1c91c5a33f15493e3a398181a9e821a804eb7ff5acdd1d2d6c2b18d",
+    strip_prefix = "rules_proto-4.0.0-3.20.0",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/4.0.0.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/refs/tags/4.0.0-3.20.0.tar.gz",
     ],
 )
 
@@ -63,10 +63,10 @@ http_archive(
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "c6966ec828da198c5d9adbaa94c05e3a1c7f21bd012a0b29ba8ddbccb2c93b0d",
+    sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
     urls = [
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.1.1/bazel-skylib-1.1.1.tar.gz",
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.1.1/bazel-skylib-1.1.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz",
     ],
 )
 
@@ -108,6 +108,7 @@ go_repository(
     patch_args = ["-p1"],
     # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
     # patch created by manually editing the build file and running `diff -urN protoc-gen-validate protoc-gen-validate-copy`
+    # or `diff -urN protoc-gen-validate/validate/BUILD protoc-gen-validate-copy/validate/BUILD` for a single file.
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
@@ -165,12 +166,12 @@ gazelle_dependencies()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-# Latest images as of 2022-02-17
+# Latest images as of 2022-06-18
 
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:5210a189f21caa4d8384da9b3a197226effeac5b5d25d0a2d558979d1f18bc41",
+    digest = "sha256:5530245aa3a862b31da61433b452045b4c7e9c898a14e8a8e519e8f4fcf51af5",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -178,7 +179,7 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 container_pull(
     name = "go_image_static",
-    digest = "sha256:957bbd91e4bfe8186bd218c08b2bbc5c852e6ebe6a7b2dcc42a86b22ea2b6bb6",
+    digest = "sha256:a5938b6a7b8592729900b58320f4e909c694ca92cbe47b6c2780a04826a8123d",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
@@ -187,7 +188,7 @@ container_pull(
 container_pull(
     name = "go_debug_image_base_arm",
     architecture = "arm",
-    digest = "sha256:77cb441e16f00e9c6040e6551f977186bd848d9f2333f9864fea9d7b3e3c0e28",
+    digest = "sha256:f918a965fa5a821d1cfa6bbf7e1ab57096d9097d14d6c2a1a9f135e2f6b0f356",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -196,7 +197,7 @@ container_pull(
 container_pull(
     name = "go_image_static_arm",
     architecture = "arm",
-    digest = "sha256:4da4fc86823ed27faf4e40bc464425acb18fb44067b2d1c5fb9dbb9a5e98bb60",
+    digest = "sha256:a1489609776aa1e2ced9ba47014ebf317ad3c7fed2303abd00844a54c7d897bc",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
@@ -205,7 +206,7 @@ container_pull(
 container_pull(
     name = "go_debug_image_base_arm64",
     architecture = "arm64",
-    digest = "sha256:8fde1b102571cc2dd6468ab69dce423338f4e970792a39650bb84b3f75bdac95",
+    digest = "sha256:71a83d72a1b38a01b5b552c7ee746354c254787f06d28148a082a242e40b60e6",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -214,7 +215,7 @@ container_pull(
 container_pull(
     name = "go_image_static_arm64",
     architecture = "arm64",
-    digest = "sha256:f85ec5facdc6db7fee1241f872007979fb6ef062b3bfb1cd510d7c61e0e88121",
+    digest = "sha256:d4d85bfd84aa99b382ff07caab3bffb723f29e1dbf82d07a46f1ca2b856d97b1",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
@@ -222,14 +223,24 @@ container_pull(
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_ash2k_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
 load("@com_github_ash2k_bazel_tools//multirun:deps.bzl", "multirun_dependencies")
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
+load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
 )
+load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
+
+rules_proto_dependencies()
+
+rules_proto_toolchains()
+
+rules_proto_grpc_toolchains()
+
+rules_proto_grpc_go_repos()
 
 container_repositories()
-
-load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
 container_deps()
 
@@ -237,9 +248,6 @@ load(
     "@io_bazel_rules_docker//go:image.bzl",
     go_image_repositories = "repositories",
 )
-load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
-load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
-load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load("@com_github_envoyproxy_protoc_gen_validate//:dependencies.bzl", pgv_third_party = "go_third_party")
 
 go_image_repositories()
@@ -249,14 +257,6 @@ buildifier_dependencies()
 buildozer_dependencies()
 
 multirun_dependencies()
-
-rules_proto_dependencies()
-
-rules_proto_toolchains()
-
-rules_proto_grpc_toolchains()
-
-rules_proto_grpc_go_repos()
 
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 
