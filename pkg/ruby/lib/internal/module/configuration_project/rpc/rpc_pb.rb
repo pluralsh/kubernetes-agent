@@ -3,7 +3,9 @@
 
 require 'google/protobuf'
 
+require 'validate/validate_pb'
 require 'internal/module/modserver/modserver_pb'
+
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/configuration_project/rpc/rpc.proto", :syntax => :proto3) do
     add_message "gitlab.agent.configuration_project.rpc.ListAgentConfigFilesRequest" do

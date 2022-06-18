@@ -197,4 +197,4 @@ show-go-dependency-updates:
 delete-generated-files:
 	find . -name '*.pb.go' -type f -delete
 	find . -name '*.pb.validate.go' -type f -delete
-	find . -name '*_pb.rb' -type f -delete
+	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
