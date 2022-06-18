@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
 	"sigs.k8s.io/cli-utils/pkg/object"
+	"sigs.k8s.io/cli-utils/pkg/object/validation"
 )
 
 const (
@@ -127,13 +128,13 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 					FieldManager: "agentk",
 				},
 				ReconcileTimeout:       project.ReconcileTimeout.AsDuration(),
-				PollInterval:           0, // use default value
 				EmitStatusEvents:       true,
 				NoPrune:                !project.GetPrune(),
 				DryRunStrategy:         f.mapDryRunStrategy(project.DryRunStrategy),
 				PrunePropagationPolicy: f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
 				PruneTimeout:           project.PruneTimeout.AsDuration(),
 				InventoryPolicy:        f.mapInventoryPolicy(project.InventoryPolicy),
+				ValidationPolicy:       validation.ExitEarly,
 			},
 		},
 	}
