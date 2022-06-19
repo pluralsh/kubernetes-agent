@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/gitaly/v15/internal/git/pktline"
-	"gitlab.com/gitlab-org/gitaly/v15/internal/helper/text"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/pktline"
 )
 
 // Reference as used by the reference discovery protocol
@@ -71,7 +70,7 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 
 	for ; scanner.Scan(); d.Packets++ {
 		pkt := scanner.Bytes()
-		data := text.ChompBytes(pktline.Data(pkt))
+		data := strings.TrimSuffix(string(pktline.Data(pkt)), "\n")
 		d.PayloadSize += int64(len(data))
 
 		switch state {

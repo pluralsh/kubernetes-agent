@@ -5,7 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/gitaly/v15/internal/git/gittest"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/gittest"
+)
+
+const (
+	oid1 = "78fb81a02b03f0013360292ec5106763af32c287"
+	oid2 = "0f6394307cd7d4909be96a0c818d8094a4cb0e5b"
 )
 
 func TestSingleRefParses(t *testing.T) {

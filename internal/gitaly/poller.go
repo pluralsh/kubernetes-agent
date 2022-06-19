@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
 
@@ -47,7 +48,7 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 	}
 	refNameTag := "refs/tags/" + refName
 	refNameBranch := "refs/heads/" + refName
-	var head, master, wanted *Reference
+	var head, master, wanted *stats.Reference
 
 loop:
 	for i := range r.Refs {
@@ -82,7 +83,7 @@ loop:
 
 // fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 // fetchRefs returns *Error when a error occurs.
-func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
+func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*stats.ReferenceDiscovery, error) {
 	ctx, cancel := context.WithCancel(appendFeatureFlagsToContext(ctx, p.Features))
 	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
@@ -105,7 +106,7 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*Ref
 		}
 		inforefs = append(inforefs, entry.Data...)
 	}
-	refs, err := ParseReferenceDiscovery(bytes.NewReader(inforefs))
+	refs, err := stats.ParseReferenceDiscovery(bytes.NewReader(inforefs))
 	if err != nil {
 		return nil, NewProtocolError(err, "failed to parse reference discovery", "", "")
 	}

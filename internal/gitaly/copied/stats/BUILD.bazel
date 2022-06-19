@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "stats",
+    srcs = ["reference_discovery.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats",
+    visibility = ["//:__subpackages__"],
+    deps = ["//internal/gitaly/copied/pktline"],
+)
+
+go_custom_test(
+    name = "stats_test",
+    srcs = ["reference_discovery_test.go"],
+    embed = [":stats"],
+    deps = [
+        "//internal/gitaly/copied/gittest",
+        "@com_github_stretchr_testify//require",
+    ],
+)
