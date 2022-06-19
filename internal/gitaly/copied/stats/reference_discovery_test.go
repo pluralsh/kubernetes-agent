@@ -13,6 +13,26 @@ const (
 	oid2 = "0f6394307cd7d4909be96a0c818d8094a4cb0e5b"
 )
 
+func BenchmarkMultipleRefsAndCapsParse(b *testing.B) {
+	buf := &bytes.Buffer{}
+	gittest.WritePktlineString(b, buf, "# service=git-upload-pack\n")
+	gittest.WritePktlineFlush(b, buf)
+	gittest.WritePktlineString(b, buf, oid1+" HEAD\x00first second")
+	gittest.WritePktlineString(b, buf, oid2+" refs/heads/master")
+	gittest.WritePktlineFlush(b, buf)
+	data := buf.Bytes()
+	r := bytes.NewReader(data)
+	b.ReportAllocs()
+	b.ResetTimer() // don't take the stuff above into account
+	for i := 0; i < b.N; i++ {
+		_, err := ParseReferenceDiscovery(bytes.NewReader(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+		r.Reset(data)
+	}
+}
+
 func TestSingleRefParses(t *testing.T) {
 	buf := &bytes.Buffer{}
 	gittest.WritePktlineString(t, buf, "# service=git-upload-pack\n")
