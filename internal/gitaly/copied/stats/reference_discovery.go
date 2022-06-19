@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -70,13 +71,13 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 
 	for ; scanner.Scan(); d.Packets++ {
 		pkt := scanner.Bytes()
-		data := strings.TrimSuffix(string(pktline.Data(pkt)), "\n")
+		data := bytes.TrimSuffix(pktline.Data(pkt), []byte{'\n'})
 		d.PayloadSize += int64(len(data))
 
 		switch state {
 		case referenceDiscoveryExpectService:
 			d.FirstPacket = time.Now()
-			if data != "# service=git-upload-pack" {
+			if !bytes.Equal(data, []byte("# service=git-upload-pack")) {
 				return fmt.Errorf("unexpected header %q", data)
 			}
 
@@ -88,17 +89,17 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 
 			state = referenceDiscoveryExpectRefWithCaps
 		case referenceDiscoveryExpectRefWithCaps:
-			split := strings.SplitN(data, "\x00", 2)
+			split := bytes.SplitN(data, []byte{0}, 2)
 			if len(split) != 2 {
 				return errors.New("invalid first reference line")
 			}
 
-			ref := strings.SplitN(split[0], " ", 2)
+			ref := bytes.SplitN(split[0], []byte{' '}, 2)
 			if len(ref) != 2 {
 				return errors.New("invalid reference line")
 			}
-			d.Refs = append(d.Refs, Reference{Oid: ref[0], Name: ref[1]})
-			d.Caps = strings.Split(split[1], " ")
+			d.Refs = append(d.Refs, Reference{Oid: string(ref[0]), Name: string(ref[1])})
+			d.Caps = strings.Split(string(split[1]), " ")
 
 			state = referenceDiscoveryExpectRef
 		case referenceDiscoveryExpectRef:
@@ -107,11 +108,11 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 				continue
 			}
 
-			split := strings.SplitN(data, " ", 2)
+			split := bytes.SplitN(data, []byte{' '}, 2)
 			if len(split) != 2 {
 				return errors.New("invalid reference line")
 			}
-			d.Refs = append(d.Refs, Reference{Oid: split[0], Name: split[1]})
+			d.Refs = append(d.Refs, Reference{Oid: string(split[0]), Name: string(split[1])})
 		case referenceDiscoveryExpectEnd:
 			return errors.New("received packet after flush")
 		}
