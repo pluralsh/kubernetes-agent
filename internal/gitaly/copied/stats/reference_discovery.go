@@ -1,4 +1,4 @@
-package gitaly
+package stats
 
 import (
 	"errors"
@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/pktline"
+	"gitlab.com/gitlab-org/gitaly/v15/internal/git/pktline"
+	"gitlab.com/gitlab-org/gitaly/v15/internal/helper/text"
 )
-
-// This file and the corresponding test were copied from Gitaly.
 
 // Reference as used by the reference discovery protocol
 type Reference struct {
@@ -72,7 +71,7 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 
 	for ; scanner.Scan(); d.Packets++ {
 		pkt := scanner.Bytes()
-		data := chompBytes(pktline.Data(pkt))
+		data := text.ChompBytes(pktline.Data(pkt))
 		d.PayloadSize += int64(len(data))
 
 		switch state {
@@ -135,9 +134,4 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 	d.LastPacket = time.Now()
 
 	return nil
-}
-
-// chompBytes converts b to a string with its trailing newline, if present, removed.
-func chompBytes(b []byte) string {
-	return strings.TrimSuffix(string(b), "\n")
 }
