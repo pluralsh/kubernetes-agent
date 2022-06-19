@@ -108,26 +108,18 @@ quick-test:
 
 .PHONY: docker
 docker: update-bazel
-	bazel build \
-		//cmd/agentk:container \
-		//cmd/kas:container
+	bazel build //cmd/agentk:container
 
 # This only works from a linux machine
 .PHONY: docker-race
 docker-race: update-bazel
-	bazel build \
-		//cmd/agentk:container_race \
-		//cmd/kas:container_race
+	bazel build //cmd/agentk:container_race
 
 # Export docker image into local Docker
 .PHONY: docker-export
 docker-export: update-bazel
 	bazel run \
 		//cmd/agentk:container \
-		-- \
-		--norun
-	bazel run \
-		//cmd/kas:container \
 		-- \
 		--norun
 
@@ -137,10 +129,6 @@ docker-export: update-bazel
 docker-export-race: update-bazel
 	bazel run \
 		//cmd/agentk:container_race \
-		-- \
-		--norun
-	bazel run \
-		//cmd/kas:container_race \
 		-- \
 		--norun
 

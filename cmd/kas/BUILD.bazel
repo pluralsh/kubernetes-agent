@@ -18,6 +18,7 @@ define_command_targets(
     arm64_targets = False,
     arm_targets = False,
     binary_embed = [":kas_lib"],
+    image_targets = False,
 )
 
 copy_absolute(

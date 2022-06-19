@@ -4,8 +4,6 @@ load("cmd.bzl", "push_bundle")
 prefix = "{STABLE_CI_REGISTRY}/{STABLE_CONTAINER_REPOSITORY_PATH}/"
 
 TAG = {
-    prefix + "kas:{STABLE_BUILD_GIT_TAG}": "//cmd/kas:container",
-    prefix + "kas:{STABLE_BUILD_GIT_TAG}-race": "//cmd/kas:container_race",
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-amd64": "//cmd/agentk:container",
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm": "//cmd/agentk:container_arm",
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}-arm64": "//cmd/agentk:container_arm64",
@@ -15,8 +13,6 @@ TAG = {
 }
 
 STABLE = {
-    prefix + "kas:stable": "//cmd/kas:container",
-    prefix + "kas:stable-race": "//cmd/kas:container_race",
     prefix + "agentk:stable-amd64": "//cmd/agentk:container",
     prefix + "agentk:stable-arm": "//cmd/agentk:container_arm",
     prefix + "agentk:stable-arm64": "//cmd/agentk:container_arm64",
@@ -34,8 +30,6 @@ TAG_AND_STABLE.update(STABLE)
 push_bundle(
     name = "push-commit",
     images = {
-        prefix + "kas:{STABLE_BUILD_GIT_COMMIT}": "//cmd/kas:container",
-        prefix + "kas:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/kas:container_race",
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-amd64": "//cmd/agentk:container",
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm": "//cmd/agentk:container_arm",
         prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-arm64": "//cmd/agentk:container_arm64",
@@ -48,8 +42,6 @@ push_bundle(
 push_bundle(
     name = "push-latest",
     images = {
-        prefix + "kas:latest": "//cmd/kas:container",
-        prefix + "kas:latest-race": "//cmd/kas:container_race",
         prefix + "agentk:latest-amd64": "//cmd/agentk:container",
         prefix + "agentk:latest-arm": "//cmd/agentk:container_arm",
         prefix + "agentk:latest-arm64": "//cmd/agentk:container_arm64",
