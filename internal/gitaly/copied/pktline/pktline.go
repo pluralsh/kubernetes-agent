@@ -9,14 +9,9 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"sync"
 )
 
 const (
-	// MaxSidebandData is the maximum number of bytes that fits into one Git
-	// pktline side-band-64k packet.
-	MaxSidebandData = MaxPktSize - 5
-
 	// MaxPktSize is the maximum size of content of a Git pktline side-band-64k
 	// packet, excluding size of length and band number
 	// https://gitlab.com/gitlab-org/git/-/blob/v2.30.0/pkt-line.h#L216
@@ -37,30 +32,6 @@ func NewScanner(r io.Reader) *bufio.Scanner {
 // as '0000'.
 func Data(pkt []byte) []byte {
 	return pkt[4:]
-}
-
-// Payload returns the pktline's data. It verifies that the length header matches what we expect as
-// data.
-func Payload(pkt []byte) ([]byte, error) {
-	if len(pkt) < 4 {
-		return nil, fmt.Errorf("packet too small")
-	}
-
-	if IsFlush(pkt) {
-		return nil, fmt.Errorf("flush packets do not have a payload")
-	}
-
-	lengthHeader := string(pkt[:4])
-	length, err := strconv.ParseUint(lengthHeader, 16, 16)
-	if err != nil {
-		return nil, fmt.Errorf("parsing length header %q: %w", lengthHeader, err)
-	}
-
-	if uint64(len(pkt)) != length {
-		return nil, fmt.Errorf("packet length %d does not match header length %d", len(pkt), length)
-	}
-
-	return pkt[4:], nil
 }
 
 // IsFlush detects the special flush packet '0000'
@@ -139,72 +110,4 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 	}
 
 	return pktLength, data[:pktLength], nil
-}
-
-// SidebandWriter multiplexes byte streams into a single side-band-64k stream.
-type SidebandWriter struct {
-	w   io.Writer
-	m   sync.Mutex
-	buf [MaxPktSize]byte // Use a buffer to coalesce header and payload into one write syscall
-}
-
-// NewSidebandWriter instantiates a new SidebandWriter.
-func NewSidebandWriter(w io.Writer) *SidebandWriter { return &SidebandWriter{w: w} }
-
-func (sw *SidebandWriter) writeBand(band byte, data []byte) (int, error) {
-	sw.m.Lock()
-	defer sw.m.Unlock()
-
-	n := 0
-	for len(data) > 0 {
-		const headerSize = 5
-
-		chunkSize := copy(sw.buf[headerSize:], data)
-		header := chunkSize + headerSize
-		copy(sw.buf[:4], fmt.Sprintf("%04x", header))
-		sw.buf[4] = band
-
-		if _, err := sw.w.Write(sw.buf[:header]); err != nil {
-			return n, err
-		}
-		data = data[chunkSize:]
-		n += chunkSize
-	}
-
-	return n, nil
-}
-
-// Writer returns an io.Writer that writes into the multiplexed stream.
-// Writers for different bands can be used concurrently.
-func (sw *SidebandWriter) Writer(band byte) io.Writer {
-	return writerFunc(func(p []byte) (int, error) {
-		return sw.writeBand(band, p)
-	})
-}
-
-type writerFunc func([]byte) (int, error)
-
-func (wf writerFunc) Write(p []byte) (int, error) { return wf(p) }
-
-type errNotSideband struct{ pkt string }
-
-func (err *errNotSideband) Error() string { return fmt.Sprintf("invalid sideband packet: %q", err.pkt) }
-
-// EachSidebandPacket iterates over a side-band-64k pktline stream. For
-// each packet, it will call fn with the band ID and the packet. Fn must
-// not retain the packet.
-func EachSidebandPacket(r io.Reader, fn func(byte, []byte) error) error {
-	scanner := NewScanner(r)
-
-	for scanner.Scan() {
-		data := Data(scanner.Bytes())
-		if len(data) == 0 {
-			return &errNotSideband{scanner.Text()}
-		}
-		if err := fn(data[0], data[1:]); err != nil {
-			return err
-		}
-	}
-
-	return scanner.Err()
 }
