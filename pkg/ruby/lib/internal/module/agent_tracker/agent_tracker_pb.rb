@@ -5,6 +5,7 @@ require 'google/protobuf'
 
 require 'google/protobuf/timestamp_pb'
 require 'internal/module/modshared/modshared_pb'
+
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/agent_tracker/agent_tracker.proto", :syntax => :proto3) do
     add_message "gitlab.agent.agent_tracker.ConnectedAgentInfo" do

@@ -70,7 +70,7 @@ regenerate-mocks: internal-regenerate-mocks fmt update-bazel
 
 .PHONY: update-repos
 update-repos:
-	go mod tidy
+	go mod tidy -compat=1.18
 	bazel run \
 		//:gazelle -- \
 		update-repos \
@@ -78,7 +78,7 @@ update-repos:
 		-prune=true \
 		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
-	go mod tidy
+	go mod tidy -compat=1.18
 
 .PHONY: update-bazel
 update-bazel: gazelle
@@ -197,4 +197,4 @@ show-go-dependency-updates:
 delete-generated-files:
 	find . -name '*.pb.go' -type f -delete
 	find . -name '*.pb.validate.go' -type f -delete
-	find . -name '*_pb.rb' -type f -delete
+	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete

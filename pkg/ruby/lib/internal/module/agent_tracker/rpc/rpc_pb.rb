@@ -4,6 +4,8 @@
 require 'google/protobuf'
 
 require 'internal/module/agent_tracker/agent_tracker_pb'
+require 'validate/validate_pb'
+
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/agent_tracker/rpc/rpc.proto", :syntax => :proto3) do
     add_message "gitlab.agent.agent_tracker.rpc.GetConnectedAgentsRequest" do
