@@ -25,7 +25,7 @@ func BenchmarkMultipleRefsAndCapsParse(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer() // don't take the stuff above into account
 	for i := 0; i < b.N; i++ {
-		_, err := ParseReferenceDiscovery(bytes.NewReader(data))
+		err := ParseReferenceDiscovery(r, func(ref Reference) bool { return false })
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -40,10 +40,10 @@ func TestSingleRefParses(t *testing.T) {
 	gittest.WritePktlineString(t, buf, oid1+" HEAD\x00capability")
 	gittest.WritePktlineFlush(t, buf)
 
-	d, err := ParseReferenceDiscovery(buf)
+	var refs []Reference
+	err := ParseReferenceDiscovery(buf, accumulateRefs(&refs))
 	require.NoError(t, err)
-	require.Equal(t, []string{"capability"}, d.Caps)
-	require.Equal(t, []Reference{{Oid: oid1, Name: "HEAD"}}, d.Refs)
+	require.Equal(t, []Reference{{Oid: []byte(oid1), Name: []byte("HEAD")}}, refs)
 }
 
 func TestMultipleRefsAndCapsParse(t *testing.T) {
@@ -54,10 +54,10 @@ func TestMultipleRefsAndCapsParse(t *testing.T) {
 	gittest.WritePktlineString(t, buf, oid2+" refs/heads/master")
 	gittest.WritePktlineFlush(t, buf)
 
-	d, err := ParseReferenceDiscovery(buf)
+	var refs []Reference
+	err := ParseReferenceDiscovery(buf, accumulateRefs(&refs))
 	require.NoError(t, err)
-	require.Equal(t, []string{"first", "second"}, d.Caps)
-	require.Equal(t, []Reference{{Oid: oid1, Name: "HEAD"}, {Oid: oid2, Name: "refs/heads/master"}}, d.Refs)
+	require.Equal(t, []Reference{{Oid: []byte(oid1), Name: []byte("HEAD")}, {Oid: []byte(oid2), Name: []byte("refs/heads/master")}}, refs)
 }
 
 func TestInvalidHeaderFails(t *testing.T) {
@@ -67,7 +67,7 @@ func TestInvalidHeaderFails(t *testing.T) {
 	gittest.WritePktlineString(t, buf, oid1+" HEAD\x00caps")
 	gittest.WritePktlineFlush(t, buf)
 
-	_, err := ParseReferenceDiscovery(buf)
+	err := ParseReferenceDiscovery(buf, func(ref Reference) bool { return false })
 	require.Error(t, err)
 }
 
@@ -77,7 +77,7 @@ func TestMissingRefsFail(t *testing.T) {
 	gittest.WritePktlineFlush(t, buf)
 	gittest.WritePktlineFlush(t, buf)
 
-	_, err := ParseReferenceDiscovery(buf)
+	err := ParseReferenceDiscovery(buf, func(ref Reference) bool { return false })
 	require.Error(t, err)
 }
 
@@ -89,7 +89,7 @@ func TestInvalidRefFail(t *testing.T) {
 	gittest.WritePktlineString(t, buf, oid2)
 	gittest.WritePktlineFlush(t, buf)
 
-	_, err := ParseReferenceDiscovery(buf)
+	err := ParseReferenceDiscovery(buf, func(ref Reference) bool { return false })
 	require.Error(t, err)
 }
 
@@ -99,6 +99,22 @@ func TestMissingTrailingFlushFails(t *testing.T) {
 	gittest.WritePktlineFlush(t, buf)
 	gittest.WritePktlineString(t, buf, oid1+" HEAD\x00caps")
 
-	d := ReferenceDiscovery{}
-	require.Error(t, d.Parse(buf))
+	err := ParseReferenceDiscovery(buf, func(ref Reference) bool { return false })
+	require.Error(t, err)
+}
+
+func cloneSlice(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
+}
+
+func accumulateRefs(refs *[]Reference) ReferenceCb {
+	return func(ref Reference) bool {
+		*refs = append(*refs, Reference{
+			Oid:  cloneSlice(ref.Oid),
+			Name: cloneSlice(ref.Name),
+		})
+		return false
+	}
 }

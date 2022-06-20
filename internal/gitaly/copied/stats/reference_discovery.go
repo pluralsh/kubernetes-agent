@@ -5,36 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/pktline"
 )
 
-// Reference as used by the reference discovery protocol
+// Reference as used by the reference discovery protocol.
 type Reference struct {
 	// Oid is the object ID the reference points to
-	Oid string
+	Oid []byte
 	// Name of the reference. The name will be suffixed with ^{} in case
 	// the reference is the peeled commit.
-	Name string
+	Name []byte
 }
 
-// ReferenceDiscovery contains information about a reference discovery session.
-type ReferenceDiscovery struct {
-	// FirstPacket tracks the time when the first pktline was received
-	FirstPacket time.Time
-	// LastPacket tracks the time when the last pktline was received
-	LastPacket time.Time
-	// PayloadSize tracks the size of all pktlines' data
-	PayloadSize int64
-	// Packets tracks the total number of packets consumed
-	Packets int
-	// Refs contains all announced references
-	Refs []Reference
-	// Caps contains all supported capabilities
-	Caps []string
-}
+// ReferenceCb is a callback that consumes parsed references.
+// WARNING: It must not hold onto the byte slices as the backing array is reused! Make copies if needed.
+// Returns true if reference parsing should stop.
+type ReferenceCb func(Reference) bool
 
 type referenceDiscoveryState int
 
@@ -47,16 +34,8 @@ const (
 )
 
 // ParseReferenceDiscovery parses a client's reference discovery stream and
-// returns either information about the reference discovery or an error in case
+// calls cb with references. It returns an error in case
 // it couldn't make sense of the client's request.
-func ParseReferenceDiscovery(body io.Reader) (ReferenceDiscovery, error) {
-	d := ReferenceDiscovery{}
-	return d, d.Parse(body)
-}
-
-// Parse parses a client's reference discovery stream into the given
-// ReferenceDiscovery struct or returns an error in case it couldn't make sense
-// of the client's request.
 //
 // Expected protocol:
 // - "# service=git-upload-pack\n"
@@ -65,18 +44,16 @@ func ParseReferenceDiscovery(body io.Reader) (ReferenceDiscovery, error) {
 // - "<OID> <ref>\n"
 // - ...
 // - FLUSH
-func (d *ReferenceDiscovery) Parse(body io.Reader) error {
+func ParseReferenceDiscovery(body io.Reader, cb ReferenceCb) error {
 	state := referenceDiscoveryExpectService
 	scanner := pktline.NewScanner(body)
 
-	for ; scanner.Scan(); d.Packets++ {
+	for scanner.Scan() {
 		pkt := scanner.Bytes()
 		data := bytes.TrimSuffix(pktline.Data(pkt), []byte{'\n'})
-		d.PayloadSize += int64(len(data))
 
 		switch state {
 		case referenceDiscoveryExpectService:
-			d.FirstPacket = time.Now()
 			if !bytes.Equal(data, []byte("# service=git-upload-pack")) {
 				return fmt.Errorf("unexpected header %q", data)
 			}
@@ -89,17 +66,18 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 
 			state = referenceDiscoveryExpectRefWithCaps
 		case referenceDiscoveryExpectRefWithCaps:
-			split := bytes.SplitN(data, []byte{0}, 2)
-			if len(split) != 2 {
+			split0, _, found := bytes.Cut(data, []byte{0})
+			if !found {
 				return errors.New("invalid first reference line")
 			}
 
-			ref := bytes.SplitN(split[0], []byte{' '}, 2)
-			if len(ref) != 2 {
+			ref0, ref1, found := bytes.Cut(split0, []byte{' '})
+			if !found {
 				return errors.New("invalid reference line")
 			}
-			d.Refs = append(d.Refs, Reference{Oid: string(ref[0]), Name: string(ref[1])})
-			d.Caps = strings.Split(string(split[1]), " ")
+			if cb(Reference{Oid: ref0, Name: ref1}) {
+				return nil
+			}
 
 			state = referenceDiscoveryExpectRef
 		case referenceDiscoveryExpectRef:
@@ -108,11 +86,13 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 				continue
 			}
 
-			split := bytes.SplitN(data, []byte{' '}, 2)
-			if len(split) != 2 {
+			split0, split1, found := bytes.Cut(data, []byte{' '})
+			if !found {
 				return errors.New("invalid reference line")
 			}
-			d.Refs = append(d.Refs, Reference{Oid: string(split[0]), Name: string(split[1])})
+			if cb(Reference{Oid: split0, Name: split1}) {
+				return nil
+			}
 		case referenceDiscoveryExpectEnd:
 			return errors.New("received packet after flush")
 		}
@@ -121,17 +101,9 @@ func (d *ReferenceDiscovery) Parse(body io.Reader) error {
 	if err := scanner.Err(); err != nil {
 		return err
 	}
-	if len(d.Refs) == 0 {
-		return errors.New("received no references")
-	}
-	if len(d.Caps) == 0 {
-		return errors.New("received no capabilities")
-	}
 	if state != referenceDiscoveryExpectEnd {
 		return errors.New("discovery ended prematurely")
 	}
-
-	d.LastPacket = time.Now()
 
 	return nil
 }

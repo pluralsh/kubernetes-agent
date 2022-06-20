@@ -17,6 +17,7 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitaly/copied/stats",
+        "//internal/tool/ioz",
         "@com_github_bmatcuk_doublestar_v2//:doublestar",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@org_golang_google_grpc//:grpc",
