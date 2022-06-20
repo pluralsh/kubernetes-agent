@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/pktline"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/memz"
 )
 
 // Reference as used by the reference discovery protocol.
@@ -46,7 +47,9 @@ const (
 // - FLUSH
 func ParseReferenceDiscovery(body io.Reader, cb ReferenceCb) error {
 	state := referenceDiscoveryExpectService
-	scanner := pktline.NewScanner(body)
+	buf := memz.Get64k()
+	defer memz.Put64k(buf)
+	scanner := pktline.NewScanner(body, buf)
 
 	for scanner.Scan() {
 		pkt := scanner.Bytes()

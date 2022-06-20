@@ -6,7 +6,10 @@ go_library(
     srcs = ["reference_discovery.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats",
     visibility = ["//:__subpackages__"],
-    deps = ["//internal/gitaly/copied/pktline"],
+    deps = [
+        "//internal/gitaly/copied/pktline",
+        "//internal/tool/memz",
+    ],
 )
 
 go_custom_test(

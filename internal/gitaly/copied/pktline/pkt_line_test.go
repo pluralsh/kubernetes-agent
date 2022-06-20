@@ -50,7 +50,7 @@ func TestScanner(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			scanner := NewScanner(strings.NewReader(tc.in))
+			scanner := NewScanner(strings.NewReader(tc.in), make([]byte, MaxPktSize))
 			var output []string
 			for scanner.Scan() {
 				output = append(output, scanner.Text())

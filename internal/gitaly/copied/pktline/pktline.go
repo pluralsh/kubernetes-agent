@@ -20,9 +20,10 @@ const (
 )
 
 // NewScanner returns a bufio.Scanner that splits on Git pktline boundaries
-func NewScanner(r io.Reader) *bufio.Scanner {
+// Buf must be at least MaxPktSize large.
+func NewScanner(r io.Reader, buf []byte) *bufio.Scanner {
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, MaxPktSize), MaxPktSize)
+	scanner.Buffer(buf[0:MaxPktSize:MaxPktSize], MaxPktSize)
 	scanner.Split(pktLineSplitter)
 	return scanner
 }
