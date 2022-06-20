@@ -24,7 +24,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.2
-	gitlab.com/gitlab-org/gitaly/v14 v14.10.4
+	gitlab.com/gitlab-org/gitaly/v15 v15.1.0-rc1
 	gitlab.com/gitlab-org/labkit v1.15.0
 	gitlab.com/gitlab-org/security-products/analyzers/report/v3 v3.7.1
 	go.uber.org/zap v1.21.0
@@ -162,7 +162,7 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect

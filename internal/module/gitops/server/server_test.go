@@ -28,7 +28,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
-	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"

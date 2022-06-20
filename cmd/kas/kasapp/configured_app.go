@@ -53,7 +53,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
-	"gitlab.com/gitlab-org/gitaly/v14/client"
+	"gitlab.com/gitlab-org/gitaly/v15/client"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"gitlab.com/gitlab-org/labkit/monitoring"
 	"go.uber.org/zap"
