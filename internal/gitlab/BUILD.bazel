@@ -29,7 +29,7 @@ go_library(
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_hashicorp_go_retryablehttp//:go-retryablehttp",
         "@com_github_opentracing_opentracing_go//:opentracing-go",
-        "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",

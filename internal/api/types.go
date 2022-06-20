@@ -3,7 +3,7 @@ package api
 import (
 	"crypto/sha256"
 
-	"gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
 
 // AgentToken is agentk's bearer access token.
