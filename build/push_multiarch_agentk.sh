@@ -4,6 +4,7 @@ set -e
 basetag="$1"
 
 if [[ -z "$CI_REGISTRY_IMAGE" ]]; then
+    # shellcheck disable=SC2016
     echo '$CI_REGISTRY_IMAGE must be present'
     return 1
 fi
