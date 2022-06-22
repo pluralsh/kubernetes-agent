@@ -43,8 +43,8 @@ import (
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/filez"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
@@ -322,7 +322,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh
 		return nopKasRouter{}, nil
 	}
 	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
@@ -536,7 +536,7 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 		return grpc.NewServer(), nil
 	}
 	listenCfg := a.Configuration.Api.Listen
-	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
@@ -590,7 +590,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 		return grpc.NewServer(), nil
 	}
 	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
@@ -734,7 +734,7 @@ func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 }
 
 func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
-	decodedAuthSecret, err := filez.LoadBase64Secret(a.Configuration.Gitlab.AuthenticationSecretFile)
+	decodedAuthSecret, err := ioz.LoadBase64Secret(a.Configuration.Gitlab.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}

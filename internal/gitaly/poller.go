@@ -1,20 +1,17 @@
 package gitaly
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
 
 const (
 	DefaultBranch = ""
-)
-
-var (
-	_ PollerInterface = &Poller{}
 )
 
 // PollerInterface does the following:
@@ -41,25 +38,23 @@ type PollInfo struct {
 }
 
 func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
-	r, err := p.fetchRefs(ctx, repo)
-	if err != nil {
-		return nil, err // don't wrap
-	}
 	refNameTag := "refs/tags/" + refName
 	refNameBranch := "refs/heads/" + refName
-	var head, master, wanted *Reference
-
-loop:
-	for i := range r.Refs {
-		switch r.Refs[i].Name {
+	var head, master, wanted *stats.Reference
+	err := p.fetchRefs(ctx, repo, func(ref stats.Reference) bool {
+		switch string(ref.Name) {
 		case refNameTag, refNameBranch:
-			wanted = &r.Refs[i]
-			break loop
+			wanted = cloneReference(ref)
+			return true
 		case "HEAD":
-			head = &r.Refs[i]
+			head = cloneReference(ref)
 		case "refs/heads/master":
-			master = &r.Refs[i]
+			master = cloneReference(ref)
 		}
+		return false
+	})
+	if err != nil {
+		return nil, err // don't wrap
 	}
 	if wanted == nil { // not found
 		if refName != DefaultBranch { // were looking for something specific, but didn't find it
@@ -74,15 +69,16 @@ loop:
 			return nil, NewNotFoundError("InfoRefsUploadPack", "default branch")
 		}
 	}
+	oid := string(wanted.Oid)
 	return &PollInfo{
-		UpdateAvailable: wanted.Oid != lastProcessedCommitId,
-		CommitId:        wanted.Oid,
+		UpdateAvailable: oid != lastProcessedCommitId,
+		CommitId:        oid,
 	}, nil
 }
 
 // fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 // fetchRefs returns *Error when a error occurs.
-func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
+func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository, cb stats.ReferenceCb) error {
 	ctx, cancel := context.WithCancel(appendFeatureFlagsToContext(ctx, p.Features))
 	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
@@ -92,22 +88,36 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*Ref
 	}
 	uploadPackResp, err := p.Client.InfoRefsUploadPack(ctx, uploadPackReq)
 	if err != nil {
-		return nil, NewRpcError(err, "InfoRefsUploadPack", "")
+		return NewRpcError(err, "InfoRefsUploadPack", "")
 	}
-	var inforefs []byte
-	for {
+	err = stats.ParseReferenceDiscovery(ioz.NewReceiveReader(func() ([]byte, error) {
 		entry, err := uploadPackResp.Recv() // nolint: govet
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				break
+				return nil, io.EOF
 			}
 			return nil, NewRpcError(err, "InfoRefsUploadPack.Recv", "")
 		}
-		inforefs = append(inforefs, entry.Data...)
-	}
-	refs, err := ParseReferenceDiscovery(bytes.NewReader(inforefs))
+		return entry.Data, nil
+	}), cb)
 	if err != nil {
-		return nil, NewProtocolError(err, "failed to parse reference discovery", "", "")
+		if _, ok := err.(*Error); ok { // nolint: errorlint
+			return err // A wrapped error already
+		}
+		return NewProtocolError(err, "failed to parse reference discovery", "", "")
 	}
-	return &refs, nil
+	return nil
+}
+
+func cloneReference(ref stats.Reference) *stats.Reference {
+	return &stats.Reference{
+		Oid:  cloneSlice(ref.Oid),
+		Name: cloneSlice(ref.Name),
+	}
+}
+
+func cloneSlice(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

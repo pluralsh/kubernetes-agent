@@ -3,25 +3,29 @@ package pktline
 // Utility functions for working with the Git pkt-line format. See
 // https://github.com/git/git/blob/master/Documentation/technical/protocol-common.txt
 
-// This file and the corresponding test were copied from Gitaly.
-
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
+	"unsafe"
 )
 
 const (
-	maxPktSize = 0xffff
+	// MaxPktSize is the maximum size of content of a Git pktline side-band-64k
+	// packet, excluding size of length and band number
+	// https://gitlab.com/gitlab-org/git/-/blob/v2.30.0/pkt-line.h#L216
+	MaxPktSize = 65520
 	pktDelim   = "0001"
 )
 
 // NewScanner returns a bufio.Scanner that splits on Git pktline boundaries
-func NewScanner(r io.Reader) *bufio.Scanner {
+// Buf must be at least MaxPktSize large.
+func NewScanner(r io.Reader, buf []byte) *bufio.Scanner {
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, maxPktSize), maxPktSize)
+	scanner.Buffer(buf[0:MaxPktSize:MaxPktSize], MaxPktSize)
 	scanner.Split(pktLineSplitter)
 	return scanner
 }
@@ -41,7 +45,7 @@ func IsFlush(pkt []byte) bool {
 // WriteString writes a string with pkt-line framing
 func WriteString(w io.Writer, str string) (int, error) {
 	pktLen := len(str) + 4
-	if pktLen > maxPktSize {
+	if pktLen > MaxPktSize {
 		return 0, fmt.Errorf("string too large: %d bytes", len(str))
 	}
 
@@ -81,7 +85,12 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 
 	// We have at least 4 bytes available so we can decode the 4-hex digit
 	// length prefix of the packet line.
-	pktLength64, err := strconv.ParseInt(string(data[:4]), 16, 0)
+	lenSlice := data[:4]
+	lenSliceHdr := (*reflect.SliceHeader)(unsafe.Pointer(&lenSlice)) // nolint: gosec
+	lenSliceStrHdr := reflect.StringHeader{Data: lenSliceHdr.Data, Len: lenSliceHdr.Len}
+	lenSliceStr := *(*string)(unsafe.Pointer(&lenSliceStrHdr)) // nolint: gosec, govet
+
+	pktLength64, err := strconv.ParseUint(lenSliceStr, 16, 0)
 	if err != nil {
 		return 0, nil, fmt.Errorf("pktLineSplitter: decode length: %w", err)
 	}
@@ -102,7 +111,7 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 		// data contains incomplete packet
 
 		if atEOF {
-			return 0, nil, fmt.Errorf("pktLineSplitter: less than %d bytes in input %q", pktLength, data)
+			return 0, nil, io.ErrUnexpectedEOF
 		}
 
 		return 0, nil, nil // want more data

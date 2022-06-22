@@ -16,8 +16,8 @@ import (
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/configuration_project/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/filez"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -116,7 +116,7 @@ func TestAsClient(t *testing.T) {
 }
 
 func constructKasConnection(t *testing.T, kasAddress, kasSecretFile string) *grpc.ClientConn {
-	jwtSecret, err := filez.LoadBase64Secret(kasSecretFile)
+	jwtSecret, err := ioz.LoadBase64Secret(kasSecretFile)
 	require.NoError(t, err)
 	u, err := url.Parse(kasAddress)
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func constructKasConnection(t *testing.T, kasAddress, kasSecretFile string) *grp
 func constructGitLabClient(t *testing.T, gitLabAddress, gitLabSecretFile string) *gitlab.Client {
 	gitLabUrl, err := url.Parse(gitLabAddress)
 	require.NoError(t, err)
-	secret, err := filez.LoadBase64Secret(gitLabSecretFile)
+	secret, err := ioz.LoadBase64Secret(gitLabSecretFile)
 	require.NoError(t, err)
 	// Secret for JWT signing
 	return gitlab.NewClient(

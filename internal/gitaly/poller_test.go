@@ -26,6 +26,10 @@ const (
 0000`
 )
 
+var (
+	_ PollerInterface = &Poller{}
+)
+
 func TestPoller(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -187,7 +191,8 @@ func mockInfoRefsUploadPack(t *testing.T, ctrl *gomock.Controller, ctx gomock.Ma
 			Return(resp2, nil),
 		infoRefsClient.EXPECT().
 			Recv().
-			Return(nil, io.EOF),
+			Return(nil, io.EOF).
+			MaxTimes(1),
 	)
 	httpClient.EXPECT().
 		InfoRefsUploadPack(ctx, matcher.ProtoEq(t, infoRefsReq)).

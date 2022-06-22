@@ -8,12 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	largestString = strings.Repeat("z", 0xffff-4)
-)
+var largestString = strings.Repeat("z", 65516)
 
 func TestScanner(t *testing.T) {
-	largestPacket := "ffff" + largestString
+	largestPacket := "fff0" + largestString
 	testCases := []struct {
 		desc string
 		in   string
@@ -52,7 +50,7 @@ func TestScanner(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			scanner := NewScanner(strings.NewReader(tc.in))
+			scanner := NewScanner(strings.NewReader(tc.in), make([]byte, MaxPktSize))
 			var output []string
 			for scanner.Scan() {
 				output = append(output, scanner.Text())
@@ -125,7 +123,7 @@ func TestWriteString(t *testing.T) {
 		{
 			desc: "largest possible string",
 			in:   largestString,
-			out:  "ffff" + largestString,
+			out:  "fff0" + largestString,
 		},
 		{
 			desc: "string that is too large",
