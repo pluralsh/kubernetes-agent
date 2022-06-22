@@ -50,17 +50,17 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 		},
 		{
 			httpStatus: http.StatusInternalServerError,
-			captureErr: "HTTP status code: 500",
+			captureErr: "HTTP status code: 500 for path /api/v4/internal/kubernetes/agent_info",
 			code:       codes.Unavailable,
 		},
 		{
 			httpStatus: http.StatusBadGateway,
-			captureErr: "HTTP status code: 502",
+			captureErr: "HTTP status code: 502 for path /api/v4/internal/kubernetes/agent_info",
 			code:       codes.Unavailable,
 		},
 		{
 			httpStatus: http.StatusServiceUnavailable,
-			captureErr: "HTTP status code: 503",
+			captureErr: "HTTP status code: 503 for path /api/v4/internal/kubernetes/agent_info",
 			code:       codes.Unavailable,
 		},
 	}

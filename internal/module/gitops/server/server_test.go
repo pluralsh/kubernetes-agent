@@ -150,7 +150,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	mockRpcApi.EXPECT().
-		HandleProcessingError(gomock.Any(), testhelpers.AgentId, "GetProjectInfo()", matcher.ErrorEq("HTTP status code: 500"))
+		HandleProcessingError(gomock.Any(), testhelpers.AgentId, "GetProjectInfo()", matcher.ErrorEq("HTTP status code: 500 for path /api/v4/internal/kubernetes/project_info"))
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().

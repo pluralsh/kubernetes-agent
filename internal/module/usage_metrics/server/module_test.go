@@ -94,7 +94,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			CloneUsageData().
 			Return(ud1),
 		mockApi.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "Failed to send usage data", matcher.ErrorEq("HTTP status code: 500")),
+			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "Failed to send usage data", matcher.ErrorEq("HTTP status code: 500 for path /api/v4/internal/kubernetes/usage_metrics")),
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud2),

@@ -11,7 +11,7 @@ var (
 )
 
 func (x *ClientError) Error() string {
-	return fmt.Sprintf("HTTP status code: %d", x.StatusCode)
+	return fmt.Sprintf("HTTP status code: %d for path %s", x.StatusCode, x.Path)
 }
 
 func IsForbidden(err error) bool {
