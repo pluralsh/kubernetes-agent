@@ -33,15 +33,20 @@ type Poller struct {
 }
 
 type PollInfo struct {
-	UpdateAvailable bool
 	CommitId        string
+	UpdateAvailable bool
+	// EmptyRepository is true when polling the default branch but no refs were found.
+	// When polling non-default branch and no refs were found the NotFound error is returned.
+	EmptyRepository bool
 }
 
 func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
 	refNameTag := "refs/tags/" + refName
 	refNameBranch := "refs/heads/" + refName
+	isEmpty := true
 	var head, master, wanted *stats.Reference
 	err := p.fetchRefs(ctx, repo, func(ref stats.Reference) bool {
+		isEmpty = false
 		switch string(ref.Name) {
 		case refNameTag, refNameBranch:
 			wanted = cloneReference(ref)
@@ -57,22 +62,27 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 		return nil, err // don't wrap
 	}
 	if wanted == nil { // not found
-		if refName != DefaultBranch { // were looking for something specific, but didn't find it
+		if refName != DefaultBranch { // was looking for something specific, but didn't find it
 			return nil, NewNotFoundError("InfoRefsUploadPack", refName)
 		}
-		// looking for default branch
-		if head != nil {
+		// was looking for the default branch
+		switch {
+		case head != nil:
 			wanted = head
-		} else if master != nil {
+		case master != nil:
 			wanted = master
-		} else {
+		case isEmpty:
+			return &PollInfo{
+				EmptyRepository: true,
+			}, nil
+		default:
 			return nil, NewNotFoundError("InfoRefsUploadPack", "default branch")
 		}
 	}
 	oid := string(wanted.Oid)
 	return &PollInfo{
-		UpdateAvailable: oid != lastProcessedCommitId,
 		CommitId:        oid,
+		UpdateAvailable: oid != lastProcessedCommitId,
 	}, nil
 }
 

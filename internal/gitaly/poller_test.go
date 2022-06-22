@@ -24,6 +24,9 @@ const (
 003f` + revision1 + ` refs/heads/master
 0044` + revision2 + ` refs/heads/` + branch + `
 0000`
+
+	infoRefsEmptyData = `001e# service=git-upload-pack
+00000000`
 )
 
 var (
@@ -124,7 +127,23 @@ func TestPoller(t *testing.T) {
 	}
 }
 
-func TestPollerErrors(t *testing.T) {
+func TestPoller_EmptyRepository(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	r := repo()
+	infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
+	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+	mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(infoRefsEmptyData))
+	p := Poller{
+		Client: httpClient,
+	}
+	pollInfo, err := p.Poll(context.Background(), r, "", DefaultBranch)
+	require.NoError(t, err)
+	assert.False(t, pollInfo.UpdateAvailable)
+	assert.True(t, pollInfo.EmptyRepository)
+	assert.Empty(t, pollInfo.CommitId)
+}
+
+func TestPoller_Errors(t *testing.T) {
 	t.Run("branch not found", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		r := repo()

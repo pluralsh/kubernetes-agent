@@ -253,8 +253,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
@@ -286,6 +286,29 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				Glob: defaultGitOpsManifestPathGlob,
 			},
 		},
+	}, server)
+	require.NoError(t, err)
+}
+
+func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
+	projInfo := projectInfo()
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
+			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
+				return &gitaly.PollInfo{
+					EmptyRepository: true,
+				}, nil
+			}),
+	)
+	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		CommitId:  revision,
 	}, server)
 	require.NoError(t, err)
 }
@@ -331,8 +354,8 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
@@ -377,8 +400,8 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				return &gitaly.PollInfo{
-					UpdateAvailable: false,
 					CommitId:        revision,
+					UpdateAvailable: false,
 				}, nil
 			}),
 	)
@@ -445,8 +468,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 					Return(&gitaly.PollInfo{
-						UpdateAvailable: true,
 						CommitId:        revision,
+						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
 					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).

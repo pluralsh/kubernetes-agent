@@ -67,6 +67,10 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
 			return nil, retry.Backoff
 		}
+		if info.EmptyRepository {
+			log.Debug("Config: empty repository")
+			return nil, retry.Continue
+		}
 		if !info.UpdateAvailable {
 			log.Debug("Config: no updates", logz.CommitId(lastProcessedCommitId))
 			return nil, retry.Continue
