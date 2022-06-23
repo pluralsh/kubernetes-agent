@@ -157,8 +157,8 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
@@ -183,8 +183,8 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: false,
 				CommitId:        revision,
+				UpdateAvailable: false,
 			}, nil),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
@@ -214,8 +214,8 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
@@ -223,6 +223,25 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 		pf.EXPECT().
 			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 			Return(nil, gitaly.NewNotFoundError("Bla", "some/file")),
+	)
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
+	require.NoError(t, err)
+}
+
+func TestGetConfiguration_EmptyRepository(t *testing.T) {
+	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				EmptyRepository: true,
+			}, nil),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
 		AgentMeta: agentMeta(),
@@ -248,8 +267,8 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
 					Return(&gitaly.PollInfo{
-						UpdateAvailable: true,
 						CommitId:        revision,
+						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
 					PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).

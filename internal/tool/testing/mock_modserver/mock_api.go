@@ -13,7 +13,7 @@ func NewMockAgentRpcApiWithMockPoller(ctrl *gomock.Controller, pollTimes int) *M
 			DoAndReturn(func(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
 				for i := 0; i < pollTimes; i++ {
 					err, res := f()
-					if res == retry.Done {
+					if err != nil || res == retry.Done {
 						return err
 					}
 				}

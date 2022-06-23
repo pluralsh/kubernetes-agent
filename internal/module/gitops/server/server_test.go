@@ -204,7 +204,7 @@ func TestGetObjectsToSynchronize_GetAgentInfo_RetriableError(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
-	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
 	s.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objs := objectsYAML(t)
@@ -242,10 +242,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
 					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 				},
-			})).
-			Do(func(resp *rpc.ObjectsToSynchronizeResponse) {
-				cancel() // stop streaming call after the first response has been sent
-			}),
+			})),
 	)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
@@ -256,8 +253,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
@@ -293,8 +290,31 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
+	projInfo := projectInfo()
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
+			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
+				return &gitaly.PollInfo{
+					EmptyRepository: true,
+				}, nil
+			}),
+	)
+	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		CommitId:  revision,
+	}, server)
+	require.NoError(t, err)
+}
+
 func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
-	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
 	s.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objs := objectsYAML(t)
@@ -323,10 +343,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
 					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 				},
-			})).
-			Do(func(resp *rpc.ObjectsToSynchronizeResponse) {
-				cancel() // stop streaming call after the first response has been sent
-			}),
+			})),
 	)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
@@ -337,8 +354,8 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
-				UpdateAvailable: true,
 				CommitId:        revision,
+				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
@@ -372,7 +389,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
-	server, cancel, s, ctrl, gitalyPool, _ := setupServer(t)
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
 	projInfo := projectInfo()
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
@@ -382,10 +399,9 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
-				cancel() // stop the test
 				return &gitaly.PollInfo{
-					UpdateAvailable: false,
 					CommitId:        revision,
+					UpdateAvailable: false,
 				}, nil
 			}),
 	)
@@ -428,7 +444,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 	for _, tc := range pathFetcherErrs {
 		t.Run(tc.errMsg, func(t *testing.T) {
-			server, _, s, ctrl, gitalyPool, mockRpcApi := setupServer(t)
+			server, s, ctrl, gitalyPool, mockRpcApi := setupServer(t)
 
 			projInfo := projectInfo()
 			server.EXPECT().
@@ -452,8 +468,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 					Return(&gitaly.PollInfo{
-						UpdateAvailable: true,
 						CommitId:        revision,
+						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
 					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
@@ -503,7 +519,7 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, context.CancelFunc, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAgentRpcApi) {
+func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAgentRpcApi) {
 	correlationId := correlation.SafeRandomID()
 	ctx, s, ctrl, mockRpcApi, gitalyPool := setupServerWithAgentInfo(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
@@ -511,7 +527,6 @@ func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServ
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
 	ctx = correlation.ContextWithCorrelation(ctx, correlationId)
-	ctx, cancel := context.WithCancel(ctx)
 
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
@@ -519,7 +534,7 @@ func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServ
 		Return(ctx).
 		MinTimes(1)
 
-	return server, cancel, s, ctrl, gitalyPool, mockRpcApi
+	return server, s, ctrl, gitalyPool, mockRpcApi
 }
 
 func setupServerWithAgentInfo(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (context.Context, *server, *gomock.Controller, *mock_modserver.MockAgentRpcApi, *mock_internalgitaly.MockPoolInterface) {

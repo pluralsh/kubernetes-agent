@@ -90,6 +90,10 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 
 		s.trackPollInterval(&lastPoll)
 
+		if info.EmptyRepository {
+			log.Debug("GitOps: empty repository")
+			return nil, retry.Continue
+		}
 		if !info.UpdateAvailable {
 			log.Debug("GitOps: no updates", logz.CommitId(req.CommitId))
 			return nil, retry.Continue

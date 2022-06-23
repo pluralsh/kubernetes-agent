@@ -71,14 +71,17 @@ func TestInvalidHeaderFails(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestMissingRefsFail(t *testing.T) {
+func TestMissingRefsReturnsNoRefs(t *testing.T) {
 	buf := &bytes.Buffer{}
 	gittest.WritePktlineString(t, buf, "# service=git-upload-pack\n")
 	gittest.WritePktlineFlush(t, buf)
+	// no refs here. Empty repository without any refs.
 	gittest.WritePktlineFlush(t, buf)
 
-	err := ParseReferenceDiscovery(buf, func(ref Reference) bool { return false })
-	require.Error(t, err)
+	var refs []Reference
+	err := ParseReferenceDiscovery(buf, accumulateRefs(&refs))
+	require.NoError(t, err)
+	require.Empty(t, refs)
 }
 
 func TestInvalidRefFail(t *testing.T) {
