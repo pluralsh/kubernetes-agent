@@ -133,22 +133,22 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 		{
 			allowedAgentsHttpStatus: http.StatusUnauthorized, // token is invalid
 			expectedHttpStatus:      http.StatusUnauthorized,
-			message:                 "GitLab Agent Server: Unauthorized: CI job token: HTTP status code: 401",
+			message:                 "GitLab Agent Server: Unauthorized: CI job token: HTTP status code: 401 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusForbidden, // token is forbidden
 			expectedHttpStatus:      http.StatusForbidden,
-			message:                 "GitLab Agent Server: Forbidden: CI job token: HTTP status code: 403",
+			message:                 "GitLab Agent Server: Forbidden: CI job token: HTTP status code: 403 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusNotFound, // agent is not found
 			expectedHttpStatus:      http.StatusNotFound,
-			message:                 "GitLab Agent Server: Not found: agents for CI job token: HTTP status code: 404",
+			message:                 "GitLab Agent Server: Not found: agents for CI job token: HTTP status code: 404 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusBadGateway, // some weird error
 			expectedHttpStatus:      http.StatusInternalServerError,
-			message:                 "GitLab Agent Server: Failed to get allowed agents for CI job token: HTTP status code: 502",
+			message:                 "GitLab Agent Server: Failed to get allowed agents for CI job token: HTTP status code: 502 for path /api/v4/job/allowed_agents",
 			captureErr:              true,
 		},
 	}
@@ -161,7 +161,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 			if tc.captureErr {
 				api.EXPECT().
 					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
-						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d", tc.allowedAgentsHttpStatus)))
+						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/job/allowed_agents", tc.allowedAgentsHttpStatus)))
 			}
 			resp, err := client.Do(req)
 			require.NoError(t, err)

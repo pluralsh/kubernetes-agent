@@ -81,6 +81,7 @@ func TestJsonResponseHandler_Errors(t *testing.T) {
 			)
 			require.Error(t, err)
 			assert.True(t, f(err))
+			assert.True(t, errHasPath(err, "/bla"))
 		})
 	}
 }
@@ -141,6 +142,7 @@ func TestNoContentResponseHandler_Errors(t *testing.T) {
 			)
 			require.Error(t, err)
 			assert.True(t, f(err))
+			assert.True(t, errHasPath(err, "/bla"))
 		})
 	}
 }
@@ -157,6 +159,7 @@ func TestNoContentResponseHandler_Unauthorized(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.True(t, gitlab.IsUnauthorized(err))
+	assert.True(t, errHasPath(err, "/unauthorized"))
 }
 
 func TestNoContentResponseHandler_HappyPath(t *testing.T) {
@@ -194,4 +197,12 @@ func TestNoContentResponseHandler_Cancellation(t *testing.T) {
 func assertNoContentRequest(t *testing.T, r *http.Request) {
 	testhelpers.AssertRequestMethod(t, r, http.MethodGet)
 	assert.Empty(t, r.Header.Values(httpz.AcceptHeader))
+}
+
+func errHasPath(err error, path string) bool {
+	var e *gitlab.ClientError
+	if !errors.As(err, &e) {
+		return false
+	}
+	return e.Path == path
 }

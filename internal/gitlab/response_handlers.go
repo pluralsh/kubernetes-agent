@@ -59,8 +59,13 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 				}
 				return nil
 			default: // Unexpected status
+				path := ""
+				if resp.Request != nil && resp.Request.URL != nil {
+					path = resp.Request.URL.Path
+				}
 				return &ClientError{
 					StatusCode: int32(resp.StatusCode),
+					Path:       path,
 				}
 			}
 		},
@@ -84,8 +89,13 @@ func NoContentResponseHandler() ResponseHandler {
 				}
 				return err
 			default: // Unexpected status
+				path := ""
+				if resp.Request != nil && resp.Request.URL != nil {
+					path = resp.Request.URL.Path
+				}
 				return &ClientError{
 					StatusCode: int32(resp.StatusCode),
+					Path:       path,
 				}
 			}
 		},

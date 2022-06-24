@@ -8,4 +8,5 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/
 
 message ClientError {
   int32 status_code = 1;
+  string path = 2;
 }
