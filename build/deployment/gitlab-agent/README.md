@@ -1,103 +1,106 @@
-# GitLab Agent for Kubernetes
+# GitLab Agent for Kubernetes package
 
 ## Description
 
-Package for installing GitLab Agent.
+Package for installing GitLab Agent on a Kubernetes cluster.
+
+`agentk` is the GitLab Agent. It keeps a connection established to a GitLab instance, waiting for requests to process. It may also actively send information about things happening in the cluster.
 
 ## Prerequisites
 
-- [Kustomize](https://kustomize.io/) version v3.8 or newer.
-- *Optional, but recommended* - [`kpt`](https://googlecontainertools.github.io/kpt/) version v0.32.0 or newer, but
-  not v1.0+. This package
-  [needs to be updated](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/205) to support
-  newer versions. The latest pre-v1.0 version is [v0.39.3](https://github.com/GoogleContainerTools/kpt/releases/tag/v0.39.3).
+- [Kustomize](https://kustomize.io/)
+- [`kpt`](https://kpt.dev/book/01-getting-started/01-system-requirements) version v1.0+
+  - for pre-v1.0 versions, see *link* (previous package management with kpt [v0.39.3](https://github.com/GoogleContainerTools/kpt/releases/tag/v0.39.3))
+- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [Docker](https://docs.docker.com/get-docker/); specifically, the `docker-cli`
+- `cluster-admin` access to a Kubernetes cluster
 
 ## Configuration
 
 GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 
-1. URL. The agent can use WebSockets or gRPC protocols to connect to GitLab. Depending
-   on how your GitLab instance is configured, you may need to use one or the other.
+1. URL - something like `wss://kas.gitlab.com`.
 
-   - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:8150`) to use gRPC. The connection is **not encrypted**.
-   - Specify `grpcs` scheme to use an encrypted gRPC connection.
-   - Specify `ws` scheme to use WebSocket connection. The connection is **not encrypted**.
-   - Specify `wss` scheme to use an encrypted WebSocket connection.
+    > The agent can use WebSockets or gRPC protocols to connect to GitLab. Depending on how your GitLab instance is configured, you may need to use one or the other.
+    >
+    > - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:8150`) to use gRPC. The connection is **not encrypted**.
+    > - Specify `grpcs` scheme to use an encrypted gRPC connection.
+    > - Specify `ws` scheme to use WebSocket connection. The connection is **not encrypted**.
+    > - Specify `wss` scheme to use an encrypted WebSocket connection.
 
-1. Token.
+1. Token - obtained through UI when registering the agent.
 
-## Use the package
+## Deploy the package
 
-These instructions use Kustomize and are applicable regardless of whether or not
-you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
+1. Get the package.
 
-1. Get the package, using the method of your choice.
+    ```shell
+    https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git/build/deployment/agentk
+    ```
 
-   - *If you are using `kpt`,* read the
-     [`kpt pkg get` documentation](https://googlecontainertools.github.io/kpt/guides/consumer/get/)
-     for more information on how the following command works:
-
-      ```shell
-      kpt pkg get https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git/build/deployment/gitlab-agent gitlab-agent
-      ```
-
-   - *If you are not using `kpt`,* you can use contents of this directory directly
-     by cloning the repository with the following commands:
+   - *If you are not using `kpt`, clone the repository*:
 
      ```shell
      git clone https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git
-     cd gitlab-agent/build/deployment/gitlab-agent
+     cd gitlab-agent/build/deployment/agentk
      ```
 
-1. (Optional) [Make a Kustomize overlay](https://kubernetes-sigs.github.io/kustomize/guides/offtheshelf/)
-   with any desired customizations.
+1. (Optional) Edit the package if you want to change the agent name, the namespace where the agent is deployed, the image version, etc... This step is also necessary if you are installing multiple agents in your cluster.
 
-1. (Optional) Use Kustomize setters to alter recommended configuration knobs:
+    - Commit the initial package to version control
+    - Edit values in the `kpt-setter-configmap.yaml` file
 
-    ```shell
-    # in gitlab-agent directory
-    kustomize cfg list-setters .
-    ./
+        | Name                    | Default Value                                                                   | Description                                                        |
+        | ----------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+        | **agent-image-ref**     | `registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:stable` | Image ref name and tag                                             |
+        | **kas-args**            | `- --token-file=/config/token\n- --kas-address\n- wss://kas.gitlab.com`         | Image args for agentk container                                    |
+        | **name-prefix**         | `""`                                                                            | Prefix for resource names (multiple agents must have unique names) |
+        | **namespace**           | `gitlab-agent`                                                                  | Namespace to install Agent into                                    |
+        | **prometheus-scrape**   | `true`                                                                          | Enable or disable scraping of agentk metrics                       |
+        | **serviceaccount-name** | `gitlab-agent`                                                                  |                                                                    |
 
-        NAME                    VALUE               SET BY                  DESCRIPTION              COUNT   REQUIRED   IS SET
-    agent-version       stable                  package-default   Image tag for agentk container     1       No         No
-    kas-address         wss://kas.gitlab.com    package-default   kas address. Use                   1       No         No
-                                                                  grpc://host.docker.internal:8150
-                                                                  if connecting from within Docker
-                                                                  e.g. from kind.
-    name-prefix                                                   Prefix for resource names          1       No         No
-    namespace           gitlab-agent            package-default   Namespace to install GitLab        1       No         No
-                                                                  Agent into
-    prometheus-scrape   true                    package-default   Enable or disable Prometheus       1       No         No
-                                                                  scraping of agentk metrics.
-    kustomize cfg set . namespace custom-place
-    set 1 fields
-    # kustomize cfg set . kas-address wss://kas.gitlab.com # for GitLab.com
-    kustomize cfg set . kas-address wss://my-host.example.com:443/-/kubernetes-agent
-    set 1 fields
-    ```
+    - Apply the change(s)
 
-1. (Optional but recommended) Commit the configuration into a repository and manage it as code.
+        ```shell
+        kpt fn render
+        ```
 
-1. Prior to deployment, write the agent token you obtained via registration in GitLab to `base/secrets/agent.token`.
-   Note that this should not be committed to a repository and is excluded by the `.gitignore` in the `base/secrets`
-   directory by default.
+1. Add the agent token.
+
+    - Write the token you obtained from the agent registration step in GitLab to `secrets/agent.token`
+
+        ```shell
+        echo -n "<agent token>" > secrets/agent.token
+        ```
+
+        *Note that this should not be committed to a repository and is excluded by the `.gitignore` in the `secrets` directory by default.*
+
+1. Initialize the package for deployment.
 
     ```shell
-    echo -n "<agent token>" > base/secrets/agent.token
+    kpt live init
     ```
 
-1. Deploy the stock configuration or your customized overlay:
+1. (Optional but recommended) Commit changes to version control with a new version tag.
+
+1. Apply the package to the cluster.
 
     ```shell
-    # in the package directory
-    kustomize build cluster | kubectl apply -f -
-    # kustomize build my-custom-overlay | kubectl apply -f -
+    kustomize build | kpt live apply - --reconcile-timeout=2m
     ```
 
-Later, you can pull in package updates using
-[`kpt pkg update`](https://googlecontainertools.github.io/kpt/guides/consumer/update/):
+## Updating the Agent
 
-```shell
-kpt pkg update gitlab-agent --strategy resource-merge
-```
+1. Retrieve the latest version of the package.
+
+    ```shell
+    kpt pkg update gitlab-agent@{newVersion}
+    ```
+
+1. (Optional but recommended) Commit changes to version control with a new version tag.
+
+1. Apply the package to the cluster.
+
+    ```shell
+    kustomize build | kpt live apply - --reconcile-timeout=2m
+    ```

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: cluster overlay kustomization
+  annotations:
+    config.kubernetes.io/local-config: "true"
+resources:
+  - base.yaml
+  - clusterrolebinding.yaml
+  - Kptfile
+configurations:
+  - namereference.yaml
+transformers:
+  - namespace-patch.yaml
+secretGenerator:
+  - name: gitlab-agent-token
+    files:
+      - token=secrets/agent.token
+namespace: gitlab-agent # kpt-set: ${namespace}
+namePrefix: "" # kpt-set: ${name-prefix}
