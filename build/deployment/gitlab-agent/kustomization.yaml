@@ -8,6 +8,7 @@ resources:
   - base.yaml
   - clusterrolebinding.yaml
   - Kptfile
+  - resourcegroup.yaml # created by 'kpt live init'
 configurations:
   - namereference.yaml
 transformers:

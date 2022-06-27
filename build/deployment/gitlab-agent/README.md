@@ -35,20 +35,20 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 1. Get the package.
 
     ```shell
-    https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git/build/deployment/agentk
+    kpt pkg get https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git/build/deployment/gitlab-agent gitlab-agent
     ```
 
    - *If you are not using `kpt`, clone the repository*:
 
      ```shell
      git clone https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent.git
-     cd gitlab-agent/build/deployment/agentk
+     cd gitlab-agent/build/deployment/gitlab-agent
      ```
 
 1. (Optional) Edit the package if you want to change the agent name, the namespace where the agent is deployed, the image version, etc... This step is also necessary if you are installing multiple agents in your cluster.
 
-    - Commit the initial package to version control
-    - Edit values in the `kpt-setter-configmap.yaml` file
+    - Commit the initial package to version control.
+    - Edit values in the `kpt-setter-configmap.yaml` file:
 
         | Name                    | Default Value                                                                   | Description                                                        |
         | ----------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -59,7 +59,7 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
         | **prometheus-scrape**   | `true`                                                                          | Enable or disable scraping of agentk metrics                       |
         | **serviceaccount-name** | `gitlab-agent`                                                                  |                                                                    |
 
-    - Apply the change(s)
+    - Apply the change(s):
 
         ```shell
         kpt fn render
@@ -75,7 +75,7 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 
         *Note that this should not be committed to a repository and is excluded by the `.gitignore` in the `secrets` directory by default.*
 
-1. Initialize the package for deployment.
+1. Initialize the package for deployment. This step will create `resourcegroup.yaml`.
 
     ```shell
     kpt live init
@@ -86,7 +86,7 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 1. Apply the package to the cluster.
 
     ```shell
-    kustomize build | kpt live apply - --reconcile-timeout=2m
+    kustomize build | kpt live apply - --reconcile-timeout=2m --install-resource-group --server-side --show-status-events
     ```
 
 ## Updating the Agent
@@ -102,5 +102,5 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
 1. Apply the package to the cluster.
 
     ```shell
-    kustomize build | kpt live apply - --reconcile-timeout=2m
+    kustomize build | kpt live apply - --reconcile-timeout=2m --server-side --show-status-events
     ```
