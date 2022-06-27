@@ -57,8 +57,9 @@ const (
 	defaultMaxMessageSize = 10 * 1024 * 1024
 	agentName             = "gitlab-agent"
 
-	envVarPodNamespace = "POD_NAMESPACE"
-	envVarPodName      = "POD_NAME"
+	envVarPodNamespace       = "POD_NAMESPACE"
+	envVarPodName            = "POD_NAME"
+	envVarServiceAccountName = "SERVICE_ACCOUNT_NAME"
 
 	getConfigurationInitBackoff   = 10 * time.Second
 	getConfigurationMaxBackoff    = 5 * time.Minute
@@ -167,6 +168,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	}
 	var modules []modagent.Module
 	var internalModules []modagent.Module
+	serviceAccountName := os.Getenv(envVarServiceAccountName)
 	for _, f := range factories {
 		moduleName := f.Name()
 		module, err := f.New(&modagent.Config{
@@ -177,10 +179,11 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 				client:         accessClient,
 				featureTracker: fTracker,
 			},
-			K8sUtilFactory: k8sFactory,
-			KasConn:        kasConn,
-			Server:         internalServer,
-			AgentName:      agentName,
+			K8sUtilFactory:     k8sFactory,
+			KasConn:            kasConn,
+			Server:             internalServer,
+			AgentName:          agentName,
+			ServiceAccountName: serviceAccountName,
 		})
 		if err != nil {
 			return nil, nil, err

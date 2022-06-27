@@ -47,6 +47,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: SERVICE_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
         readinessProbe:
           httpGet:
             path: "/readiness"
