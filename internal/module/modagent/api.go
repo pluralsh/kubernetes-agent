@@ -52,6 +52,8 @@ type Config struct {
 	Server *grpc.Server
 	// AgentName is a string "gitlab-agent". Can be used as a user agent, server name, service name, etc.
 	AgentName string
+	// ServiceAccountName is a string defined by default as "gitlab-agent".
+	ServiceAccountName string
 }
 
 type GitLabResponse struct {
