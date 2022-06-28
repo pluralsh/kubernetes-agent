@@ -13,7 +13,7 @@ import (
 const (
 	getConfigurationInitBackoff   = 10 * time.Second
 	getConfigurationMaxBackoff    = time.Minute
-	getConfigurationResetDuration = time.Minute
+	getConfigurationResetDuration = 2 * time.Minute
 	getConfigurationBackoffFactor = 2.0
 	getConfigurationJitter        = 1.0
 )

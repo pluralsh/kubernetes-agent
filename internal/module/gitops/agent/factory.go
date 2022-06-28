@@ -21,7 +21,7 @@ const (
 	defaultReapplyInterval = 5 * time.Minute
 	applierInitBackoff     = 10 * time.Second
 	applierMaxBackoff      = time.Minute
-	applierResetDuration   = time.Minute
+	applierResetDuration   = 2 * time.Minute
 	applierBackoffFactor   = 2.0
 	applierJitter          = 1.0
 )
