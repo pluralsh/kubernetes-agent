@@ -3,10 +3,12 @@ package agent
 import (
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_k8s"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -195,9 +197,15 @@ func TestSyncDecoder_HappyPath(t *testing.T) {
 				crdGV.WithResource("customresourcedefinition"), meta.RESTScopeRoot)
 			mapper = meta.MultiRESTMapper([]meta.RESTMapper{mapper, crdMapper})
 
+			// There is no way to override the mapper in the test factory, so we do what we can.
+			clientGetter := mock_k8s.NewMockRESTClientGetter(gomock.NewController(t))
+			clientGetter.EXPECT().
+				ToRESTMapper().
+				Return(mapper, nil).
+				MinTimes(1)
+
 			d := &syncDecoder{
-				restMapper:       mapper,
-				restClientGetter: factory,
+				restClientGetter: clientGetter,
 				defaultNamespace: defaultNs,
 			}
 			res, err := d.Decode(tc.sources)

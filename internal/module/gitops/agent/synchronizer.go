@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -24,7 +23,6 @@ type synchronizerConfig struct {
 	agentId           int64
 	project           *agentcfg.ManifestProjectCF
 	applier           Applier
-	restMapper        meta.RESTMapper
 	restClientGetter  resource.RESTClientGetter
 	applierPollConfig retry.PollConfig
 	applyOptions      apply.ApplierOptions
@@ -67,7 +65,6 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 	}()
 
 	d := syncDecoder{
-		restMapper:       s.restMapper,
 		restClientGetter: s.restClientGetter,
 		defaultNamespace: s.project.DefaultNamespace,
 	}

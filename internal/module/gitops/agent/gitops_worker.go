@@ -8,7 +8,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -93,7 +92,6 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 type defaultGitopsWorkerFactory struct {
 	log               *zap.Logger
 	applier           Applier
-	restMapper        meta.RESTMapper
 	restClientGetter  resource.RESTClientGetter
 	gitopsClient      rpc.GitopsClient
 	watchPollConfig   retry.PollConfigFactory
@@ -113,7 +111,6 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 			agentId:           agentId,
 			project:           project,
 			applier:           f.applier,
-			restMapper:        f.restMapper,
 			restClientGetter:  f.restClientGetter,
 			applierPollConfig: f.applierPollConfig(),
 			applyOptions: apply.ApplierOptions{

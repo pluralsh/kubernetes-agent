@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
@@ -311,8 +310,6 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
 	tf := cmdtesting.NewTestFactory()
 	t.Cleanup(tf.Cleanup)
-	mapper, err := tf.ToRESTMapper()
-	require.NoError(t, err)
 	w := &defaultGitopsWorker{
 		objWatcher: watcher,
 		synchronizerConfig: synchronizerConfig{
@@ -327,7 +324,6 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 				},
 			},
 			applier:           applier,
-			restMapper:        mapper,
 			restClientGetter:  tf,
 			applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
 		},
