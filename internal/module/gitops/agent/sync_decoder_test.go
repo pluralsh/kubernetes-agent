@@ -185,6 +185,7 @@ func TestSyncDecoder_HappyPath(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			factory := cmdtesting.NewTestFactory()
+			defer factory.Cleanup()
 			mapper, err := factory.ToRESTMapper()
 			require.NoError(t, err)
 			crdGV := schema.GroupVersion{Group: "apiextensions.k8s.io", Version: "v1"}
