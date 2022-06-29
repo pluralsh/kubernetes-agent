@@ -7,5 +7,6 @@ roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
 subjects:
-  - name: gitlab-agent
-    kind: ServiceAccount
+  - kind: ServiceAccount
+    name: gitlab-agent # kpt-set: ${serviceaccountname}
+    namespace: gitlab-agent # kpt-set: ${namespace}

@@ -1,8 +1,10 @@
 apiVersion: builtin
 kind: NamespaceTransformer
 metadata:
-  name: namespace-setter
-  namespace: gitlab-agent # {"$openapi":"namespace"}
+  name: namespace-patch
+  annotations:
+    config.kubernetes.io/local-config: "true"
+  namespace: gitlab-agent # kpt-set: ${namespace}
 fieldSpecs:
 - create: true
   path: metadata/namespace

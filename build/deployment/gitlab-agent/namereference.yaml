@@ -1,0 +1,12 @@
+apiVersion: builtin
+kind: NameReference
+metadata:
+  name: namereference
+  annotations:
+    config.kubernetes.io/local-config: "true"
+  namespace: gitlab-agent # kpt-set: ${namespace}
+nameReference:
+  - kind: Deployment
+    fieldSpecs:
+      - path: spec/template/metadata/labels/app
+      - path: spec/selector/matchLabels/app
