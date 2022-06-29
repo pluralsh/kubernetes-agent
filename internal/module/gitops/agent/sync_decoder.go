@@ -4,14 +4,12 @@ import (
 	"bytes"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/cli-runtime/pkg/resource"
 	"sigs.k8s.io/cli-utils/pkg/manifestreader"
 )
 
 type syncDecoder struct {
-	restMapper       meta.RESTMapper
 	restClientGetter resource.RESTClientGetter
 	defaultNamespace string
 }
@@ -42,7 +40,11 @@ func (d *syncDecoder) Decode(sources []rpc.ObjectSource) ([]*unstructured.Unstru
 		return nil, err
 	}
 	// 2. Process parsed objects - set namespace to the default one if missing
-	err = manifestreader.SetNamespaces(d.restMapper, objs, d.defaultNamespace, false)
+	restMapper, err := d.restClientGetter.ToRESTMapper()
+	if err != nil {
+		return nil, err
+	}
+	err = manifestreader.SetNamespaces(restMapper, objs, d.defaultNamespace, false)
 	if err != nil {
 		return nil, err
 	}
