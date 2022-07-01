@@ -204,7 +204,7 @@ func TestSyncDecoder_HappyPath(t *testing.T) {
 				Return(mapper, nil).
 				MinTimes(1)
 
-			d := &syncDecoder{
+			d := syncDecoder{
 				restClientGetter: clientGetter,
 				defaultNamespace: defaultNs,
 			}
@@ -218,6 +218,59 @@ func TestSyncDecoder_HappyPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSyncDecoder_AsyncCRDRegistration(t *testing.T) {
+	factory := cmdtesting.NewTestFactory()
+	defer factory.Cleanup()
+
+	certManagerGV := schema.GroupVersion{Group: "cert-manager.io", Version: "v1"}
+	certManagerGVK := certManagerGV.WithKind("Issuer")
+
+	certManagerMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{certManagerGV})
+	certManagerGVRPlural := certManagerGV.WithResource("issuers")
+	certManagerMapper.AddSpecific(certManagerGVK,
+		certManagerGVRPlural,
+		certManagerGV.WithResource("issuer"), meta.RESTScopeNamespace)
+
+	ctrl := gomock.NewController(t)
+	mapper := mock_k8s.NewMockResettableRESTMapper(ctrl)
+
+	clientGetter := mock_k8s.NewMockRESTClientGetter(ctrl)
+	clientGetter.EXPECT().
+		ToRESTMapper().
+		Return(mapper, nil).
+		MinTimes(1)
+	gomock.InOrder(
+		mapper.EXPECT().
+			RESTMapping(certManagerGVK.GroupKind(), certManagerGVK.Version).
+			Return(nil, &meta.NoKindMatchError{
+				GroupKind:        certManagerGVK.GroupKind(),
+				SearchedVersions: []string{certManagerGVK.Version},
+			}),
+		mapper.EXPECT().
+			Reset(),
+		mapper.EXPECT().
+			RESTMapping(certManagerGVK.GroupKind(), certManagerGVK.Version).
+			Return(&meta.RESTMapping{
+				Resource:         certManagerGVRPlural,
+				GroupVersionKind: certManagerGVK,
+				Scope:            meta.RESTScopeNamespace,
+			}, nil),
+	)
+
+	d := syncDecoder{
+		restClientGetter: clientGetter,
+		defaultNamespace: defaultNs,
+	}
+	res, err := d.Decode([]rpc.ObjectSource{
+		{
+			Name: "crv1",
+			Data: []byte(yamlCRv1),
+		},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, cmp.Diff(res, []*unstructured.Unstructured{yaml2unstructured(t, yamlCRv1, defaultNs)}))
 }
 
 func yaml2unstructured(t *testing.T, yml, setNamespace string) *unstructured.Unstructured {

@@ -26,6 +26,7 @@ type synchronizerConfig struct {
 	restClientGetter  resource.RESTClientGetter
 	applierPollConfig retry.PollConfig
 	applyOptions      apply.ApplierOptions
+	decodeRetryPolicy retry.BackoffManager
 }
 
 type synchronizer struct {
@@ -53,11 +54,7 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 		sw.Run(jobs) // Start sw
 	})
 
-	var (
-		jobsCh    chan syncJob
-		newJob    syncJob
-		jobCancel context.CancelFunc
-	)
+	var jobCancel context.CancelFunc
 	defer func() {
 		if jobCancel != nil {
 			jobCancel()
@@ -69,38 +66,34 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 		defaultNamespace: s.project.DefaultNamespace,
 	}
 
-	for {
-		select {
-		case state, ok := <-desiredState:
-			if !ok {
-				return // nolint: govet
-			}
-			objs, err := d.Decode(state.Sources)
+	p := retryPipeline{
+		inputCh:      desiredState,
+		outputCh:     jobs,
+		retryBackoff: s.decodeRetryPolicy,
+		process: func(input inputT) (outputT, processResult) {
+			objs, err := d.Decode(input.Sources)
 			if err != nil {
-				s.log.Error("Failed to decode GitOps objects", logz.Error(err), logz.CommitId(state.CommitId))
-				continue
+				s.log.Error("Failed to decode GitOps objects", logz.Error(err), logz.CommitId(input.CommitId))
+				return outputT{}, backoff
 			}
-			invObj, objs, err := s.splitObjects(state.ProjectId, objs)
+			invObj, objs, err := s.splitObjects(input.ProjectId, objs)
 			if err != nil {
-				s.log.Error("Failed to locate inventory object in GitOps objects", logz.Error(err), logz.CommitId(state.CommitId))
-				continue
+				s.log.Error("Failed to locate inventory object in GitOps objects", logz.Error(err), logz.CommitId(input.CommitId))
+				return outputT{}, done
 			}
 			if jobCancel != nil {
 				jobCancel() // Cancel running/pending job ASAP
 			}
-			newJob = syncJob{
-				commitId: state.CommitId,
+			newJob := syncJob{
+				commitId: input.CommitId,
 				invInfo:  inventory.WrapInventoryInfoObj(invObj),
 				objects:  objs,
 			}
 			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
-			jobsCh = jobs                                                    // Enable select case
-		case jobsCh <- newJob: // Try to send new job to syncWorker. This case is active only when jobsCh is not nil
-			// Success!
-			newJob = syncJob{} // Erase contents to help GC
-			jobsCh = nil       // Disable this select case (send to nil channel blocks forever)
-		}
+			return newJob, success
+		},
 	}
+	p.run()
 }
 
 func (s *synchronizer) splitObjects(projectId int64, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
