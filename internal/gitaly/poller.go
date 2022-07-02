@@ -53,6 +53,7 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 			return true
 		case "HEAD":
 			head = cloneReference(ref)
+			return refName == DefaultBranch // done if wanted the default branch
 		case "refs/heads/master":
 			master = cloneReference(ref)
 		}
