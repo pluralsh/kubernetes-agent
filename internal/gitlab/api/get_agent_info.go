@@ -17,6 +17,7 @@ type getAgentInfoResponse struct {
 	AgentName        string                  `json:"agent_name"`
 	GitalyInfo       gitlab.GitalyInfo       `json:"gitaly_info"`
 	GitalyRepository gitlab.GitalyRepository `json:"gitaly_repository"`
+	DefaultBranch    string                  `json:"default_branch"`
 }
 
 func GetAgentInfo(ctx context.Context, client gitlab.ClientInterface, agentToken api.AgentToken, opts ...gitlab.DoOption) (*api.AgentInfo, error) {
@@ -33,10 +34,11 @@ func GetAgentInfo(ctx context.Context, client gitlab.ClientInterface, agentToken
 		return nil, err
 	}
 	return &api.AgentInfo{
-		Id:         response.AgentId,
-		ProjectId:  response.ProjectId,
-		Name:       response.AgentName,
-		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
-		Repository: response.GitalyRepository.ToProtoRepository(),
+		Id:            response.AgentId,
+		ProjectId:     response.ProjectId,
+		Name:          response.AgentName,
+		GitalyInfo:    response.GitalyInfo.ToGitalyInfo(),
+		Repository:    response.GitalyRepository.ToProtoRepository(),
+		DefaultBranch: response.DefaultBranch,
 	}, nil
 }

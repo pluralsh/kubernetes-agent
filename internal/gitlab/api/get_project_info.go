@@ -17,6 +17,7 @@ type ProjectInfoResponse struct {
 	ProjectId        int64                   `json:"project_id"`
 	GitalyInfo       gitlab.GitalyInfo       `json:"gitaly_info"`
 	GitalyRepository gitlab.GitalyRepository `json:"gitaly_repository"`
+	DefaultBranch    string                  `json:"default_branch"`
 }
 
 func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentToken api.AgentToken, projectId string, opts ...gitlab.DoOption) (*api.ProjectInfo, error) {
@@ -36,9 +37,10 @@ func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentTok
 		return nil, err
 	}
 	return &api.ProjectInfo{
-		ProjectId:  response.ProjectId,
-		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
-		Repository: response.GitalyRepository.ToProtoRepository(),
+		ProjectId:     response.ProjectId,
+		GitalyInfo:    response.GitalyInfo.ToGitalyInfo(),
+		Repository:    response.GitalyRepository.ToProtoRepository(),
+		DefaultBranch: response.DefaultBranch,
 	}, nil
 
 }

@@ -31,6 +31,7 @@ func TestGetProjectInfo(t *testing.T) {
 			GlRepository:  "254634",
 			GlProjectPath: "64662",
 		},
+		DefaultBranch: "main",
 	}
 	gitLabClient := mock_gitlab.SetupClient(t, ProjectInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertRequestMethod(t, r, http.MethodGet)
@@ -46,4 +47,5 @@ func TestGetProjectInfo(t *testing.T) {
 	assert.Equal(t, response.ProjectId, projInfo.ProjectId)
 	mock_gitlab.AssertGitalyInfo(t, response.GitalyInfo, projInfo.GitalyInfo)
 	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, projInfo.Repository)
+	assert.Equal(t, response.DefaultBranch, projInfo.DefaultBranch)
 }

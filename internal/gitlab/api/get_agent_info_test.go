@@ -30,6 +30,7 @@ func TestGetAgentInfo(t *testing.T) {
 			GlRepository:  "254634",
 			GlProjectPath: "64662",
 		},
+		DefaultBranch: "main",
 	}
 	c := mock_gitlab.SetupClient(t, AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
@@ -44,4 +45,5 @@ func TestGetAgentInfo(t *testing.T) {
 
 	mock_gitlab.AssertGitalyInfo(t, response.GitalyInfo, agentInfo.GitalyInfo)
 	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, agentInfo.Repository)
+	assert.Equal(t, response.DefaultBranch, agentInfo.DefaultBranch)
 }
