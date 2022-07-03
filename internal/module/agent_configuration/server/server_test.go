@@ -155,7 +155,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -181,7 +181,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: false,
@@ -212,7 +212,7 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -238,7 +238,7 @@ func TestGetConfiguration_EmptyRepository(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				EmptyRepository: true,
 			}, nil),
@@ -265,7 +265,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &agentInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
 					Return(&gitaly.PollInfo{
 						CommitId:        revision,
 						UpdateAvailable: true,

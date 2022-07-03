@@ -138,6 +138,7 @@ func AgentInfoObj() *api.AgentInfo {
 			GlRepository:       "GlRepository",
 			GlProjectPath:      "GlProjectPath",
 		},
+		DefaultBranch: "main",
 	}
 }
 

@@ -251,7 +251,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -299,7 +299,7 @@ func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, projInfo.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				return &gitaly.PollInfo{
 					EmptyRepository: true,
@@ -352,7 +352,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -397,7 +397,7 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, projInfo.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				return &gitaly.PollInfo{
 					CommitId:        revision,
@@ -466,7 +466,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &projInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
 					Return(&gitaly.PollInfo{
 						CommitId:        revision,
 						UpdateAvailable: true,
@@ -507,15 +507,17 @@ func projectInfoRest() *gapi.ProjectInfoResponse {
 			GlRepository:  "GlRepository1",
 			GlProjectPath: "GlProjectPath1",
 		},
+		DefaultBranch: "main",
 	}
 }
 
 func projectInfo() *api.ProjectInfo {
 	rest := projectInfoRest()
 	return &api.ProjectInfo{
-		ProjectId:  rest.ProjectId,
-		GitalyInfo: rest.GitalyInfo.ToGitalyInfo(),
-		Repository: rest.GitalyRepository.ToProtoRepository(),
+		ProjectId:     rest.ProjectId,
+		GitalyInfo:    rest.GitalyInfo.ToGitalyInfo(),
+		Repository:    rest.GitalyRepository.ToProtoRepository(),
+		DefaultBranch: rest.DefaultBranch,
 	}
 }
 
