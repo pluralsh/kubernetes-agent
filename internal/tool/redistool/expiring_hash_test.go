@@ -106,6 +106,14 @@ func TestExpiringHash_Scan(t *testing.T) {
 	assert.Zero(t, keysDeleted)
 }
 
+func TestExpiringHash_Len(t *testing.T) {
+	_, hash, key, value := setupHash(t)
+	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	size, err := hash.Len(context.Background(), key)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, size)
+}
+
 func TestExpiringHash_ScanGC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 

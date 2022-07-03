@@ -25,6 +25,7 @@ type Registerer interface {
 type Querier interface {
 	GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error
 	GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error
+	GetConnectedAgentsCount(ctx context.Context) (int64, error)
 }
 
 type Tracker interface {
@@ -39,6 +40,7 @@ type RedisTracker struct {
 	gcPeriod               time.Duration
 	connectionsByAgentId   redistool.ExpiringHashInterface // agentId -> connectionId -> info
 	connectionsByProjectId redistool.ExpiringHashInterface // projectId -> connectionId -> info
+	connectedAgents        redistool.ExpiringHashInterface // hash name -> agentId -> ""
 	toRegister             chan *ConnectedAgentInfo
 	toUnregister           chan *ConnectedAgentInfo
 }
@@ -50,6 +52,7 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		gcPeriod:               gcPeriod,
 		connectionsByAgentId:   redistool.NewExpiringHash(log, client, connectionsByAgentIdHashKey(agentKeyPrefix), ttl),
 		connectionsByProjectId: redistool.NewExpiringHash(log, client, connectionsByProjectIdHashKey(agentKeyPrefix), ttl),
+		connectedAgents:        redistool.NewExpiringHash(log, client, connectedAgentsHashKey(agentKeyPrefix), ttl),
 		toRegister:             make(chan *ConnectedAgentInfo),
 		toUnregister:           make(chan *ConnectedAgentInfo),
 	}
@@ -119,6 +122,10 @@ func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId 
 	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId, cb)
 }
 
+func (t *RedisTracker) GetConnectedAgentsCount(ctx context.Context) (int64, error) {
+	return t.connectedAgents.Len(ctx, nil)
+}
+
 func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface, key interface{}, cb ConnectedAgentInfoCallback) error {
 	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
 		if err != nil {
@@ -142,11 +149,15 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 		// This should never happen
 		return err
 	}
-	// Ensure data is put into both sets, even if there was an error
+	// Ensure data is put into all sets, even if there was an error
 	err1 := t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoAny)
 	err2 := t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
+	err3 := t.connectedAgents.Set(ctx, nil, info.AgentId, nil)
 	if err1 == nil {
 		err1 = err2
+	}
+	if err1 == nil {
+		err1 = err3
 	}
 	return err1
 }
@@ -163,8 +174,13 @@ func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *Connecte
 func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
 	err1 := t.connectionsByProjectId.Refresh(ctx)
 	err2 := t.connectionsByAgentId.Refresh(ctx)
+	err3 := t.connectedAgents.Refresh(ctx)
+
 	if err1 == nil {
 		err1 = err2
+	}
+	if err1 == nil {
+		err1 = err3
 	}
 	return err1
 }
@@ -172,10 +188,14 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
 func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 	keysDeleted1, err1 := t.connectionsByProjectId.GC(ctx)
 	keysDeleted2, err2 := t.connectionsByAgentId.GC(ctx)
+	keysDeleted3, err3 := t.connectedAgents.GC(ctx)
 	if err1 == nil {
 		err1 = err2
 	}
-	return keysDeleted1 + keysDeleted2, err1
+	if err1 == nil {
+		err1 = err3
+	}
+	return keysDeleted1 + keysDeleted2 + keysDeleted3, err1
 }
 
 // connectionsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled ConnectedAgentInfo).
@@ -191,6 +211,14 @@ func connectionsByProjectIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKe
 	prefix := agentKeyPrefix + ":conn_by_project_id:"
 	return func(projectId interface{}) string {
 		return redistool.PrefixedInt64Key(prefix, projectId.(int64))
+	}
+}
+
+// connectedAgentsHashKey returns the key for the hash of connected agents.
+func connectedAgentsHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
+	prefix := agentKeyPrefix + ":connected_agents"
+	return func(_ interface{}) string {
+		return prefix
 	}
 }
 

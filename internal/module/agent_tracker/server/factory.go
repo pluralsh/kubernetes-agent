@@ -1,9 +1,15 @@
 package server
 
 import (
+	"context"
+	"math"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 )
 
 type Factory struct {
@@ -14,9 +20,30 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	rpc.RegisterAgentTrackerServer(config.ApiServer, &server{
 		agentQuerier: f.AgentQuerier,
 	})
+	connectedAgentsCountGaugeFunc := f.constructConnectedAgentsCountGaugeFunc()
+	err := metric.Register(config.Registerer, connectedAgentsCountGaugeFunc)
+	if err != nil {
+		return nil, err
+	}
 	return &module{}, nil
 }
 
 func (f *Factory) Name() string {
 	return agent_tracker.ModuleName
+}
+
+func (f *Factory) constructConnectedAgentsCountGaugeFunc() prometheus.GaugeFunc {
+	return prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "connected_agents_count",
+		Help: "The number of unique connected agents",
+	}, func() float64 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		size, err := f.AgentQuerier.GetConnectedAgentsCount(ctx)
+		if err != nil {
+			return math.NaN()
+		}
+		return float64(size)
+	},
+	)
 }

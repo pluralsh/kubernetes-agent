@@ -51,6 +51,21 @@ func (mr *MockExpiringHashInterfaceMockRecorder) GC(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockExpiringHashInterface)(nil).GC), arg0)
 }
 
+// Len mocks base method.
+func (m *MockExpiringHashInterface) Len(arg0 context.Context, arg1 interface{}) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Len", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Len indicates an expected call of Len.
+func (mr *MockExpiringHashInterfaceMockRecorder) Len(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Len", reflect.TypeOf((*MockExpiringHashInterface)(nil).Len), arg0, arg1)
+}
+
 // Refresh mocks base method.
 func (m *MockExpiringHashInterface) Refresh(arg0 context.Context) error {
 	m.ctrl.T.Helper()
