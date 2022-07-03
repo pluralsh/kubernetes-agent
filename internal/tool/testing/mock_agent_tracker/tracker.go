@@ -35,6 +35,21 @@ func (m *MockTracker) EXPECT() *MockTrackerMockRecorder {
 	return m.recorder
 }
 
+// GetConnectedAgentsCount mocks base method.
+func (m *MockTracker) GetConnectedAgentsCount(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConnectedAgentsCount", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConnectedAgentsCount indicates an expected call of GetConnectedAgentsCount.
+func (mr *MockTrackerMockRecorder) GetConnectedAgentsCount(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectedAgentsCount", reflect.TypeOf((*MockTracker)(nil).GetConnectedAgentsCount), arg0)
+}
+
 // GetConnectionsByAgentId mocks base method.
 func (m *MockTracker) GetConnectionsByAgentId(arg0 context.Context, arg1 int64, arg2 agent_tracker.ConnectedAgentInfoCallback) error {
 	m.ctrl.T.Helper()

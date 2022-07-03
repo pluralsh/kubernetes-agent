@@ -966,6 +966,10 @@ func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectI
 	return nil
 }
 
+func (n nopAgentTracker) GetConnectedAgentsCount(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
 type nopTunnelTracker struct {
 }
 

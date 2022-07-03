@@ -26,6 +26,7 @@ type ExpiringHashInterface interface {
 	Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error
 	Unset(ctx context.Context, key interface{}, hashKey int64) error
 	Scan(ctx context.Context, key interface{}, cb ScanCallback) (int /* keysDeleted */, error)
+	Len(ctx context.Context, key interface{}) (int64, error)
 	// GC iterates all relevant stored data and deletes expired entries.
 	// It returns number of deleted Redis (hash) keys, including when an error occurs.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
@@ -62,6 +63,11 @@ func (h *ExpiringHash) Set(ctx context.Context, key interface{}, hashKey int64, 
 func (h *ExpiringHash) Unset(ctx context.Context, key interface{}, hashKey int64) error {
 	h.unsetData(key, hashKey)
 	return h.client.HDel(ctx, h.keyToRedisKey(key), strconv.FormatInt(hashKey, 10)).Err()
+}
+
+func (h *ExpiringHash) Len(ctx context.Context, key interface{}) (size int64, retErr error) {
+	redisKey := h.keyToRedisKey(key)
+	return h.client.HLen(ctx, redisKey).Result()
 }
 
 func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallback) (keysDeleted int, retErr error) {

@@ -6,8 +6,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker"
 )
 
-type module struct {
-}
+type module struct{}
 
 func (m *module) Run(ctx context.Context) error {
 	return nil
