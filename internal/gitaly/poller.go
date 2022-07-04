@@ -44,7 +44,7 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 	refNameTag := "refs/tags/" + refName
 	refNameBranch := "refs/heads/" + refName
 	isEmpty := true
-	var head, master, wanted *stats.Reference
+	var wanted, head, main, master *stats.Reference
 	err := p.fetchRefs(ctx, repo, func(ref stats.Reference) bool {
 		isEmpty = false
 		switch string(ref.Name) {
@@ -53,6 +53,9 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 			return true
 		case "HEAD":
 			head = cloneReference(ref)
+			return refName == DefaultBranch // done if wanted the default branch
+		case "refs/heads/main":
+			main = cloneReference(ref)
 		case "refs/heads/master":
 			master = cloneReference(ref)
 		}
@@ -69,6 +72,8 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 		switch {
 		case head != nil:
 			wanted = head
+		case main != nil:
+			wanted = main
 		case master != nil:
 			wanted = master
 		case isEmpty:

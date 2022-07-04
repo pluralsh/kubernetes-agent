@@ -16,12 +16,20 @@ import (
 const (
 	revision1 = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 	revision2 = "28aa7afd52802a91a0685d8507ebc6de9bcac256"
+	revision3 = "e9bcac25628aa7afd5507ebc6d2800685d82a91a"
 
 	branch = "test-branch"
 
 	infoRefsData = `001e# service=git-upload-pack
 00000148` + revision1 + ` HEAD` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
 003f` + revision1 + ` refs/heads/master
+003d` + revision3 + ` refs/heads/main
+0044` + revision2 + ` refs/heads/` + branch + `
+0000`
+
+	infoRefsMainMasterData = `001e# service=git-upload-pack
+00000040` + revision1 + ` refs/heads/master` + "\x00" + `
+003d` + revision3 + ` refs/heads/main
 0044` + revision2 + ` refs/heads/` + branch + `
 0000`
 
@@ -36,6 +44,7 @@ var (
 func TestPoller(t *testing.T) {
 	tests := []struct {
 		name                string
+		data                []byte
 		ref                 string
 		lastProcessedCommit string
 		expectedInfoCommit  string
@@ -46,6 +55,13 @@ func TestPoller(t *testing.T) {
 			ref:                 DefaultBranch,
 			lastProcessedCommit: revision1,
 			expectedInfoCommit:  revision1,
+			expectedInfoUpdate:  false,
+		},
+		{
+			name:                "main branch same commit",
+			ref:                 "main",
+			lastProcessedCommit: revision3,
+			expectedInfoCommit:  revision3,
 			expectedInfoUpdate:  false,
 		},
 		{
@@ -91,6 +107,13 @@ func TestPoller(t *testing.T) {
 			expectedInfoUpdate:  true,
 		},
 		{
+			name:                "main branch another commit",
+			ref:                 "main",
+			lastProcessedCommit: "123123123",
+			expectedInfoCommit:  revision3,
+			expectedInfoUpdate:  true,
+		},
+		{
 			name:                "master branch another commit",
 			ref:                 "master",
 			lastProcessedCommit: "123123123",
@@ -104,6 +127,14 @@ func TestPoller(t *testing.T) {
 			expectedInfoCommit:  revision2,
 			expectedInfoUpdate:  true,
 		},
+		{
+			name:                "no HEAD, main preferred to master",
+			data:                []byte(infoRefsMainMasterData),
+			ref:                 DefaultBranch,
+			lastProcessedCommit: "13213123",
+			expectedInfoCommit:  revision3,
+			expectedInfoUpdate:  true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -114,7 +145,10 @@ func TestPoller(t *testing.T) {
 			features := map[string]string{
 				"f1": "true",
 			}
-			mockInfoRefsUploadPack(t, ctrl, matcher.GrpcOutgoingCtx(features), httpClient, infoRefsReq, []byte(infoRefsData))
+			if tc.data == nil {
+				tc.data = []byte(infoRefsData)
+			}
+			mockInfoRefsUploadPack(t, ctrl, matcher.GrpcOutgoingCtx(features), httpClient, infoRefsReq, tc.data)
 			p := Poller{
 				Client:   httpClient,
 				Features: features,
