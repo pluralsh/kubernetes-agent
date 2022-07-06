@@ -138,8 +138,6 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	netConn := websocket.NetConn(context.Background(), conn, websocket.MessageBinary)
 
 	select {
-	case <-r.Context().Done():
-		netConn.Close() // nolint: errcheck, gosec
 	case <-h.Ctx.Done():
 		// send correct close frame
 		conn.Close(websocket.StatusGoingAway, "Shutting down") // nolint: errcheck, gosec
