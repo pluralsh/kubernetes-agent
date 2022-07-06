@@ -96,6 +96,7 @@ type defaultGitopsWorkerFactory struct {
 	gitopsClient      rpc.GitopsClient
 	watchPollConfig   retry.PollConfigFactory
 	applierPollConfig retry.PollConfigFactory
+	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
 func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
@@ -133,6 +134,7 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 				InventoryPolicy:        f.mapInventoryPolicy(project.InventoryPolicy),
 				ValidationPolicy:       validation.ExitEarly,
 			},
+			decodeRetryPolicy: f.decodeRetryPolicy(),
 		},
 	}
 }

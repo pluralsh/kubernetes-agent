@@ -24,6 +24,12 @@ const (
 	applierResetDuration   = 2 * time.Minute
 	applierBackoffFactor   = 2.0
 	applierJitter          = 1.0
+
+	decodeInitBackoff   = 10 * time.Second
+	decodeMaxBackoff    = time.Minute
+	decodeResetDuration = 2 * time.Minute
+	decodeBackoffFactor = 2.0
+	decodeJitter        = 1.0
 )
 
 type Factory struct {
@@ -64,6 +70,13 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				applierBackoffFactor,
 				applierJitter,
 			)),
+			decodeRetryPolicy: retry.NewExponentialBackoffFactory(
+				decodeInitBackoff,
+				decodeMaxBackoff,
+				decodeResetDuration,
+				decodeBackoffFactor,
+				decodeJitter,
+			),
 		},
 	}, nil
 }
