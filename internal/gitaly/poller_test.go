@@ -162,19 +162,23 @@ func TestPoller(t *testing.T) {
 }
 
 func TestPoller_EmptyRepository(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	r := repo()
-	infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
-	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
-	mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(infoRefsEmptyData))
-	p := Poller{
-		Client: httpClient,
+	for _, branch := range []string{DefaultBranch, "some_branch"} {
+		t.Run(branch, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			r := repo()
+			infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
+			httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+			mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(infoRefsEmptyData))
+			p := Poller{
+				Client: httpClient,
+			}
+			pollInfo, err := p.Poll(context.Background(), r, "", branch)
+			require.NoError(t, err)
+			assert.False(t, pollInfo.UpdateAvailable)
+			assert.True(t, pollInfo.EmptyRepository)
+			assert.Empty(t, pollInfo.CommitId)
+		})
 	}
-	pollInfo, err := p.Poll(context.Background(), r, "", DefaultBranch)
-	require.NoError(t, err)
-	assert.False(t, pollInfo.UpdateAvailable)
-	assert.True(t, pollInfo.EmptyRepository)
-	assert.Empty(t, pollInfo.CommitId)
 }
 
 func TestPoller_Errors(t *testing.T) {

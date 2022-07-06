@@ -64,6 +64,11 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 	if err != nil {
 		return nil, err // don't wrap
 	}
+	if isEmpty {
+		return &PollInfo{
+			EmptyRepository: true,
+		}, nil
+	}
 	if wanted == nil { // not found
 		if refName != DefaultBranch { // was looking for something specific, but didn't find it
 			return nil, NewNotFoundError("InfoRefsUploadPack", refName)
@@ -76,10 +81,6 @@ func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProces
 			wanted = main
 		case master != nil:
 			wanted = master
-		case isEmpty:
-			return &PollInfo{
-				EmptyRepository: true,
-			}, nil
 		default:
 			return nil, NewNotFoundError("InfoRefsUploadPack", "default branch")
 		}

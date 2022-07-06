@@ -81,8 +81,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 			}
 			return err, retry.Done // no wrap
 		}
-		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-		info, err := s.poll(ctx, projectInfo, req.CommitId, revision)
+		info, err := s.poll(ctx, projectInfo, req.CommitId)
 		if err != nil {
 			rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
 			return nil, retry.Backoff
@@ -119,12 +118,12 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	})
 }
 
-func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId, revision string) (*gitaly.PollInfo, error) {
+func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId string) (*gitaly.PollInfo, error) {
 	p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
 		return nil, err
 	}
-	return p.Poll(ctx, projectInfo.Repository, commitId, revision)
+	return p.Poll(ctx, projectInfo.Repository, commitId, projectInfo.DefaultBranch)
 }
 
 func (s *server) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchronizeRequest) error {

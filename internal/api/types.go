@@ -27,12 +27,16 @@ type AgentInfo struct {
 	Name       string
 	GitalyInfo GitalyInfo
 	Repository *gitalypb.Repository
+	// DefaultBranch is the name of the default branch in the agent's configuration repository.
+	DefaultBranch string
 }
 
 type ProjectInfo struct {
 	ProjectId  int64
 	GitalyInfo GitalyInfo
 	Repository *gitalypb.Repository
+	// DefaultBranch is the name of the default branch in a repository.
+	DefaultBranch string
 }
 
 func AgentToken2key(token AgentToken) []byte {
