@@ -166,7 +166,7 @@ func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
 			})),
 		w.EXPECT().
 			Hijack().
-			Return(conn, bufio.NewReadWriter(bufio.NewReader(strings.NewReader(requestUpgradeBodyData)), nil), nil),
+			Return(conn, bufio.NewReadWriter(bufio.NewReader(conn), nil), nil),
 		setReadDeadlineCall,
 	}
 	calls := send
@@ -197,6 +197,11 @@ func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
 	// pipeInboundToOutboundUpgraded
 	gomock.InOrder(
 		setReadDeadlineCall,
+		conn.EXPECT().
+			Read(gomock.Any()).
+			DoAndReturn(func(b []byte) (int, error) {
+				return copy(b, requestUpgradeBodyData), io.EOF
+			}),
 		mrClient.EXPECT().
 			Send(matcher.ProtoEq(t, &grpctool.HttpRequest{
 				Message: &grpctool.HttpRequest_UpgradeData_{

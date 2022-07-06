@@ -2,9 +2,11 @@ package grpctool
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -307,9 +309,13 @@ func (x *InboundHttpToOutboundGrpc) pipeUpgradedConnection(outboundClient HttpRe
 		Conn:    conn,
 		Timeout: 20 * time.Second,
 	}
+	r, err := decoupleReader(bufrw.Reader, conn)
+	if err != nil {
+		return x.handleIoError("failed to read buffered data", err)
+	}
 	p := InboundStreamToOutboundStream{
 		PipeInboundToOutbound: func() error {
-			return x.pipeInboundToOutboundUpgraded(outboundClient, bufrw.Reader)
+			return x.pipeInboundToOutboundUpgraded(outboundClient, r)
 		},
 		PipeOutboundToInbound: func() error {
 			return x.pipeOutboundToInboundUpgraded(outboundClient, conn)
@@ -322,7 +328,7 @@ func (x *InboundHttpToOutboundGrpc) pipeUpgradedConnection(outboundClient HttpRe
 	return nil
 }
 
-func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient HttpRequestClient, inboundStream *bufio.Reader) error {
+func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient HttpRequestClient, inboundStream io.Reader) error {
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
 	for {
@@ -377,6 +383,20 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInboundUpgraded(outboundClient
 		return fmt.Errorf("failed to read gRPC response: %w", err)
 	}
 	return nil
+}
+
+// decoupleReader returns an io.Reader that is decoupled from the buffered reader, returned by Hijack.
+// This is a workaround for https://github.com/golang/go/issues/32314.
+func decoupleReader(r *bufio.Reader, conn net.Conn) (io.Reader, error) {
+	buffered := r.Buffered()
+	if buffered == 0 {
+		return conn, nil
+	}
+	b, err := r.Peek(buffered)
+	if err != nil {
+		return nil, err
+	}
+	return io.MultiReader(bytes.NewReader(b), conn), nil
 }
 
 func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Values {
