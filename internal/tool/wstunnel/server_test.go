@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/http"
 	"sync"
 	"testing"
 
@@ -15,11 +16,21 @@ import (
 	"nhooyr.io/websocket"
 )
 
+var (
+	_ net.Listener = (*onceCloseListener)(nil)
+	_ net.Listener = (*protocolListener)(nil)
+	_ net.Listener = (*wrapperServer)(nil)
+	_ http.Handler = (*HttpHandler)(nil)
+	_ net.Conn     = (*readerConn)(nil)
+)
+
 type testStuff struct {
 	ctx        context.Context
 	serverAddr net.Addr
 	wrappedLis Listener
 }
+
+// wstunnel+gRPC is tested in internal/tool/grpctool/max_conn_age_wstunnel_test.go.
 
 func TestClientServerVariousBufferSizes(t *testing.T) {
 	t.Run("1kbyte", func(t *testing.T) {
@@ -102,7 +113,7 @@ func testHarness(t *testing.T, test func(*testing.T, *testStuff)) {
 	wrapper := ListenerWrapper{
 		ReadLimit: 1024 * 1024,
 	}
-	wrappedLis := wrapper.Wrap(lis)
+	wrappedLis := wrapper.Wrap(lis, false)
 	ts := &testStuff{
 		ctx:        ctx,
 		serverAddr: lis.Addr(),

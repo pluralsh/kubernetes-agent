@@ -2,6 +2,7 @@ package grpctool
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
@@ -11,8 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool/test"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
@@ -56,10 +61,13 @@ func TestMaxConnectionAge(t *testing.T) {
 	}
 	sh := NewJoinStatHandlers()
 	t.Run("gRPC", func(t *testing.T) {
-		testKeepalive(t, false, kp, sh, srv, testClient)
+		testKeepalive(t, false, false, kp, sh, srv, testClient)
 	})
 	t.Run("WebSocket", func(t *testing.T) {
-		testKeepalive(t, true, kp, sh, srv, testClient)
+		testKeepalive(t, true, true, kp, sh, srv, testClient)
+	})
+	t.Run("gRPC->WebSocket+gRPC", func(t *testing.T) {
+		testKeepalive(t, false, true, kp, sh, srv, testClient)
 	})
 }
 
@@ -85,10 +93,13 @@ func TestMaxConnectionAgeAndMaxPollDuration(t *testing.T) {
 
 	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
 	t.Run("gRPC", func(t *testing.T) {
-		testKeepalive(t, false, kp, sh, srv, testClient)
+		testKeepalive(t, false, false, kp, sh, srv, testClient)
 	})
 	t.Run("WebSocket", func(t *testing.T) {
-		testKeepalive(t, true, kp, sh, srv, testClient)
+		testKeepalive(t, true, true, kp, sh, srv, testClient)
+	})
+	t.Run("gRPC->WebSocket+gRPC", func(t *testing.T) {
+		testKeepalive(t, false, true, kp, sh, srv, testClient)
 	})
 }
 
@@ -116,10 +127,13 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedSequential(t *testing.T) {
 
 	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
 	t.Run("gRPC", func(t *testing.T) {
-		testKeepalive(t, false, kp, sh, srv, testClient)
+		testKeepalive(t, false, false, kp, sh, srv, testClient)
 	})
 	t.Run("WebSocket", func(t *testing.T) {
-		testKeepalive(t, true, kp, sh, srv, testClient)
+		testKeepalive(t, true, true, kp, sh, srv, testClient)
+	})
+	t.Run("gRPC->WebSocket+gRPC", func(t *testing.T) {
+		testKeepalive(t, false, true, kp, sh, srv, testClient)
 	})
 }
 
@@ -156,10 +170,13 @@ func TestMaxConnectionAgeAndMaxPollDurationRandomizedParallel(t *testing.T) {
 
 	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
 	t.Run("gRPC", func(t *testing.T) {
-		testKeepalive(t, false, kp, sh, srv, testClient)
+		testKeepalive(t, false, false, kp, sh, srv, testClient)
 	})
 	t.Run("WebSocket", func(t *testing.T) {
-		testKeepalive(t, true, kp, sh, srv, testClient)
+		testKeepalive(t, true, true, kp, sh, srv, testClient)
+	})
+	t.Run("gRPC->WebSocket+gRPC", func(t *testing.T) {
+		testKeepalive(t, false, true, kp, sh, srv, testClient)
 	})
 }
 
@@ -173,7 +190,7 @@ func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
 		},
 	}
 	kp, sh := maxConnectionAge2GrpcKeepalive(context.Background(), maxAge)
-	testKeepalive(t, false, kp, sh, srv, func(t *testing.T, client test.TestingClient) {
+	testKeepalive(t, false, false, kp, sh, srv, func(t *testing.T, client test.TestingClient) {
 		resp, err := client.StreamingRequestResponse(context.Background()) // nolint: contextcheck
 		require.NoError(t, err)
 		_, err = resp.Recv()
@@ -186,9 +203,128 @@ func TestMaxConnectionAgeUsesRPCContext(t *testing.T) {
 	})
 }
 
-func testKeepalive(t *testing.T, websocket bool, kp keepalive.ServerParameters, sh stats.Handler, srv test.TestingServer, f func(*testing.T, test.TestingClient)) {
+func TestWSTunnel_TLS(t *testing.T) {
+	caCertFile, _, caCert, caKey := testhelpers.GenerateCACert(t)
+	certFile, keyFile := testhelpers.GenerateCert(t, "srv", caCert, caKey)
+	tlsConfig, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
+	require.NoError(t, err)
+	tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
+
+	clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(caCertFile)
+	require.NoError(t, err)
+
+	l, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
+	require.NoError(t, err)
+
+	lisWrapper := wstunnel.ListenerWrapper{}
+	l = lisWrapper.Wrap(l, true)
+
+	s := grpc.NewServer()
+	test.RegisterTestingServer(s, &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, r *test.Request) (*test.Response, error) {
+			return &test.Response{Message: &test.Response_Scalar{Scalar: 42}}, nil
+		},
+	})
+	defer s.GracefulStop()
+
+	go func() {
+		assert.NoError(t, s.Serve(l))
+	}()
+
+	t.Run("gRPC", func(t *testing.T) {
+		conn, err := grpc.DialContext(
+			context.Background(),
+			l.Addr().String(),
+			grpc.WithTransportCredentials(credentials.NewTLS(clientTLSConfig)),
+		)
+		require.NoError(t, err)
+		defer func() {
+			assert.NoError(t, conn.Close())
+		}()
+		c := test.NewTestingClient(conn)
+		resp, err := c.RequestResponse(context.Background(), &test.Request{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 42, resp.GetScalar())
+	})
+	t.Run("gRPC via WebSocket", func(t *testing.T) {
+		conn, err := grpc.DialContext(
+			context.Background(),
+			"wss://"+l.Addr().String(),
+			grpc.WithContextDialer(wstunnel.DialerForGRPC(0, &websocket.DialOptions{
+				HTTPClient: &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: clientTLSConfig,
+					},
+				},
+			})),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		require.NoError(t, err)
+		defer func() {
+			assert.NoError(t, conn.Close())
+		}()
+		c := test.NewTestingClient(conn)
+		resp, err := c.RequestResponse(context.Background(), &test.Request{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 42, resp.GetScalar())
+	})
+}
+
+func TestWSTunnel_Cleartext(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	lisWrapper := wstunnel.ListenerWrapper{}
+	l = lisWrapper.Wrap(l, false)
+
+	s := grpc.NewServer()
+	test.RegisterTestingServer(s, &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, r *test.Request) (*test.Response, error) {
+			return &test.Response{Message: &test.Response_Scalar{Scalar: 42}}, nil
+		},
+	})
+	defer s.GracefulStop()
+
+	go func() {
+		assert.NoError(t, s.Serve(l))
+	}()
+
+	t.Run("gRPC", func(t *testing.T) {
+		conn, err := grpc.DialContext(
+			context.Background(),
+			l.Addr().String(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		require.NoError(t, err)
+		defer func() {
+			assert.NoError(t, conn.Close())
+		}()
+		c := test.NewTestingClient(conn)
+		resp, err := c.RequestResponse(context.Background(), &test.Request{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 42, resp.GetScalar())
+	})
+	t.Run("gRPC via WebSocket", func(t *testing.T) {
+		conn, err := grpc.DialContext(
+			context.Background(),
+			"ws://"+l.Addr().String(),
+			grpc.WithContextDialer(wstunnel.DialerForGRPC(0, &websocket.DialOptions{})),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		require.NoError(t, err)
+		defer func() {
+			assert.NoError(t, conn.Close())
+		}()
+		c := test.NewTestingClient(conn)
+		resp, err := c.RequestResponse(context.Background(), &test.Request{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 42, resp.GetScalar())
+	})
+}
+
+func testKeepalive(t *testing.T, webSocketClient, webSocketServer bool, kp keepalive.ServerParameters, sh stats.Handler, srv test.TestingServer, f func(*testing.T, test.TestingClient)) {
 	t.Parallel()
-	l, dial := listenerAndDialer(websocket)
+	l, dial := listenerAndDialer(webSocketClient, webSocketServer)
 	defer func() {
 		assert.NoError(t, l.Close())
 	}()
@@ -214,20 +350,24 @@ func testKeepalive(t *testing.T, websocket bool, kp keepalive.ServerParameters, 
 	f(t, test.NewTestingClient(conn))
 }
 
-func listenerAndDialer(webSocket bool) (net.Listener, func(context.Context, string) (net.Conn, error)) {
-	l := NewDialListener()
-	if !webSocket {
-		return l, l.DialContext
+func listenerAndDialer(webSocketClient, webSocketServer bool) (net.Listener, func(context.Context, string) (net.Conn, error)) {
+	dl := NewDialListener()
+	var l net.Listener = dl
+	d := dl.DialContext
+	if webSocketServer {
+		lisWrapper := wstunnel.ListenerWrapper{}
+		l = lisWrapper.Wrap(l, false)
 	}
-	lisWrapper := wstunnel.ListenerWrapper{}
-	lWrapped := lisWrapper.Wrap(l)
-	return lWrapped, wstunnel.DialerForGRPC(0, &websocket.DialOptions{
-		HTTPClient: &http.Client{
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return l.DialContext(ctx, addr)
+	if webSocketClient {
+		d = wstunnel.DialerForGRPC(0, &websocket.DialOptions{
+			HTTPClient: &http.Client{
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						return dl.DialContext(ctx, addr)
+					},
 				},
 			},
-		},
-	})
+		})
+	}
+	return l, d
 }

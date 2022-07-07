@@ -4,6 +4,7 @@ go_library(
     name = "testhelpers",
     srcs = [
         "testing_helpers.go",
+        "tls.go",
         "validation.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers",
@@ -14,6 +15,7 @@ go_library(
         "//internal/tool/retry",
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
     ],

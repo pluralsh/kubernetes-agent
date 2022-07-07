@@ -57,6 +57,7 @@ import (
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"gitlab.com/gitlab-org/labkit/monitoring"
 	"go.uber.org/zap"
+	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -390,7 +391,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 				return nil, err
 			}
 			if tlsConfig != nil {
-				tlsConfig.NextProtos = []string{"http/1.1"} // like http.Server.ServeTLS(), but only http/1.1
+				tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"} // h2 for gRPC, http/1.1 for WebSocket
 				lis, err = tls.Listen(listenCfg.Network.String(), listenCfg.Address, tlsConfig)
 			} else {
 				lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)
@@ -403,7 +404,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 				ReadLimit:  defaultMaxMessageSize,
 				ServerName: kasServerName(),
 			}
-			lis = wsWrapper.Wrap(lis)
+			lis = wsWrapper.Wrap(lis, tlsConfig != nil)
 		} else {
 			var err error
 			lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)

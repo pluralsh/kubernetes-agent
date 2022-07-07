@@ -1,8 +1,12 @@
 package wstunnel
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -10,9 +14,21 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
+	"golang.org/x/net/http2"
 	"nhooyr.io/websocket"
 )
 
+// ListenerWrapper does two things:
+// - HTTP/1.1 connections are expected to contain WebSocket upgrade request. Such connections are turned into TCP
+//   streams and returned from Accept(). This mode can be used for tunneling an HTTP/2 protocol via a WebSocket connection.
+// - HTTP/2 connections are returned from Accept() as is.
+//
+// There are two modes of operation - with and without TLS. Whether connection is HTTP/1.1 or HTTP/2 is determined
+// by looking at:
+// - TLS: what protocol was negotiated via ALPN. h2 means HTTP/2, everything else is considered HTTP/1.1.
+// - Cleartext: if byte stream contains the standard h2 client preface then it's an HTTP/2 connection, HTTP/1.1 otherwise.
+// See https://httpwg.org/specs/rfc9113.html#preface.
+// See https://www.rfc-editor.org/rfc/rfc7301.html.
 type ListenerWrapper struct {
 	AcceptOptions websocket.AcceptOptions
 	// ReadLimit. Optional. See websocket.Conn.SetReadLimit().
@@ -40,41 +56,71 @@ type Listener interface {
 	Shutdown(context.Context) error
 }
 
-// Wrap accepts WebSocket connections and turns them into TCP connections.
-func (w *ListenerWrapper) Wrap(source net.Listener) Listener {
-	accepted := make(chan net.Conn)
+func (w *ListenerWrapper) Wrap(source net.Listener, isTls bool) Listener {
+	accepted := make(chan net.Conn) // unwrapped WebSocket streams or HTTP/2 connections
+	isHttp2Connection := isCleartextHttp2Connection
+	if isTls {
+		isHttp2Connection = isTlsHttp2Connection
+	}
 	ctx, cancel := context.WithCancel(context.Background())
+	options := w.AcceptOptions
+	options.Subprotocols = []string{TunnelWebSocketProtocol}
+	pl := &protocolListener{
+		delegate:          source,
+		http1:             make(chan acceptResult),
+		http2:             accepted,
+		close:             make(chan struct{}),
+		handshakeTimeout:  w.handshakeTimeout(),
+		isHttp2Connection: isHttp2Connection,
+	}
 	s := &wrapperServer{
 		cancelAccept: cancel,
 		source: &onceCloseListener{
-			Listener: source,
+			Listener: pl,
+		},
+		server: &http.Server{
+			Handler: &HttpHandler{
+				Ctx:           ctx,
+				ServerName:    w.ServerName,
+				AcceptOptions: options,
+				Sink:          accepted,
+				ReadLimit:     w.ReadLimit,
+			},
+			ReadTimeout:       w.ReadTimeout,
+			ReadHeaderTimeout: w.ReadHeaderTimeout,
+			WriteTimeout:      w.WriteTimeout,
+			IdleTimeout:       w.IdleTimeout,
+			MaxHeaderBytes:    w.MaxHeaderBytes,
+			ConnState:         w.ConnState,
+			ErrorLog:          w.ErrorLog,
+			BaseContext:       w.BaseContext,
+			ConnContext:       w.ConnContext,
 		},
 		accepted:  accepted,
 		serverErr: make(chan error, 1),
 	}
-	options := w.AcceptOptions
-	options.Subprotocols = []string{TunnelWebSocketProtocol}
-	s.server = &http.Server{
-		Handler: &HttpHandler{
-			Ctx:           ctx,
-			ServerName:    w.ServerName,
-			AcceptOptions: options,
-			Sink:          accepted,
-			ReadLimit:     w.ReadLimit,
-		},
-		ReadTimeout:       w.ReadTimeout,
-		ReadHeaderTimeout: w.ReadHeaderTimeout,
-		WriteTimeout:      w.WriteTimeout,
-		IdleTimeout:       w.IdleTimeout,
-		MaxHeaderBytes:    w.MaxHeaderBytes,
-		ConnState:         w.ConnState,
-		ErrorLog:          w.ErrorLog,
-		BaseContext:       w.BaseContext,
-		ConnContext:       w.ConnContext,
-	}
+	go pl.acceptLoop()
 	go s.run()
 
 	return s
+}
+
+// handshakeTimeout returns the time limit permitted for the TLS/cleartext
+// handshake, or zero for unlimited.
+//
+// It returns the minimum of any positive ReadHeaderTimeout,
+// ReadTimeout, or WriteTimeout.
+func (w *ListenerWrapper) handshakeTimeout() time.Duration {
+	var ret time.Duration
+	for _, v := range [...]time.Duration{w.ReadHeaderTimeout, w.ReadTimeout, w.WriteTimeout} {
+		if v <= 0 {
+			continue
+		}
+		if ret == 0 || v < ret {
+			ret = v
+		}
+	}
+	return ret
 }
 
 type wrapperServer struct {
@@ -165,4 +211,140 @@ func (oc *onceCloseListener) Close() error {
 
 func (oc *onceCloseListener) close() {
 	oc.closeErr = oc.Listener.Close()
+}
+
+type acceptResult struct {
+	conn net.Conn
+	err  error
+}
+
+type protocolListener struct {
+	delegate          net.Listener
+	http1             chan acceptResult
+	http2             chan<- net.Conn
+	close             chan struct{}
+	handshakeTimeout  time.Duration
+	isHttp2Connection func(conn net.Conn, handshakeTimeout time.Duration) (net.Conn, bool /* isHttp2 */, error)
+}
+
+func (l *protocolListener) Accept() (net.Conn, error) {
+	select {
+	case <-l.close:
+		return nil, errors.New("closed listener")
+	case res := <-l.http1:
+		return res.conn, res.err
+	}
+}
+
+func (l *protocolListener) Close() error {
+	close(l.close)
+	return l.delegate.Close()
+}
+
+func (l *protocolListener) Addr() net.Addr {
+	return l.delegate.Addr()
+}
+
+func (l *protocolListener) acceptLoop() {
+	for {
+		conn, err := l.delegate.Accept()
+		if err != nil {
+			select {
+			case <-l.close:
+				return
+			case l.http1 <- acceptResult{err: err}:
+				continue
+			}
+		}
+		go l.acceptAsync(conn)
+	}
+}
+
+// acceptAsync calls isHttp2Connection() on incoming connections asynchronously to avoid blocking/slowing down
+// the accept loop.
+func (l *protocolListener) acceptAsync(conn net.Conn) {
+	wrappedConn, isHttp2, err := l.isHttp2Connection(conn, l.handshakeTimeout)
+	if err != nil {
+		_ = conn.Close()
+		return
+	}
+	if isHttp2 {
+		select {
+		case <-l.close:
+			// Listener is closing, close the connection.
+			_ = wrappedConn.Close()
+		case l.http2 <- wrappedConn:
+		}
+	} else {
+		select {
+		case <-l.close:
+			// Listener is closing, close the connection.
+			_ = wrappedConn.Close()
+		case l.http1 <- acceptResult{conn: wrappedConn}:
+		}
+	}
+}
+
+func isTlsHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (net.Conn, bool /* isHttp2 */, error) {
+	type tlsConnInterface interface {
+		ConnectionState() tls.ConnectionState
+		HandshakeContext(context.Context) error
+	}
+	tlsConn, ok := conn.(tlsConnInterface)
+	if !ok {
+		return conn, false, nil
+	}
+	if handshakeTimeout > 0 {
+		err := conn.SetDeadline(time.Now().Add(handshakeTimeout))
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	err := tlsConn.HandshakeContext(context.Background()) // this is needed to populate connection state, used below.
+	if err != nil {
+		return nil, false, err
+	}
+	if handshakeTimeout > 0 { // Restore timeout
+		err = conn.SetDeadline(time.Time{})
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	return conn, tlsConn.ConnectionState().NegotiatedProtocol == http2.NextProtoTLS, nil
+}
+
+func isCleartextHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (net.Conn, bool /* isHttp2 */, error) {
+	if handshakeTimeout > 0 {
+		err := conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	preface := make([]byte, len(http2.ClientPreface))
+	_, err := io.ReadFull(conn, preface)
+	if err != nil {
+		return nil, false, err
+	}
+	if handshakeTimeout > 0 {
+		err = conn.SetReadDeadline(time.Time{})
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	conn = &readerConn{
+		Conn: conn,
+		r:    io.MultiReader(bytes.NewReader(preface), conn),
+	}
+	return conn, string(preface) == http2.ClientPreface, nil
+}
+
+// readerConn uses a reader instead of the net.Conn's Read() method.
+// This makes it possible e.g. to unread a chunk of data.
+type readerConn struct {
+	net.Conn
+	r io.Reader
+}
+
+func (r *readerConn) Read(b []byte) (int, error) {
+	return r.r.Read(b)
 }
