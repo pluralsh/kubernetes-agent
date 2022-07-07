@@ -1,6 +1,7 @@
 package agentkapp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -202,6 +203,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	if err != nil {
 		return nil, fmt.Errorf("token file: %w", err)
 	}
+	tokenData = bytes.TrimSuffix(tokenData, []byte{'\n'})
 	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
 	if err != nil {
 		return nil, err
