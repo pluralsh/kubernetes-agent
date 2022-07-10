@@ -16,6 +16,19 @@ func TestValidation_Valid(t *testing.T) {
 					Address:                  "http://localhost:8080",
 					AuthenticationSecretFile: "/some/file",
 				},
+				Redis: &RedisCF{
+					RedisConfig: &RedisCF_Sentinel{},
+				},
+				Api: &ApiCF{
+					Listen: &ListenApiCF{
+						AuthenticationSecretFile: "/some/file",
+					},
+				},
+				PrivateApi: &PrivateApiCF{
+					Listen: &ListenApiCF{
+						AuthenticationSecretFile: "/some/file",
+					},
+				},
 			},
 		},
 		{

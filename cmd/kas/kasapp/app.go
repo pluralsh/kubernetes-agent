@@ -78,7 +78,7 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 
 func NewCommand() *cobra.Command {
 	a := App{
-		OwnPrivateApiUrl: os.Getenv(envVarOwnPrivateApiUrl), // TODO This should become required later?
+		OwnPrivateApiUrl: os.Getenv(envVarOwnPrivateApiUrl),
 	}
 	c := &cobra.Command{
 		Use:   "kas",

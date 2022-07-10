@@ -207,7 +207,6 @@ func (c *tunnelInfoCollector) Collect(service, method string) tracker.GetTunnels
 	return func(info *tracker.TunnelInfo) (bool /* done */, error) {
 		if info.KasUrl == "" {
 			// kas without a private API endpoint. Ignore it.
-			// TODO this can be made mandatory if/when the env var the address is coming from is mandatory
 			return false, nil
 		}
 		if !info.SupportsServiceAndMethod(service, method) {

@@ -4107,6 +4107,17 @@ func (m *ConfigurationFile) validate(all bool) error {
 		}
 	}
 
+	if m.GetRedis() == nil {
+		err := ConfigurationFileValidationError{
+			field:  "Redis",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if all {
 		switch v := interface{}(m.GetRedis()).(type) {
 		case interface{ ValidateAll() error }:
@@ -4136,6 +4147,17 @@ func (m *ConfigurationFile) validate(all bool) error {
 		}
 	}
 
+	if m.GetApi() == nil {
+		err := ConfigurationFileValidationError{
+			field:  "Api",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if all {
 		switch v := interface{}(m.GetApi()).(type) {
 		case interface{ ValidateAll() error }:
@@ -4163,6 +4185,17 @@ func (m *ConfigurationFile) validate(all bool) error {
 				cause:  err,
 			}
 		}
+	}
+
+	if m.GetPrivateApi() == nil {
+		err := ConfigurationFileValidationError{
+			field:  "PrivateApi",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if all {

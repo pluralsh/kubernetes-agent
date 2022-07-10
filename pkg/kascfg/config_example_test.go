@@ -30,7 +30,6 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 				Listen: &kascfg.ListenKubernetesApiCF{},
 			},
 		},
-		// Not actually required, but Redis.RedisConfig.Server.Address is required if Redis key is specified so add it here to show that and defaults too.
 		Redis: &kascfg.RedisCF{
 			RedisConfig: &kascfg.RedisCF_Server{
 				Server: &kascfg.RedisServerCF{
@@ -40,7 +39,6 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 			PasswordFile: "/some/file",
 			Network:      "tcp",
 		},
-		// Not actually required, but Listen.AuthenticationSecretFile is required if Api key is specified so add it here to show that and defaults too.
 		Api: &kascfg.ApiCF{
 			Listen: &kascfg.ListenApiCF{
 				AuthenticationSecretFile: "/some/file",
