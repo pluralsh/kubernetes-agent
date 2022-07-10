@@ -2998,6 +2998,17 @@ func (m *RedisCF) validate(all bool) error {
 
 	case *RedisCF_Server:
 
+		if m.GetServer() == nil {
+			err := RedisCFValidationError{
+				field:  "Server",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetServer()).(type) {
 			case interface{ ValidateAll() error }:
@@ -3028,6 +3039,17 @@ func (m *RedisCF) validate(all bool) error {
 		}
 
 	case *RedisCF_Sentinel:
+
+		if m.GetSentinel() == nil {
+			err := RedisCFValidationError{
+				field:  "Sentinel",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetSentinel()).(type) {

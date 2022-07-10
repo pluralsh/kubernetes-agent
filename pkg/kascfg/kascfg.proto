@@ -234,9 +234,9 @@ message RedisCF {
     option (validate.required) = true;
 
     // Single-server Redis.
-    RedisServerCF server = 1 [json_name = "server"];
+    RedisServerCF server = 1 [json_name = "server", (validate.rules).message.required = true];
     // Redis with Sentinel setup. See http://redis.io/topics/sentinel.
-    RedisSentinelCF sentinel = 2 [json_name = "sentinel"];
+    RedisSentinelCF sentinel = 2 [json_name = "sentinel", (validate.rules).message.required = true];
   }
   // The max number of connections.
   uint32 pool_size = 4 [json_name = "pool_size"];

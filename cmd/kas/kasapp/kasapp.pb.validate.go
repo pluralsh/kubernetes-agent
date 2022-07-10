@@ -161,6 +161,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 
 	case *GatewayKasResponse_TunnelReady_:
 
+		if m.GetTunnelReady() == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "TunnelReady",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetTunnelReady()).(type) {
 			case interface{ ValidateAll() error }:
@@ -191,6 +202,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Header_:
+
+		if m.GetHeader() == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Header",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetHeader()).(type) {
@@ -223,6 +245,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 
 	case *GatewayKasResponse_Message_:
 
+		if m.GetMessage() == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Message",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetMessage()).(type) {
 			case interface{ ValidateAll() error }:
@@ -254,6 +287,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 
 	case *GatewayKasResponse_Trailer_:
 
+		if m.GetTrailer() == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Trailer",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetTrailer()).(type) {
 			case interface{ ValidateAll() error }:
@@ -284,6 +328,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Error_:
+
+		if m.GetError() == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Error",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetError()).(type) {

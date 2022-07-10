@@ -266,6 +266,18 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid:   &RedisCF{},
 		},
 		{
+			ErrString: "invalid RedisCF.Server: value is required",
+			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{},
+			},
+		},
+		{
+			ErrString: "invalid RedisCF.Sentinel: value is required",
+			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Sentinel{},
+			},
+		},
+		{
 			ErrString: "invalid RedisServerCF.Address: value length must be at least 1 bytes",
 			Invalid:   &RedisServerCF{},
 		},

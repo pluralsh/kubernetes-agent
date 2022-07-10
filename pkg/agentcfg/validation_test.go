@@ -69,6 +69,24 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid:   &CiAccessAsCF{},
 		},
 		{
+			ErrString: "invalid CiAccessAsCF.Agent: value is required",
+			Invalid: &CiAccessAsCF{
+				As: &CiAccessAsCF_Agent{},
+			},
+		},
+		{
+			ErrString: "invalid CiAccessAsCF.Impersonate: value is required",
+			Invalid: &CiAccessAsCF{
+				As: &CiAccessAsCF_Impersonate{},
+			},
+		},
+		{
+			ErrString: "invalid CiAccessAsCF.CiJob: value is required",
+			Invalid: &CiAccessAsCF{
+				As: &CiAccessAsCF_CiJob{},
+			},
+		},
+		{
 			ErrString: "invalid CiAccessAsImpersonateCF.Username: value length must be at least 1 bytes",
 			Invalid:   &CiAccessAsImpersonateCF{},
 		},
