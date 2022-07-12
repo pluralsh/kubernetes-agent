@@ -333,10 +333,10 @@ message ConfigurationFile {
   ObservabilityCF observability = 3 [json_name = "observability"];
   // Configuration related to interaction with Gitaly.
   GitalyCF gitaly = 4 [json_name = "gitaly"];
-  // Redis configurations available to kas
-  RedisCF redis = 5 [json_name = "redis"];
+  // Redis configurations available to kas.
+  RedisCF redis = 5 [json_name = "redis", (validate.rules).message.required = true];
   // Public API.
-  ApiCF api = 6 [json_name = "api"];
+  ApiCF api = 6 [json_name = "api", (validate.rules).message.required = true];
   // Private API for kas->kas communication.
-  PrivateApiCF private_api = 7 [json_name = "private_api"];
+  PrivateApiCF private_api = 7 [json_name = "private_api", (validate.rules).message.required = true];
 }

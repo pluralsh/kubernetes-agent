@@ -93,9 +93,8 @@ type ConfiguredApp struct {
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
-	// TODO This should become required later?
 	if a.OwnPrivateApiUrl == "" {
-		a.Log.Warn(envVarOwnPrivateApiUrl + " environment variable is not set, this kas instance will not be accessible to other kas instances and certain features will not work")
+		return fmt.Errorf("%s environment variable is required so that kas instance is accessible to other kas instances", envVarOwnPrivateApiUrl)
 	}
 	// Metrics
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
@@ -318,10 +317,6 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, csh stats.Handler, tunnelQuerier tracker.Querier,
 	tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar,
 	registerer prometheus.Registerer) (kasRouter, error) {
-	// TODO this should become required
-	if a.Configuration.PrivateApi == nil {
-		return nopKasRouter{}, nil
-	}
 	listenCfg := a.Configuration.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -423,10 +418,6 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 }
 
 func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server) {
-	// TODO this should become required
-	if a.Configuration.Api == nil {
-		return
-	}
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Api.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
@@ -443,10 +434,6 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 }
 
 func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server) {
-	// TODO this should become required
-	if a.Configuration.PrivateApi == nil {
-		return
-	}
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.PrivateApi.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
@@ -471,45 +458,40 @@ func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *
 func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentracing.Tracer,
 	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.AgentRpcApiFactory) (*grpc.Server, error) {
 	listenCfg := a.Configuration.Agent.Listen
+	agentConnectionLimiter := redistool.NewTokenLimiter(
+		redisClient,
+		a.Configuration.Redis.KeyPrefix+":agent_limit",
+		uint64(listenCfg.ConnectionsPerTokenPerMinute),
+		func(ctx context.Context) redistool.RpcApi {
+			return &tokenLimiterApi{
+				rpcApi: modserver.AgentRpcApiFromContext(ctx),
+			}
+		},
+	)
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor( // 2. add correlation id
-			grpccorrelation.WithoutPropagation(),
-			grpccorrelation.WithReversePropagation()),
-		modserver.StreamAgentRpcApiInterceptor(factory),                               // 3. inject RPC API
-		grpc_validator.StreamServerInterceptor(),                                      // x. wrap with validator
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
-	}
-	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor, // 1. measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor( // 2. add correlation id
-			grpccorrelation.WithoutPropagation(),
-			grpccorrelation.WithReversePropagation()),
-		modserver.UnaryAgentRpcApiInterceptor(factory),                               // 3. inject RPC API
-		grpc_validator.UnaryServerInterceptor(),                                      // x. wrap with validator
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
-	}
-
-	if redisClient != nil {
-		agentConnectionLimiter := redistool.NewTokenLimiter(
-			redisClient,
-			a.Configuration.Redis.KeyPrefix+":agent_limit",
-			uint64(listenCfg.ConnectionsPerTokenPerMinute),
-			func(ctx context.Context) redistool.RpcApi {
-				return &tokenLimiterApi{
-					rpcApi: modserver.AgentRpcApiFromContext(ctx),
-				}
-			},
-		)
-		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
-		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
-	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
-		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
-		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
+		grpc.ChainStreamInterceptor(
+			grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
+			grpccorrelation.StreamServerCorrelationInterceptor( // 2. add correlation id
+				grpccorrelation.WithoutPropagation(),
+				grpccorrelation.WithReversePropagation()),
+			modserver.StreamAgentRpcApiInterceptor(factory),                               // 3. inject RPC API
+			grpc_validator.StreamServerInterceptor(),                                      // x. wrap with validator
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
+			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
+		),
+		grpc.ChainUnaryInterceptor(
+			grpc_prometheus.UnaryServerInterceptor, // 1. measure all invocations
+			grpccorrelation.UnaryServerCorrelationInterceptor( // 2. add correlation id
+				grpccorrelation.WithoutPropagation(),
+				grpccorrelation.WithReversePropagation()),
+			modserver.UnaryAgentRpcApiInterceptor(factory),                               // 3. inject RPC API
+			grpc_validator.UnaryServerInterceptor(),                                      // x. wrap with validator
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)), // x. trace
+			grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter),
+		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
@@ -532,10 +514,6 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 
 func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler,
 	factory modserver.RpcApiFactory) (*grpc.Server, error) {
-	// TODO this should become required
-	if a.Configuration.Api == nil {
-		return grpc.NewServer(), nil
-	}
 	listenCfg := a.Configuration.Api.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -586,10 +564,6 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 
 func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler,
 	factory modserver.RpcApiFactory) (*grpc.Server, error) {
-	// TODO this should become required
-	if a.Configuration.PrivateApi == nil {
-		return grpc.NewServer(), nil
-	}
 	listenCfg := a.Configuration.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -675,9 +649,6 @@ func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer 
 }
 
 func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient) agent_tracker.Tracker {
-	if redisClient == nil {
-		return nopAgentTracker{}
-	}
 	cfg := a.Configuration
 	return agent_tracker.NewRedisTracker(
 		a.Log,
@@ -690,9 +661,6 @@ func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient)
 }
 
 func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient) tracker.Tracker {
-	if redisClient == nil {
-		return nopTunnelTracker{}
-	}
 	cfg := a.Configuration
 	return tracker.NewRedisTracker(
 		a.Log,
@@ -818,9 +786,6 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracin
 
 func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	cfg := a.Configuration.Redis
-	if cfg == nil {
-		return nil, nil
-	}
 	poolSize := int(cfg.PoolSize)
 	dialTimeout := cfg.DialTimeout.AsDuration()
 	readTimeout := cfg.ReadTimeout.AsDuration()
@@ -896,9 +861,6 @@ func constructKasRoutingDurationHistogram() *prometheus.HistogramVec {
 }
 
 func constructReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
-	if redisClient == nil {
-		return observability.NoopProbe
-	}
 	return func(ctx context.Context) error {
 		status := redisClient.Ping(ctx)
 		err := status.Err()
@@ -938,63 +900,8 @@ func kasServerName() string {
 }
 
 var (
-	_ agent_tracker.Tracker = nopAgentTracker{}
-	_ tracker.Tracker       = nopTunnelTracker{}
-	_ kasRouter             = nopKasRouter{}
-	_ redistool.RpcApi      = (*tokenLimiterApi)(nil)
+	_ redistool.RpcApi = (*tokenLimiterApi)(nil)
 )
-
-type nopAgentTracker struct {
-}
-
-func (n nopAgentTracker) Run(ctx context.Context) error {
-	return nil
-}
-
-func (n nopAgentTracker) RegisterConnection(ctx context.Context, info *agent_tracker.ConnectedAgentInfo) bool {
-	return true
-}
-
-func (n nopAgentTracker) UnregisterConnection(ctx context.Context, info *agent_tracker.ConnectedAgentInfo) bool {
-	return true
-}
-
-func (n nopAgentTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64, cb agent_tracker.ConnectedAgentInfoCallback) error {
-	return nil
-}
-
-func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb agent_tracker.ConnectedAgentInfoCallback) error {
-	return nil
-}
-
-func (n nopAgentTracker) GetConnectedAgentsCount(ctx context.Context) (int64, error) {
-	return 0, nil
-}
-
-type nopTunnelTracker struct {
-}
-
-func (n nopTunnelTracker) RegisterTunnel(ctx context.Context, info *tracker.TunnelInfo) bool {
-	return true
-}
-
-func (n nopTunnelTracker) UnregisterTunnel(ctx context.Context, info *tracker.TunnelInfo) bool {
-	return true
-}
-
-func (n nopTunnelTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
-	return nil
-}
-
-func (n nopTunnelTracker) Run(ctx context.Context) error {
-	return nil
-}
-
-type nopKasRouter struct {
-}
-
-func (r nopKasRouter) RegisterAgentApi(desc *grpc.ServiceDesc) {
-}
 
 type tokenLimiterApi struct {
 	rpcApi modserver.AgentRpcApi
