@@ -108,10 +108,10 @@ message CiAccessAsCF {
   oneof as {
     option (validate.required) = true;
 
-    CiAccessAsAgentCF agent = 1 [json_name = "agent"];
-    CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate"];
-    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job"];
-    //    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user"];
+    CiAccessAsAgentCF agent = 1 [json_name = "agent", (validate.rules).message.required = true];
+    CiAccessAsImpersonateCF impersonate = 2 [json_name = "impersonate", (validate.rules).message.required = true];
+    CiAccessAsCiJobCF ci_job = 3 [json_name = "ci_job", (validate.rules).message.required = true];
+    //    CiAccessAsCiUserCF ci_user = 4 [json_name = "ci_user", (validate.rules).message.required = true];
   }
 }
 

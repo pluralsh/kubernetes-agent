@@ -1258,6 +1258,17 @@ func (m *CiAccessAsCF) validate(all bool) error {
 
 	case *CiAccessAsCF_Agent:
 
+		if m.GetAgent() == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "Agent",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetAgent()).(type) {
 			case interface{ ValidateAll() error }:
@@ -1289,6 +1300,17 @@ func (m *CiAccessAsCF) validate(all bool) error {
 
 	case *CiAccessAsCF_Impersonate:
 
+		if m.GetImpersonate() == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "Impersonate",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetImpersonate()).(type) {
 			case interface{ ValidateAll() error }:
@@ -1319,6 +1341,17 @@ func (m *CiAccessAsCF) validate(all bool) error {
 		}
 
 	case *CiAccessAsCF_CiJob:
+
+		if m.GetCiJob() == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "CiJob",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetCiJob()).(type) {

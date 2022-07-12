@@ -726,6 +726,17 @@ func (m *ConnectRequest) validate(all bool) error {
 
 	case *ConnectRequest_Descriptor_:
 
+		if m.GetDescriptor_() == nil {
+			err := ConnectRequestValidationError{
+				field:  "Descriptor_",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetDescriptor_()).(type) {
 			case interface{ ValidateAll() error }:
@@ -756,6 +767,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Header:
+
+		if m.GetHeader() == nil {
+			err := ConnectRequestValidationError{
+				field:  "Header",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetHeader()).(type) {
@@ -788,6 +810,17 @@ func (m *ConnectRequest) validate(all bool) error {
 
 	case *ConnectRequest_Message:
 
+		if m.GetMessage() == nil {
+			err := ConnectRequestValidationError{
+				field:  "Message",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetMessage()).(type) {
 			case interface{ ValidateAll() error }:
@@ -819,6 +852,17 @@ func (m *ConnectRequest) validate(all bool) error {
 
 	case *ConnectRequest_Trailer:
 
+		if m.GetTrailer() == nil {
+			err := ConnectRequestValidationError{
+				field:  "Trailer",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetTrailer()).(type) {
 			case interface{ ValidateAll() error }:
@@ -849,6 +893,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Error:
+
+		if m.GetError() == nil {
+			err := ConnectRequestValidationError{
+				field:  "Error",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetError()).(type) {
@@ -1241,6 +1296,17 @@ func (m *ConnectResponse) validate(all bool) error {
 
 	case *ConnectResponse_RequestInfo:
 
+		if m.GetRequestInfo() == nil {
+			err := ConnectResponseValidationError{
+				field:  "RequestInfo",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetRequestInfo()).(type) {
 			case interface{ ValidateAll() error }:
@@ -1272,6 +1338,17 @@ func (m *ConnectResponse) validate(all bool) error {
 
 	case *ConnectResponse_Message:
 
+		if m.GetMessage() == nil {
+			err := ConnectResponseValidationError{
+				field:  "Message",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetMessage()).(type) {
 			case interface{ ValidateAll() error }:
@@ -1302,6 +1379,17 @@ func (m *ConnectResponse) validate(all bool) error {
 		}
 
 	case *ConnectResponse_CloseSend:
+
+		if m.GetCloseSend() == nil {
+			err := ConnectResponseValidationError{
+				field:  "CloseSend",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetCloseSend()).(type) {

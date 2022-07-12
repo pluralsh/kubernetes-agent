@@ -61,6 +61,17 @@ func (m *HttpRequest) validate(all bool) error {
 
 	case *HttpRequest_Header_:
 
+		if m.GetHeader() == nil {
+			err := HttpRequestValidationError{
+				field:  "Header",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetHeader()).(type) {
 			case interface{ ValidateAll() error }:
@@ -91,6 +102,17 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	case *HttpRequest_Data_:
+
+		if m.GetData() == nil {
+			err := HttpRequestValidationError{
+				field:  "Data",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetData()).(type) {
@@ -123,6 +145,17 @@ func (m *HttpRequest) validate(all bool) error {
 
 	case *HttpRequest_Trailer_:
 
+		if m.GetTrailer() == nil {
+			err := HttpRequestValidationError{
+				field:  "Trailer",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetTrailer()).(type) {
 			case interface{ ValidateAll() error }:
@@ -153,6 +186,17 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	case *HttpRequest_UpgradeData_:
+
+		if m.GetUpgradeData() == nil {
+			err := HttpRequestValidationError{
+				field:  "UpgradeData",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetUpgradeData()).(type) {
@@ -298,6 +342,17 @@ func (m *HttpResponse) validate(all bool) error {
 
 	case *HttpResponse_Header_:
 
+		if m.GetHeader() == nil {
+			err := HttpResponseValidationError{
+				field:  "Header",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetHeader()).(type) {
 			case interface{ ValidateAll() error }:
@@ -328,6 +383,17 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	case *HttpResponse_Data_:
+
+		if m.GetData() == nil {
+			err := HttpResponseValidationError{
+				field:  "Data",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetData()).(type) {
@@ -360,6 +426,17 @@ func (m *HttpResponse) validate(all bool) error {
 
 	case *HttpResponse_Trailer_:
 
+		if m.GetTrailer() == nil {
+			err := HttpResponseValidationError{
+				field:  "Trailer",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetTrailer()).(type) {
 			case interface{ ValidateAll() error }:
@@ -390,6 +467,17 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	case *HttpResponse_UpgradeData_:
+
+		if m.GetUpgradeData() == nil {
+			err := HttpResponseValidationError{
+				field:  "UpgradeData",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetUpgradeData()).(type) {

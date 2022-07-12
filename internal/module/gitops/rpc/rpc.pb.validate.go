@@ -222,6 +222,17 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 
 	case *ObjectsToSynchronizeResponse_Header_:
 
+		if m.GetHeader() == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Header",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetHeader()).(type) {
 			case interface{ ValidateAll() error }:
@@ -253,6 +264,17 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 
 	case *ObjectsToSynchronizeResponse_Object_:
 
+		if m.GetObject() == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Object",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 		if all {
 			switch v := interface{}(m.GetObject()).(type) {
 			case interface{ ValidateAll() error }:
@@ -283,6 +305,17 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 		}
 
 	case *ObjectsToSynchronizeResponse_Trailer_:
+
+		if m.GetTrailer() == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Trailer",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetTrailer()).(type) {
