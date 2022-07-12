@@ -17,7 +17,12 @@ func TestValidation_Valid(t *testing.T) {
 					AuthenticationSecretFile: "/some/file",
 				},
 				Redis: &RedisCF{
-					RedisConfig: &RedisCF_Sentinel{},
+					RedisConfig: &RedisCF_Sentinel{
+						Sentinel: &RedisSentinelCF{
+							MasterName: "redis",
+							Addresses:  []string{"redis:6379"},
+						},
+					},
 				},
 				Api: &ApiCF{
 					Listen: &ListenApiCF{
