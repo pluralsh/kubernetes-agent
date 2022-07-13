@@ -27,7 +27,6 @@ import (
 )
 
 var (
-	_ stats.Handler = joinStatHandlers{}
 	_ stats.Handler = serverMaxConnAgeStatsHandler{}
 )
 
@@ -59,15 +58,14 @@ func TestMaxConnectionAge(t *testing.T) {
 		MaxConnectionAge:      maxAge,
 		MaxConnectionAgeGrace: maxAge,
 	}
-	sh := NewJoinStatHandlers()
 	t.Run("gRPC", func(t *testing.T) {
-		testKeepalive(t, false, false, kp, sh, srv, testClient)
+		testKeepalive(t, false, false, kp, nil, srv, testClient)
 	})
 	t.Run("WebSocket", func(t *testing.T) {
-		testKeepalive(t, true, true, kp, sh, srv, testClient)
+		testKeepalive(t, true, true, kp, nil, srv, testClient)
 	})
 	t.Run("gRPC->WebSocket+gRPC", func(t *testing.T) {
-		testKeepalive(t, false, true, kp, sh, srv, testClient)
+		testKeepalive(t, false, true, kp, nil, srv, testClient)
 	})
 }
 
@@ -328,10 +326,11 @@ func testKeepalive(t *testing.T, webSocketClient, webSocketServer bool, kp keepa
 	defer func() {
 		assert.NoError(t, l.Close())
 	}()
-	s := grpc.NewServer(
-		grpc.StatsHandler(sh),
-		grpc.KeepaliveParams(kp),
-	)
+	opts := []grpc.ServerOption{grpc.KeepaliveParams(kp)}
+	if sh != nil {
+		opts = append(opts, grpc.StatsHandler(sh))
+	}
+	s := grpc.NewServer(opts...)
 	defer s.GracefulStop()
 	test.RegisterTestingServer(s, srv)
 	go func() {

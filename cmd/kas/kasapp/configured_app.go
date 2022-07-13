@@ -471,7 +471,8 @@ func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentra
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
+		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
 			grpccorrelation.StreamServerCorrelationInterceptor( // 2. add correlation id
@@ -543,7 +544,8 @@ func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentraci
 	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
+		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
@@ -593,7 +595,8 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer op
 	}
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
+		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
