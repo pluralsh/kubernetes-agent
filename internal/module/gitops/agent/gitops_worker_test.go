@@ -313,23 +313,21 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	tf := cmdtesting.NewTestFactory()
 	t.Cleanup(tf.Cleanup)
 	w := &defaultGitopsWorker{
-		objWatcher: watcher,
-		synchronizerConfig: synchronizerConfig{
-			log: zaptest.NewLogger(t),
-			project: &agentcfg.ManifestProjectCF{
-				Id:               projectId,
-				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
-				Paths: []*agentcfg.PathCF{
-					{
-						Glob: "*.yaml",
-					},
+		log: zaptest.NewLogger(t),
+		project: &agentcfg.ManifestProjectCF{
+			Id:               projectId,
+			DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
+			Paths: []*agentcfg.PathCF{
+				{
+					Glob: "*.yaml",
 				},
 			},
-			applier:           applier,
-			restClientGetter:  tf,
-			applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
-			decodeRetryPolicy: wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{}),
 		},
+		applier:           applier,
+		restClientGetter:  tf,
+		applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
+		decodeRetryPolicy: wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{}),
+		objWatcher:        watcher,
 	}
 	return w, applier, watcher
 }

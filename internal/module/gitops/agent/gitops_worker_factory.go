@@ -75,39 +75,37 @@ type defaultGitopsWorkerFactory struct {
 func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
 	l := f.log.With(logz.ProjectId(project.Id), logz.AgentId(agentId))
 	return &defaultGitopsWorker{
+		log:               l,
+		agentId:           agentId,
+		project:           project,
+		applier:           f.applier,
+		restClientGetter:  f.restClientGetter,
+		applierPollConfig: f.applierPollConfig(),
+		applyOptions: apply.ApplierOptions{
+			ServerSideOptions: common.ServerSideOptions{
+				// It's supported since Kubernetes 1.16, so there should be no reason not to use it.
+				// https://kubernetes.io/docs/reference/using-api/server-side-apply/
+				ServerSideApply: true,
+				// GitOps repository is the source of truth and that's what we are applying, so overwrite any conflicts.
+				// https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
+				ForceConflicts: true,
+				// https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management
+				FieldManager: "agentk",
+			},
+			ReconcileTimeout:       project.ReconcileTimeout.AsDuration(),
+			EmitStatusEvents:       true,
+			NoPrune:                !project.GetPrune(),
+			DryRunStrategy:         f.mapDryRunStrategy(project.DryRunStrategy),
+			PrunePropagationPolicy: f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
+			PruneTimeout:           project.PruneTimeout.AsDuration(),
+			InventoryPolicy:        f.mapInventoryPolicy(project.InventoryPolicy),
+			ValidationPolicy:       validation.ExitEarly,
+		},
+		decodeRetryPolicy: f.decodeRetryPolicy(),
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
 			GitopsClient: f.gitopsClient,
 			PollConfig:   f.watchPollConfig,
-		},
-		synchronizerConfig: synchronizerConfig{
-			log:               l,
-			agentId:           agentId,
-			project:           project,
-			applier:           f.applier,
-			restClientGetter:  f.restClientGetter,
-			applierPollConfig: f.applierPollConfig(),
-			applyOptions: apply.ApplierOptions{
-				ServerSideOptions: common.ServerSideOptions{
-					// It's supported since Kubernetes 1.16, so there should be no reason not to use it.
-					// https://kubernetes.io/docs/reference/using-api/server-side-apply/
-					ServerSideApply: true,
-					// GitOps repository is the source of truth and that's what we are applying, so overwrite any conflicts.
-					// https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
-					ForceConflicts: true,
-					// https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management
-					FieldManager: "agentk",
-				},
-				ReconcileTimeout:       project.ReconcileTimeout.AsDuration(),
-				EmitStatusEvents:       true,
-				NoPrune:                !project.GetPrune(),
-				DryRunStrategy:         f.mapDryRunStrategy(project.DryRunStrategy),
-				PrunePropagationPolicy: f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
-				PruneTimeout:           project.PruneTimeout.AsDuration(),
-				InventoryPolicy:        f.mapInventoryPolicy(project.InventoryPolicy),
-				ValidationPolicy:       validation.ExitEarly,
-			},
-			decodeRetryPolicy: f.decodeRetryPolicy(),
 		},
 	}
 }

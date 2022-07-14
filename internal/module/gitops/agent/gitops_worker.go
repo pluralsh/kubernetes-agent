@@ -4,31 +4,40 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/resource"
+	"sigs.k8s.io/cli-utils/pkg/apply"
 )
 
 type defaultGitopsWorker struct {
-	objWatcher rpc.ObjectsToSynchronizeWatcherInterface
-	synchronizerConfig
+	log               *zap.Logger
+	agentId           int64
+	project           *agentcfg.ManifestProjectCF
+	applier           Applier
+	restClientGetter  resource.RESTClientGetter
+	applierPollConfig retry.PollConfig
+	applyOptions      apply.ApplierOptions
+	decodeRetryPolicy retry.BackoffManager
+	objWatcher        rpc.ObjectsToSynchronizeWatcherInterface
 }
 
 func (w *defaultGitopsWorker) Run(ctx context.Context) {
-	var wg wait.Group
-	defer wg.Wait()
+	// Data flow: watch() -> decode() -> apply()
 	desiredState := make(chan rpc.ObjectsToSynchronizeData)
-	defer close(desiredState)
+	jobs := make(chan applyJob)
+
+	var wg wait.Group
+	defer wg.Wait()           // Wait for all pipeline stages to finish
+	defer close(desiredState) // Close desiredState to signal decode() there is no more work to be done.
 	wg.Start(func() {
-		s := newSynchronizer(w.synchronizerConfig)
-		s.run(desiredState)
+		w.apply(jobs)
 	})
-	req := &rpc.ObjectsToSynchronizeRequest{
-		ProjectId: w.project.Id,
-		Paths:     w.project.Paths,
-	}
-	w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
-		select {
-		case <-ctx.Done():
-		case desiredState <- data:
-		}
+	wg.Start(func() {
+		defer close(jobs) // Close jobs to signal apply() there is no more work to be done.
+		w.decode(desiredState, jobs)
 	})
+	w.watch(ctx, desiredState)
 }
