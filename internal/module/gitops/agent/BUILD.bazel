@@ -7,6 +7,7 @@ go_library(
         "doc.go",
         "factory.go",
         "gitops_worker.go",
+        "gitops_worker_factory.go",
         "module.go",
         "retry_pipeline.go",
         "sync_decoder.go",
