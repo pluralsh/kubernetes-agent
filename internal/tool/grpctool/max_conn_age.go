@@ -68,42 +68,6 @@ func AddMaxConnectionAgeContext(ctx, ageCtx context.Context) context.Context {
 	return context.WithValue(ctx, maxConnAgeCtxKey, ageCtx)
 }
 
-type joinStatHandlers struct {
-	handlers []stats.Handler
-}
-
-func NewJoinStatHandlers(handlers ...stats.Handler) stats.Handler {
-	return joinStatHandlers{
-		handlers: handlers,
-	}
-}
-
-func (h joinStatHandlers) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
-	for _, c := range h.handlers {
-		ctx = c.TagRPC(ctx, info)
-	}
-	return ctx
-}
-
-func (h joinStatHandlers) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
-	for _, c := range h.handlers {
-		c.HandleRPC(ctx, rpcStats)
-	}
-}
-
-func (h joinStatHandlers) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
-	for _, c := range h.handlers {
-		ctx = c.TagConn(ctx, info)
-	}
-	return ctx
-}
-
-func (h joinStatHandlers) HandleConn(ctx context.Context, connStats stats.ConnStats) {
-	for _, c := range h.handlers {
-		c.HandleConn(ctx, connStats)
-	}
-}
-
 type serverMaxConnAgeStatsHandler struct {
 	auxCtx           context.Context
 	maxConnectionAge time.Duration
