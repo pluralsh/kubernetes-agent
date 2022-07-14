@@ -16,8 +16,8 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2546145535
-  BUILD_IMAGE_SHA: "002ab2c29d209fb83054518d837f6e99e3c68f4f1639514bfc8b6191e89dc737"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/2719370060
+  BUILD_IMAGE_SHA: "24aa96deb80c1604c6a2fe3646581edf702a19adb6435e3af9a9c709813aeb5a"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
 
