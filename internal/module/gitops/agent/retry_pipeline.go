@@ -23,7 +23,7 @@ const (
 // TODO remove aliases and use generics.
 
 type inputT = rpc.ObjectsToSynchronizeData
-type outputT = syncJob
+type outputT = applyJob
 
 type processFunc func(input inputT) (outputT, processResult)
 
