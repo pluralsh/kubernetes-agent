@@ -65,6 +65,7 @@ go_custom_test(
     name = "agentkapp_test",
     srcs = [
         "api_test.go",
+        "app_test.go",
         "feature_tracker_test.go",
         "module_runner_test.go",
     ],

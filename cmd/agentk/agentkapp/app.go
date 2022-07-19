@@ -268,9 +268,9 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 			},
 		})))
 	case "grpc":
-		addressToDial = u.Host
+		addressToDial = grpcHostWithPort(u)
 	case "grpcs":
-		addressToDial = u.Host
+		addressToDial = grpcHostWithPort(u)
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	default:
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
@@ -383,4 +383,20 @@ func logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) (*zap.Log
 	}
 	atomicLevel := zap.NewAtomicLevelAt(level)
 	return logz.LoggerWithLevel(atomicLevel, sync), atomicLevel, nil
+}
+
+func grpcHostWithPort(u *url.URL) string {
+	port := u.Port()
+	if port != "" {
+		return u.Host
+	}
+	switch u.Scheme {
+	case "grpc":
+		return net.JoinHostPort(u.Host, "80")
+	case "grpcs":
+		return net.JoinHostPort(u.Host, "443")
+	default:
+		// Function called with unknown scheme, just return the original host.
+		return u.Host
+	}
 }
