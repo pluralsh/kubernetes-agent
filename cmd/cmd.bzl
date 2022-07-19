@@ -29,7 +29,6 @@ def define_command_targets(
         race_targets = True,
         arm_targets = True,
         arm64_targets = True,
-        image_targets = True,
         base_image = "@go_image_static//image",
         base_image_arm = "@go_image_static_arm//image",
         base_image_arm64 = "@go_image_static_arm64//image",
@@ -58,14 +57,13 @@ def define_command_targets(
         x_defs = x_defs,
     )
 
-    if image_targets:
-        go_image(
-            name = "container",
-            base = base_image,
-            binary = ":%s_linux" % name,
-            tags = ["manual"],
-            visibility = ["//visibility:public"],
-        )
+    go_image(
+        name = "container",
+        base = base_image,
+        binary = ":%s_linux" % name,
+        tags = ["manual"],
+        visibility = ["//visibility:public"],
+    )
 
     if arm_targets:
         go_binary(
@@ -78,15 +76,14 @@ def define_command_targets(
             x_defs = x_defs,
         )
 
-        if image_targets:
-            go_image(
-                name = "container_arm",
-                base = base_image_arm,
-                binary = ":%s_linux_arm" % name,
-                architecture = "arm",
-                tags = ["manual"],
-                visibility = ["//visibility:public"],
-            )
+        go_image(
+            name = "container_arm",
+            base = base_image_arm,
+            binary = ":%s_linux_arm" % name,
+            architecture = "arm",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
     if arm64_targets:
         go_binary(
@@ -99,15 +96,14 @@ def define_command_targets(
             x_defs = x_defs,
         )
 
-        if image_targets:
-            go_image(
-                name = "container_arm64",
-                base = base_image_arm64,
-                binary = ":%s_linux_arm64" % name,
-                architecture = "arm64",
-                tags = ["manual"],
-                visibility = ["//visibility:public"],
-            )
+        go_image(
+            name = "container_arm64",
+            base = base_image_arm64,
+            binary = ":%s_linux_arm64" % name,
+            architecture = "arm64",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
     if race_targets:
         go_binary(
@@ -130,14 +126,13 @@ def define_command_targets(
             x_defs = x_defs,
         )
 
-        if image_targets:
-            go_image(
-                name = "container_race",
-                base = base_image_race,
-                binary = ":%s_linux_race" % name,
-                tags = ["manual"],
-                visibility = ["//visibility:public"],
-            )
+        go_image(
+            name = "container_race",
+            base = base_image_race,
+            binary = ":%s_linux_race" % name,
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
     if race_targets and arm_targets:
         # Will only work on an arm machine because otherwise cross compilation with CGO requires a properly setup crosstool.
@@ -152,15 +147,14 @@ def define_command_targets(
         #            x_defs = x_defs,
         #        )
         #
-        if image_targets:
-            go_image(
-                name = "container_arm_race",
-                base = base_image_arm_race,
-                binary = ":%s_linux_arm" % name,  # not a race binary, but this image is still good for debugging
-                architecture = "arm",
-                tags = ["manual"],
-                visibility = ["//visibility:public"],
-            )
+        go_image(
+            name = "container_arm_race",
+            base = base_image_arm_race,
+            binary = ":%s_linux_arm" % name,  # not a race binary, but this image is still good for debugging
+            architecture = "arm",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
     if race_targets and arm64_targets:
         # Will only work on an arm64 machine because otherwise cross compilation with CGO requires a properly setup crosstool.
@@ -175,15 +169,14 @@ def define_command_targets(
         #            x_defs = x_defs,
         #        )
         #
-        if image_targets:
-            go_image(
-                name = "container_arm64_race",
-                base = base_image_arm64_race,
-                binary = ":%s_linux_arm64" % name,  # not a race binary, but this image is still good for debugging
-                architecture = "arm64",
-                tags = ["manual"],
-                visibility = ["//visibility:public"],
-            )
+        go_image(
+            name = "container_arm64_race",
+            base = base_image_arm64_race,
+            binary = ":%s_linux_arm64" % name,  # not a race binary, but this image is still good for debugging
+            architecture = "arm64",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+        )
 
 # This is a fork of load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 # to pick up "architecture" support from https://github.com/bazelbuild/rules_docker/pull/1936.

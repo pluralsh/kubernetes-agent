@@ -94,7 +94,7 @@ test: fmt update-bazel
 
 .PHONY: test-ci
 test-ci:
-	bazel test -- //... //cmd:push-latest
+	bazel test -- //... //cmd:push-latest //cmd/kas:container
 
 .PHONY: verify-ci
 verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks fmt update-bazel update-repos
