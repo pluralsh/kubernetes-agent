@@ -28,7 +28,7 @@ GitLab Agent needs two pieces of configuration to connect to a GitLab instance:
     > - Specify `ws` scheme to use WebSocket connection. The connection is **not encrypted**.
     > - Specify `wss` scheme to use an encrypted WebSocket connection.
 
-1. Token - obtained through UI when registering the agent.
+1. Token - obtained through UI when registering the agent. Go to "Infrastructure -> Kubernetes clusters" in the menu to register an agent.
 
 ## Deploy the package
 
