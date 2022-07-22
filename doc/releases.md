@@ -45,8 +45,6 @@
    - Make an MR to update `kas` image tag in `gprd` in
      https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com.
      [Example MR](https://gitlab.com/gitlab-com/gl-infra/k8s-workloads/gitlab-com/-/merge_requests/1319).
-   - Open a [production change issue](https://gitlab.com/gitlab-com/gl-infra/production/-/issues) to get
-     the above MR merged and rolled out. [Example issue](https://gitlab.com/gitlab-com/gl-infra/production/-/issues/7266).
 1. If there are breaking changes to the `kas` config file, then MRs need to be raised for
    [Omnibus](https://gitlab.com/gitlab-org/omnibus-gitlab/), and
    [charts](https://gitlab.com/gitlab-org/charts/gitlab/).
