@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -33,12 +34,13 @@ type Tracker interface {
 }
 
 type RedisTracker struct {
-	log              *zap.Logger
-	refreshPeriod    time.Duration
-	gcPeriod         time.Duration
-	tunnelsByAgentId redistool.ExpiringHashInterface // agentId -> connectionId -> TunnelInfo
-	toRegister       chan *TunnelInfo
-	toUnregister     chan *TunnelInfo
+	log                *zap.Logger
+	refreshPeriod      time.Duration
+	gcPeriod           time.Duration
+	tunnelsByAgentId   redistool.ExpiringHashInterface // agentId -> connectionId -> TunnelInfo
+	toRegister         chan *TunnelInfo
+	toUnregister       chan *TunnelInfo
+	tunnelsByAgentIdGc retry.SingleRun
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -68,14 +70,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
 		case <-gcTicker.C:
-			deletedKeys, err := t.runGc(ctx)
-			if err != nil {
-				t.log.Error("Failed to GC data in Redis", logz.Error(err))
-				// fallthrough
-			}
-			if deletedKeys > 0 {
-				t.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(deletedKeys))
-			}
+			t.maybeRunGCAsync(ctx)
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)
 			if err != nil {
@@ -142,8 +137,18 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
 	return t.tunnelsByAgentId.Refresh(ctx)
 }
 
-func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
-	return t.tunnelsByAgentId.GC(ctx)
+func (t *RedisTracker) maybeRunGCAsync(ctx context.Context) {
+	gc := t.tunnelsByAgentId.GC()
+	t.tunnelsByAgentIdGc.Run(func() {
+		deletedKeys, err := gc(ctx)
+		if err != nil {
+			t.log.Error("Failed to GC data in Redis", logz.Error(err))
+			// fallthrough
+		}
+		if deletedKeys > 0 {
+			t.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(deletedKeys))
+		}
+	})
 }
 
 type TunnelInfoCollector []*TunnelInfo

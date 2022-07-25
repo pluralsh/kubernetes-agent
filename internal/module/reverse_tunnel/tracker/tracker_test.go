@@ -3,7 +3,6 @@ package tracker
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
@@ -72,13 +71,20 @@ func TestUnregisterConnection(t *testing.T) {
 func TestGC(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
-	hash.EXPECT().
-		GC(gomock.Any()).
-		Return(3, nil)
+	wasCalled := false
 
-	removed, err := r.runGc(context.Background())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, removed)
+	hash.EXPECT().
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled = true
+			return 3, nil
+		})
+
+	r.maybeRunGCAsync(context.Background())
+	assert.Eventually(t, func() bool {
+		return !r.tunnelsByAgentIdGc.IsRunning()
+	}, time.Second, 10*time.Millisecond)
+	assert.True(t, wasCalled)
 }
 
 func TestRefreshRegistrations(t *testing.T) {
@@ -212,7 +218,6 @@ func TestSupportsServiceAndMethod(t *testing.T) {
 			},
 		},
 	}
-	os.Pipe()
 	assert.True(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "BlastPlanet"))
 	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "Explode"))
 	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "BlastPlanet"))

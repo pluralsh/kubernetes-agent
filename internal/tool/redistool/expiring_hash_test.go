@@ -62,7 +62,7 @@ func TestExpiringHash_GC(t *testing.T) {
 	time.Sleep(ttl + 100*time.Millisecond)
 	require.NoError(t, hash.Set(context.Background(), key, 321, value))
 
-	keysDeleted, err := hash.GC(context.Background())
+	keysDeleted, err := hash.GC()(context.Background())
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, keysDeleted)
 

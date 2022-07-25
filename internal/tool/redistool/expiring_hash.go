@@ -27,11 +27,12 @@ type ExpiringHashInterface interface {
 	Unset(ctx context.Context, key interface{}, hashKey int64) error
 	Scan(ctx context.Context, key interface{}, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key interface{}) (int64, error)
-	// GC iterates all relevant stored data and deletes expired entries.
-	// It returns number of deleted Redis (hash) keys, including when an error occurs.
+	// GC returns a function that iterates all relevant stored data and deletes expired entries.
+	// The returned function can be called concurrently as it does not interfere with the hash's operation.
+	// The function returns number of deleted Redis (hash) keys, including when an error occurs.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
-	GC(ctx context.Context) (int /* keysDeleted */, error)
+	GC() func(context.Context) (int /* keysDeleted */, error)
 	Refresh(ctx context.Context) error
 }
 
@@ -121,16 +122,23 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 	return 0, iter.Err()
 }
 
-func (h *ExpiringHash) GC(ctx context.Context) (int, error) {
-	var deletedKeys int
+func (h *ExpiringHash) GC() func(context.Context) (int, error) {
+	// Copy keys for safe concurrent access.
+	keys := make([]interface{}, 0, len(h.data))
 	for key := range h.data {
-		deleted, err := h.gcHash(ctx, key)
-		if err != nil {
-			return deletedKeys, err
-		}
-		deletedKeys += deleted
+		keys = append(keys, key)
 	}
-	return deletedKeys, nil
+	return func(ctx context.Context) (int, error) {
+		var deletedKeys int
+		for _, key := range keys {
+			deleted, err := h.gcHash(ctx, key)
+			if err != nil {
+				return deletedKeys, err
+			}
+			deletedKeys += deleted
+		}
+		return deletedKeys, nil
+	}
 }
 
 // gcHash iterates a hash and removes all expired values.
