@@ -105,7 +105,20 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	}
 	u := *c.Backend
 	u.Path = joinUrlPaths(u.Path, o.path)
-	u.RawQuery = o.query.Encode() // handles query == nil
+	q := o.query // may be nil
+	if u.RawQuery != "" {
+		if len(q) == 0 {
+			// Nothing to do
+		} else {
+			// Merge queries
+			uq := u.Query()
+			for k, v := range q {
+				uq[k] = v
+			}
+			q = uq
+		}
+	}
+	u.RawQuery = q.Encode() // handles query == nil
 	r, err := retryablehttp.NewRequest(o.method, u.String(), o.body)
 	if err != nil {
 		return fmt.Errorf("NewRequest: %w", err)

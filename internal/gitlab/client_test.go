@@ -30,9 +30,11 @@ func TestRequestOptions(t *testing.T) {
 		assert.Empty(t, r.Header[httpz.ContentTypeHeader])
 		testhelpers.AssertCommonRequestParams(t, r, correlationId)
 		testhelpers.AssertJWTSignature(t, r)
+		assert.Equal(t, "1", r.URL.Query().Get("a"))
 		assert.Equal(t, "val1", r.URL.Query().Get("key"))
 		assert.Equal(t, "val2", r.Header.Get("h1"))
 	})
+	c.Backend.RawQuery = "a=1"
 
 	err := c.Do(ctx,
 		gitlab.WithMethod("CUSTOM_METHOD"),
