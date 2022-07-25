@@ -140,41 +140,75 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 func TestGC_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
+	wasCalled1 := false
+	wasCalled2 := false
+	wasCalled3 := false
+
 	connectedAgents.EXPECT().
-		GC(gomock.Any()).
-		Return(3, nil)
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled3 = true
+			return 3, nil
+		})
 
 	byAgentId.EXPECT().
-		GC(gomock.Any()).
-		Return(2, nil)
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled2 = true
+			return 2, nil
+		})
 
 	byProjectId.EXPECT().
-		GC(gomock.Any()).
-		Return(1, nil)
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled1 = true
+			return 1, nil
+		})
 
-	removed, err := r.runGc(context.Background())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 6, removed)
+	r.maybeRunGCAsync(context.Background())
+	assert.Eventually(t, func() bool {
+		return !r.gc.IsRunning()
+	}, time.Second, 10*time.Millisecond)
+	assert.True(t, wasCalled1)
+	assert.True(t, wasCalled2)
+	assert.True(t, wasCalled3)
 }
 
 func TestGC_AllCalledOnError(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
+	wasCalled1 := false
+	wasCalled2 := false
+	wasCalled3 := false
+
 	connectedAgents.EXPECT().
-		GC(gomock.Any()).
-		Return(3, errors.New("err3"))
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled3 = true
+			return 3, errors.New("err3")
+		})
 
 	byAgentId.EXPECT().
-		GC(gomock.Any()).
-		Return(2, errors.New("err1"))
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled2 = true
+			return 2, errors.New("err2")
+		})
 
 	byProjectId.EXPECT().
-		GC(gomock.Any()).
-		Return(1, errors.New("err2"))
+		GC().
+		Return(func(_ context.Context) (int, error) {
+			wasCalled1 = true
+			return 1, errors.New("err1")
+		})
 
-	removed, err := r.runGc(context.Background())
-	assert.Error(t, err)
-	assert.EqualValues(t, 6, removed)
+	r.maybeRunGCAsync(context.Background())
+	assert.Eventually(t, func() bool {
+		return !r.gc.IsRunning()
+	}, time.Second, 10*time.Millisecond)
+	assert.True(t, wasCalled1)
+	assert.True(t, wasCalled2)
+	assert.True(t, wasCalled3)
 }
 
 func TestRefresh_HappyPath(t *testing.T) {

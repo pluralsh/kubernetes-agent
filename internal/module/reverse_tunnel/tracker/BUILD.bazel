@@ -25,6 +25,7 @@ go_library(
         "//internal/module/reverse_tunnel/info",
         "//internal/tool/logz",
         "//internal/tool/redistool",
+        "//internal/tool/retry",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_go_redis_redis_v8//:redis",
         "@org_golang_google_protobuf//reflect/protoreflect",

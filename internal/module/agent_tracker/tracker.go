@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -43,6 +44,7 @@ type RedisTracker struct {
 	connectedAgents        redistool.ExpiringHashInterface // hash name -> agentId -> ""
 	toRegister             chan *ConnectedAgentInfo
 	toUnregister           chan *ConnectedAgentInfo
+	gc                     retry.SingleRun
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -74,14 +76,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
 		case <-gcTicker.C:
-			deletedKeys, err := t.runGc(ctx)
-			if err != nil {
-				t.log.Error("Failed to GC data in Redis", logz.Error(err))
-				// fallthrough
-			}
-			if deletedKeys > 0 {
-				t.log.Info("Deleted expired agent connections records", logz.RemovedHashKeys(deletedKeys))
-			}
+			t.maybeRunGCAsync(ctx)
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)
 			if err != nil {
@@ -185,17 +180,24 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
 	return err1
 }
 
-func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
-	keysDeleted1, err1 := t.connectionsByProjectId.GC(ctx)
-	keysDeleted2, err2 := t.connectionsByAgentId.GC(ctx)
-	keysDeleted3, err3 := t.connectedAgents.GC(ctx)
-	if err1 == nil {
-		err1 = err2
-	}
-	if err1 == nil {
-		err1 = err3
-	}
-	return keysDeleted1 + keysDeleted2 + keysDeleted3, err1
+func (t *RedisTracker) maybeRunGCAsync(ctx context.Context) {
+	gc1 := t.connectionsByProjectId.GC()
+	gc2 := t.connectionsByAgentId.GC()
+	gc3 := t.connectedAgents.GC()
+	t.gc.Run(func() {
+		keysDeleted := 0
+		for _, gc := range []func(context.Context) (int, error){gc1, gc2, gc3} {
+			deleted, err := gc(ctx)
+			if err != nil {
+				t.log.Error("Failed to GC data in Redis", logz.Error(err))
+				// continue anyway
+			}
+			keysDeleted += deleted
+		}
+		if keysDeleted > 0 {
+			t.log.Info("Deleted expired agent connections records", logz.RemovedHashKeys(keysDeleted))
+		}
+	})
 }
 
 // connectionsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled ConnectedAgentInfo).
