@@ -86,7 +86,7 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 	handler = http.HandlerFunc(p.proxy)
 	handler = correlation.InjectCorrelationID(handler, correlation.WithSetResponseHeader())
 	handler = p.metricsHttpHandlerFactory(handler)
-	srv := &http.Server{
+	srv := &http.Server{ // nolint: gosec
 		Handler:      handler,
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,

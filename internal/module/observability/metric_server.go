@@ -46,7 +46,7 @@ type MetricServer struct {
 }
 
 func (s *MetricServer) Run(ctx context.Context) error {
-	srv := &http.Server{
+	srv := &http.Server{ // nolint: gosec
 		Handler:      s.constructHandler(), // nolint: contextcheck
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
