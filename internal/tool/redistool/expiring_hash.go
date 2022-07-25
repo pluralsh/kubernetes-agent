@@ -169,7 +169,7 @@ func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData
 	}
 	redisKey := h.keyToRedisKey(key)
 	_, err := h.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
-		p.HSet(ctx, redisKey, args)
+		p.HSet(ctx, redisKey, args) // nolint: asasalint
 		p.PExpire(ctx, redisKey, h.ttl)
 		return nil
 	})
