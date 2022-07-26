@@ -45,7 +45,6 @@ type DoOption func(*doConfig) error
 func applyDoOptions(opts []DoOption) (doConfig, error) {
 	config := doConfig{
 		method: http.MethodGet,
-		path:   "/",
 	}
 	for _, v := range opts {
 		err := v(&config)
