@@ -30,9 +30,11 @@ func TestRequestOptions(t *testing.T) {
 		assert.Empty(t, r.Header[httpz.ContentTypeHeader])
 		testhelpers.AssertCommonRequestParams(t, r, correlationId)
 		testhelpers.AssertJWTSignature(t, r)
+		assert.Equal(t, "1", r.URL.Query().Get("a"))
 		assert.Equal(t, "val1", r.URL.Query().Get("key"))
 		assert.Equal(t, "val2", r.Header.Get("h1"))
 	})
+	c.Backend.RawQuery = "a=1"
 
 	err := c.Do(ctx,
 		gitlab.WithMethod("CUSTOM_METHOD"),
@@ -52,6 +54,125 @@ func TestRequestOptions(t *testing.T) {
 					return err
 				}
 				defer resp.Body.Close()
+				// Do nothing
+				return nil
+			},
+		}),
+	)
+	require.NoError(t, err)
+}
+
+func TestDoWithPath(t *testing.T) {
+	tests := []struct {
+		backendPath  string
+		requestPath  string
+		expectedPath string
+	}{
+		{
+			backendPath:  "/ok",
+			requestPath:  "",
+			expectedPath: "/ok",
+		},
+		{
+			backendPath:  "/ok/",
+			requestPath:  "",
+			expectedPath: "/ok/",
+		},
+		{
+			backendPath:  "/ok/",
+			requestPath:  "/",
+			expectedPath: "/ok/",
+		},
+		{
+			backendPath:  "",
+			requestPath:  "",
+			expectedPath: "/",
+		},
+		{
+			backendPath:  "/",
+			requestPath:  "",
+			expectedPath: "/",
+		},
+		{
+			backendPath:  "/",
+			requestPath:  "/",
+			expectedPath: "/",
+		},
+		{
+			backendPath:  "",
+			requestPath:  "/",
+			expectedPath: "/",
+		},
+		{
+			backendPath:  "/ok",
+			requestPath:  "NONE",
+			expectedPath: "/ok",
+		},
+		{
+			backendPath:  "/a",
+			requestPath:  "/b",
+			expectedPath: "/a/b",
+		},
+		{
+			backendPath:  "/a",
+			requestPath:  "/b/",
+			expectedPath: "/a/b/",
+		},
+		{
+			backendPath:  "/a/",
+			requestPath:  "/b",
+			expectedPath: "/a/b",
+		},
+		{
+			backendPath:  "/a/",
+			requestPath:  "/b/",
+			expectedPath: "/a/b/",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.backendPath+"-"+test.requestPath, func(t *testing.T) {
+			c := mock_gitlab.SetupClient(t, "/", func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, test.expectedPath, r.URL.Path)
+			})
+			c.Backend.Path = test.backendPath
+
+			opts := []gitlab.DoOption{
+				gitlab.WithResponseHandler(gitlab.ResponseHandlerStruct{
+					HandleFunc: func(resp *http.Response, err error) error {
+						if err != nil {
+							return err
+						}
+						defer resp.Body.Close()
+						assert.EqualValues(t, http.StatusOK, resp.StatusCode)
+						// Do nothing
+						return nil
+					},
+				}),
+			}
+			if test.requestPath != "NONE" {
+				opts = append(opts, gitlab.WithPath(test.requestPath))
+			}
+			err := c.Do(context.Background(), opts...)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestDoWithSlashAndSlashBackendPath(t *testing.T) {
+	c := mock_gitlab.SetupClient(t, "/", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/ok/", r.URL.Path)
+	})
+	c.Backend.Path = "/ok/"
+
+	err := c.Do(context.Background(),
+		gitlab.WithPath("/"),
+		gitlab.WithResponseHandler(gitlab.ResponseHandlerStruct{
+			HandleFunc: func(resp *http.Response, err error) error {
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+				assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 				// Do nothing
 				return nil
 			},
