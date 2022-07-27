@@ -22,21 +22,12 @@ import (
 
 // agentAPI is an implementation of modagent.API.
 type agentAPI struct {
-	moduleName     string
-	client         gitlab_access_rpc.GitlabAccessClient
-	featureTracker *featureTracker
+	moduleName string
+	client     gitlab_access_rpc.GitlabAccessClient
 }
 
 func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	handleProcessingError(ctx, log, agentId, msg, err)
-}
-
-func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {
-	a.featureTracker.ToggleFeature(feature, a.moduleName, enabled)
-}
-
-func (a *agentAPI) SubscribeToFeatureStatus(feature modagent.Feature, cb modagent.SubscribeCb) {
-	a.featureTracker.Subscribe(feature, cb)
 }
 
 func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {

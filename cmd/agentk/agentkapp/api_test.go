@@ -23,7 +23,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab_access"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -296,9 +295,8 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 	client := mock_gitlab_access.NewMockGitlabAccessClient(ctrl)
 	clientStream := mock_gitlab_access.NewMockGitlabAccess_MakeRequestClient(ctrl)
 	return &agentAPI{
-		moduleName:     moduleName,
-		client:         client,
-		featureTracker: newFeatureTracker(zaptest.NewLogger(t)),
+		moduleName: moduleName,
+		client:     client,
 	}, client, clientStream
 }
 

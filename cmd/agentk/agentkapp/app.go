@@ -152,7 +152,6 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, []modagent.Module, error) {
 	k8sFactory := util.NewFactory(a.K8sClientGetter)
-	fTracker := newFeatureTracker(a.Log)
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		&observability_agent.Factory{
@@ -176,9 +175,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			Log:       a.Log.With(logz.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
-				moduleName:     moduleName,
-				client:         accessClient,
-				featureTracker: fTracker,
+				moduleName: moduleName,
+				client:     accessClient,
 			},
 			K8sUtilFactory:     k8sFactory,
 			KasConn:            kasConn,
