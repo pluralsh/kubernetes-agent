@@ -161,9 +161,31 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	return o.responseHandler.Handle(resp, err)
 }
 
+// errorHandler returns the last response and error when ran out of retry attempts.
+// It masks values of URL query parameters.
 func errorHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
-	// Just return the last response and error when ran out of retry attempts.
-	return resp, err
+	ue, ok := err.(*url.Error) // nolint: errorlint
+	if !ok {
+		return resp, err
+	}
+	u, parseErr := url.Parse(ue.URL)
+	if parseErr != nil {
+		return resp, err
+	}
+	if u.RawQuery != "" {
+		maskURLQueryParams(u)
+		ue.URL = u.String()
+	}
+	return resp, ue
+}
+
+func maskURLQueryParams(u *url.URL) {
+	newVal := []string{"x"}
+	q := u.Query()
+	for k := range q {
+		q[k] = newVal
+	}
+	u.RawQuery = q.Encode()
 }
 
 func joinUrlPaths(head, tail string) string {

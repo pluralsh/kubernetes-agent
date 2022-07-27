@@ -181,6 +181,30 @@ func TestDoWithSlashAndSlashBackendPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDoMasksQueryParametersInReturnedError(t *testing.T) {
+	u, err := url.Parse("http://example.com:0")
+	require.NoError(t, err)
+	c := gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey))
+	err = c.Do(context.Background(),
+		gitlab.WithoutRetries(),
+		gitlab.WithPath("/abc"),
+		gitlab.WithQuery(url.Values{"a": []string{"1", "2"}, "b": []string{"3"}}),
+		gitlab.WithResponseHandler(gitlab.ResponseHandlerStruct{
+			HandleFunc: func(resp *http.Response, err error) error {
+				if err != nil {
+					return err
+				}
+				t.Fail()
+				return nil
+			},
+		}),
+	)
+	require.Error(t, err)
+	ue, ok := err.(*url.Error) // nolint: errorlint
+	require.True(t, ok)
+	assert.Equal(t, "http://example.com:0/abc?a=x&b=x", ue.URL)
+}
+
 func TestJsonResponseHandler_Errors(t *testing.T) {
 	tests := map[int]func(error) bool{
 		http.StatusForbidden:    gitlab.IsForbidden,
