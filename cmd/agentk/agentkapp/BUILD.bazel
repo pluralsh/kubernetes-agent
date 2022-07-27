@@ -6,7 +6,6 @@ go_library(
     srcs = [
         "api.go",
         "app.go",
-        "feature_tracker.go",
         "logz.go",
         "module_runner.go",
         "rpc_api.go",
@@ -66,7 +65,6 @@ go_custom_test(
     srcs = [
         "api_test.go",
         "app_test.go",
-        "feature_tracker_test.go",
         "module_runner_test.go",
     ],
     embed = [":agentkapp"],

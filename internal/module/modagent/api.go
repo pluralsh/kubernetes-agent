@@ -18,23 +18,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/util"
 )
 
-// Feature describes a particular feature that can be enabled or disabled by a module.
-// If module is configured in a way that requires use of a feature, it should indicate that it needs the feature.
-// All features are disabled by default.
-type Feature int
-
-type SubscribeCb func(enabled bool)
-
-const (
-	// Invalid is an invalid sentinel value.
-	// Treat default value as "invalid" to avoid accidental confusion.
-	Invalid Feature = iota
-)
-
-var (
-	KnownFeatures = map[Feature]string{}
-)
-
 // Config holds configuration for a Module.
 type Config struct {
 	// Log can be used for logging from the module.
@@ -67,8 +50,6 @@ type GitLabResponse struct {
 type Api interface {
 	modshared.Api
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
-	ToggleFeature(feature Feature, enabled bool)
-	SubscribeToFeatureStatus(feature Feature, cb SubscribeCb)
 }
 
 // RpcApi provides the API for the module's gRPC handlers to use.
