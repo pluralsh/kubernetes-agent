@@ -12,7 +12,7 @@ import (
 
 // Load balancer in front of kas typically has a timeout parameter, limiting the maximum connection age.
 // After it elapses, the load balancer aborts the connection and the client sees a connection reset.
-// This is not good. To mitigate the problem all long running server-side poll loops should stop beforehand.
+// This is not good. To mitigate the problem all long-running server-side poll loops should stop beforehand.
 //
 // After gRPC max connection age time elapses, gRPC will send a HTTP/2 GOAWAY frame to the client, to let it know that it
 // should not use this TCP connection for any new RPCs and, after all in-flight requests had finished, close it.

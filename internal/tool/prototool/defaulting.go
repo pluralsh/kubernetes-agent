@@ -36,12 +36,6 @@ func Float64(s *float64, defaultValue float64) {
 	}
 }
 
-func Int32(s *int32, defaultValue int32) {
-	if *s == 0 {
-		*s = defaultValue
-	}
-}
-
 func Uint32(d *uint32, defaultValue uint32) {
 	if *d == 0 {
 		*d = defaultValue
