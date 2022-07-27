@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/labkit/mask"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // These constants are for type-safe zap field helpers that are not here to:
@@ -138,12 +137,6 @@ func VulnerabilitiesCount(n int) zap.Field {
 
 func ReportName(name string) zap.Field {
 	return zap.String("report_name", name)
-}
-
-// Use for any UID associated with a Kubernetes object
-// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-func UID(uid types.UID) zap.Field {
-	return zap.String("k8s_uid", string(uid))
 }
 
 func Kind(kind string) zap.Field {
