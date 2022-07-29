@@ -75,10 +75,11 @@ type App struct {
 	GrpcLogLevel zap.AtomicLevel
 	AgentMeta    *modshared.AgentMeta
 	// KasAddress specifies the address of kas.
-	KasAddress      string
-	CACertFile      string
-	TokenFile       string
-	K8sClientGetter genericclioptions.RESTClientGetter
+	KasAddress         string
+	ServiceAccountName string
+	CACertFile         string
+	TokenFile          string
+	K8sClientGetter    genericclioptions.RESTClientGetter
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -168,7 +169,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	}
 	var modules []modagent.Module
 	var internalModules []modagent.Module
-	serviceAccountName := os.Getenv(envVarServiceAccountName)
 	for _, f := range factories {
 		moduleName := f.Name()
 		module, err := f.New(&modagent.Config{
@@ -182,7 +182,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			KasConn:            kasConn,
 			Server:             internalServer,
 			AgentName:          agentName,
-			ServiceAccountName: serviceAccountName,
+			ServiceAccountName: a.ServiceAccountName,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -333,7 +333,8 @@ func NewCommand() *cobra.Command {
 			PodNamespace: os.Getenv(envVarPodNamespace),
 			PodName:      os.Getenv(envVarPodName),
 		},
-		K8sClientGetter: kubeConfigFlags,
+		ServiceAccountName: os.Getenv(envVarServiceAccountName),
+		K8sClientGetter:    kubeConfigFlags,
 	}
 	c := &cobra.Command{
 		Use:   "agentk",
