@@ -31,7 +31,6 @@ func (m *workerManager) startNewWorker(agentId int64, project *agentcfg.Manifest
 	worker := m.workerFactory.New(agentId, project)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerHolder := &gitopsWorkerHolder{
-		worker:  worker,
 		project: project,
 		stop:    cancel,
 	}
@@ -105,7 +104,6 @@ func (m *workerManager) stopAllWorkers() {
 }
 
 type gitopsWorkerHolder struct {
-	worker  GitopsWorker
 	project *agentcfg.ManifestProjectCF
 	wg      wait.Group
 	stop    context.CancelFunc
