@@ -4,6 +4,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "agentkapp",
     srcs = [
+        "agent_id.go",
         "api.go",
         "app.go",
         "logz.go",
@@ -63,6 +64,7 @@ go_library(
 go_custom_test(
     name = "agentkapp_test",
     srcs = [
+        "agent_id_test.go",
         "api_test.go",
         "app_test.go",
         "module_runner_test.go",

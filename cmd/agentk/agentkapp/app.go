@@ -103,12 +103,14 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(internalServerConn, &retErr)
 
+	agentId := newAgentIdHolder()
+
 	// Construct agent modules
 	modules, internalModules, err := a.constructModules(internalServer, kasConn, internalServerConn)
 	if err != nil {
 		return err
 	}
-	runner := a.newModuleRunner(kasConn)
+	runner := a.newModuleRunner(kasConn, agentId)
 	modulesRun := runner.RegisterModules(modules)
 	internalModulesRun := runner.RegisterModules(internalModules)
 
@@ -133,7 +135,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
+func (a *App) newModuleRunner(kasConn *grpc.ClientConn, agentId *agentIdHolder) *moduleRunner {
 	return &moduleRunner{
 		log: a.Log,
 		configurationWatcher: &rpc.ConfigurationWatcher{
@@ -147,6 +149,9 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				getConfigurationBackoffFactor,
 				getConfigurationJitter,
 			)),
+			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
+				return agentId.set(data.Config.AgentId)
+			},
 		},
 	}
 }

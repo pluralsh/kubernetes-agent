@@ -26,10 +26,11 @@ type ConfigurationWatcherInterface interface {
 }
 
 type ConfigurationWatcher struct {
-	Log        *zap.Logger
-	AgentMeta  *modshared.AgentMeta
-	Client     AgentConfigurationClient
-	PollConfig retry.PollConfigFactory
+	Log                *zap.Logger
+	AgentMeta          *modshared.AgentMeta
+	Client             AgentConfigurationClient
+	PollConfig         retry.PollConfigFactory
+	ConfigPreProcessor func(ConfigurationData) error
 }
 
 func (w *ConfigurationWatcher) Watch(ctx context.Context, callback ConfigurationCallback) {
@@ -59,10 +60,16 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 				}
 				return nil, retry.Backoff
 			}
-			callback(ctx, ConfigurationData{
+			data := ConfigurationData{
 				CommitId: config.CommitId,
 				Config:   config.Configuration,
-			})
+			}
+			err = w.ConfigPreProcessor(data)
+			if err != nil {
+				w.Log.Error("Failed to preprocess configuration", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
+				continue
+			}
+			callback(ctx, data)
 			lastProcessedCommitId = config.CommitId
 		}
 	})
