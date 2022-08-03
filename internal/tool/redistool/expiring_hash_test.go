@@ -40,6 +40,16 @@ func TestExpiringHash_Unset(t *testing.T) {
 	require.Empty(t, getHash(t, client, key))
 }
 
+func TestExpiringHash_Forget(t *testing.T) {
+	client, hash, key, value := setupHash(t)
+
+	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	hash.Forget(key, 123)
+
+	equalHash(t, client, key, 123, value)
+	require.Empty(t, hash.data)
+}
+
 func TestExpiringHash_Expires(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
