@@ -25,6 +25,8 @@ type ScanCallback func(value *anypb.Any, err error) (bool /* done */, error)
 type ExpiringHashInterface interface {
 	Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error
 	Unset(ctx context.Context, key interface{}, hashKey int64) error
+	// Forget only removes the item from the in-memory map.
+	Forget(key interface{}, hashKey int64)
 	Scan(ctx context.Context, key interface{}, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key interface{}) (int64, error)
 	// GC returns a function that iterates all relevant stored data and deletes expired entries.
@@ -64,6 +66,10 @@ func (h *ExpiringHash) Set(ctx context.Context, key interface{}, hashKey int64, 
 func (h *ExpiringHash) Unset(ctx context.Context, key interface{}, hashKey int64) error {
 	h.unsetData(key, hashKey)
 	return h.client.HDel(ctx, h.keyToRedisKey(key), strconv.FormatInt(hashKey, 10)).Err()
+}
+
+func (h *ExpiringHash) Forget(key interface{}, hashKey int64) {
+	h.unsetData(key, hashKey)
 }
 
 func (h *ExpiringHash) Len(ctx context.Context, key interface{}) (size int64, retErr error) {

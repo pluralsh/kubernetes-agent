@@ -93,9 +93,12 @@ func TestUnregisterConnection_HappyPath(t *testing.T) {
 				cancel()
 			}),
 	)
-	connectedAgents.EXPECT().
-		Set(gomock.Any(), nil, info.AgentId, gomock.Any())
-
+	gomock.InOrder(
+		connectedAgents.EXPECT().
+			Set(gomock.Any(), nil, info.AgentId, gomock.Any()),
+		connectedAgents.EXPECT().
+			Forget(nil, info.AgentId),
+	)
 	go func() {
 		assert.True(t, r.RegisterConnection(context.Background(), info))
 		assert.True(t, r.UnregisterConnection(context.Background(), info))
@@ -126,8 +129,12 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 				return errors.New("err1")
 			}),
 	)
-	connectedAgents.EXPECT().
-		Set(gomock.Any(), nil, info.AgentId, gomock.Any())
+	gomock.InOrder(
+		connectedAgents.EXPECT().
+			Set(gomock.Any(), nil, info.AgentId, gomock.Any()),
+		connectedAgents.EXPECT().
+			Forget(nil, info.AgentId),
+	)
 
 	go func() {
 		assert.True(t, r.RegisterConnection(context.Background(), info))

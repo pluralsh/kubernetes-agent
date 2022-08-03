@@ -36,6 +36,18 @@ func (m *MockExpiringHashInterface) EXPECT() *MockExpiringHashInterfaceMockRecor
 	return m.recorder
 }
 
+// Forget mocks base method.
+func (m *MockExpiringHashInterface) Forget(arg0 interface{}, arg1 int64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Forget", arg0, arg1)
+}
+
+// Forget indicates an expected call of Forget.
+func (mr *MockExpiringHashInterfaceMockRecorder) Forget(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Forget", reflect.TypeOf((*MockExpiringHashInterface)(nil).Forget), arg0, arg1)
+}
+
 // GC mocks base method.
 func (m *MockExpiringHashInterface) GC() func(context.Context) (int, error) {
 	m.ctrl.T.Helper()

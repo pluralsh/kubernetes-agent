@@ -160,6 +160,7 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *ConnectedAgentInfo) error {
 	err1 := t.connectionsByProjectId.Unset(ctx, unreg.ProjectId, unreg.ConnectionId)
 	err2 := t.connectionsByAgentId.Unset(ctx, unreg.AgentId, unreg.ConnectionId)
+	t.connectedAgents.Forget(nil, unreg.AgentId)
 	if err1 == nil {
 		err1 = err2
 	}
