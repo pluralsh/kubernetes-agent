@@ -36,14 +36,22 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 		func(stage stager.Stage) {
 			// Listen for config changes and apply to logger
 			stage.Go(func(ctx context.Context) error {
-				for config := range cfg {
-					err := m.setConfigurationLogging(config.Observability.Logging)
-					if err != nil {
-						m.log.Error("Failed to apply logging configuration", logz.Error(err))
-						continue
+				done := ctx.Done()
+				for {
+					select {
+					case <-done:
+						return nil
+					case config, ok := <-cfg:
+						if !ok {
+							return nil
+						}
+						err := m.setConfigurationLogging(config.Observability.Logging)
+						if err != nil {
+							m.log.Error("Failed to apply logging configuration", logz.Error(err))
+							continue
+						}
 					}
 				}
-				return nil
 			})
 			// Start metrics server
 			stage.Go(func(ctx context.Context) error {
