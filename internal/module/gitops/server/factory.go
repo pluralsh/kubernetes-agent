@@ -20,7 +20,7 @@ const (
 	getObjectsToSynchronizeBackoffFactor = 2.0
 	getObjectsToSynchronizeJitter        = 1.0
 
-	gitopsSyncCountKnownMetric = "gitops_sync_count"
+	gitopsSyncCountKnownMetric = "gitops_sync"
 )
 
 type Factory struct {

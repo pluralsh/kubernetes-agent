@@ -1,8 +1,11 @@
 package usage_metrics
 
 import (
+	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,20 +18,34 @@ func TestUsageTracker(t *testing.T) {
 	u := NewUsageTracker()
 	c := u.RegisterCounter("x")
 	require.Contains(t, u.counters, "x")
+	s := u.RegisterUniqueCounter("y")
+	require.Contains(t, u.uniqueCounters, "y")
 
 	ud := u.CloneUsageData()
-	expected := map[string]int64{}
-	require.Equal(t, expected, ud.Counters)
+	expectedCounters := map[string]int64{}
+	require.Equal(t, expectedCounters, ud.Counters)
+	expectedUniqueCounters := map[string][]int64{}
+	require.Equal(t, true, reflect.DeepEqual(expectedUniqueCounters, ud.UniqueCounters))
 
 	c.Inc()
+	s.Add(1)
+	s.Add(3)
 	ud = u.CloneUsageData()
-	expected = map[string]int64{
+	expectedCounters = map[string]int64{
 		"x": 1,
 	}
-	require.Equal(t, expected, ud.Counters)
+	require.Equal(t, expectedCounters, ud.Counters)
+	expectedUniqueCounters = map[string][]int64{
+		"y": []int64{3, 1},
+	}
+	requireEqual(t, expectedUniqueCounters, ud)
 
 	u.Subtract(ud)
 	ud = u.CloneUsageData()
-	expected = map[string]int64{}
-	require.Equal(t, expected, ud.Counters)
+	require.Empty(t, ud.Counters)
+	require.Empty(t, ud.UniqueCounters)
+}
+
+func requireEqual(t *testing.T, expectedUniqueCounters map[string][]int64, ud *UsageData) {
+	require.Empty(t, cmp.Diff(expectedUniqueCounters, ud.UniqueCounters, cmpopts.SortSlices(func(x, y int64) bool { return x < y })))
 }
