@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	k8sApiRequestCountKnownMetric = "k8s_api_proxy_request_count"
+	k8sApiRequestCountKnownMetric        = "k8s_api_proxy_request"
+	usersCiTunnelInteractionsCountMetric = "agent_users_using_ci_tunnel"
 
 	httpMetricsNamespace = "kas_k8s_proxy"
 )
@@ -57,7 +58,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			kubernetesApiClient:       rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:              config.GitLabClient,
 			allowedAgentsCache:        cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
-			requestCount:              config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
+			requestCounter:            config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
+			ciTunnelUsersCounter:      config.UsageTracker.RegisterUniqueCounter(usersCiTunnelInteractionsCountMetric),
 			metricsHttpHandlerFactory: metrics.NewHandlerFactory(metrics.WithNamespace(httpMetricsNamespace)),
 			responseSerializer:        serializer.NewCodecFactory(runtime.NewScheme()),
 			serverName:                serverName,

@@ -52,11 +52,14 @@ func (m *module) sendUsage(ctx context.Context) {
 
 func (m *module) sendUsageInternal(ctx context.Context) error {
 	usageData := m.usageTracker.CloneUsageData()
-	if len(usageData.Counters) == 0 {
-		// No new counts
+	if usageData.IsEmpty() {
 		return nil
 	}
-	err := gapi.SendUsagePing(ctx, m.gitLabClient, usageData.Counters, gitlab.WithoutRetries())
+	data := gapi.UsagePingData{
+		Counters:       usageData.Counters,
+		UniqueCounters: usageData.UniqueCounters,
+	}
+	err := gapi.SendUsagePing(ctx, m.gitLabClient, data, gitlab.WithoutRetries())
 	if err != nil {
 		return err // don't wrap
 	}

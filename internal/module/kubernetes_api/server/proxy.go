@@ -72,7 +72,8 @@ type kubernetesApiProxy struct {
 	kubernetesApiClient       rpc.KubernetesApiClient
 	gitLabClient              gitlab.ClientInterface
 	allowedAgentsCache        *cache.CacheWithErr
-	requestCount              usage_metrics.Counter
+	requestCounter            usage_metrics.Counter
+	ciTunnelUsersCounter      usage_metrics.UniqueCounter
 	metricsHttpHandlerFactory metrics.HandlerFactory
 	responseSerializer        runtime.NegotiatedSerializer
 	serverName                string
@@ -121,6 +122,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 	log = log.With(logz.AgentId(agentId))
 
 	allowedForJob, eResp := p.getAllowedAgentsForJob(ctx, log, agentId, jobToken)
+
 	if eResp != nil {
 		return log, agentId, eResp
 	}
@@ -144,7 +146,8 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	p.requestCount.Inc() // Count only authenticated and authorized requests
+	p.requestCounter.Inc() // Count only authenticated and authorized requests
+	p.ciTunnelUsersCounter.Add(allowedForJob.User.Id)
 
 	impConfig, err := constructImpersonationConfig(allowedForJob, aa)
 	if err != nil {

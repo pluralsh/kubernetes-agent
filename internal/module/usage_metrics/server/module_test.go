@@ -36,14 +36,14 @@ func TestSendUsage(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	counters := map[string]int64{
-		"x": 5,
-	}
+	uniqueCounter := []int64{1, 2}
+	counters, uniqueCounters, payload := setUpPayload(5, uniqueCounter)
+
 	m, tracker, _ := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
-		assertNoContentRequest(t, r, counters)
+		assertNoContentRequest(t, r, payload)
 		w.WriteHeader(http.StatusNoContent)
 	})
-	ud := &usage_metrics.UsageData{Counters: counters}
+	ud := &usage_metrics.UsageData{Counters: counters, UniqueCounters: uniqueCounters}
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
@@ -67,23 +67,21 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	counters1 := map[string]int64{
-		"x": 5,
-	}
-	ud1 := &usage_metrics.UsageData{Counters: counters1}
-	counters2 := map[string]int64{
-		"x": 6,
-	}
-	ud2 := &usage_metrics.UsageData{Counters: counters2}
+	uniqueCounter := []int64{1, 2}
+	uniqueCounter2 := []int64{6, 7}
+	counters, uniqueCounters, payload := setUpPayload(5, uniqueCounter)
+	ud1 := &usage_metrics.UsageData{Counters: counters, UniqueCounters: uniqueCounters}
+	counters2, uniqueCounters2, payload2 := setUpPayload(10, uniqueCounter2)
+	ud2 := &usage_metrics.UsageData{Counters: counters2, UniqueCounters: uniqueCounters2}
 	var call int
 	m, tracker, mockApi := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
 		call++
 		switch call {
 		case 1:
-			assertNoContentRequest(t, r, counters1)
+			assertNoContentRequest(t, r, payload)
 			w.WriteHeader(http.StatusInternalServerError)
 		case 2:
-			assertNoContentRequest(t, r, counters2)
+			assertNoContentRequest(t, r, payload2)
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			assert.Fail(t, "unexpected call", call)
@@ -117,13 +115,12 @@ func TestSendUsageHttp(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	counters := map[string]int64{
-		"x": 5,
-	}
-	ud := &usage_metrics.UsageData{Counters: counters}
+	uniqueCounter := []int64{1, 2}
+	counters, uniqueCounters, payload := setUpPayload(5, uniqueCounter)
+	ud := &usage_metrics.UsageData{Counters: counters, UniqueCounters: uniqueCounters}
 
 	m, tracker, _ := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
-		assertNoContentRequest(t, r, counters)
+		assertNoContentRequest(t, r, payload)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -190,4 +187,17 @@ func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload inter
 		return
 	}
 	assert.Equal(t, expected, actual)
+}
+
+func setUpPayload(counter int64, uniqueCounter []int64) (map[string]int64, map[string][]int64, map[string]interface{}) {
+	payload := map[string]interface{}{}
+	var counters = map[string]int64{
+		"x": counter,
+	}
+	var uniqueCounters = map[string][]int64{
+		"x": uniqueCounter,
+	}
+	payload["counters"] = counters
+	payload["unique_counters"] = uniqueCounters
+	return counters, uniqueCounters, payload
 }

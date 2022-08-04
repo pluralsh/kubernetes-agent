@@ -97,7 +97,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+			_, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 				t.Fail() // unexpected invocation
 			})
 			delete(req.Header, httpz.AuthorizationHeader)
@@ -154,7 +154,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(strconv.Itoa(tc.allowedAgentsHttpStatus), func(t *testing.T) {
-			api, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+			api, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 				assertToken(t, r)
 				w.WriteHeader(tc.allowedAgentsHttpStatus)
 			})
@@ -183,7 +183,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil, nil))
+	_, _, client, req, _, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil, nil))
 	req.URL.Path = requestPath
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -203,7 +203,7 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 }
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
-	_, _, client, req, _ := setupProxy(t)
+	_, _, client, req, _, _ := setupProxy(t)
 	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, 15 /* disallowed id */, jobToken))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -394,8 +394,9 @@ func TestProxy_HappyPath(t *testing.T) {
 }
 
 func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.HeaderExtra, handler func(http.ResponseWriter, *http.Request)) {
-	_, k8sClient, client, req, requestCount := setupProxyWithHandler(t, urlPathPrefix, handler)
+	_, k8sClient, client, req, requestCount, ciTunnelUsageSet := setupProxyWithHandler(t, urlPathPrefix, handler)
 	requestCount.EXPECT().Inc()
+	ciTunnelUsageSet.EXPECT().Add(testhelpers.AgentId)
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
 	mrCall := k8sClient.EXPECT().
 		MakeRequest(gomock.Any()).
@@ -564,7 +565,7 @@ func assertToken(t *testing.T, r *http.Request) bool {
 	return assert.Equal(t, jobToken, r.Header.Get("Job-Token"))
 }
 
-func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
+func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter, *mock_usage_metrics.MockUniqueCounter) {
 	return setupProxyWithHandler(t, "/", configGitLabHandler(t, nil, nil))
 }
 
@@ -599,7 +600,7 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Env
 				},
 			},
 			User: &gapi.User{
-				Id:       4,
+				Id:       testhelpers.AgentId,
 				Username: "testuser",
 			},
 			Environment: env,
@@ -607,19 +608,21 @@ func configGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Env
 	}
 }
 
-func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
+func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter, *mock_usage_metrics.MockUniqueCounter) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	k8sClient := mock_kubernetes_api.NewMockKubernetesApiClient(ctrl)
 	requestCount := mock_usage_metrics.NewMockCounter(ctrl)
+	ciTunnelUsageSet := mock_usage_metrics.NewMockUniqueCounter(ctrl)
 
 	p := kubernetesApiProxy{
-		log:                 zaptest.NewLogger(t),
-		api:                 mockApi,
-		kubernetesApiClient: k8sClient,
-		gitLabClient:        mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
-		allowedAgentsCache:  cache.NewWithError(0, 0, func(err error) bool { return false }),
-		requestCount:        requestCount,
+		log:                  zaptest.NewLogger(t),
+		api:                  mockApi,
+		kubernetesApiClient:  k8sClient,
+		gitLabClient:         mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
+		allowedAgentsCache:   cache.NewWithError(0, 0, func(err error) bool { return false }),
+		requestCounter:       requestCount,
+		ciTunnelUsersCounter: ciTunnelUsageSet,
 		metricsHttpHandlerFactory: func(next http.Handler, opts ...metrics.HandlerOption) http.Handler {
 			return next
 		},
@@ -654,7 +657,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	)
 	require.NoError(t, err)
 	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
-	return mockApi, k8sClient, client, req, requestCount
+	return mockApi, k8sClient, client, req, requestCount, ciTunnelUsageSet
 }
 
 func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...proto.Message) []*gomock.Call {
