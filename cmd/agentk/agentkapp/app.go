@@ -45,7 +45,11 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/keepalive"
+	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes/scheme"
+	client_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
@@ -105,8 +109,37 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 
 	agentId := newAgentIdHolder()
 
+	// Construct Kubernetes tools.
+	k8sFactory := util.NewFactory(a.K8sClientGetter)
+	kubeClient, err := k8sFactory.KubernetesClientSet()
+	if err != nil {
+		return err
+	}
+
+	// Construct event recorder
+	eventBroadcaster := record.NewBroadcaster()
+	eventRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, core_v1.EventSource{Component: agentName})
+
+	// Construct leader runner
+	lr := newLeaderRunner(&leaseLeaderElector{
+		namespace: a.AgentMeta.PodNamespace,
+		name: func(ctx context.Context) (string, error) {
+			id, err := agentId.get(ctx) // nolint: govet
+			if err != nil {
+				return "", err
+			}
+			// We use agent id as part of lock name so that agentk Pods of different id don't compete with
+			// each other. Only Pods with same agent id should compete for a lock. Put differently, agentk Pods
+			// with same agent id have the same lock name but with different id have different lock name.
+			return fmt.Sprintf("agent-%d-lock", id), nil
+		},
+		identity:           a.AgentMeta.PodName,
+		coordinationClient: kubeClient.CoordinationV1(),
+		eventRecorder:      eventRecorder,
+	})
+
 	// Construct agent modules
-	modules, internalModules, err := a.constructModules(internalServer, kasConn, internalServerConn)
+	modules, internalModules, err := a.constructModules(internalServer, kasConn, internalServerConn, k8sFactory, lr)
 	if err != nil {
 		return err
 	}
@@ -114,8 +147,21 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	modulesRun := runner.RegisterModules(modules)
 	internalModulesRun := runner.RegisterModules(internalModules)
 
+	// Start events processing pipeline.
+	loggingWatch := eventBroadcaster.StartStructuredLogging(0)
+	defer loggingWatch.Stop()
+	eventBroadcaster.StartRecordingToSink(&client_core_v1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	defer eventBroadcaster.Shutdown()
+
 	// Start things up. Stages are shut down in reverse order.
 	return stager.RunStages(ctx,
+		func(stage stager.Stage) {
+			stage.Go(func(ctx context.Context) error {
+				// Start leader runner.
+				lr.Run(ctx)
+				return nil
+			})
+		},
 		func(stage stager.Stage) {
 			// Start modules.
 			stage.Go(modulesRun)
@@ -156,8 +202,8 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn, agentId *agentIdHolder) 
 	}
 }
 
-func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, []modagent.Module, error) {
-	k8sFactory := util.NewFactory(a.K8sClientGetter)
+func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface,
+	k8sFactory util.Factory, lr *leaderRunner) ([]modagent.Module, []modagent.Module, error) {
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		&observability_agent.Factory{
@@ -192,6 +238,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		if err != nil {
 			return nil, nil, err
 		}
+		module = lr.MaybeWrapModule(module)
 		if f.UsesInternalServer() {
 			internalModules = append(internalModules, module)
 		} else {
@@ -333,10 +380,8 @@ func NewCommand() *cobra.Command {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	a := App{
 		AgentMeta: &modshared.AgentMeta{
-			Version:      cmd.Version,
-			CommitId:     cmd.Commit,
-			PodNamespace: os.Getenv(envVarPodNamespace),
-			PodName:      os.Getenv(envVarPodName),
+			Version:  cmd.Version,
+			CommitId: cmd.Commit,
 		},
 		ServiceAccountName: os.Getenv(envVarServiceAccountName),
 		K8sClientGetter:    kubeConfigFlags,
@@ -346,6 +391,16 @@ func NewCommand() *cobra.Command {
 		Short: "GitLab Agent for Kubernetes",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
+			podNs := os.Getenv(envVarPodNamespace)
+			if podNs == "" {
+				return fmt.Errorf("%s environment variable is required but is empty", envVarPodNamespace)
+			}
+			podName := os.Getenv(envVarPodName)
+			if podName == "" {
+				return fmt.Errorf("%s environment variable is required but is empty", envVarPodName)
+			}
+			a.AgentMeta.PodNamespace = podNs
+			a.AgentMeta.PodName = podName
 			lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
 			var err error
 			a.Log, a.LogLevel, err = logger(defaultLogLevel, lockedSyncer)

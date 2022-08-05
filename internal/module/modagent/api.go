@@ -67,10 +67,11 @@ type Factory interface {
 }
 
 type Module interface {
-	// Run starts the module.
-	// Run can block until the context is canceled or exit with nil if there is nothing to do.
+	// Run runs the module.
+	// Run can block until the context signals done or return if there is nothing to do or if there was an error.
 	// cfg is a channel that gets configuration updates sent to it. It's closed when the module should shut down.
-	// cfg is a shared instance, must not be mutated. Module should make a copy if it needs to mutate the object.
+	// cfg sends configuration objects that are shared and must not be mutated.
+	// Module should make a copy if it needs to mutate the object.
 	// Applying configuration may take time, the provided context may signal done if module should shut down.
 	// cfg only provides the latest available configuration, intermediate configuration states are discarded.
 	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
@@ -80,6 +81,20 @@ type Module interface {
 	DefaultAndValidateConfiguration(cfg *agentcfg.AgentConfiguration) error
 	// Name returns module's name.
 	Name() string
+}
+
+type LeaderModule interface {
+	Module
+	IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool
+	// Run runs the module. It is invoked when both conditions are satisfied:
+	// - agentk acquires the leader lock.
+	// - IsRunnableConfiguration() returns true for a configuration.
+	// The passed context signals done when the module should fully shut down, including when the lock is lost,
+	// or when IsRunnableConfiguration() returns false.
+	// cfg keeps supplying configuration while IsRunnableConfiguration() is returning true for new values.
+	// Same module instance is used for multiple RunLeader() calls.
+	// Otherwise, this API works exactly as Module.Run.
+	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 }
 
 type GitLabRequestConfig struct {
