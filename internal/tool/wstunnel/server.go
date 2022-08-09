@@ -19,9 +19,9 @@ import (
 )
 
 // ListenerWrapper does two things:
-// - HTTP/1.1 connections are expected to contain WebSocket upgrade request. Such connections are turned into TCP
-//   streams and returned from Accept(). This mode can be used for tunneling an HTTP/2 protocol via a WebSocket connection.
-// - HTTP/2 connections are returned from Accept() as is.
+//   - HTTP/1.1 connections are expected to contain WebSocket upgrade request. Such connections are turned into TCP
+//     streams and returned from Accept(). This mode can be used for tunneling an HTTP/2 protocol via a WebSocket connection.
+//   - HTTP/2 connections are returned from Accept() as is.
 //
 // There are two modes of operation - with and without TLS. Whether connection is HTTP/1.1 or HTTP/2 is determined
 // by looking at:

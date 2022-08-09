@@ -103,43 +103,17 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	if err != nil {
 		return err
 	}
-	u := *c.Backend
-	u.Path = joinUrlPaths(u.Path, o.path)
-	q := o.query // may be nil
-	if u.RawQuery != "" {
-		if len(q) == 0 {
-			// Nothing to do
-		} else {
-			// Merge queries
-			uq := u.Query()
-			for k, v := range q {
-				uq[k] = v
-			}
-			q = uq
-		}
-	}
-	u.RawQuery = q.Encode() // handles query == nil
-	r, err := retryablehttp.NewRequest(o.method, u.String(), o.body)
+	r, err := retryablehttp.NewRequestWithContext(ctx, o.method, c.targetUrl(o.path, o.query), o.body)
 	if err != nil {
 		return fmt.Errorf("NewRequest: %w", err)
 	}
-	r = r.WithContext(ctx)
 	if len(o.header) > 0 {
 		r.Header = o.header
 	}
 	if o.withJWT {
-		now := time.Now()
-		claims := jwt.RegisteredClaims{
-			Issuer:    jwtIssuer,
-			Audience:  jwt.ClaimStrings{jwtGitLabAudience},
-			ExpiresAt: jwt.NewNumericDate(now.Add(jwtValidFor)),
-			NotBefore: jwt.NewNumericDate(now.Add(-jwtNotBefore)),
-			IssuedAt:  jwt.NewNumericDate(now),
-		}
-		signedClaims, claimsErr := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
-			SignedString(c.AuthSecret)
-		if claimsErr != nil {
-			return fmt.Errorf("sign JWT: %w", claimsErr)
+		signedClaims, signErr := c.jwtSignature()
+		if signErr != nil {
+			return signErr
 		}
 		r.Header[jwtRequestHeader] = []string{signedClaims}
 	}
@@ -159,6 +133,43 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		}
 	}
 	return o.responseHandler.Handle(resp, err)
+}
+
+func (c *Client) jwtSignature() (string, error) {
+	now := time.Now()
+	claims := jwt.RegisteredClaims{
+		Issuer:    jwtIssuer,
+		Audience:  jwt.ClaimStrings{jwtGitLabAudience},
+		ExpiresAt: jwt.NewNumericDate(now.Add(jwtValidFor)),
+		NotBefore: jwt.NewNumericDate(now.Add(-jwtNotBefore)),
+		IssuedAt:  jwt.NewNumericDate(now),
+	}
+	signedClaims, claimsErr := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
+		SignedString(c.AuthSecret)
+	if claimsErr != nil {
+		return "", fmt.Errorf("sign JWT: %w", claimsErr)
+	}
+	return signedClaims, nil
+}
+
+func (c *Client) targetUrl(path string, query url.Values) string {
+	u := *c.Backend
+	u.Path = joinUrlPaths(u.Path, path)
+	q := query // may be nil
+	if u.RawQuery != "" {
+		if len(q) == 0 {
+			// Nothing to do
+		} else {
+			// Merge queries
+			uq := u.Query()
+			for k, v := range q {
+				uq[k] = v
+			}
+			q = uq
+		}
+	}
+	u.RawQuery = q.Encode() // handles query == nil
+	return u.String()
 }
 
 // errorHandler returns the last response and error when ran out of retry attempts.
