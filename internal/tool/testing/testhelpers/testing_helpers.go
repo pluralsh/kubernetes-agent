@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -152,7 +153,11 @@ func RecvMsg(value interface{}) func(interface{}) {
 // target must be a pointer. i.e. *blaProtoMsgType
 // value must of the same type as target.
 func SetValue(target, value interface{}) {
-	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(value).Elem())
+	if targetMsg, ok := target.(proto.Message); ok {
+		proto.Merge(targetMsg, value.(proto.Message)) // proto messages cannot be just copied
+	} else {
+		reflect.ValueOf(target).Elem().Set(reflect.ValueOf(value).Elem())
+	}
 }
 
 func NewPollConfig(interval time.Duration) retry.PollConfigFactory {
