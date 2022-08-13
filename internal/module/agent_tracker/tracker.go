@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -145,16 +146,18 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 		return err
 	}
 	// Ensure data is put into all sets, even if there was an error
-	err1 := t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoAny)
-	err2 := t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
-	err3 := t.connectedAgents.Set(ctx, nil, info.AgentId, nil)
-	if err1 == nil {
-		err1 = err2
-	}
-	if err1 == nil {
-		err1 = err3
-	}
-	return err1
+	// Put data concurrently to reduce latency.
+	var g errgroup.Group
+	g.Go(func() error {
+		return t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoAny)
+	})
+	g.Go(func() error {
+		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
+	})
+	g.Go(func() error {
+		return t.connectedAgents.Set(ctx, nil, info.AgentId, nil)
+	})
+	return g.Wait()
 }
 
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *ConnectedAgentInfo) error {
