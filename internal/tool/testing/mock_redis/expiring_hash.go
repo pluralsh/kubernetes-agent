@@ -7,6 +7,7 @@ package mock_redis
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
@@ -78,17 +79,17 @@ func (mr *MockExpiringHashInterfaceMockRecorder) Len(arg0, arg1 interface{}) *go
 }
 
 // Refresh mocks base method.
-func (m *MockExpiringHashInterface) Refresh(arg0 context.Context) error {
+func (m *MockExpiringHashInterface) Refresh(arg0 context.Context, arg1 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Refresh", arg0)
+	ret := m.ctrl.Call(m, "Refresh", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockExpiringHashInterfaceMockRecorder) Refresh(arg0 interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder) Refresh(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface)(nil).Refresh), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface)(nil).Refresh), arg0, arg1)
 }
 
 // Scan mocks base method.

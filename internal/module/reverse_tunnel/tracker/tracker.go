@@ -12,6 +12,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+const refreshOverlap = 5 * time.Second
+
 type GetTunnelsByAgentIdCallback func(*TunnelInfo) (bool /* done */, error)
 
 type Querier interface {
@@ -65,7 +67,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case <-done:
 			return nil
 		case <-refreshTicker.C:
-			err := t.refreshRegistrations(ctx)
+			err := t.refreshRegistrations(ctx, time.Now().Add(t.refreshPeriod-refreshOverlap))
 			if err != nil {
 				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
@@ -133,8 +135,8 @@ func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *TunnelIn
 	return t.tunnelsByAgentId.Unset(ctx, unreg.AgentId, unreg.ConnectionId)
 }
 
-func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
-	return t.tunnelsByAgentId.Refresh(ctx)
+func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
+	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
 }
 
 func (t *RedisTracker) maybeRunGCAsync(ctx context.Context) {

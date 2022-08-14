@@ -79,17 +79,27 @@ func TestExpiringHash_GC(t *testing.T) {
 	equalHash(t, client, key, 321, value)
 }
 
-func TestExpiringHash_Refresh(t *testing.T) {
+func TestExpiringHash_Refresh_ToExpireSoonerThanNextRefresh(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
 	require.NoError(t, hash.Set(context.Background(), key, 123, value))
 	registrationTime := time.Now()
 	time.Sleep(ttl / 2)
-	require.NoError(t, hash.Refresh(context.Background()))
+	require.NoError(t, hash.Refresh(context.Background(), registrationTime.Add(ttl*2)))
 
-	// Then
 	expireAfter := registrationTime.Add(ttl)
 	valuesExpireAfter(t, client, key, expireAfter)
+}
+
+func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
+	client, hash, key, value := setupHash(t)
+
+	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	h1 := getHash(t, client, key)
+	time.Sleep(ttl / 2)
+	require.NoError(t, hash.Refresh(context.Background(), time.Now().Add(ttl/10)))
+	h2 := getHash(t, client, key)
+	assert.Equal(t, h1, h2)
 }
 
 func TestExpiringHash_ScanEmpty(t *testing.T) {
