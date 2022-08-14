@@ -91,8 +91,8 @@ func TestRefreshRegistrations(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
-		Refresh(gomock.Any())
-	assert.NoError(t, r.refreshRegistrations(context.Background()))
+		Refresh(gomock.Any(), gomock.Any())
+	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 
 func TestGetTunnelsByAgentId_HappyPath(t *testing.T) {

@@ -222,27 +222,27 @@ func TestRefresh_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
 	connectedAgents.EXPECT().
-		Refresh(gomock.Any())
+		Refresh(gomock.Any(), gomock.Any())
 	byAgentId.EXPECT().
-		Refresh(gomock.Any())
+		Refresh(gomock.Any(), gomock.Any())
 	byProjectId.EXPECT().
-		Refresh(gomock.Any())
-	assert.NoError(t, r.refreshRegistrations(context.Background()))
+		Refresh(gomock.Any(), gomock.Any())
+	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 
 func TestRefresh_AllCalledOnError(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
 	connectedAgents.EXPECT().
-		Refresh(gomock.Any()).
+		Refresh(gomock.Any(), gomock.Any()).
 		Return(errors.New("err3"))
 	byAgentId.EXPECT().
-		Refresh(gomock.Any()).
+		Refresh(gomock.Any(), gomock.Any()).
 		Return(errors.New("err1"))
 	byProjectId.EXPECT().
-		Refresh(gomock.Any()).
+		Refresh(gomock.Any(), gomock.Any()).
 		Return(errors.New("err2"))
-	assert.Error(t, r.refreshRegistrations(context.Background()))
+	assert.Error(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 
 func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {

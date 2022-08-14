@@ -35,7 +35,7 @@ type ExpiringHashInterface interface {
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
 	GC() func(context.Context) (int /* keysDeleted */, error)
-	Refresh(ctx context.Context) error
+	Refresh(ctx context.Context, nextRefresh time.Time) error
 }
 
 type ExpiringHash struct {
@@ -43,7 +43,7 @@ type ExpiringHash struct {
 	client        redis.UniversalClient
 	keyToRedisKey KeyToRedisKey
 	ttl           time.Duration
-	data          map[interface{}]map[int64]*anypb.Any // key -> hash key -> value
+	data          map[interface{}]map[int64]*ExpiringValue // key -> hash key -> value
 }
 
 func NewExpiringHash(log *zap.Logger, client redis.UniversalClient, keyToRedisKey KeyToRedisKey, ttl time.Duration) *ExpiringHash {
@@ -52,15 +52,16 @@ func NewExpiringHash(log *zap.Logger, client redis.UniversalClient, keyToRedisKe
 		client:        client,
 		keyToRedisKey: keyToRedisKey,
 		ttl:           ttl,
-		data:          make(map[interface{}]map[int64]*anypb.Any),
+		data:          make(map[interface{}]map[int64]*ExpiringValue),
 	}
 }
 
 func (h *ExpiringHash) Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error {
-	h.setData(key, hashKey, value)
-	return h.refreshKey(ctx, key, map[int64]*anypb.Any{
-		hashKey: value,
-	})
+	ev := &ExpiringValue{Value: value}
+	h.setData(key, hashKey, ev)
+	return h.refreshKey(ctx, key, map[int64]*ExpiringValue{
+		hashKey: ev,
+	}, time.Time{})
 }
 
 func (h *ExpiringHash) Unset(ctx context.Context, key interface{}, hashKey int64) error {
@@ -93,6 +94,7 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 		}
 		keysDeleted = len(keysToDelete)
 	}()
+	now := time.Now()
 	// Scan keys of a hash. See https://redis.io/commands/scan
 	iter := h.client.HScan(ctx, redisKey, 0, "", 0).Iterator()
 	for iter.Next(ctx) {
@@ -116,7 +118,7 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 			}
 			continue // try to skip and continue
 		}
-		if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(time.Now()) {
+		if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(now) {
 			keysToDelete = append(keysToDelete, k)
 			continue
 		}
@@ -156,9 +158,9 @@ func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error)
 	})
 }
 
-func (h *ExpiringHash) Refresh(ctx context.Context) error {
+func (h *ExpiringHash) Refresh(ctx context.Context, nextRefresh time.Time) error {
 	for key, hashData := range h.data {
-		err := h.refreshKey(ctx, key, hashData)
+		err := h.refreshKey(ctx, key, hashData, nextRefresh)
 		if err != nil {
 			return err
 		}
@@ -166,20 +168,28 @@ func (h *ExpiringHash) Refresh(ctx context.Context) error {
 	return nil
 }
 
-func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData map[int64]*anypb.Any) error {
+func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData map[int64]*ExpiringValue, nextRefresh time.Time) error {
 	args := make([]interface{}, 0, len(hashData)*2)
 	expiresAt := timestamppb.New(time.Now().Add(h.ttl))
 	for hashKey, value := range hashData {
-		redisValue, err := proto.Marshal(&ExpiringValue{
-			ExpiresAt: expiresAt,
-			Value:     value,
-		})
+		if value.ExpiresAt == nil {
+			value.ExpiresAt = expiresAt
+		} else if value.ExpiresAt.AsTime().Before(nextRefresh) {
+			value.ExpiresAt = expiresAt
+		} else {
+			// Expires after next refresh. Will be refreshed later, no need to refresh now.
+			continue
+		}
+		redisValue, err := proto.Marshal(value)
 		if err != nil {
 			// This should never happen
 			h.log.Error("Failed to marshal ExpiringValue", logz.Error(err))
 			continue
 		}
 		args = append(args, hashKey, redisValue)
+	}
+	if len(args) == 0 {
+		return nil // Nothing to refresh
 	}
 	redisKey := h.keyToRedisKey(key)
 	_, err := h.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
@@ -190,10 +200,10 @@ func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData
 	return err
 }
 
-func (h *ExpiringHash) setData(key interface{}, hashKey int64, value *anypb.Any) {
+func (h *ExpiringHash) setData(key interface{}, hashKey int64, value *ExpiringValue) {
 	nm := h.data[key]
 	if nm == nil {
-		nm = make(map[int64]*anypb.Any, 1)
+		nm = make(map[int64]*ExpiringValue, 1)
 		h.data[key] = nm
 	}
 	nm[hashKey] = value
