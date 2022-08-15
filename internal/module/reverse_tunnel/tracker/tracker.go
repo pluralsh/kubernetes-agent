@@ -128,15 +128,15 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *TunnelInfo)
 		// This should never happen
 		return err
 	}
-	return t.tunnelsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
+	return t.tunnelsByAgentId.Set(info.AgentId, info.ConnectionId, infoAny)(ctx)
 }
 
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *TunnelInfo) error {
-	return t.tunnelsByAgentId.Unset(ctx, unreg.AgentId, unreg.ConnectionId)
+	return t.tunnelsByAgentId.Unset(unreg.AgentId, unreg.ConnectionId)(ctx)
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
+	return t.tunnelsByAgentId.Refresh(nextRefresh)(ctx)
 }
 
 func (t *RedisTracker) maybeRunGCAsync(ctx context.Context) {

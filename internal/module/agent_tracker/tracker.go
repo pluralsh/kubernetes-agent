@@ -151,20 +151,20 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 	// Put data concurrently to reduce latency.
 	var g errgroup.Group
 	g.Go(func() error {
-		return t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoAny)
+		return t.connectionsByProjectId.Set(info.ProjectId, info.ConnectionId, infoAny)(ctx)
 	})
 	g.Go(func() error {
-		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
+		return t.connectionsByAgentId.Set(info.AgentId, info.ConnectionId, infoAny)(ctx)
 	})
 	g.Go(func() error {
-		return t.connectedAgents.Set(ctx, nil, info.AgentId, nil)
+		return t.connectedAgents.Set(nil, info.AgentId, nil)(ctx)
 	})
 	return g.Wait()
 }
 
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *ConnectedAgentInfo) error {
-	err1 := t.connectionsByProjectId.Unset(ctx, unreg.ProjectId, unreg.ConnectionId)
-	err2 := t.connectionsByAgentId.Unset(ctx, unreg.AgentId, unreg.ConnectionId)
+	err1 := t.connectionsByProjectId.Unset(unreg.ProjectId, unreg.ConnectionId)(ctx)
+	err2 := t.connectionsByAgentId.Unset(unreg.AgentId, unreg.ConnectionId)(ctx)
 	t.connectedAgents.Forget(nil, unreg.AgentId)
 	if err1 == nil {
 		err1 = err2
@@ -173,9 +173,9 @@ func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *Connecte
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	err1 := t.connectionsByProjectId.Refresh(ctx, nextRefresh)
-	err2 := t.connectionsByAgentId.Refresh(ctx, nextRefresh)
-	err3 := t.connectedAgents.Refresh(ctx, nextRefresh)
+	err1 := t.connectionsByProjectId.Refresh(nextRefresh)(ctx)
+	err2 := t.connectionsByAgentId.Refresh(nextRefresh)(ctx)
+	err3 := t.connectedAgents.Refresh(nextRefresh)(ctx)
 
 	if err1 == nil {
 		err1 = err2

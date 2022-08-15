@@ -26,7 +26,7 @@ const (
 func TestExpiringHash_Set(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 
 	equalHash(t, client, key, 123, value)
 }
@@ -34,8 +34,8 @@ func TestExpiringHash_Set(t *testing.T) {
 func TestExpiringHash_Unset(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
-	require.NoError(t, hash.Unset(context.Background(), key, 123))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
+	require.NoError(t, hash.Unset(key, 123)(context.Background()))
 
 	require.Empty(t, getHash(t, client, key))
 }
@@ -43,7 +43,7 @@ func TestExpiringHash_Unset(t *testing.T) {
 func TestExpiringHash_Forget(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	hash.Forget(key, 123)
 
 	equalHash(t, client, key, 123, value)
@@ -53,7 +53,7 @@ func TestExpiringHash_Forget(t *testing.T) {
 func TestExpiringHash_Expires(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	time.Sleep(ttl + 100*time.Millisecond)
 
 	require.Empty(t, getHash(t, client, key))
@@ -62,7 +62,7 @@ func TestExpiringHash_Expires(t *testing.T) {
 func TestExpiringHash_GC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
 		newExpireIn := 3 * ttl
 		p.PExpire(context.Background(), key, newExpireIn)
@@ -70,7 +70,7 @@ func TestExpiringHash_GC(t *testing.T) {
 	})
 	require.NoError(t, err)
 	time.Sleep(ttl + 100*time.Millisecond)
-	require.NoError(t, hash.Set(context.Background(), key, 321, value))
+	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
 
 	keysDeleted, err := hash.GC()(context.Background())
 	require.NoError(t, err)
@@ -82,10 +82,10 @@ func TestExpiringHash_GC(t *testing.T) {
 func TestExpiringHash_Refresh_ToExpireSoonerThanNextRefresh(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	registrationTime := time.Now()
 	time.Sleep(ttl / 2)
-	require.NoError(t, hash.Refresh(context.Background(), registrationTime.Add(ttl*2)))
+	require.NoError(t, hash.Refresh(registrationTime.Add(ttl*2))(context.Background()))
 
 	expireAfter := registrationTime.Add(ttl)
 	valuesExpireAfter(t, client, key, expireAfter)
@@ -94,10 +94,10 @@ func TestExpiringHash_Refresh_ToExpireSoonerThanNextRefresh(t *testing.T) {
 func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	h1 := getHash(t, client, key)
 	time.Sleep(ttl / 2)
-	require.NoError(t, hash.Refresh(context.Background(), time.Now().Add(ttl/10)))
+	require.NoError(t, hash.Refresh(time.Now().Add(ttl/10))(context.Background()))
 	h2 := getHash(t, client, key)
 	assert.Equal(t, h1, h2)
 }
@@ -128,7 +128,7 @@ func TestExpiringHash_Scan(t *testing.T) {
 
 func TestExpiringHash_Len(t *testing.T) {
 	_, hash, key, value := setupHash(t)
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	size, err := hash.Len(context.Background(), key)
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, size)
@@ -137,7 +137,7 @@ func TestExpiringHash_Len(t *testing.T) {
 func TestExpiringHash_ScanGC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
-	require.NoError(t, hash.Set(context.Background(), key, 123, value))
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
 		newExpireIn := 3 * ttl
 		p.PExpire(context.Background(), key, newExpireIn)
@@ -145,7 +145,7 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 	})
 	require.NoError(t, err)
 	time.Sleep(ttl + 100*time.Millisecond)
-	require.NoError(t, hash.Set(context.Background(), key, 321, value))
+	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
 
 	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) (bool, error) {
 		require.NoError(t, err)
