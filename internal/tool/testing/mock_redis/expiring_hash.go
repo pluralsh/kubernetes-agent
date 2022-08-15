@@ -79,17 +79,17 @@ func (mr *MockExpiringHashInterfaceMockRecorder) Len(arg0, arg1 interface{}) *go
 }
 
 // Refresh mocks base method.
-func (m *MockExpiringHashInterface) Refresh(arg0 context.Context, arg1 time.Time) error {
+func (m *MockExpiringHashInterface) Refresh(arg0 time.Time) redistool.IOFunc {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Refresh", arg0, arg1)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "Refresh", arg0)
+	ret0, _ := ret[0].(redistool.IOFunc)
 	return ret0
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockExpiringHashInterfaceMockRecorder) Refresh(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder) Refresh(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface)(nil).Refresh), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface)(nil).Refresh), arg0)
 }
 
 // Scan mocks base method.
@@ -108,29 +108,29 @@ func (mr *MockExpiringHashInterfaceMockRecorder) Scan(arg0, arg1, arg2 interface
 }
 
 // Set mocks base method.
-func (m *MockExpiringHashInterface) Set(arg0 context.Context, arg1 interface{}, arg2 int64, arg3 *anypb.Any) error {
+func (m *MockExpiringHashInterface) Set(arg0 interface{}, arg1 int64, arg2 *anypb.Any) redistool.IOFunc {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
+	ret0, _ := ret[0].(redistool.IOFunc)
 	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockExpiringHashInterfaceMockRecorder) Set(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface)(nil).Set), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface)(nil).Set), arg0, arg1, arg2)
 }
 
 // Unset mocks base method.
-func (m *MockExpiringHashInterface) Unset(arg0 context.Context, arg1 interface{}, arg2 int64) error {
+func (m *MockExpiringHashInterface) Unset(arg0 interface{}, arg1 int64) redistool.IOFunc {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Unset", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "Unset", arg0, arg1)
+	ret0, _ := ret[0].(redistool.IOFunc)
 	return ret0
 }
 
 // Unset indicates an expected call of Unset.
-func (mr *MockExpiringHashInterfaceMockRecorder) Unset(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder) Unset(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface)(nil).Unset), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface)(nil).Unset), arg0, arg1)
 }
