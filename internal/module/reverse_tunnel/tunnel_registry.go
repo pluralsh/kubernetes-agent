@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/mathz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -188,7 +189,11 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 	}
 
 	// 2. Register the tunnel
-	r.tunnelRegisterer.RegisterTunnel(context.Background(), toReg.tunnelInfo) // register ASAP
+	err := r.tunnelRegisterer.RegisterTunnel(context.Background(), toReg.tunnelInfo) // register ASAP
+	if err != nil {
+		r.log.Error("Failed to register tunnel", logz.Error(err))
+		// fallthrough
+	}
 	r.tuns[toReg] = struct{}{}
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
@@ -206,7 +211,11 @@ func (r *TunnelRegistry) handleTunnelUnregister(toUnreg *tunnel) {
 }
 
 func (r *TunnelRegistry) unregisterTunnel(toUnreg *tunnel) {
-	r.tunnelRegisterer.UnregisterTunnel(context.Background(), toUnreg.tunnelInfo)
+	err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), toUnreg.tunnelInfo)
+	if err != nil {
+		r.log.Error("Failed to unregister tunnel", logz.Error(err))
+		// fallthrough
+	}
 	delete(r.tuns, toUnreg)
 	tunsByAgentId := r.tunsByAgentId[toUnreg.tunnelInfo.AgentId]
 	delete(tunsByAgentId, toUnreg)

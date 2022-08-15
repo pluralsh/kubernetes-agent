@@ -79,10 +79,10 @@ func (mr *MockTrackerMockRecorder) GetConnectionsByProjectId(arg0, arg1, arg2 in
 }
 
 // RegisterConnection mocks base method.
-func (m *MockTracker) RegisterConnection(arg0 context.Context, arg1 *agent_tracker.ConnectedAgentInfo) bool {
+func (m *MockTracker) RegisterConnection(arg0 context.Context, arg1 *agent_tracker.ConnectedAgentInfo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterConnection", arg0, arg1)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
@@ -107,10 +107,10 @@ func (mr *MockTrackerMockRecorder) Run(arg0 interface{}) *gomock.Call {
 }
 
 // UnregisterConnection mocks base method.
-func (m *MockTracker) UnregisterConnection(arg0 context.Context, arg1 *agent_tracker.ConnectedAgentInfo) bool {
+func (m *MockTracker) UnregisterConnection(arg0 context.Context, arg1 *agent_tracker.ConnectedAgentInfo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnregisterConnection", arg0, arg1)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -40,7 +41,7 @@ func TestRegisterConnection(t *testing.T) {
 		})
 
 	go func() {
-		assert.True(t, r.RegisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -64,8 +65,8 @@ func TestUnregisterConnection(t *testing.T) {
 	)
 
 	go func() {
-		assert.True(t, r.RegisterTunnel(context.Background(), ti))
-		assert.True(t, r.UnregisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), ti))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -83,10 +84,9 @@ func TestGC(t *testing.T) {
 			return 3, nil
 		})
 
-	r.maybeRunGCAsync(context.Background())
-	assert.Eventually(t, func() bool {
-		return !r.tunnelsByAgentIdGc.IsRunning()
-	}, time.Second, 10*time.Millisecond)
+	deleted, err := r.runGC(context.Background())
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, deleted)
 	assert.True(t, wasCalled)
 }
 
@@ -183,9 +183,8 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		log:              zaptest.NewLogger(t),
 		refreshPeriod:    time.Minute,
 		gcPeriod:         time.Minute,
+		mu:               syncz.NewMutex(),
 		tunnelsByAgentId: hash,
-		toRegister:       make(chan *TunnelInfo),
-		toUnregister:     make(chan *TunnelInfo),
 	}, hash, ti
 }
 
