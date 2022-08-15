@@ -1,0 +1,10 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "syncz",
+    srcs = [
+        "mutex.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz",
+    visibility = ["//:__subpackages__"],
+)

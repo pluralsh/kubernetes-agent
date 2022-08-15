@@ -9,6 +9,7 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache",
     visibility = ["//:__subpackages__"],
+    deps = ["//internal/tool/syncz"],
 )
 
 go_custom_test(
