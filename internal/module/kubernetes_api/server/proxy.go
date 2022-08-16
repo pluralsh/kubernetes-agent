@@ -393,12 +393,20 @@ func impCiJobGroups(allowedForJob *gapi.AllowedAgentsForJob) []string {
 	// 2. The list of ids of groups the project is in.
 	for _, projectGroup := range allowedForJob.Project.Groups {
 		groups = append(groups, fmt.Sprintf("gitlab:group:%d", projectGroup.Id))
+
+		// 3. The tier of the environment this job belongs to, if set.
+		if allowedForJob.Environment != nil {
+			groups = append(groups, fmt.Sprintf("gitlab:group_env_tier:%d:%s", projectGroup.Id, allowedForJob.Environment.Tier))
+		}
 	}
-	// 3. The project id.
+	// 4. The project id.
 	groups = append(groups, fmt.Sprintf("gitlab:project:%d", allowedForJob.Project.Id))
-	// 4. The slug of the environment this job belongs to, if set.
+	// 5. The slug and tier of the environment this job belongs to, if set.
 	if allowedForJob.Environment != nil {
-		groups = append(groups, fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Slug))
+		groups = append(groups,
+			fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Slug),
+			fmt.Sprintf("gitlab:project_env_tier:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Tier),
+		)
 	}
 	return groups
 }
@@ -431,10 +439,16 @@ func impCiJobExtra(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgen
 		},
 	}
 	if allowedForJob.Environment != nil {
-		extra = append(extra, &rpc.ExtraKeyVal{
-			Key: "agent.gitlab.com/environment_slug",
-			Val: []string{allowedForJob.Environment.Slug}, // slug of the environment, if set
-		})
+		extra = append(extra,
+			&rpc.ExtraKeyVal{
+				Key: "agent.gitlab.com/environment_slug",
+				Val: []string{allowedForJob.Environment.Slug}, // slug of the environment, if set
+			},
+			&rpc.ExtraKeyVal{
+				Key: "agent.gitlab.com/environment_tier",
+				Val: []string{allowedForJob.Environment.Tier}, // tier of the environment, if set
+			},
+		)
 	}
 	return extra
 }

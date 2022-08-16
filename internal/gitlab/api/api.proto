@@ -51,6 +51,7 @@ message User {
 
 message Environment {
   string slug = 1 [json_name = "slug", (validate.rules).string.min_bytes = 1];
+  string tier = 2 [json_name = "tier", (validate.rules).string.min_bytes = 1];
 }
 
 message AllowedAgentsForJob {

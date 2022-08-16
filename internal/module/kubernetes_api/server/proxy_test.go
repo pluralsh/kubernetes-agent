@@ -355,11 +355,12 @@ func TestProxy_HappyPath(t *testing.T) {
 			},
 			env: &gapi.Environment{
 				Slug: "prod",
+				Tier: "production",
 			},
 			expectedExtra: &rpc.HeaderExtra{
 				ImpConfig: &rpc.ImpersonationConfig{
 					Username: "gitlab:ci_job:1",
-					Groups:   []string{"gitlab:ci_job", "gitlab:group:6", "gitlab:project:3", "gitlab:project_env:3:prod"},
+					Groups:   []string{"gitlab:ci_job", "gitlab:group:6", "gitlab:group_env_tier:6:production", "gitlab:project:3", "gitlab:project_env:3:prod", "gitlab:project_env_tier:3:production"},
 					Extra: []*rpc.ExtraKeyVal{
 						{
 							Key: "agent.gitlab.com/id",
@@ -388,6 +389,10 @@ func TestProxy_HappyPath(t *testing.T) {
 						{
 							Key: "agent.gitlab.com/environment_slug",
 							Val: []string{"prod"},
+						},
+						{
+							Key: "agent.gitlab.com/environment_tier",
+							Val: []string{"production"},
 						},
 					},
 				},

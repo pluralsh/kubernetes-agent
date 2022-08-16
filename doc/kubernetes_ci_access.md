@@ -156,10 +156,10 @@ the `access_as` config section. For any option other than `agent` to work, `agen
 
      - Project `group1/group1-1/project1` has id `150`.
 
-     - Job running in a `prod` environment.
+     - Job running in a `prod` environment, which has the `production` environment tier.
 
-     group list would be [`gitlab:ci_job`, `gitlab:group:23`, `gitlab:group:25`, `gitlab:project:150`,
-     `gitlab:project_env:150:prod`].
+     group list would be [`gitlab:ci_job`, `gitlab:group:23`, `gitlab:group_env_tier:23:production`, `gitlab:group:25`, `gitlab:group_env_tier:25:production`,
+     `gitlab:project:150`, `gitlab:project_env:150:prod`, `gitlab:project_env_tier:150:production`].
 
    - `Extra` carries extra information about the request:
 
@@ -176,6 +176,8 @@ the `access_as` config section. For any option other than `agent` to work, `agen
      - `agent.gitlab.com/username` contains the username of the user the CI job is running as.
 
      - `agent.gitlab.com/environment_slug` contains the slug of the environment. Only set if running in an environment.
+
+     - `agent.gitlab.com/environment_tier` contains the deployment tier of the environment. Only set if running in an environment.
 
 - `ci_user` - impersonate the user this CI job is running as. Details depend on
   https://gitlab.com/gitlab-org/gitlab/-/issues/243740, tentatively:
@@ -360,6 +362,7 @@ Content-Type: application/json
   },
   "environment": {
     "slug": "slug_of_the_environment" // empty if not part of an environment
+    "tier": "deployment_tier_of_the_environment" // empty if not part of an environment
   },
   "user": { // user who is running the job
     "id": 1,
