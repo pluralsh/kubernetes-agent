@@ -24,7 +24,7 @@ type module struct {
 }
 
 func (m *module) Run(ctx context.Context) (retErr error) {
-	lis, err := net.Listen(m.cfg.Listen.Network.String(), m.cfg.Listen.Address)
+	lis, err := net.Listen(*m.cfg.Listen.Network, m.cfg.Listen.Address)
 	if err != nil {
 		return err
 	}

@@ -42,11 +42,11 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
-			return tls.Listen(listenCfg.Network.String(), listenCfg.Address, tlsConfig)
+			return tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
 		}
 	} else {
 		listener = func() (net.Listener, error) {
-			return net.Listen(listenCfg.Network.String(), listenCfg.Address)
+			return net.Listen(*listenCfg.Network, listenCfg.Address)
 		}
 	}
 	serverName := fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId)

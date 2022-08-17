@@ -30,6 +30,12 @@ func String(s *string, defaultValue string) {
 	}
 }
 
+func StringPtr(s **string, defaultValue string) {
+	if *s == nil {
+		*s = &defaultValue
+	}
+}
+
 func Float64(s *float64, defaultValue float64) {
 	if *s == 0 {
 		*s = defaultValue

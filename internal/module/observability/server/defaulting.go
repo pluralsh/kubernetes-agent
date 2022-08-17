@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	defaultObservabilityListenNetwork         = "tcp"
 	defaultObservabilityListenAddress         = "127.0.0.1:8151"
 	defaultObservabilityPrometheusUrlPath     = "/metrics"
 	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
@@ -19,6 +20,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	o := config.Observability
 
 	prototool.NotNil(&o.Listen)
+	prototool.StringPtr(&o.Listen.Network, defaultObservabilityListenNetwork)
 	prototool.String(&o.Listen.Address, defaultObservabilityListenAddress)
 
 	prototool.NotNil(&o.Prometheus)

@@ -387,9 +387,9 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			}
 			if tlsConfig != nil {
 				tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"} // h2 for gRPC, http/1.1 for WebSocket
-				lis, err = tls.Listen(listenCfg.Network.String(), listenCfg.Address, tlsConfig)
+				lis, err = tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
 			} else {
-				lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)
+				lis, err = net.Listen(*listenCfg.Network, listenCfg.Address)
 			}
 			if err != nil {
 				return nil, err
@@ -402,7 +402,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			lis = wsWrapper.Wrap(lis, tlsConfig != nil)
 		} else {
 			var err error
-			lis, err = net.Listen(listenCfg.Network.String(), listenCfg.Address)
+			lis, err = net.Listen(*listenCfg.Network, listenCfg.Address)
 			if err != nil {
 				return nil, err
 			}
@@ -420,7 +420,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server) {
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Api.Listen
-		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
+		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
 		if err != nil {
 			return nil, err
 		}
@@ -436,7 +436,7 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server) {
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.PrivateApi.Listen
-		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
+		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
 		if err != nil {
 			return nil, err
 		}

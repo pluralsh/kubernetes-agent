@@ -24,6 +24,7 @@ const (
 	defaultAgentRedisConnInfoRefresh = 4 * time.Minute
 	defaultAgentRedisConnInfoGC      = 10 * time.Minute
 
+	defaultAgentListenNetwork                      = "tcp"
 	defaultAgentListenAddress                      = "127.0.0.1:8150"
 	defaultAgentListenConnectionsPerTokenPerMinute = 10000
 	defaultAgentListenMaxConnectionAge             = 30 * time.Minute
@@ -41,9 +42,11 @@ const (
 	defaultRedisKeyPrefix    = "gitlab-kas"
 	defaultRedisNetwork      = "tcp"
 
+	defaultApiListenNetwork          = "tcp"
 	defaultApiListenAddress          = "127.0.0.1:8153"
 	defaultApiListenMaxConnectionAge = 30 * time.Minute
 
+	defaultPrivateApiListenNetwork          = "tcp"
 	defaultPrivateApiListenAddress          = "127.0.0.1:8155"
 	defaultPrivateApiListenMaxConnectionAge = 30 * time.Minute
 )
@@ -85,12 +88,14 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 
 func defaultApi(api *kascfg.ApiCF) {
 	prototool.NotNil(&api.Listen)
+	prototool.StringPtr(&api.Listen.Network, defaultApiListenNetwork)
 	prototool.String(&api.Listen.Address, defaultApiListenAddress)
 	prototool.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
 }
 
 func defaultPrivateApi(api *kascfg.PrivateApiCF) {
 	prototool.NotNil(&api.Listen)
+	prototool.StringPtr(&api.Listen.Network, defaultPrivateApiListenNetwork)
 	prototool.String(&api.Listen.Address, defaultPrivateApiListenAddress)
 	prototool.Duration(&api.Listen.MaxConnectionAge, defaultPrivateApiListenMaxConnectionAge)
 }
@@ -103,6 +108,7 @@ func defaultGitLab(g *kascfg.GitLabCF) {
 
 func defaultAgent(a *kascfg.AgentCF) {
 	prototool.NotNil(&a.Listen)
+	prototool.StringPtr(&a.Listen.Network, defaultAgentListenNetwork)
 	prototool.String(&a.Listen.Address, defaultAgentListenAddress)
 	prototool.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
 	prototool.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
