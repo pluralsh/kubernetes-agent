@@ -29,6 +29,10 @@ type module struct {
 	workerFactory GitopsWorkerFactory
 }
 
+func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
+	return cfg.Gitops != nil && len(cfg.Gitops.ManifestProjects) > 0
+}
+
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	wm := newWorkerManager(m.log, m.workerFactory)
 	defer wm.stopAllWorkers()

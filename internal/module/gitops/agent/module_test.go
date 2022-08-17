@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	_ modagent.Module  = &module{}
-	_ modagent.Factory = &Factory{}
+	_ modagent.LeaderModule = &module{}
+	_ modagent.Factory      = &Factory{}
 )
 
 func TestIgnoresInvalidConfiguration(t *testing.T) {

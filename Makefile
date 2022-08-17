@@ -45,6 +45,7 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/agentk/agentkapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/kas/kasapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/starboard_vulnerability/agent" \
