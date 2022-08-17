@@ -14,3 +14,12 @@ func TestNotNil(t *testing.T) {
 	NotNil(&x.Bla)
 	assert.NotNil(t, x.Bla)
 }
+
+func TestStringPtr(t *testing.T) {
+	var x struct {
+		Bla *string // an example proto field
+	}
+	StringPtr(&x.Bla, "foo")
+	assert.NotNil(t, x.Bla)
+	assert.Equal(t, "foo", *x.Bla)
+}

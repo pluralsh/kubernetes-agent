@@ -57,8 +57,6 @@ func (m *ListenAgentCF) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Network
-
 	// no validation rules for Address
 
 	// no validation rules for Websocket
@@ -97,6 +95,21 @@ func (m *ListenAgentCF) validate(all bool) error {
 			}
 
 		}
+	}
+
+	if m.Network != nil {
+
+		if _, ok := _ListenAgentCF_Network_InLookup[m.GetNetwork()]; !ok {
+			err := ListenAgentCFValidationError{
+				field:  "Network",
+				reason: "value must be in list [tcp tcp4 tcp6 unix]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	}
 
 	if len(errors) > 0 {
@@ -176,6 +189,13 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListenAgentCFValidationError{}
+
+var _ListenAgentCF_Network_InLookup = map[string]struct{}{
+	"tcp":  {},
+	"tcp4": {},
+	"tcp6": {},
+	"unix": {},
+}
 
 // Validate checks the field values on PrometheusCF with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -300,9 +320,22 @@ func (m *ObservabilityListenCF) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Network
-
 	// no validation rules for Address
+
+	if m.Network != nil {
+
+		if _, ok := _ObservabilityListenCF_Network_InLookup[m.GetNetwork()]; !ok {
+			err := ObservabilityListenCFValidationError{
+				field:  "Network",
+				reason: "value must be in list [tcp tcp4 tcp6 unix]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
 
 	if len(errors) > 0 {
 		return ObservabilityListenCFMultiError(errors)
@@ -383,6 +416,13 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ObservabilityListenCFValidationError{}
+
+var _ObservabilityListenCF_Network_InLookup = map[string]struct{}{
+	"tcp":  {},
+	"tcp4": {},
+	"tcp6": {},
+	"unix": {},
+}
 
 // Validate checks the field values on TracingCF with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -1085,13 +1125,26 @@ func (m *ListenKubernetesApiCF) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Network
-
 	// no validation rules for Address
 
 	// no validation rules for CertificateFile
 
 	// no validation rules for KeyFile
+
+	if m.Network != nil {
+
+		if _, ok := _ListenKubernetesApiCF_Network_InLookup[m.GetNetwork()]; !ok {
+			err := ListenKubernetesApiCFValidationError{
+				field:  "Network",
+				reason: "value must be in list [tcp tcp4 tcp6 unix]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
 
 	if len(errors) > 0 {
 		return ListenKubernetesApiCFMultiError(errors)
@@ -1172,6 +1225,13 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListenKubernetesApiCFValidationError{}
+
+var _ListenKubernetesApiCF_Network_InLookup = map[string]struct{}{
+	"tcp":  {},
+	"tcp4": {},
+	"tcp6": {},
+	"unix": {},
+}
 
 // Validate checks the field values on KubernetesApiCF with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -3555,8 +3615,6 @@ func (m *ListenApiCF) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Network
-
 	// no validation rules for Address
 
 	if len(m.GetAuthenticationSecretFile()) < 1 {
@@ -3602,6 +3660,21 @@ func (m *ListenApiCF) validate(all bool) error {
 			}
 
 		}
+	}
+
+	if m.Network != nil {
+
+		if _, ok := _ListenApiCF_Network_InLookup[m.GetNetwork()]; !ok {
+			err := ListenApiCFValidationError{
+				field:  "Network",
+				reason: "value must be in list [tcp tcp4 tcp6 unix]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	}
 
 	if len(errors) > 0 {
@@ -3680,6 +3753,13 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListenApiCFValidationError{}
+
+var _ListenApiCF_Network_InLookup = map[string]struct{}{
+	"tcp":  {},
+	"tcp4": {},
+	"tcp6": {},
+	"unix": {},
+}
 
 // Validate checks the field values on ApiCF with the rules defined in the
 // proto definition for this message. If any rules are violated, the first

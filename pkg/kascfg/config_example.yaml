@@ -75,6 +75,7 @@ gitaly:
     bucket_size: 40
 private_api:
   listen:
+    network: tcp
     address: 127.0.0.1:8155
     authentication_secret_file: /some/file
     max_connection_age: 1800s

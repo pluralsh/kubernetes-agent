@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	defaultKubernetesApiListenNetwork    = "tcp"
 	defaultKubernetesApiListenAddress    = "0.0.0.0:8154"
 	defaultAllowedAgentInfoCacheTTL      = 1 * time.Minute
 	defaultAllowedAgentInfoCacheErrorTTL = 10 * time.Second
@@ -22,6 +23,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 		return
 	}
 	prototool.NotNil(&o.Listen)
+	prototool.StringPtr(&o.Listen.Network, defaultKubernetesApiListenNetwork)
 	prototool.String(&o.Listen.Address, defaultKubernetesApiListenAddress)
 	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
 		o.UrlPathPrefix = o.UrlPathPrefix + "/"
