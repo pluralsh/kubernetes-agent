@@ -11,8 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+type WorkSource interface {
+	ID() string
+	Configuration() proto.Message
+}
+
 type WorkerFactory interface {
-	New(int64, *agentcfg.ManifestProjectCF) Worker
+	New(agentId int64, source WorkSource) Worker
+	SourcesFromConfiguration(*agentcfg.AgentConfiguration) []WorkSource
 }
 
 type Worker interface {
@@ -22,7 +28,7 @@ type Worker interface {
 type WorkerManager struct {
 	log           *zap.Logger
 	workerFactory WorkerFactory
-	workers       map[string]*workerHolder // project id -> worker holder instance
+	workers       map[string]*workerHolder // source id -> worker holder instance
 }
 
 func NewWorkerManager(log *zap.Logger, workerFactory WorkerFactory) *WorkerManager {
@@ -33,86 +39,87 @@ func NewWorkerManager(log *zap.Logger, workerFactory WorkerFactory) *WorkerManag
 	}
 }
 
-func (m *WorkerManager) startNewWorker(agentId int64, project *agentcfg.ManifestProjectCF) {
-	l := m.log.With(logz.ProjectId(project.Id))
-	l.Info("Starting synchronization worker")
-	worker := m.workerFactory.New(agentId, project)
+func (m *WorkerManager) startNewWorker(agentId int64, source WorkSource) {
+	id := source.ID()
+	m.log.Info("Starting synchronization worker", logz.WorkerId(id))
+	worker := m.workerFactory.New(agentId, source)
 	ctx, cancel := context.WithCancel(context.Background())
-	workerHolder := &workerHolder{
-		project: project,
-		stop:    cancel,
+	holder := &workerHolder{
+		source: source,
+		stop:   cancel,
 	}
-	workerHolder.wg.StartWithContext(ctx, worker.Run)
-	m.workers[project.Id] = workerHolder
+	holder.wg.StartWithContext(ctx, worker.Run)
+	m.workers[id] = holder
 }
 
-func (m *WorkerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.GitopsCF) error {
-	projects := gitops.ManifestProjects
-	newSetOfProjects := make(map[string]struct{}, len(projects))
-	var projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
+func (m *WorkerManager) ApplyConfiguration(agentId int64, cfg *agentcfg.AgentConfiguration) error {
+	sources := m.workerFactory.SourcesFromConfiguration(cfg)
+	newSetOfSources := make(map[string]struct{}, len(sources))
+	var sourcesToStartWorkersFor []WorkSource
 	var workersToStop []*workerHolder //nolint:prealloc
 
-	// Collect projects without workers or with updated configuration.
-	for _, project := range projects {
-		if _, ok := newSetOfProjects[project.Id]; ok {
-			return fmt.Errorf("duplicate project id: %s", project.Id)
+	// Collect sources without workers or with updated configuration.
+	for _, source := range sources {
+		id := source.ID()
+		if _, ok := newSetOfSources[id]; ok {
+			return fmt.Errorf("duplicate source id: %s", id)
 		}
-		newSetOfProjects[project.Id] = struct{}{}
-		workerHolder := m.workers[project.Id]
-		if workerHolder == nil { // New project added
-			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
-		} else { // We have a worker for this project already
-			if proto.Equal(project, workerHolder.project) {
+		newSetOfSources[id] = struct{}{}
+		holder := m.workers[id]
+		if holder == nil { // New source added
+			sourcesToStartWorkersFor = append(sourcesToStartWorkersFor, source)
+		} else { // We have a worker for this source already
+			if proto.Equal(source.Configuration(), holder.source.Configuration()) {
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
 			}
-			m.log.Info("Configuration has been updated, restarting synchronization worker", logz.ProjectId(project.Id))
-			workersToStop = append(workersToStop, workerHolder)
-			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
+			m.log.Info("Configuration has been updated, restarting synchronization worker", logz.WorkerId(id))
+			workersToStop = append(workersToStop, holder)
+			sourcesToStartWorkersFor = append(sourcesToStartWorkersFor, source)
 		}
 	}
 
-	// Stop workers for projects which have been removed from the list.
-	for projectId, workerHolder := range m.workers {
-		if _, ok := newSetOfProjects[projectId]; ok {
+	// Stop workers for sources which have been removed from the list.
+	for sourceId, holder := range m.workers {
+		if _, ok := newSetOfSources[sourceId]; ok {
 			continue
 		}
-		workersToStop = append(workersToStop, workerHolder)
+		workersToStop = append(workersToStop, holder)
 	}
 
 	// Tell workers that should be stopped to stop.
-	for _, workerHolder := range workersToStop {
-		m.log.Info("Stopping synchronization worker", logz.ProjectId(workerHolder.project.Id))
-		workerHolder.stop()
-		delete(m.workers, workerHolder.project.Id)
+	for _, holder := range workersToStop {
+		m.log.Info("Stopping synchronization worker", logz.WorkerId(holder.source.ID()))
+		holder.stop()
+		delete(m.workers, holder.source.ID())
 	}
 
 	// Wait for stopped workers to finish.
-	for _, workerHolder := range workersToStop {
-		m.log.Info("Waiting for synchronization worker to stop", logz.ProjectId(workerHolder.project.Id))
-		workerHolder.wg.Wait()
+	for _, holder := range workersToStop {
+		m.log.Info("Waiting for synchronization worker to stop", logz.WorkerId(holder.source.ID()))
+		holder.wg.Wait()
 	}
 
-	// Start new workers for new projects or because of updated configuration.
-	for _, project := range projectsToStartWorkersFor {
-		m.startNewWorker(agentId, project) // nolint: contextcheck
+	// Start new workers for new sources or because of updated configuration.
+	for _, source := range sourcesToStartWorkersFor {
+		m.startNewWorker(agentId, source) // nolint: contextcheck
 	}
 	return nil
 }
 
 func (m *WorkerManager) StopAllWorkers() {
 	// Tell all workers to stop
-	for _, workerHolder := range m.workers {
-		workerHolder.stop()
+	for _, holder := range m.workers {
+		holder.stop()
 	}
 	// Wait for all workers to stop
-	for _, workerHolder := range m.workers {
-		workerHolder.wg.Wait()
+	for _, holder := range m.workers {
+		holder.wg.Wait()
 	}
 }
 
 type workerHolder struct {
-	project *agentcfg.ManifestProjectCF
-	wg      wait.Group
-	stop    context.CancelFunc
+	source WorkSource
+	wg     wait.Group
+	stop   context.CancelFunc
 }

@@ -38,7 +38,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	wm := agent.NewWorkerManager(m.log, m.workerFactory)
 	defer wm.StopAllWorkers()
 	for config := range cfg {
-		err := wm.ApplyConfiguration(config.AgentId, config.Gitops) // nolint: contextcheck
+		err := wm.ApplyConfiguration(config.AgentId, config) // nolint: contextcheck
 		if err != nil {
 			m.log.Error("Failed to apply manifest projects configuration", logz.Error(err))
 			continue
@@ -48,10 +48,6 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
-	return DefaultAndValidateConfiguration(config)
-}
-
-func DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	prototool.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
 		err := applyDefaultsToManifestProject(project)

@@ -36,7 +36,7 @@ func (m *MockWorkerFactory) EXPECT() *MockWorkerFactoryMockRecorder {
 }
 
 // New mocks base method.
-func (m *MockWorkerFactory) New(arg0 int64, arg1 *agentcfg.ManifestProjectCF) Worker {
+func (m *MockWorkerFactory) New(arg0 int64, arg1 WorkSource) Worker {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", arg0, arg1)
 	ret0, _ := ret[0].(Worker)
@@ -47,6 +47,20 @@ func (m *MockWorkerFactory) New(arg0 int64, arg1 *agentcfg.ManifestProjectCF) Wo
 func (mr *MockWorkerFactoryMockRecorder) New(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockWorkerFactory)(nil).New), arg0, arg1)
+}
+
+// SourcesFromConfiguration mocks base method.
+func (m *MockWorkerFactory) SourcesFromConfiguration(arg0 *agentcfg.AgentConfiguration) []WorkSource {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SourcesFromConfiguration", arg0)
+	ret0, _ := ret[0].([]WorkSource)
+	return ret0
+}
+
+// SourcesFromConfiguration indicates an expected call of SourcesFromConfiguration.
+func (mr *MockWorkerFactoryMockRecorder) SourcesFromConfiguration(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SourcesFromConfiguration", reflect.TypeOf((*MockWorkerFactory)(nil).SourcesFromConfiguration), arg0)
 }
 
 // MockWorker is a mock of Worker interface.

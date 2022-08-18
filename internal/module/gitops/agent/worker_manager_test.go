@@ -1,4 +1,4 @@
-package agent_test
+package agent
 
 import (
 	"context"
@@ -6,10 +6,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
@@ -21,19 +19,28 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
 			projects := config.GetGitops().GetManifestProjects()
 			expectedNumberOfWorkers := len(projects)
+			ws := make([]WorkSource, 0, len(projects))
+			for _, project := range projects {
+				ws = append(ws, &mockWorkSource{
+					id:     project.Id,
+					config: project,
+				})
+			}
+
 			wm, ctrl, factory := setupWM(t)
-			worker := agent.NewMockWorker(ctrl)
+			worker := NewMockWorker(ctrl)
+			factory.EXPECT().
+				SourcesFromConfiguration(config).
+				Return(ws)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				factory.EXPECT().
-					New(testhelpers.AgentId, matcher.ProtoEq(t, projects[i])).
+					New(testhelpers.AgentId, ws[i]).
 					Return(worker)
 			}
 			worker.EXPECT().
 				Run(gomock.Any()).
 				Times(expectedNumberOfWorkers)
-			err := manifestops.DefaultAndValidateConfiguration(config)
-			require.NoError(t, err)
-			err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)
+			err := wm.ApplyConfiguration(testhelpers.AgentId, config)
 			require.NoError(t, err)
 		})
 	}
@@ -60,7 +67,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			numProjects := numUniqueProjects(tc.configs)
 			wm, ctrl, factory := setupWM(t)
-			worker := agent.NewMockWorker(ctrl)
+			worker := NewMockWorker(ctrl)
 			worker.EXPECT().
 				Run(gomock.Any()).
 				Do(func(ctx context.Context) {
@@ -72,19 +79,45 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				Return(worker).
 				Times(numProjects)
 			for _, config := range tc.configs {
-				err := manifestops.DefaultAndValidateConfiguration(config)
-				require.NoError(t, err)
-				err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)
+				projects := config.GetGitops().GetManifestProjects()
+				ws := make([]WorkSource, 0, len(projects))
+				for _, project := range projects {
+					ws = append(ws, &mockWorkSource{
+						id:     project.Id,
+						config: project,
+					})
+				}
+				factory.EXPECT().
+					SourcesFromConfiguration(config).
+					Return(ws)
+				err := wm.ApplyConfiguration(testhelpers.AgentId, config)
 				require.NoError(t, err)
 			}
 		})
 	}
 }
 
-func setupWM(t *testing.T) (*agent.WorkerManager, *gomock.Controller, *agent.MockWorkerFactory) {
+func TestErrorsOnDuplicateSourceId(t *testing.T) {
+	wm, _, factory := setupWM(t)
+	cfg := &agentcfg.AgentConfiguration{}
+	factory.EXPECT().
+		SourcesFromConfiguration(cfg).
+		Return([]WorkSource{
+			&mockWorkSource{
+				id: "id1",
+			},
+			&mockWorkSource{
+				id: "id1",
+			},
+		})
+	err := wm.ApplyConfiguration(testhelpers.AgentId, cfg)
+	assert.EqualError(t, err, "duplicate source id: id1")
+}
+
+func setupWM(t *testing.T) (*WorkerManager, *gomock.Controller, *MockWorkerFactory) {
 	ctrl := gomock.NewController(t)
-	workerFactory := agent.NewMockWorkerFactory(ctrl)
-	wm := agent.NewWorkerManager(zaptest.NewLogger(t), workerFactory)
+	workerFactory := NewMockWorkerFactory(ctrl)
+	wm := NewWorkerManager(zaptest.NewLogger(t), workerFactory)
 	t.Cleanup(wm.StopAllWorkers)
 	return wm, ctrl, workerFactory
 }
@@ -164,4 +197,21 @@ func reverse(cfgs []*agentcfg.AgentConfiguration) {
 	for i, j := 0, len(cfgs)-1; i < j; i, j = i+1, j-1 {
 		cfgs[i], cfgs[j] = cfgs[j], cfgs[i]
 	}
+}
+
+var (
+	_ WorkSource = &mockWorkSource{}
+)
+
+type mockWorkSource struct {
+	id     string
+	config proto.Message
+}
+
+func (m *mockWorkSource) ID() string {
+	return m.id
+}
+
+func (m *mockWorkSource) Configuration() proto.Message {
+	return m.config
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
@@ -39,8 +40,11 @@ const (
 )
 
 var (
-	_ agent.Worker        = &worker{}
-	_ agent.WorkerFactory = &workerFactory{}
+	_ modagent.LeaderModule = &module{}
+	_ modagent.Factory      = &Factory{}
+	_ agent.Worker          = &worker{}
+	_ agent.WorkerFactory   = &workerFactory{}
+	_ agent.WorkSource      = &manifestSource{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {
