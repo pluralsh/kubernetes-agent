@@ -55,7 +55,7 @@ type Applier interface {
 	Run(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
 }
 
-type defaultGitopsWorkerFactory struct {
+type workerFactory struct {
 	log               *zap.Logger
 	applier           Applier
 	restClientGetter  resource.RESTClientGetter
@@ -65,9 +65,9 @@ type defaultGitopsWorkerFactory struct {
 	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
-func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) agent.Worker {
+func (f *workerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) agent.Worker {
 	l := f.log.With(logz.ProjectId(project.Id))
-	return &defaultGitopsWorker{
+	return &worker{
 		log:               l,
 		agentId:           agentId,
 		project:           project,
@@ -103,7 +103,7 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 	}
 }
 
-func (f *defaultGitopsWorkerFactory) mapDryRunStrategy(strategy string) common.DryRunStrategy {
+func (f *workerFactory) mapDryRunStrategy(strategy string) common.DryRunStrategy {
 	ret, ok := dryRunStrategyMapping[strategy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
@@ -114,7 +114,7 @@ func (f *defaultGitopsWorkerFactory) mapDryRunStrategy(strategy string) common.D
 	return ret
 }
 
-func (f *defaultGitopsWorkerFactory) mapPrunePropagationPolicy(policy string) metav1.DeletionPropagation {
+func (f *workerFactory) mapPrunePropagationPolicy(policy string) metav1.DeletionPropagation {
 	ret, ok := prunePropagationPolicyMapping[policy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
@@ -125,7 +125,7 @@ func (f *defaultGitopsWorkerFactory) mapPrunePropagationPolicy(policy string) me
 	return ret
 }
 
-func (f *defaultGitopsWorkerFactory) mapInventoryPolicy(policy string) inventory.Policy {
+func (f *workerFactory) mapInventoryPolicy(policy string) inventory.Policy {
 	ret, ok := inventoryPolicyMapping[policy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().

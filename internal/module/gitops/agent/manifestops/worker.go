@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/apply"
 )
 
-type defaultGitopsWorker struct {
+type worker struct {
 	log               *zap.Logger
 	agentId           int64
 	project           *agentcfg.ManifestProjectCF
@@ -24,7 +24,7 @@ type defaultGitopsWorker struct {
 	objWatcher        rpc.ObjectsToSynchronizeWatcherInterface
 }
 
-func (w *defaultGitopsWorker) Run(ctx context.Context) {
+func (w *worker) Run(ctx context.Context) {
 	// Data flow: watch() -> decode() -> apply()
 	desiredState := make(chan rpc.ObjectsToSynchronizeData)
 	jobs := make(chan applyJob)

@@ -22,14 +22,14 @@ type Worker interface {
 type WorkerManager struct {
 	log           *zap.Logger
 	workerFactory WorkerFactory
-	workers       map[string]*gitopsWorkerHolder // project id -> worker holder instance
+	workers       map[string]*workerHolder // project id -> worker holder instance
 }
 
 func NewWorkerManager(log *zap.Logger, workerFactory WorkerFactory) *WorkerManager {
 	return &WorkerManager{
 		log:           log,
 		workerFactory: workerFactory,
-		workers:       map[string]*gitopsWorkerHolder{},
+		workers:       map[string]*workerHolder{},
 	}
 }
 
@@ -38,7 +38,7 @@ func (m *WorkerManager) startNewWorker(agentId int64, project *agentcfg.Manifest
 	l.Info("Starting synchronization worker")
 	worker := m.workerFactory.New(agentId, project)
 	ctx, cancel := context.WithCancel(context.Background())
-	workerHolder := &gitopsWorkerHolder{
+	workerHolder := &workerHolder{
 		project: project,
 		stop:    cancel,
 	}
@@ -50,7 +50,7 @@ func (m *WorkerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.Gitop
 	projects := gitops.ManifestProjects
 	newSetOfProjects := make(map[string]struct{}, len(projects))
 	var projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
-	var workersToStop []*gitopsWorkerHolder //nolint:prealloc
+	var workersToStop []*workerHolder //nolint:prealloc
 
 	// Collect projects without workers or with updated configuration.
 	for _, project := range projects {
@@ -111,7 +111,7 @@ func (m *WorkerManager) StopAllWorkers() {
 	}
 }
 
-type gitopsWorkerHolder struct {
+type workerHolder struct {
 	project *agentcfg.ManifestProjectCF
 	wg      wait.Group
 	stop    context.CancelFunc

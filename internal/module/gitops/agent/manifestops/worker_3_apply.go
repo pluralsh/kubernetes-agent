@@ -22,7 +22,7 @@ type applyJob struct {
 	objects  []*unstructured.Unstructured
 }
 
-func (w *defaultGitopsWorker) apply(jobs <-chan applyJob) {
+func (w *worker) apply(jobs <-chan applyJob) {
 	for job := range jobs {
 		l := w.log.With(logz.CommitId(job.commitId))
 		_ = retry.PollWithBackoff(job.ctx, w.applierPollConfig, func(ctx context.Context) (error, retry.AttemptResult) {
@@ -42,7 +42,7 @@ func (w *defaultGitopsWorker) apply(jobs <-chan applyJob) {
 	}
 }
 
-func (w *defaultGitopsWorker) applyJob(ctx context.Context, job applyJob) error {
+func (w *worker) applyJob(ctx context.Context, job applyJob) error {
 	events := w.applier.Run(ctx, job.invInfo, job.objects, w.applyOptions)
 	// The printer will print updates from the channel. It will block
 	// until the channel is closed.

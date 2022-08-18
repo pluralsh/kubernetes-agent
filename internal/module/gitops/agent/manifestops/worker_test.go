@@ -39,8 +39,8 @@ const (
 )
 
 var (
-	_ agent.Worker        = &defaultGitopsWorker{}
-	_ agent.WorkerFactory = &defaultGitopsWorkerFactory{}
+	_ agent.Worker        = &worker{}
+	_ agent.WorkerFactory = &workerFactory{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {
@@ -307,13 +307,13 @@ func assertK8sObjectsMatch(t *testing.T, expected, actual interface{}) {
 	assert.Empty(t, cmp.Diff(expected, actual, kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()))
 }
 
-func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
+func setupWorker(t *testing.T) (*worker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	ctrl := gomock.NewController(t)
 	applier := NewMockApplier(ctrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
 	tf := cmdtesting.NewTestFactory()
 	t.Cleanup(tf.Cleanup)
-	w := &defaultGitopsWorker{
+	w := &worker{
 		log: zaptest.NewLogger(t),
 		project: &agentcfg.ManifestProjectCF{
 			Id:               projectId,

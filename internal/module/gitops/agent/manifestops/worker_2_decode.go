@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
 
-func (w *defaultGitopsWorker) decode(desiredState <-chan rpc.ObjectsToSynchronizeData, jobs chan<- applyJob) {
+func (w *worker) decode(desiredState <-chan rpc.ObjectsToSynchronizeData, jobs chan<- applyJob) {
 	var jobCancel context.CancelFunc
 	defer func() {
 		if jobCancel != nil {
@@ -31,12 +31,12 @@ func (w *defaultGitopsWorker) decode(desiredState <-chan rpc.ObjectsToSynchroniz
 		process: func(input inputT) (outputT, processResult) {
 			objs, err := d.Decode(input.Sources)
 			if err != nil {
-				w.log.Error("Failed to decode GitOps objects", logz.Error(err), logz.CommitId(input.CommitId))
+				w.log.Error("Failed to decode manifest objects", logz.Error(err), logz.CommitId(input.CommitId))
 				return outputT{}, backoff
 			}
 			invObj, objs, err := w.splitObjects(input.ProjectId, objs)
 			if err != nil {
-				w.log.Error("Failed to locate inventory object in GitOps objects", logz.Error(err), logz.CommitId(input.CommitId))
+				w.log.Error("Failed to locate inventory object in manifest objects", logz.Error(err), logz.CommitId(input.CommitId))
 				return outputT{}, done
 			}
 			if jobCancel != nil {
@@ -54,7 +54,7 @@ func (w *defaultGitopsWorker) decode(desiredState <-chan rpc.ObjectsToSynchroniz
 	p.run()
 }
 
-func (w *defaultGitopsWorker) splitObjects(projectId int64, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
+func (w *worker) splitObjects(projectId int64, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
 	invs := make([]*unstructured.Unstructured, 0, 1)
 	resources := make([]*unstructured.Unstructured, 0, len(objs))
 	for _, obj := range objs {
@@ -74,7 +74,7 @@ func (w *defaultGitopsWorker) splitObjects(projectId int64, objs []*unstructured
 	}
 }
 
-func (w *defaultGitopsWorker) defaultInventoryObjTemplate(projectId int64) *unstructured.Unstructured {
+func (w *worker) defaultInventoryObjTemplate(projectId int64) *unstructured.Unstructured {
 	id := inventoryId(w.agentId, projectId)
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{

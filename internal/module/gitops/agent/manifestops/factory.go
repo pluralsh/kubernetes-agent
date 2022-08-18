@@ -51,7 +51,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	}
 	return &module{
 		log: config.Log,
-		workerFactory: &defaultGitopsWorkerFactory{
+		workerFactory: &workerFactory{
 			log:              config.Log,
 			applier:          applier,
 			restClientGetter: config.K8sUtilFactory,

@@ -6,14 +6,14 @@ go_library(
     srcs = [
         "doc.go",
         "factory.go",
-        "gitops_worker.go",
-        "gitops_worker_1_watch.go",
-        "gitops_worker_2_decode.go",
-        "gitops_worker_3_apply.go",
-        "gitops_worker_factory.go",
         "module.go",
         "retry_pipeline.go",
         "sync_decoder.go",
+        "worker.go",
+        "worker_1_watch.go",
+        "worker_2_decode.go",
+        "worker_3_apply.go",
+        "worker_factory.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops",
     visibility = ["//:__subpackages__"],
@@ -49,11 +49,11 @@ go_library(
 go_custom_test(
     name = "manifestops_test",
     srcs = [
-        "gitops_worker_test.go",
         "mock_for_test.go",
         "module_test.go",
         "retry_pipeline_test.go",
         "sync_decoder_test.go",
+        "worker_test.go",
     ],
     embed = [":manifestops"],
     deps = [
