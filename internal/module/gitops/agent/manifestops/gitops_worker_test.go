@@ -1,4 +1,4 @@
-package agent
+package manifestops
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
@@ -38,8 +39,8 @@ const (
 )
 
 var (
-	_ GitopsWorker        = &defaultGitopsWorker{}
-	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
+	_ agent.Worker        = &defaultGitopsWorker{}
+	_ agent.WorkerFactory = &defaultGitopsWorkerFactory{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {

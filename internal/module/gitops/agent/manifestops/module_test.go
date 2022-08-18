@@ -1,10 +1,9 @@
-package agent
+package manifestops
 
 import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
@@ -46,7 +45,9 @@ func TestIgnoresInvalidConfiguration(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m, _, _ := setupModule(t)
+			m := &module{
+				log: zaptest.NewLogger(t),
+			}
 			var wg wait.Group
 			defer wg.Wait()
 			ctx, cancel := context.WithCancel(context.Background())
@@ -62,14 +63,4 @@ func TestIgnoresInvalidConfiguration(t *testing.T) {
 			wg.Wait()
 		})
 	}
-}
-
-func setupModule(t *testing.T) (*module, *gomock.Controller, *MockGitopsWorkerFactory) {
-	ctrl := gomock.NewController(t)
-	workerFactory := NewMockGitopsWorkerFactory(ctrl)
-	m := &module{
-		log:           zaptest.NewLogger(t),
-		workerFactory: workerFactory,
-	}
-	return m, ctrl, workerFactory
 }

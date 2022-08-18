@@ -1,8 +1,9 @@
-package agent
+package manifestops
 
 import (
 	"context"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
@@ -54,14 +55,6 @@ type Applier interface {
 	Run(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
 }
 
-type GitopsWorkerFactory interface {
-	New(int64, *agentcfg.ManifestProjectCF) GitopsWorker
-}
-
-type GitopsWorker interface {
-	Run(context.Context)
-}
-
 type defaultGitopsWorkerFactory struct {
 	log               *zap.Logger
 	applier           Applier
@@ -72,7 +65,7 @@ type defaultGitopsWorkerFactory struct {
 	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
-func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
+func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) agent.Worker {
 	l := f.log.With(logz.ProjectId(project.Id))
 	return &defaultGitopsWorker{
 		log:               l,

@@ -1,4 +1,4 @@
-package agent
+package agent_test
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -20,7 +22,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			projects := config.GetGitops().GetManifestProjects()
 			expectedNumberOfWorkers := len(projects)
 			wm, ctrl, factory := setupWM(t)
-			worker := NewMockGitopsWorker(ctrl)
+			worker := agent.NewMockWorker(ctrl)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				factory.EXPECT().
 					New(testhelpers.AgentId, matcher.ProtoEq(t, projects[i])).
@@ -29,7 +31,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			worker.EXPECT().
 				Run(gomock.Any()).
 				Times(expectedNumberOfWorkers)
-			err := defaultAndValidateConfiguration(config)
+			err := manifestops.DefaultAndValidateConfiguration(config)
 			require.NoError(t, err)
 			err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)
 			require.NoError(t, err)
@@ -58,7 +60,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			numProjects := numUniqueProjects(tc.configs)
 			wm, ctrl, factory := setupWM(t)
-			worker := NewMockGitopsWorker(ctrl)
+			worker := agent.NewMockWorker(ctrl)
 			worker.EXPECT().
 				Run(gomock.Any()).
 				Do(func(ctx context.Context) {
@@ -70,7 +72,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				Return(worker).
 				Times(numProjects)
 			for _, config := range tc.configs {
-				err := defaultAndValidateConfiguration(config)
+				err := manifestops.DefaultAndValidateConfiguration(config)
 				require.NoError(t, err)
 				err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)
 				require.NoError(t, err)
@@ -79,11 +81,11 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 }
 
-func setupWM(t *testing.T) (*workerManager, *gomock.Controller, *MockGitopsWorkerFactory) {
+func setupWM(t *testing.T) (*agent.WorkerManager, *gomock.Controller, *agent.MockWorkerFactory) {
 	ctrl := gomock.NewController(t)
-	workerFactory := NewMockGitopsWorkerFactory(ctrl)
-	wm := newWorkerManager(zaptest.NewLogger(t), workerFactory)
-	t.Cleanup(wm.stopAllWorkers)
+	workerFactory := agent.NewMockWorkerFactory(ctrl)
+	wm := agent.NewWorkerManager(zaptest.NewLogger(t), workerFactory)
+	t.Cleanup(wm.StopAllWorkers)
 	return wm, ctrl, workerFactory
 }
 

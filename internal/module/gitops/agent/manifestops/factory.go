@@ -1,4 +1,4 @@
-package agent
+package manifestops
 
 import (
 	"time"
@@ -82,7 +82,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 }
 
 func (f *Factory) Name() string {
-	return gitops.ModuleName
+	return gitops.AgentManifestModuleName
 }
 
 func (f *Factory) UsesInternalServer() bool {

@@ -11,21 +11,29 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-type workerManager struct {
+type WorkerFactory interface {
+	New(int64, *agentcfg.ManifestProjectCF) Worker
+}
+
+type Worker interface {
+	Run(context.Context)
+}
+
+type WorkerManager struct {
 	log           *zap.Logger
-	workerFactory GitopsWorkerFactory
+	workerFactory WorkerFactory
 	workers       map[string]*gitopsWorkerHolder // project id -> worker holder instance
 }
 
-func newWorkerManager(log *zap.Logger, workerFactory GitopsWorkerFactory) *workerManager {
-	return &workerManager{
+func NewWorkerManager(log *zap.Logger, workerFactory WorkerFactory) *WorkerManager {
+	return &WorkerManager{
 		log:           log,
 		workerFactory: workerFactory,
 		workers:       map[string]*gitopsWorkerHolder{},
 	}
 }
 
-func (m *workerManager) startNewWorker(agentId int64, project *agentcfg.ManifestProjectCF) {
+func (m *WorkerManager) startNewWorker(agentId int64, project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
 	worker := m.workerFactory.New(agentId, project)
@@ -38,7 +46,7 @@ func (m *workerManager) startNewWorker(agentId int64, project *agentcfg.Manifest
 	m.workers[project.Id] = workerHolder
 }
 
-func (m *workerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.GitopsCF) error {
+func (m *WorkerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.GitopsCF) error {
 	projects := gitops.ManifestProjects
 	newSetOfProjects := make(map[string]struct{}, len(projects))
 	var projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
@@ -92,7 +100,7 @@ func (m *workerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.Gitop
 	return nil
 }
 
-func (m *workerManager) stopAllWorkers() {
+func (m *WorkerManager) StopAllWorkers() {
 	// Tell all workers to stop
 	for _, workerHolder := range m.workers {
 		workerHolder.stop()

@@ -1,4 +1,4 @@
-package agent
+package manifestops
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -26,7 +27,7 @@ const (
 
 type module struct {
 	log           *zap.Logger
-	workerFactory GitopsWorkerFactory
+	workerFactory agent.WorkerFactory
 }
 
 func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
@@ -34,8 +35,8 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	wm := newWorkerManager(m.log, m.workerFactory)
-	defer wm.stopAllWorkers()
+	wm := agent.NewWorkerManager(m.log, m.workerFactory)
+	defer wm.StopAllWorkers()
 	for config := range cfg {
 		err := wm.ApplyConfiguration(config.AgentId, config.Gitops) // nolint: contextcheck
 		if err != nil {
@@ -47,10 +48,10 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
-	return defaultAndValidateConfiguration(config)
+	return DefaultAndValidateConfiguration(config)
 }
 
-func defaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
+func DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	prototool.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
 		err := applyDefaultsToManifestProject(project)
@@ -91,5 +92,5 @@ func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) error {
 }
 
 func (m *module) Name() string {
-	return gitops.ModuleName
+	return gitops.AgentManifestModuleName
 }
