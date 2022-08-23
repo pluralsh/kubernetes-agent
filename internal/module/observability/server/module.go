@@ -16,6 +16,7 @@ type module struct {
 	log            *zap.Logger
 	api            modshared.Api
 	cfg            *kascfg.ObservabilityCF
+	listener       func() (net.Listener, error)
 	gatherer       prometheus.Gatherer
 	registerer     prometheus.Registerer
 	serverName     string
@@ -24,7 +25,7 @@ type module struct {
 }
 
 func (m *module) Run(ctx context.Context) (retErr error) {
-	lis, err := net.Listen(*m.cfg.Listen.Network, m.cfg.Listen.Address)
+	lis, err := m.listener()
 	if err != nil {
 		return err
 	}

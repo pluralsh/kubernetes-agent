@@ -51,6 +51,7 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 		},
 	}
 	kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)
+	assert.NoError(t, cfgDefaulted.ValidateAll())
 
 	printCorrectYAML := false
 
