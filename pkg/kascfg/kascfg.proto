@@ -45,6 +45,12 @@ message ObservabilityListenCF {
   optional string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
   // Address to listen on.
   string address = 2 [json_name = "address"];
+  // X.509 certificate for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  optional string certificate_file = 3 [json_name = "certificate_file", (validate.rules).string.min_bytes = 1];
+  // X.509 key file for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  optional string key_file = 4 [json_name = "key_file", (validate.rules).string.min_bytes = 1];
 }
 
 message TracingCF {

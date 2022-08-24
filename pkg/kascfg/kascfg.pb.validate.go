@@ -337,6 +337,36 @@ func (m *ObservabilityListenCF) validate(all bool) error {
 
 	}
 
+	if m.CertificateFile != nil {
+
+		if len(m.GetCertificateFile()) < 1 {
+			err := ObservabilityListenCFValidationError{
+				field:  "CertificateFile",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if m.KeyFile != nil {
+
+		if len(m.GetKeyFile()) < 1 {
+			err := ObservabilityListenCFValidationError{
+				field:  "KeyFile",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
 	if len(errors) > 0 {
 		return ObservabilityListenCFMultiError(errors)
 	}
