@@ -17,7 +17,7 @@ go_library(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
-        "@com_gitlab_gitlab_org_labkit//correlation",
+        "@io_opentelemetry_go_otel_trace//:trace",
         "@org_golang_google_protobuf//proto",
     ],
 )

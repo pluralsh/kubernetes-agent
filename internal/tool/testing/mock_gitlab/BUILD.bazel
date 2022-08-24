@@ -13,6 +13,7 @@ go_library(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
-        "@org_uber_go_zap//zaptest",
+        "@io_opentelemetry_go_contrib_instrumentation_net_http_otelhttp//:otelhttp",
+        "@io_opentelemetry_go_otel//propagation",
     ],
 )
