@@ -412,6 +412,456 @@ var _ManifestProjectCF_InventoryPolicy_InLookup = map[string]struct{}{
 	"adopt_all":             {},
 }
 
+// Validate checks the field values on ChartProjectSourceCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ChartProjectSourceCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChartProjectSourceCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ChartProjectSourceCFMultiError, or nil if none found.
+func (m *ChartProjectSourceCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChartProjectSourceCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetId()) < 1 {
+		err := ChartProjectSourceCFValidationError{
+			field:  "Id",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for Path
+
+	if len(errors) > 0 {
+		return ChartProjectSourceCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChartProjectSourceCFMultiError is an error wrapping multiple validation
+// errors returned by ChartProjectSourceCF.ValidateAll() if the designated
+// constraints aren't met.
+type ChartProjectSourceCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChartProjectSourceCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChartProjectSourceCFMultiError) AllErrors() []error { return m }
+
+// ChartProjectSourceCFValidationError is the validation error returned by
+// ChartProjectSourceCF.Validate if the designated constraints aren't met.
+type ChartProjectSourceCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChartProjectSourceCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChartProjectSourceCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChartProjectSourceCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChartProjectSourceCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChartProjectSourceCFValidationError) ErrorName() string {
+	return "ChartProjectSourceCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ChartProjectSourceCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChartProjectSourceCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChartProjectSourceCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChartProjectSourceCFValidationError{}
+
+// Validate checks the field values on ChartSourceCF with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ChartSourceCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChartSourceCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ChartSourceCFMultiError, or
+// nil if none found.
+func (m *ChartSourceCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChartSourceCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	switch m.Source.(type) {
+
+	case *ChartSourceCF_Project:
+
+		if m.GetProject() == nil {
+			err := ChartSourceCFValidationError{
+				field:  "Project",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetProject()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ChartSourceCFValidationError{
+						field:  "Project",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ChartSourceCFValidationError{
+						field:  "Project",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetProject()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ChartSourceCFValidationError{
+					field:  "Project",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	default:
+		err := ChartSourceCFValidationError{
+			field:  "Source",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+
+	}
+
+	if len(errors) > 0 {
+		return ChartSourceCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChartSourceCFMultiError is an error wrapping multiple validation errors
+// returned by ChartSourceCF.ValidateAll() if the designated constraints
+// aren't met.
+type ChartSourceCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChartSourceCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChartSourceCFMultiError) AllErrors() []error { return m }
+
+// ChartSourceCFValidationError is the validation error returned by
+// ChartSourceCF.Validate if the designated constraints aren't met.
+type ChartSourceCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChartSourceCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChartSourceCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChartSourceCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChartSourceCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChartSourceCFValidationError) ErrorName() string { return "ChartSourceCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ChartSourceCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChartSourceCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChartSourceCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChartSourceCFValidationError{}
+
+// Validate checks the field values on ChartCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ChartCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChartCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in ChartCFMultiError, or nil if none found.
+func (m *ChartCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChartCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetReleaseName()) < 1 {
+		err := ChartCFValidationError{
+			field:  "ReleaseName",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetSource() == nil {
+		err := ChartCFValidationError{
+			field:  "Source",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetSource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ChartCFValidationError{
+					field:  "Source",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ChartCFValidationError{
+					field:  "Source",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetSource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ChartCFValidationError{
+				field:  "Source",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if m.Namespace != nil {
+
+		if len(m.GetNamespace()) < 1 {
+			err := ChartCFValidationError{
+				field:  "Namespace",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if m.MaxHistory != nil {
+
+		if m.GetMaxHistory() <= 0 {
+			err := ChartCFValidationError{
+				field:  "MaxHistory",
+				reason: "value must be greater than 0",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ChartCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChartCFMultiError is an error wrapping multiple validation errors returned
+// by ChartCF.ValidateAll() if the designated constraints aren't met.
+type ChartCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChartCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChartCFMultiError) AllErrors() []error { return m }
+
+// ChartCFValidationError is the validation error returned by ChartCF.Validate
+// if the designated constraints aren't met.
+type ChartCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChartCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChartCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChartCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChartCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChartCFValidationError) ErrorName() string { return "ChartCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ChartCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChartCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChartCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChartCFValidationError{}
+
 // Validate checks the field values on GitopsCF with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -460,6 +910,40 @@ func (m *GitopsCF) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return GitopsCFValidationError{
 					field:  fmt.Sprintf("ManifestProjects[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetCharts() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, GitopsCFValidationError{
+						field:  fmt.Sprintf("Charts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, GitopsCFValidationError{
+						field:  fmt.Sprintf("Charts[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GitopsCFValidationError{
+					field:  fmt.Sprintf("Charts[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
