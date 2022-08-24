@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_configuration/rpc"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitlab_access/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/chartops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops"
 	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
@@ -216,6 +217,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			DefaultGrpcLogLevel: defaultGrpcLogLevel,
 		},
 		&manifestops.Factory{},
+		&chartops.Factory{},
 		&starboard_vulnerability.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,
