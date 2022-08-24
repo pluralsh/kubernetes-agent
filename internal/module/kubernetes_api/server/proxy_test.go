@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
@@ -31,8 +32,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/metrics"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -113,12 +115,13 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 					Kind:       "Status",
 					APIVersion: "v1",
 				},
-				Status:  metav1.StatusFailure,
-				Message: tc.message + ". Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
-				Reason:  metav1.StatusReasonUnauthorized,
-				Code:    http.StatusUnauthorized,
+				Status: metav1.StatusFailure,
+				Reason: metav1.StatusReasonUnauthorized,
+				Code:   http.StatusUnauthorized,
 			}
-			assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
+			actualStatus := readStatus(t, resp)
+			assert.True(t, strings.HasPrefix(actualStatus.Message, tc.message+". Trace ID: "))
+			assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 		})
 	}
 }
@@ -172,12 +175,13 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 					Kind:       "Status",
 					APIVersion: "v1",
 				},
-				Status:  metav1.StatusFailure,
-				Message: tc.message + ". Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
-				Reason:  code2reason[int32(tc.expectedHttpStatus)],
-				Code:    int32(tc.expectedHttpStatus),
+				Status: metav1.StatusFailure,
+				Reason: code2reason[int32(tc.expectedHttpStatus)],
+				Code:   int32(tc.expectedHttpStatus),
 			}
-			assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
+			actualStatus := readStatus(t, resp)
+			assert.True(t, strings.HasPrefix(actualStatus.Message, tc.message+". Trace ID: "))
+			assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 		})
 	}
 }
@@ -195,11 +199,13 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 			APIVersion: "v1",
 		},
 		Status:  metav1.StatusFailure,
-		Message: "GitLab Agent Server: Bad request: URL does not start with expected prefix. Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
+		Message: "Correlation ID: ",
 		Reason:  metav1.StatusReasonBadRequest,
 		Code:    http.StatusBadRequest,
 	}
-	assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
+	actualStatus := readStatus(t, resp)
+	assert.True(t, strings.HasPrefix(actualStatus.Message, "GitLab Agent Server: Bad request: URL does not start with expected prefix. Trace ID: "))
+	assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 }
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
@@ -214,12 +220,13 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 			Kind:       "Status",
 			APIVersion: "v1",
 		},
-		Status:  metav1.StatusFailure,
-		Message: "GitLab Agent Server: Forbidden: agentId is not allowed. Correlation ID: " + resp.Header.Get(testhelpers.CorrelationIdHeader),
-		Reason:  metav1.StatusReasonForbidden,
-		Code:    http.StatusForbidden,
+		Status: metav1.StatusFailure,
+		Reason: metav1.StatusReasonForbidden,
+		Code:   http.StatusForbidden,
 	}
-	assert.Empty(t, cmp.Diff(expected, readStatus(t, resp)))
+	actualStatus := readStatus(t, resp)
+	assert.True(t, strings.HasPrefix(actualStatus.Message, "GitLab Agent Server: Forbidden: agentId is not allowed. Trace ID: "))
+	assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 }
 
 func TestProxy_HappyPath(t *testing.T) {
@@ -504,8 +511,6 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
 	delete(resp.Header, "Date")
-	assert.NotEmpty(t, resp.Header.Get("X-Request-Id"))
-	delete(resp.Header, "X-Request-Id")
 	assert.Empty(t, cmp.Diff(map[string][]string{
 		"Resp-Header":  {"a1", "a2"},
 		"Content-Type": {"application/octet-stream"},
@@ -514,7 +519,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 }
 
 func TestFormatStatusMessage(t *testing.T) {
-	const cid = "abc"
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	tests := []struct {
 		name            string
 		ctx             context.Context
@@ -522,26 +527,26 @@ func TestFormatStatusMessage(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			name:            "no err, no correlation",
+			name:            "no err, no trace",
 			ctx:             context.Background(),
 			expectedMessage: "GitLab Agent Server: msg",
 		},
 		{
-			name:            "no err, correlation",
-			ctx:             correlation.ContextWithCorrelation(context.Background(), cid),
-			expectedMessage: "GitLab Agent Server: msg. Correlation ID: abc",
+			name:            "no err, trace",
+			ctx:             ctx,
+			expectedMessage: "GitLab Agent Server: msg. Trace ID: " + traceId.String(),
 		},
 		{
-			name:            "err, no correlation",
+			name:            "err, no trace",
 			ctx:             context.Background(),
 			err:             errors.New("boom"),
 			expectedMessage: "GitLab Agent Server: msg: boom",
 		},
 		{
-			name:            "err, correlation",
-			ctx:             correlation.ContextWithCorrelation(context.Background(), cid),
+			name:            "err, trace",
+			ctx:             ctx,
 			err:             errors.New("boom"),
-			expectedMessage: "GitLab Agent Server: msg: boom. Correlation ID: abc",
+			expectedMessage: "GitLab Agent Server: msg: boom. Trace ID: " + traceId.String(),
 		},
 	}
 	for _, test := range tests {
@@ -623,13 +628,12 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		allowedAgentsCache:   cache.NewWithError(0, 0, func(err error) bool { return false }),
 		requestCounter:       requestCount,
 		ciTunnelUsersCounter: ciTunnelUsageSet,
-		metricsHttpHandlerFactory: func(next http.Handler, opts ...metrics.HandlerOption) http.Handler {
-			return next
-		},
-		responseSerializer: serializer.NewCodecFactory(runtime.NewScheme()),
-		serverName:         "sv1",
-		serverVia:          "gRPC/1.0 sv1",
-		urlPathPrefix:      urlPathPrefix,
+		responseSerializer:   serializer.NewCodecFactory(runtime.NewScheme()),
+		traceProvider:        trace.NewTracerProvider(trace.WithSpanProcessor(tracetest.NewSpanRecorder())),
+		tracePropagator:      propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+		serverName:           "sv1",
+		serverVia:            "gRPC/1.0 sv1",
+		urlPathPrefix:        urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group

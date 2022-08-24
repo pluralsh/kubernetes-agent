@@ -22,8 +22,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/metrics"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,17 +67,19 @@ var (
 )
 
 type kubernetesApiProxy struct {
-	log                       *zap.Logger
-	api                       modserver.Api
-	kubernetesApiClient       rpc.KubernetesApiClient
-	gitLabClient              gitlab.ClientInterface
-	allowedAgentsCache        *cache.CacheWithErr
-	requestCounter            usage_metrics.Counter
-	ciTunnelUsersCounter      usage_metrics.UniqueCounter
-	metricsHttpHandlerFactory metrics.HandlerFactory
-	responseSerializer        runtime.NegotiatedSerializer
-	serverName                string
-	serverVia                 string
+	log                  *zap.Logger
+	api                  modserver.Api
+	kubernetesApiClient  rpc.KubernetesApiClient
+	gitLabClient         gitlab.ClientInterface
+	allowedAgentsCache   *cache.CacheWithErr
+	requestCounter       usage_metrics.Counter
+	ciTunnelUsersCounter usage_metrics.UniqueCounter
+	responseSerializer   runtime.NegotiatedSerializer
+	traceProvider        trace.TracerProvider
+	tracePropagator      propagation.TextMapPropagator
+	meterProvider        metric.MeterProvider
+	serverName           string
+	serverVia            string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix string
 }
@@ -83,8 +87,12 @@ type kubernetesApiProxy struct {
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
 	var handler http.Handler
 	handler = http.HandlerFunc(p.proxy)
-	handler = correlation.InjectCorrelationID(handler, correlation.WithSetResponseHeader())
-	handler = p.metricsHttpHandlerFactory(handler)
+	handler = otelhttp.NewHandler(handler, "k8s-proxy",
+		otelhttp.WithTracerProvider(p.traceProvider),
+		otelhttp.WithPropagators(p.tracePropagator),
+		otelhttp.WithMeterProvider(p.meterProvider),
+		otelhttp.WithPublicEndpoint(),
+	)
 	srv := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
@@ -102,8 +110,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Request) (*zap.Logger, int64 /* agentId */, *grpctool.ErrResp) {
 	ctx := r.Context()
-	correlationId := correlation.ExtractFromContext(ctx)
-	log := p.log.With(logz.CorrelationId(correlationId))
+	log := p.log.With(logz.TraceIdFromContext(ctx))
 	w.Header()[httpz.ServerHeader] = []string{p.serverName} // It will be removed just before responding with actual headers from upstream
 
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
@@ -278,12 +285,13 @@ func formatStatusMessage(ctx context.Context, msg string, err error) string {
 	b.WriteString("GitLab Agent Server: ")
 	b.WriteString(msg)
 	if err != nil {
-		_, _ = fmt.Fprintf(&b, ": %v", err)
+		b.WriteString(": ")
+		b.WriteString(err.Error())
 	}
-	correlationId := correlation.ExtractFromContext(ctx) // can be empty
-	if correlationId != "" {
-		b.WriteString(". Correlation ID: ")
-		b.WriteString(correlationId)
+	traceId := trace.SpanContextFromContext(ctx).TraceID()
+	if traceId.IsValid() {
+		b.WriteString(". Trace ID: ")
+		b.WriteString(traceId.String())
 	}
 	return b.String()
 }

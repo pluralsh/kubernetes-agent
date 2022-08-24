@@ -4,14 +4,10 @@ package logz
 
 import (
 	"context"
-	"errors"
 	"net"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
-	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/mask"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // These constants are for type-safe zap field helpers that are not here to:
@@ -63,23 +59,15 @@ func ProjectId(projectId string) zap.Field {
 	return zap.String("project_id", projectId)
 }
 
-func CorrelationIdFromContext(ctx context.Context) zap.Field {
-	return CorrelationId(correlation.ExtractFromContext(ctx))
+func TraceIdFromContext(ctx context.Context) zap.Field {
+	return TraceId(trace.SpanContextFromContext(ctx).TraceID())
 }
 
-func CorrelationId(correlationId string) zap.Field {
-	if correlationId == "" {
+func TraceId(traceId trace.TraceID) zap.Field {
+	if !traceId.IsValid() {
 		return zap.Skip()
 	}
-	return zap.String(correlation.FieldName, correlationId)
-}
-
-func SentryDSN(sentryDSN string) zap.Field {
-	return zap.String("sentry_dsn", mask.URL(sentryDSN))
-}
-
-func SentryEnv(sentryEnv string) zap.Field {
-	return zap.String("sentry_env", sentryEnv)
+	return zap.String("trace_id", traceId.String())
 }
 
 // Use for any keys in Redis.
@@ -143,24 +131,5 @@ func Kind(kind string) zap.Field {
 }
 
 func Error(err error) zap.Field {
-	var errCorrelation errz.CorrelationError
-	if errors.As(err, &errCorrelation) {
-		return zap.Inline(correlationMarshaler{
-			err:           err, // store the original error, not the unwrapped errCorrelation
-			correlationId: errCorrelation.CorrelationId,
-		})
-	} else {
-		return zap.Error(err) // nolint: forbidigo
-	}
-}
-
-type correlationMarshaler struct {
-	err           error
-	correlationId string
-}
-
-func (m correlationMarshaler) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
-	zap.Error(m.err).AddTo(encoder)
-	CorrelationId(m.correlationId).AddTo(encoder)
-	return nil
+	return zap.Error(err) // nolint:forbidigo
 }

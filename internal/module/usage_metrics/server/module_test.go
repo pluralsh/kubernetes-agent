@@ -166,7 +166,6 @@ func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload inter
 	assert.Empty(t, r.Header[httpz.AcceptHeader])
 	testhelpers.AssertRequestContentTypeJson(t, r)
 	testhelpers.AssertRequestUserAgent(t, r, testhelpers.KasUserAgent)
-	assert.Equal(t, testhelpers.KasCorrelationClientName, r.Header.Get(testhelpers.CorrelationClientNameHeader))
 	testhelpers.AssertJWTSignature(t, r)
 	expectedBin, err := json.Marshal(expectedPayload)
 	if !assert.NoError(t, err) {

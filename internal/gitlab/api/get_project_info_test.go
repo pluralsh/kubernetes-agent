@@ -15,7 +15,7 @@ func TestGetProjectInfo(t *testing.T) {
 	const (
 		projectId = "bla/bla"
 	)
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	response := ProjectInfoResponse{
 		ProjectId: 234,
 		GitalyInfo: gitlab.GitalyInfo{
@@ -35,7 +35,7 @@ func TestGetProjectInfo(t *testing.T) {
 	}
 	gitLabClient := mock_gitlab.SetupClient(t, ProjectInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertRequestMethod(t, r, http.MethodGet)
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		assert.Equal(t, projectId, r.URL.Query().Get(ProjectIdQueryParam))
 
 		testhelpers.RespondWithJSON(t, w, response)

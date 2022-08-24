@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/opentracing/opentracing-go"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const (
@@ -63,12 +63,10 @@ type transportConfig struct {
 
 // clientConfig holds configuration for the client.
 type clientConfig struct {
-	log             *zap.Logger
 	retryConfig     RetryConfig
 	transportConfig transportConfig
-	tracer          opentracing.Tracer
+	tracePropagator propagation.TextMapPropagator
 	limiter         httpz.Limiter
-	clientName      string
 	userAgent       string
 }
 
@@ -80,7 +78,6 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 		Timeout: 10 * time.Second,
 	}
 	config := clientConfig{
-		log: zap.NewNop(),
 		retryConfig: RetryConfig{
 			RetryWaitMin: defaultRetryWaitMin,
 			RetryWaitMax: defaultRetryWaitMax,
@@ -101,9 +98,8 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 			ExpectContinueTimeout: 1 * time.Second,
 			ForceAttemptHTTP2:     true,
 		},
-		tracer:     opentracing.GlobalTracer(),
-		clientName: "",
-		userAgent:  "",
+		tracePropagator: otel.GetTextMapPropagator(),
+		userAgent:       "",
 	}
 	for _, v := range opts {
 		v(&config)
@@ -119,17 +115,10 @@ func WithRetryConfig(retryConfig RetryConfig) ClientOption {
 	}
 }
 
-// WithTracer sets a custom tracer to be used, otherwise the opentracing.GlobalTracer is used.
-func WithTracer(tracer opentracing.Tracer) ClientOption {
+// WithTextMapPropagator sets a custom tracer to be used, otherwise the OTEL's global TextMapPropagator is used.
+func WithTextMapPropagator(p propagation.TextMapPropagator) ClientOption {
 	return func(config *clientConfig) {
-		config.tracer = tracer
-	}
-}
-
-// WithCorrelationClientName configures the X-GitLab-Client-Name header on the http client.
-func WithCorrelationClientName(clientName string) ClientOption {
-	return func(config *clientConfig) {
-		config.clientName = clientName
+		config.tracePropagator = p
 	}
 }
 
@@ -137,13 +126,6 @@ func WithCorrelationClientName(clientName string) ClientOption {
 func WithUserAgent(userAgent string) ClientOption {
 	return func(config *clientConfig) {
 		config.userAgent = userAgent
-	}
-}
-
-// WithLogger sets the log to use.
-func WithLogger(log *zap.Logger) ClientOption {
-	return func(config *clientConfig) {
-		config.log = log
 	}
 }
 

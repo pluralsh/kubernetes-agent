@@ -1,10 +1,3 @@
-# The same list of go build tags must be in four places:
-# - Makefile
-# - Workspace
-# - .bazelrc
-# - .golangci.yml
-GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
-
 SHELL = /usr/bin/env bash -eo pipefail
 
 GIT_COMMIT = $(shell git rev-parse --short HEAD)
@@ -172,7 +165,6 @@ gdk-install:
 .PHONY: kas
 kas:
 	go build \
-		-tags "${GO_BUILD_TAGS}" \
 		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit=$(GIT_COMMIT) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime=$(BUILD_TIME)" \
 		-o "$(TARGET_DIRECTORY)" ./cmd/kas
 
@@ -180,7 +172,6 @@ kas:
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
 	go list \
-		-tags "${GO_BUILD_TAGS}" \
 		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
 
 .PHONY: delete-generated-files

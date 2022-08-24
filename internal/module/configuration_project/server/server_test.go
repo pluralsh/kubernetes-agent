@@ -19,7 +19,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -156,6 +155,5 @@ func constructGitLabClient(t *testing.T, gitLabAddress, gitLabSecretFile string)
 	return gitlab.NewClient(
 		gitLabUrl,
 		secret,
-		gitlab.WithLogger(zaptest.NewLogger(t)),
 	)
 }

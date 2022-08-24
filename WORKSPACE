@@ -81,22 +81,29 @@ http_archive(
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
-# It's here to add build tags
+# See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
 go_repository(
-    name = "com_gitlab_gitlab_org_labkit",
-    build_file_proto_mode = "disable_global",
-    # The same list of go build tags must be in four places:
-    # - Makefile
-    # - Workspace
-    # - .bazelrc
-    # - .golangci.yml
-    build_tags = [
-        "tracer_static",
-        "tracer_static_jaeger",
+    name = "io_opentelemetry_go_otel",
+    build_directives = [
+        "gazelle:go_visibility @io_opentelemetry_go_otel_metric//:__subpackages__",
     ],  # keep
-    importpath = "gitlab.com/gitlab-org/labkit",
-    sum = "h1:Vm3NAMZ8RqAunXlvPWby3GJ2R35vsYGP6Uu0YjyMIlY=",
-    version = "v1.16.0",
+    build_file_proto_mode = "disable",
+    importpath = "go.opentelemetry.io/otel",
+    sum = "h1:8WZNQFIB2a71LnANS9JeyidJKKGOOremcUtb/OtHISw=",
+    version = "v1.9.0",
+)
+
+# See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
+go_repository(
+    name = "io_opentelemetry_go_otel_exporters_otlp_otlptrace",
+    build_directives = [
+        "gazelle:resolve go go.opentelemetry.io/otel/exporters/otlp/internal @io_opentelemetry_go_otel//exporters/otlp/internal",
+        "gazelle:resolve go go.opentelemetry.io/otel/exporters/otlp/internal/envconfig @io_opentelemetry_go_otel//exporters/otlp/internal/envconfig",
+    ],
+    build_file_proto_mode = "disable",
+    importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
+    sum = "h1:NN90Cuna0CnBg8YNu1Q0V35i2E8LDByFOwHRCq/ZP9I=",
+    version = "v1.9.0",
 )
 
 go_repository(

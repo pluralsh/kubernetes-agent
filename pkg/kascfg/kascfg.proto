@@ -54,11 +54,13 @@ message ObservabilityListenCF {
 }
 
 message TracingCF {
-  // Connection string to configure LabKit's tracing support. Examples:
-  // * opentracing://jaeger
-  // * opentracing://datadog
-  // * opentracing://lightstep?access_key=12345
-  string connection_string = 1 [json_name = "connection_string"];
+  reserved 1;
+  reserved "connection_string";
+
+  // URL to send traces to.
+  // Supported protocols are: http, https. Traces are protobuf encoded.
+  // Example: http://localhost:4317
+  optional string otlp_endpoint = 2 [json_name = "otlp_endpoint", (validate.rules).string.min_bytes = 1];
 }
 
 enum log_level_enum {

@@ -13,7 +13,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
-	"go.uber.org/zap/zaptest"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func AssertGitalyRepository(t *testing.T, gitalyRepository gitlab.GitalyRepository, apiGitalyRepository *gitalypb.Repository) {
@@ -30,17 +31,19 @@ func AssertGitalyInfo(t *testing.T, gitalyInfo gitlab.GitalyInfo, apiGitalyInfo 
 }
 
 func SetupClient(t *testing.T, pattern string, handler func(http.ResponseWriter, *http.Request)) *gitlab.Client {
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+
 	r := http.NewServeMux()
 	r.HandleFunc(pattern, handler)
-	s := httptest.NewServer(r)
+	h := otelhttp.NewHandler(r, "gitlab-request", otelhttp.WithPropagators(propagator))
+	s := httptest.NewServer(h)
 	t.Cleanup(s.Close)
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
 	return gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey),
 		gitlab.WithUserAgent(testhelpers.KasUserAgent),
-		gitlab.WithCorrelationClientName(testhelpers.KasCorrelationClientName),
-		gitlab.WithLogger(zaptest.NewLogger(t)),
+		gitlab.WithTextMapPropagator(propagator),
 		gitlab.WithRetryConfig(gitlab.RetryConfig{
 			CheckRetry: retryablehttp.DefaultRetryPolicy,
 		}), // disable retries

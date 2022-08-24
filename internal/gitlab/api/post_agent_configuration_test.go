@@ -27,12 +27,12 @@ func TestPostAgentConfiguration(t *testing.T) {
 		},
 		// don't need to test all fields, some is good enough
 	}
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	c := mock_gitlab.SetupClient(t, AgentConfigurationApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertJWTSignature(t, r)
 		testhelpers.AssertRequestMethod(t, r, http.MethodPost)
 		testhelpers.AssertRequestContentTypeJson(t, r)
-		testhelpers.AssertCommonRequestParams(t, r, correlationId)
+		testhelpers.AssertCommonRequestParams(t, r, traceId)
 		data, err := io.ReadAll(r.Body)
 		if !assert.NoError(t, err) {
 			return
