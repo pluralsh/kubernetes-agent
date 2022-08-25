@@ -32,11 +32,9 @@ import (
 )
 
 const (
-	defaultMaxRequestDuration = 15 * time.Second
-	shutdownTimeout           = defaultMaxRequestDuration
-	readTimeout               = 10 * time.Second
-	writeTimeout              = defaultMaxRequestDuration
-	idleTimeout               = 1 * time.Minute
+	shutdownTimeout   = 15 * time.Second
+	readHeaderTimeout = 10 * time.Second
+	idleTimeout       = 1 * time.Minute
 
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
@@ -87,11 +85,10 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 	handler = http.HandlerFunc(p.proxy)
 	handler = correlation.InjectCorrelationID(handler, correlation.WithSetResponseHeader())
 	handler = p.metricsHttpHandlerFactory(handler)
-	srv := &http.Server{ // nolint: gosec
-		Handler:      handler,
-		WriteTimeout: writeTimeout,
-		ReadTimeout:  readTimeout,
-		IdleTimeout:  idleTimeout,
+	srv := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
+		IdleTimeout:       idleTimeout,
 	}
 	return httpz.RunServer(ctx, srv, listener, shutdownTimeout)
 }
