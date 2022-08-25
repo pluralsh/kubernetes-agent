@@ -55,9 +55,9 @@ http_archive(
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "507e38c8d95c7efa4f3b1c0595a8e8f139c885cb41a76cab7e20e4e67ae87731",
-    strip_prefix = "rules_proto_grpc-4.1.1",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.1.1.tar.gz"],
+    sha256 = "bbe4db93499f5c9414926e46f9e35016999a4e9f6e3522482d3760dc61011070",
+    strip_prefix = "rules_proto_grpc-4.2.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.2.0.tar.gz"],
 )
 
 http_archive(
@@ -223,7 +223,7 @@ load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_depen
 load("@com_github_ash2k_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
 load("@com_github_ash2k_bazel_tools//multirun:deps.bzl", "multirun_dependencies")
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
-load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
@@ -231,13 +231,15 @@ load(
 )
 load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
+rules_proto_grpc_toolchains()
+
+rules_proto_grpc_repos()
+
+rules_proto_grpc_go_repos()
+
 rules_proto_dependencies()
 
 rules_proto_toolchains()
-
-rules_proto_grpc_toolchains()
-
-rules_proto_grpc_go_repos()
 
 container_repositories()
 

@@ -21,7 +21,6 @@ go_library(
         "//internal/module/agent_configuration/server:__subpackages__",
         "//internal/module/agent_tracker:__pkg__",
         "//internal/module/agent_tracker/server:__subpackages__",
-        "//internal/module/cilium_alert/agent:__subpackages__",
         "//internal/module/configuration_project/rpc:__subpackages__",
         "//internal/module/configuration_project/server:__subpackages__",
         "//internal/module/gitlab_access/server:__subpackages__",
