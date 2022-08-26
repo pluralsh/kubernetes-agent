@@ -12,6 +12,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -22,9 +23,17 @@ import (
 type KeyToRedisKey func(key interface{}) string
 type ScanCallback func(value *anypb.Any, err error) (bool /* done */, error)
 
+// IOFunc is a function that should be called to perform the I/O of the requested operation.
+// It is safe to call concurrently as it does not interfere with the hash's operation.
+type IOFunc func(ctx context.Context) error
+
+// ExpiringHashInterface represents a two-level hash: key any -> hashKey int64 -> value *anypb.Any.
+// key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
+// It is not safe for concurrent use directly, but it allows to perform I/O with backing store concurrently by
+// returning functions for doing that.
 type ExpiringHashInterface interface {
-	Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error
-	Unset(ctx context.Context, key interface{}, hashKey int64) error
+	Set(key interface{}, hashKey int64, value *anypb.Any) IOFunc
+	Unset(key interface{}, hashKey int64) IOFunc
 	// Forget only removes the item from the in-memory map.
 	Forget(key interface{}, hashKey int64)
 	Scan(ctx context.Context, key interface{}, cb ScanCallback) (int /* keysDeleted */, error)
@@ -35,7 +44,7 @@ type ExpiringHashInterface interface {
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
 	GC() func(context.Context) (int /* keysDeleted */, error)
-	Refresh(ctx context.Context, nextRefresh time.Time) error
+	Refresh(nextRefresh time.Time) IOFunc
 }
 
 type ExpiringHash struct {
@@ -56,17 +65,22 @@ func NewExpiringHash(log *zap.Logger, client redis.UniversalClient, keyToRedisKe
 	}
 }
 
-func (h *ExpiringHash) Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error {
-	ev := &ExpiringValue{Value: value}
+func (h *ExpiringHash) Set(key interface{}, hashKey int64, value *anypb.Any) IOFunc {
+	ev := &ExpiringValue{
+		ExpiresAt: timestamppb.New(time.Now().Add(h.ttl)),
+		Value:     value,
+	}
 	h.setData(key, hashKey, ev)
-	return h.refreshKey(ctx, key, map[int64]*ExpiringValue{
-		hashKey: ev,
-	}, time.Time{})
+	return func(ctx context.Context) error {
+		return h.refreshKey(ctx, key, []interface{}{hashKey, ev})
+	}
 }
 
-func (h *ExpiringHash) Unset(ctx context.Context, key interface{}, hashKey int64) error {
+func (h *ExpiringHash) Unset(key interface{}, hashKey int64) IOFunc {
 	h.unsetData(key, hashKey)
-	return h.client.HDel(ctx, h.keyToRedisKey(key), strconv.FormatInt(hashKey, 10)).Err()
+	return func(ctx context.Context) error {
+		return h.client.HDel(ctx, h.keyToRedisKey(key), strconv.FormatInt(hashKey, 10)).Err()
+	}
 }
 
 func (h *ExpiringHash) Forget(key interface{}, hashKey int64) {
@@ -158,42 +172,62 @@ func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error)
 	})
 }
 
-func (h *ExpiringHash) Refresh(ctx context.Context, nextRefresh time.Time) error {
+func (h *ExpiringHash) Refresh(nextRefresh time.Time) IOFunc {
+	argsMap := make(map[interface{}][]interface{}, len(h.data))
 	for key, hashData := range h.data {
-		err := h.refreshKey(ctx, key, hashData, nextRefresh)
-		if err != nil {
-			return err
+		args := h.prepareRefreshKey(hashData, nextRefresh)
+		if len(args) == 0 {
+			// Nothing to do for this key.
+			continue
 		}
+		argsMap[key] = args
 	}
-	return nil
+	return func(ctx context.Context) error {
+		var wg errgroup.Group
+		for key, args := range argsMap {
+			key := key
+			args := args
+			wg.Go(func() error {
+				return h.refreshKey(ctx, key, args)
+			})
+		}
+		return wg.Wait()
+	}
 }
 
-func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData map[int64]*ExpiringValue, nextRefresh time.Time) error {
+func (h *ExpiringHash) prepareRefreshKey(hashData map[int64]*ExpiringValue, nextRefresh time.Time) []interface{} {
 	args := make([]interface{}, 0, len(hashData)*2)
 	expiresAt := timestamppb.New(time.Now().Add(h.ttl))
 	for hashKey, value := range hashData {
-		if value.ExpiresAt == nil {
-			value.ExpiresAt = expiresAt
-		} else if value.ExpiresAt.AsTime().Before(nextRefresh) {
-			value.ExpiresAt = expiresAt
-		} else {
+		if value.ExpiresAt.AsTime().After(nextRefresh) {
 			// Expires after next refresh. Will be refreshed later, no need to refresh now.
 			continue
 		}
-		redisValue, err := proto.Marshal(value)
+		value.ExpiresAt = expiresAt
+		// Copy to decouple from the mutable instance in hashData. That way it's safe for concurrent access.
+		valueCopy := &ExpiringValue{ExpiresAt: value.ExpiresAt, Value: value.Value}
+		args = append(args, hashKey, valueCopy)
+	}
+	return args
+}
+
+func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, args []interface{}) error {
+	hsetArgs := make([]interface{}, 0, len(args))
+	for i := 0; i < len(args); i += 2 {
+		redisValue, err := proto.Marshal(args[i+1].(*ExpiringValue))
 		if err != nil {
 			// This should never happen
 			h.log.Error("Failed to marshal ExpiringValue", logz.Error(err))
-			continue
+			continue // skip this value
 		}
-		args = append(args, hashKey, redisValue)
+		hsetArgs = append(hsetArgs, args[i], redisValue)
 	}
-	if len(args) == 0 {
-		return nil // Nothing to refresh
+	if len(hsetArgs) == 0 {
+		return nil // nothing to do, all skipped.
 	}
 	redisKey := h.keyToRedisKey(key)
 	_, err := h.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
-		p.HSet(ctx, redisKey, args) // nolint: asasalint
+		p.HSet(ctx, redisKey, hsetArgs) // nolint: asasalint
 		p.PExpire(ctx, redisKey, h.ttl)
 		return nil
 	})

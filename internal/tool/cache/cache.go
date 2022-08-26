@@ -1,14 +1,15 @@
 package cache
 
 import (
-	"context"
 	"sync"
 	"time"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 )
 
 type Entry struct {
 	// protects state in this object.
-	betterMutex
+	syncz.Mutex
 	// Expires holds the time when this entry should be removed from the cache.
 	Expires time.Time
 	// Item is the cached item.
@@ -71,50 +72,8 @@ func (c *Cache) GetOrCreateCacheEntry(key interface{}) *Entry {
 		return entry
 	}
 	entry = &Entry{
-		betterMutex: newBetterMutex(),
+		Mutex: syncz.NewMutex(),
 	}
 	c.data[key] = entry
 	return entry
-}
-
-// betterMutex is a non-reentrant (like sync.Mutex) mutex that (unlike sync.Mutex) allows to:
-// - try to acquire the mutex in a non-blocking way i.e. returning immediately if it cannot be done.
-// - try to acquire the mutex with a possibility to abort the attempt early if a context signals done.
-//
-// A buffered channel of size 1 is used as the mutex. Think of it as of a box - the party that has put something
-// into it has acquired the mutex. To unlock it, remove the contents from the box, so that someone else can use it.
-// An empty box is created in the newBetterMutex() constructor.
-//
-// TryLock, Lock, and Unlock provide memory access ordering guarantees by piggybacking on channel's "happens before"
-// guarantees. See https://golang.org/ref/mem
-type betterMutex struct {
-	c chan struct{}
-}
-
-func newBetterMutex() betterMutex {
-	return betterMutex{
-		c: make(chan struct{}, 1), // create an empty box
-	}
-}
-
-func (m betterMutex) TryLock() bool {
-	select {
-	case m.c <- struct{}{}: // try to put something into the box
-		return true
-	default: // cannot put immediately, abort
-		return false
-	}
-}
-
-func (m betterMutex) Lock(ctx context.Context) bool {
-	select {
-	case <-ctx.Done(): // abort if context signals done
-		return false
-	case m.c <- struct{}{}: // try to put something into the box
-		return true
-	}
-}
-
-func (m betterMutex) Unlock() {
-	<-m.c // take something from the box
 }

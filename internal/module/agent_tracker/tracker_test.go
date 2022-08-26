@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -32,17 +33,20 @@ func TestRegisterConnection_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
 
 	byProjectId.EXPECT().
-		Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any())
+		Set(info.ProjectId, info.ConnectionId, gomock.Any()).
+		Return(nopIOFunc)
 	byAgentId.EXPECT().
-		Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any())
+		Set(info.AgentId, info.ConnectionId, gomock.Any()).
+		Return(nopIOFunc)
 	connectedAgents.EXPECT().
-		Set(gomock.Any(), nil, info.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) {
+		Set(nil, info.AgentId, gomock.Any()).
+		Return(func(ctx context.Context) error {
 			cancel()
+			return nil
 		})
 
 	go func() {
-		assert.True(t, r.RegisterConnection(context.Background(), info))
+		assert.NoError(t, r.RegisterConnection(context.Background(), info))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -53,21 +57,27 @@ func TestRegisterConnection_AllCalledOnError(t *testing.T) {
 	defer cancel()
 	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
 
+	err1 := errors.New("err1")
+	err2 := errors.New("err2")
+	err3 := errors.New("err3")
+
 	byProjectId.EXPECT().
-		Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()).
-		Return(errors.New("err1"))
+		Set(info.ProjectId, info.ConnectionId, gomock.Any()).
+		Return(func(ctx context.Context) error { return err1 })
 	byAgentId.EXPECT().
-		Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()).
-		Return(errors.New("err2"))
+		Set(info.AgentId, info.ConnectionId, gomock.Any()).
+		Return(func(ctx context.Context) error { return err2 })
 	connectedAgents.EXPECT().
-		Set(gomock.Any(), nil, info.AgentId, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error {
+		Set(nil, info.AgentId, gomock.Any()).
+		Return(func(ctx context.Context) error {
 			cancel()
-			return errors.New("err3")
+			return err3
 		})
 
 	go func() {
-		assert.True(t, r.RegisterConnection(context.Background(), info))
+		err := r.RegisterConnection(context.Background(), info)
+
+		assert.True(t, errors.Is(err, err1) || errors.Is(err, err2) || errors.Is(err, err3), err)
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -80,28 +90,33 @@ func TestUnregisterConnection_HappyPath(t *testing.T) {
 
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()),
+			Set(info.ProjectId, info.ConnectionId, gomock.Any()).
+			Return(nopIOFunc),
 		byProjectId.EXPECT().
-			Unset(gomock.Any(), info.ProjectId, info.ConnectionId),
+			Unset(info.ProjectId, info.ConnectionId).
+			Return(nopIOFunc),
 	)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()),
+			Set(info.AgentId, info.ConnectionId, gomock.Any()).
+			Return(nopIOFunc),
 		byAgentId.EXPECT().
-			Unset(gomock.Any(), info.AgentId, info.ConnectionId).
-			Do(func(ctx context.Context, key interface{}, hashKey int64) {
+			Unset(info.AgentId, info.ConnectionId).
+			Return(func(ctx context.Context) error {
 				cancel()
+				return nil
 			}),
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(gomock.Any(), nil, info.AgentId, gomock.Any()),
+			Set(nil, info.AgentId, gomock.Any()).
+			Return(nopIOFunc),
 		connectedAgents.EXPECT().
 			Forget(nil, info.AgentId),
 	)
 	go func() {
-		assert.True(t, r.RegisterConnection(context.Background(), info))
-		assert.True(t, r.UnregisterConnection(context.Background(), info))
+		assert.NoError(t, r.RegisterConnection(context.Background(), info))
+		assert.NoError(t, r.UnregisterConnection(context.Background(), info))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -112,33 +127,42 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 	defer cancel()
 	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
 
+	err1 := errors.New("err1")
+	err2 := errors.New("err2")
+
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()),
+			Set(info.ProjectId, info.ConnectionId, gomock.Any()).
+			Return(nopIOFunc),
 		byProjectId.EXPECT().
-			Unset(gomock.Any(), info.ProjectId, info.ConnectionId).
-			Return(errors.New("err1")),
+			Unset(info.ProjectId, info.ConnectionId).
+			Return(func(ctx context.Context) error {
+				return err1
+			}),
 	)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()),
+			Set(info.AgentId, info.ConnectionId, gomock.Any()).
+			Return(nopIOFunc),
 		byAgentId.EXPECT().
-			Unset(gomock.Any(), info.AgentId, info.ConnectionId).
-			DoAndReturn(func(ctx context.Context, key interface{}, hashKey int64) error {
+			Unset(info.AgentId, info.ConnectionId).
+			Return(func(ctx context.Context) error {
 				cancel()
-				return errors.New("err1")
+				return err2
 			}),
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(gomock.Any(), nil, info.AgentId, gomock.Any()),
+			Set(nil, info.AgentId, gomock.Any()).
+			Return(nopIOFunc),
 		connectedAgents.EXPECT().
 			Forget(nil, info.AgentId),
 	)
 
 	go func() {
-		assert.True(t, r.RegisterConnection(context.Background(), info))
-		assert.True(t, r.UnregisterConnection(context.Background(), info))
+		assert.NoError(t, r.RegisterConnection(context.Background(), info))
+		err := r.UnregisterConnection(context.Background(), info)
+		assert.True(t, errors.Is(err, err1) || errors.Is(err, err2), err)
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -172,10 +196,7 @@ func TestGC_HappyPath(t *testing.T) {
 			return 1, nil
 		})
 
-	r.maybeRunGCAsync(context.Background())
-	assert.Eventually(t, func() bool {
-		return !r.gc.IsRunning()
-	}, time.Second, 10*time.Millisecond)
+	assert.EqualValues(t, 6, r.runGC(context.Background()))
 	assert.True(t, wasCalled1)
 	assert.True(t, wasCalled2)
 	assert.True(t, wasCalled3)
@@ -209,10 +230,7 @@ func TestGC_AllCalledOnError(t *testing.T) {
 			return 1, errors.New("err1")
 		})
 
-	r.maybeRunGCAsync(context.Background())
-	assert.Eventually(t, func() bool {
-		return !r.gc.IsRunning()
-	}, time.Second, 10*time.Millisecond)
+	assert.EqualValues(t, 6, r.runGC(context.Background()))
 	assert.True(t, wasCalled1)
 	assert.True(t, wasCalled2)
 	assert.True(t, wasCalled3)
@@ -221,28 +239,63 @@ func TestGC_AllCalledOnError(t *testing.T) {
 func TestRefresh_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
+	wasCalled1 := false
+	wasCalled2 := false
+	wasCalled3 := false
+
 	connectedAgents.EXPECT().
-		Refresh(gomock.Any(), gomock.Any())
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled1 = true
+			return nil
+		})
 	byAgentId.EXPECT().
-		Refresh(gomock.Any(), gomock.Any())
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled2 = true
+			return nil
+		})
 	byProjectId.EXPECT().
-		Refresh(gomock.Any(), gomock.Any())
-	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled3 = true
+			return nil
+		})
+	r.refreshRegistrations(context.Background(), time.Now())
+	assert.True(t, wasCalled1)
+	assert.True(t, wasCalled2)
+	assert.True(t, wasCalled3)
 }
 
 func TestRefresh_AllCalledOnError(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
 
+	wasCalled1 := false
+	wasCalled2 := false
+	wasCalled3 := false
+
 	connectedAgents.EXPECT().
-		Refresh(gomock.Any(), gomock.Any()).
-		Return(errors.New("err3"))
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled1 = true
+			return errors.New("err3")
+		})
 	byAgentId.EXPECT().
-		Refresh(gomock.Any(), gomock.Any()).
-		Return(errors.New("err1"))
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled2 = true
+			return errors.New("err1")
+		})
 	byProjectId.EXPECT().
-		Refresh(gomock.Any(), gomock.Any()).
-		Return(errors.New("err2"))
-	assert.Error(t, r.refreshRegistrations(context.Background(), time.Now()))
+		Refresh(gomock.Any()).
+		Return(func(ctx context.Context) error {
+			wasCalled3 = true
+			return errors.New("err2")
+		})
+	r.refreshRegistrations(context.Background(), time.Now())
+	assert.True(t, wasCalled1)
+	assert.True(t, wasCalled2)
+	assert.True(t, wasCalled3)
 }
 
 func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
@@ -387,6 +440,10 @@ func TestGetConnectedAgentsCount_LenError(t *testing.T) {
 	assert.Zero(t, size)
 }
 
+func nopIOFunc(ctx context.Context) error {
+	return nil
+}
+
 func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface, *mock_redis.MockExpiringHashInterface, *mock_redis.MockExpiringHashInterface, *ConnectedAgentInfo) {
 	ctrl := gomock.NewController(t)
 	connectedAgents := mock_redis.NewMockExpiringHashInterface(ctrl)
@@ -396,11 +453,11 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		log:                    zaptest.NewLogger(t),
 		refreshPeriod:          time.Minute,
 		gcPeriod:               time.Minute,
+		refreshMu:              syncz.NewRWMutex(),
+		mu:                     syncz.NewMutex(),
 		connectionsByAgentId:   byAgentId,
 		connectionsByProjectId: byProjectId,
 		connectedAgents:        connectedAgents,
-		toRegister:             make(chan *ConnectedAgentInfo),
-		toUnregister:           make(chan *ConnectedAgentInfo),
 	}
 	return tr, connectedAgents, byAgentId, byProjectId, connInfo()
 }

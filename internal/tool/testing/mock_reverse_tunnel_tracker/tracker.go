@@ -36,10 +36,10 @@ func (m *MockRegisterer) EXPECT() *MockRegistererMockRecorder {
 }
 
 // RegisterTunnel mocks base method.
-func (m *MockRegisterer) RegisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) bool {
+func (m *MockRegisterer) RegisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterTunnel", arg0, arg1)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
@@ -50,10 +50,10 @@ func (mr *MockRegistererMockRecorder) RegisterTunnel(arg0, arg1 interface{}) *go
 }
 
 // UnregisterTunnel mocks base method.
-func (m *MockRegisterer) UnregisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) bool {
+func (m *MockRegisterer) UnregisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnregisterTunnel", arg0, arg1)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 

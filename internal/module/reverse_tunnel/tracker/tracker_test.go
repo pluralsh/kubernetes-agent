@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -33,13 +34,14 @@ func TestRegisterConnection(t *testing.T) {
 	r, hash, ti := setupTracker(t)
 
 	hash.EXPECT().
-		Set(gomock.Any(), ti.AgentId, ti.ConnectionId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) {
+		Set(ti.AgentId, ti.ConnectionId, gomock.Any()).
+		Return(func(ctx context.Context) error {
 			cancel()
+			return nil
 		})
 
 	go func() {
-		assert.True(t, r.RegisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -52,17 +54,19 @@ func TestUnregisterConnection(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(gomock.Any(), ti.AgentId, ti.ConnectionId, gomock.Any()),
+			Set(ti.AgentId, ti.ConnectionId, gomock.Any()).
+			Return(nopIOFunc),
 		hash.EXPECT().
-			Unset(gomock.Any(), ti.AgentId, ti.ConnectionId).
-			Do(func(ctx context.Context, key interface{}, hashKey int64) {
+			Unset(ti.AgentId, ti.ConnectionId).
+			Return(func(ctx context.Context) error {
 				cancel()
+				return nil
 			}),
 	)
 
 	go func() {
-		assert.True(t, r.RegisterTunnel(context.Background(), ti))
-		assert.True(t, r.UnregisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), ti))
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -80,10 +84,9 @@ func TestGC(t *testing.T) {
 			return 3, nil
 		})
 
-	r.maybeRunGCAsync(context.Background())
-	assert.Eventually(t, func() bool {
-		return !r.tunnelsByAgentIdGc.IsRunning()
-	}, time.Second, 10*time.Millisecond)
+	deleted, err := r.runGC(context.Background())
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, deleted)
 	assert.True(t, wasCalled)
 }
 
@@ -91,7 +94,8 @@ func TestRefreshRegistrations(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
-		Refresh(gomock.Any(), gomock.Any())
+		Refresh(gomock.Any()).
+		Return(nopIOFunc)
 	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 
@@ -179,9 +183,8 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		log:              zaptest.NewLogger(t),
 		refreshPeriod:    time.Minute,
 		gcPeriod:         time.Minute,
+		mu:               syncz.NewMutex(),
 		tunnelsByAgentId: hash,
-		toRegister:       make(chan *TunnelInfo),
-		toUnregister:     make(chan *TunnelInfo),
 	}, hash, ti
 }
 
@@ -222,4 +225,8 @@ func TestSupportsServiceAndMethod(t *testing.T) {
 	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "Explode"))
 	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "BlastPlanet"))
 	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "Debug"))
+}
+
+func nopIOFunc(ctx context.Context) error {
+	return nil
 }

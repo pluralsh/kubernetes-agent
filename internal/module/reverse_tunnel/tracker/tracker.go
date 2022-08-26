@@ -2,12 +2,13 @@ package tracker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -21,12 +22,10 @@ type Querier interface {
 }
 
 type Registerer interface {
-	// RegisterTunnel schedules the tunnel to be registered with the tracker.
-	// Returns true on success and false if ctx signaled done.
-	RegisterTunnel(ctx context.Context, info *TunnelInfo) bool
-	// UnregisterTunnel schedules the tunnel to be unregistered with the tracker.
-	// Returns true on success and false if ctx signaled done.
-	UnregisterTunnel(ctx context.Context, info *TunnelInfo) bool
+	// RegisterTunnel registers tunnel with the tracker.
+	RegisterTunnel(ctx context.Context, info *TunnelInfo) error
+	// UnregisterTunnel unregisters tunnel with the tracker.
+	UnregisterTunnel(ctx context.Context, info *TunnelInfo) error
 }
 
 type Tracker interface {
@@ -36,13 +35,13 @@ type Tracker interface {
 }
 
 type RedisTracker struct {
-	log                *zap.Logger
-	refreshPeriod      time.Duration
-	gcPeriod           time.Duration
-	tunnelsByAgentId   redistool.ExpiringHashInterface // agentId -> connectionId -> TunnelInfo
-	toRegister         chan *TunnelInfo
-	toUnregister       chan *TunnelInfo
-	tunnelsByAgentIdGc retry.SingleRun
+	log           *zap.Logger
+	refreshPeriod time.Duration
+	gcPeriod      time.Duration
+
+	// mu protects fields below
+	mu               syncz.Mutex
+	tunnelsByAgentId redistool.ExpiringHashInterface // agentId -> connectionId -> TunnelInfo
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -50,9 +49,8 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		log:              log,
 		refreshPeriod:    refreshPeriod,
 		gcPeriod:         gcPeriod,
+		mu:               syncz.NewMutex(),
 		tunnelsByAgentId: redistool.NewExpiringHash(log, client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
-		toRegister:       make(chan *TunnelInfo),
-		toUnregister:     make(chan *TunnelInfo),
 	}
 }
 
@@ -72,37 +70,43 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
 		case <-gcTicker.C:
-			t.maybeRunGCAsync(ctx)
-		case toReg := <-t.toRegister:
-			err := t.registerConnection(ctx, toReg)
+			deletedKeys, err := t.runGC(ctx)
 			if err != nil {
-				t.log.Error("Failed to register tunnel", logz.Error(err))
+				t.log.Error("Failed to GC data in Redis", logz.Error(err))
+				// fallthrough
 			}
-		case toUnreg := <-t.toUnregister:
-			err := t.unregisterConnection(ctx, toUnreg)
-			if err != nil {
-				t.log.Error("Failed to unregister tunnel", logz.Error(err))
+			if deletedKeys > 0 {
+				t.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(deletedKeys))
 			}
 		}
 	}
 }
 
-func (t *RedisTracker) RegisterTunnel(ctx context.Context, info *TunnelInfo) bool {
-	select {
-	case <-ctx.Done():
-		return false
-	case t.toRegister <- info:
-		return true
+func (t *RedisTracker) RegisterTunnel(ctx context.Context, info *TunnelInfo) error {
+	infoAny, err := anypb.New(info)
+	if err != nil {
+		// This should never happen
+		return fmt.Errorf("failed to marshal tunnel info: %w", err)
 	}
+	var register redistool.IOFunc
+	ok := t.mu.RunLocked(ctx, func() {
+		register = t.tunnelsByAgentId.Set(info.AgentId, info.ConnectionId, infoAny)
+	})
+	if !ok {
+		return ctx.Err()
+	}
+	return register(ctx)
 }
 
-func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) bool {
-	select {
-	case <-ctx.Done():
-		return false
-	case t.toUnregister <- info:
-		return true
+func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) error {
+	var unregister redistool.IOFunc
+	ok := t.mu.RunLocked(ctx, func() {
+		unregister = t.tunnelsByAgentId.Unset(info.AgentId, info.ConnectionId)
+	})
+	if !ok {
+		return ctx.Err()
 	}
+	return unregister(ctx)
 }
 
 func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error {
@@ -122,35 +126,26 @@ func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, c
 	return err
 }
 
-func (t *RedisTracker) registerConnection(ctx context.Context, info *TunnelInfo) error {
-	infoAny, err := anypb.New(info)
-	if err != nil {
-		// This should never happen
-		return err
-	}
-	return t.tunnelsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoAny)
-}
-
-func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *TunnelInfo) error {
-	return t.tunnelsByAgentId.Unset(ctx, unreg.AgentId, unreg.ConnectionId)
-}
-
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
+	var refresh redistool.IOFunc
+	ok := t.mu.RunLocked(ctx, func() {
+		refresh = t.tunnelsByAgentId.Refresh(nextRefresh)
+	})
+	if !ok {
+		return nil
+	}
+	return refresh(ctx)
 }
 
-func (t *RedisTracker) maybeRunGCAsync(ctx context.Context) {
-	gc := t.tunnelsByAgentId.GC()
-	t.tunnelsByAgentIdGc.Run(func() {
-		deletedKeys, err := gc(ctx)
-		if err != nil {
-			t.log.Error("Failed to GC data in Redis", logz.Error(err))
-			// fallthrough
-		}
-		if deletedKeys > 0 {
-			t.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(deletedKeys))
-		}
+func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error) {
+	var gc func(context.Context) (int /* keysDeleted */, error)
+	ok := t.mu.RunLocked(ctx, func() {
+		gc = t.tunnelsByAgentId.GC()
 	})
+	if !ok {
+		return 0, nil
+	}
+	return gc(ctx)
 }
 
 type TunnelInfoCollector []*TunnelInfo

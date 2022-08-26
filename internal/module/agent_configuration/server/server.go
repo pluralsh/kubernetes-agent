@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -43,10 +44,10 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		ConnectedAt:  timestamppb.Now(),
 		ConnectionId: mathz.Int63(),
 	}
-	defer s.maybeUnregisterAgent(connectedAgentInfo)
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
+	defer s.maybeUnregisterAgent(log, connectedAgentInfo)
 	lastProcessedCommitId := req.CommitId
 	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
@@ -59,9 +60,9 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 			}
 			return err, retry.Done
 		}
-		s.maybeRegisterAgent(ctx, connectedAgentInfo, agentInfo)
 		// re-define log to avoid accidentally using the old one
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
+		s.maybeRegisterAgent(ctx, log, connectedAgentInfo, agentInfo)
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
 			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
@@ -165,20 +166,26 @@ func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	return configFile, nil
 }
 
-func (s *server) maybeRegisterAgent(ctx context.Context, connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo) {
+func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo) {
 	if connectedAgentInfo.AgentId != 0 {
 		return
 	}
 	connectedAgentInfo.AgentId = agentInfo.Id
 	connectedAgentInfo.ProjectId = agentInfo.ProjectId
-	s.agentRegisterer.RegisterConnection(ctx, connectedAgentInfo)
+	err := s.agentRegisterer.RegisterConnection(ctx, connectedAgentInfo)
+	if err != nil {
+		log.Error("Failed to register agent", logz.Error(err))
+	}
 }
 
-func (s *server) maybeUnregisterAgent(connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
+func (s *server) maybeUnregisterAgent(log *zap.Logger, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
 	if connectedAgentInfo.AgentId == 0 {
 		return
 	}
-	s.agentRegisterer.UnregisterConnection(context.Background(), connectedAgentInfo)
+	err := s.agentRegisterer.UnregisterConnection(context.Background(), connectedAgentInfo)
+	if err != nil {
+		log.Error("Failed to unregister agent", logz.Error(err))
+	}
 }
 
 func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, error) {
