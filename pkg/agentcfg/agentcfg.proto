@@ -163,6 +163,7 @@ message ConfigurationFile {
   reserved 3;
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
   StarboardCF starboard = 5 [json_name = "starboard"];
+  StarboardCF container_scanning = 6 [json_name = "container_scanning"];
 }
 
 // AgentConfiguration represents configuration for agentk.
