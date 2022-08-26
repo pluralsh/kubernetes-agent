@@ -106,5 +106,16 @@ func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, *zap.Logger, e
 	if err != nil {
 		return nil, nil, err
 	}
-	return logz.LoggerWithLevel(level, lockedSyncer), logz.LoggerWithLevel(grpcLevel, lockedSyncer), nil
+	return loggerWithLevel(level, lockedSyncer), loggerWithLevel(grpcLevel, lockedSyncer), nil
+}
+
+func loggerWithLevel(level zapcore.LevelEnabler, sync zapcore.WriteSyncer) *zap.Logger {
+	return zap.New(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(logz.NewProductionEncoderConfig()),
+			sync,
+			level,
+		),
+		zap.ErrorOutput(sync),
+	)
 }

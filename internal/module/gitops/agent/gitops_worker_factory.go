@@ -73,7 +73,7 @@ type defaultGitopsWorkerFactory struct {
 }
 
 func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
-	l := f.log.With(logz.ProjectId(project.Id), logz.AgentId(agentId))
+	l := f.log.With(logz.ProjectId(project.Id))
 	return &defaultGitopsWorker{
 		log:               l,
 		agentId:           agentId,
