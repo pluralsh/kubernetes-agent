@@ -2,21 +2,14 @@ package grpctool_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
-	"gitlab.com/gitlab-org/labkit/correlation"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -125,86 +118,4 @@ func TestHandleIoError(t *testing.T) {
 			assert.Equal(t, tc.expected.Error(), actual.Error())
 		})
 	}
-}
-
-const metadataCorrelatorKey = "X-GitLab-Correlation-ID"
-
-func TestMaybeWrapWithCorrelationId(t *testing.T) {
-	t.Run("header error", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(nil, errors.New("header error"))
-		err := errors.New("boom")
-		wrappedErr := grpctool.MaybeWrapWithCorrelationId(err, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
-	t.Run("id present", func(t *testing.T) {
-		id := correlation.SafeRandomID()
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.Pairs(metadataCorrelatorKey, id), nil)
-		err := errors.New("boom")
-		wrappedErr := grpctool.MaybeWrapWithCorrelationId(err, stream)
-		var errCorrelation errz.CorrelationError
-		require.True(t, errors.As(wrappedErr, &errCorrelation))
-		assert.Equal(t, id, errCorrelation.CorrelationId)
-		assert.Equal(t, err, errCorrelation.Err)
-	})
-	t.Run("empty id", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.Pairs(metadataCorrelatorKey, ""), nil)
-		err := errors.New("boom")
-		wrappedErr := grpctool.MaybeWrapWithCorrelationId(err, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
-	t.Run("id missing", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.MD{}, nil)
-		err := errors.New("boom")
-		wrappedErr := grpctool.MaybeWrapWithCorrelationId(err, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
-}
-
-func TestDeferMaybeWrapWithCorrelationId(t *testing.T) {
-	t.Run("no error", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		var wrappedErr error
-		grpctool.DeferMaybeWrapWithCorrelationId(&wrappedErr, stream)
-		assert.NoError(t, wrappedErr)
-	})
-	t.Run("header error", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(nil, errors.New("header error"))
-		err := errors.New("boom")
-		wrappedErr := err
-		grpctool.DeferMaybeWrapWithCorrelationId(&wrappedErr, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
-	t.Run("id present", func(t *testing.T) {
-		id := correlation.SafeRandomID()
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.Pairs(metadataCorrelatorKey, id), nil)
-		err := errors.New("boom")
-		wrappedErr := err
-		grpctool.DeferMaybeWrapWithCorrelationId(&wrappedErr, stream)
-		var errCorrelation errz.CorrelationError
-		require.True(t, errors.As(wrappedErr, &errCorrelation))
-		assert.Equal(t, id, errCorrelation.CorrelationId)
-		assert.Equal(t, err, errCorrelation.Err)
-	})
-	t.Run("empty id", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.Pairs(metadataCorrelatorKey, ""), nil)
-		err := errors.New("boom")
-		wrappedErr := err
-		grpctool.DeferMaybeWrapWithCorrelationId(&wrappedErr, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
-	t.Run("id missing", func(t *testing.T) {
-		stream := mock_rpc.NewMockClientStream(gomock.NewController(t))
-		stream.EXPECT().Header().Return(metadata.MD{}, nil)
-		err := errors.New("boom")
-		wrappedErr := err
-		grpctool.DeferMaybeWrapWithCorrelationId(&wrappedErr, stream)
-		assert.Equal(t, err, wrappedErr)
-	})
 }

@@ -25,15 +25,14 @@ go_library(
         "//internal/tool/errz",
         "//internal/tool/httpz",
         "//internal/tool/tlstool",
-        "//internal/tool/tracing",
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_hashicorp_go_retryablehttp//:go-retryablehttp",
-        "@com_github_opentracing_opentracing_go//:opentracing-go",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
-        "@com_gitlab_gitlab_org_labkit//correlation",
+        "@io_opentelemetry_go_contrib_instrumentation_net_http_otelhttp//:otelhttp",
+        "@io_opentelemetry_go_otel//:otel",
+        "@io_opentelemetry_go_otel//propagation",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
-        "@org_uber_go_zap//:zap",
     ],
 )
 

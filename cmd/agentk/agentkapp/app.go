@@ -34,8 +34,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/correlation"
-	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
@@ -87,8 +88,12 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
+	// TODO Tracing
+	tp := trace.NewNoopTracerProvider()
+	p := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+
 	// Construct gRPC connection to gitlab-kas
-	kasConn, err := a.constructKasConnection(ctx)
+	kasConn, err := a.constructKasConnection(ctx, tp, p)
 	if err != nil {
 		return err
 	}
@@ -98,7 +103,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	internalListener := grpctool.NewDialListener()
 
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(ctx)
+	internalServer := a.constructInternalServer(ctx, tp, p)
 
 	// Construct connection to internal gRPC server
 	internalServerConn, err := a.constructInternalServerConn(ctx, internalListener.DialContext)
@@ -248,7 +253,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	return modules, internalModules, nil
 }
 
-func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, error) {
+func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator) (*grpc.ClientConn, error) {
 	tokenData, err := os.ReadFile(a.TokenFile)
 	if err != nil {
 		return nil, fmt.Errorf("token file: %w", err)
@@ -277,12 +282,12 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 		}),
 		grpc.WithChainStreamInterceptor(
 			grpc_prometheus.StreamClientInterceptor,
-			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
+			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			grpc_prometheus.UnaryClientInterceptor,
-			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
+			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}
@@ -336,11 +341,11 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	return conn, nil
 }
 
-func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
+func (a *App) constructInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator) *grpc.Server {
 	factory := func(ctx context.Context, method string) modagent.RpcApi {
 		return &agentRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
-				Logger:    a.Log.With(logz.CorrelationId(correlation.ExtractFromContext(ctx))),
+				Logger:    a.Log.With(logz.TraceIdFromContext(ctx)),
 				StreamCtx: ctx,
 			},
 		}
@@ -348,16 +353,16 @@ func (a *App) constructInternalServer(auxCtx context.Context) *grpc.Server {
 	return grpc.NewServer(
 		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
 		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
-			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
-			modagent.StreamRpcApiInterceptor(factory),            // 3. inject RPC API
-			grpc_validator.StreamServerInterceptor(),             // x. wrap with validator
+			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
+			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
+			modagent.StreamRpcApiInterceptor(factory),                                                      // 3. inject RPC API
+			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
 		),
 		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
-			grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
-			modagent.UnaryRpcApiInterceptor(factory),            // 3. inject RPC API
-			grpc_validator.UnaryServerInterceptor(),             // x. wrap with validator
+			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
+			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
+			modagent.UnaryRpcApiInterceptor(factory),                                                      // 3. inject RPC API
+			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
 		),
 	)
 }

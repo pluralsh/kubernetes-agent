@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -16,15 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab_access"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -41,9 +37,6 @@ const (
 	responsePayload = "jknkjnjkasdnfkjasdnfkasdnfjnkjn"
 	queryParamValue = "query-param-value with a space"
 	queryParamName  = "q with a space"
-
-	metadataCorrelatorKey = "X-GitLab-Correlation-ID"
-	correlationId         = "corrid"
 )
 
 func TestMakeGitLabRequest_HappyPath(t *testing.T) {
@@ -159,14 +152,6 @@ func TestMakeGitLabRequest_SendError(t *testing.T) {
 			return clientStream, nil
 		})
 	clientStream.EXPECT().
-		Header().
-		DoAndReturn(func() (metadata.MD, error) {
-			<-clientCtx.Done()                                             // This emulates a bad scenario when this method blocks, until context is canceled.
-			time.Sleep(time.Duration(mathz.Int63n(50)) * time.Millisecond) // Try to simulate a race between send and recv goroutines (they both call this fuc)
-			return metadata.Pairs(metadataCorrelatorKey, correlationId), nil
-		}).
-		MinTimes(1)
-	clientStream.EXPECT().
 		Send(gomock.Any()).
 		Return(errors.New("expected error"))
 	clientStream.EXPECT().
@@ -180,10 +165,7 @@ func TestMakeGitLabRequest_SendError(t *testing.T) {
 	assert.EqualError(t, err, "send request header: expected error")
 	assert.True(t, body.CloseCalled())
 	assert.False(t, body.ReadCalled())
-	var errCorrelation errz.CorrelationError
-	require.True(t, errors.As(err, &errCorrelation))
-	assert.Equal(t, correlationId, errCorrelation.CorrelationId)
-	assert.EqualError(t, errCorrelation.Err, "send request header: expected error")
+	assert.EqualError(t, err, "send request header: expected error")
 }
 
 func TestMakeGitLabRequest_RecvError(t *testing.T) {
@@ -196,14 +178,6 @@ func TestMakeGitLabRequest_RecvError(t *testing.T) {
 			clientCtx = ctx
 			return clientStream, nil
 		})
-	clientStream.EXPECT().
-		Header().
-		DoAndReturn(func() (metadata.MD, error) {
-			<-clientCtx.Done()                                             // This emulates a bad scenario when this method blocks, until context is canceled.
-			time.Sleep(time.Duration(mathz.Int63n(50)) * time.Millisecond) // Try to simulate a race between send and recv goroutines (they both call this fuc)
-			return metadata.Pairs(metadataCorrelatorKey, correlationId), nil
-		}).
-		MinTimes(1)
 	clientStream.EXPECT().
 		Send(gomock.Any()).
 		DoAndReturn(func(m interface{}) error {
@@ -218,10 +192,7 @@ func TestMakeGitLabRequest_RecvError(t *testing.T) {
 	assert.EqualError(t, err, "expected error")
 	assert.True(t, body.CloseCalled())
 	assert.False(t, body.ReadCalled())
-	var errCorrelation errz.CorrelationError
-	require.True(t, errors.As(err, &errCorrelation))
-	assert.Equal(t, correlationId, errCorrelation.CorrelationId)
-	assert.EqualError(t, errCorrelation.Err, "expected error")
+	assert.EqualError(t, err, "expected error")
 }
 
 func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
@@ -234,14 +205,6 @@ func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
 			clientCtx = ctx
 			return clientStream, nil
 		})
-	clientStream.EXPECT().
-		Header().
-		DoAndReturn(func() (metadata.MD, error) {
-			<-clientCtx.Done()                                             // This emulates a bad scenario when this method blocks, until context is canceled.
-			time.Sleep(time.Duration(mathz.Int63n(50)) * time.Millisecond) // Try to simulate a race between send and recv goroutines (they both call this fuc)
-			return metadata.Pairs(metadataCorrelatorKey, correlationId), nil
-		}).
-		MinTimes(1)
 	clientStream.EXPECT().
 		Send(gomock.Any()).
 		DoAndReturn(func(m interface{}) error {
@@ -276,10 +239,7 @@ func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
 	assert.EqualError(t, err, "expected error")
 	<-body.closeCalled // wait for async close
 	assert.False(t, body.ReadCalled())
-	var errCorrelation errz.CorrelationError
-	require.True(t, errors.As(err, &errCorrelation))
-	assert.Equal(t, correlationId, errCorrelation.CorrelationId)
-	assert.EqualError(t, errCorrelation.Err, "expected error")
+	assert.EqualError(t, err, "expected error")
 }
 
 func setupApiWithStream(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccess_MakeRequestClient) {

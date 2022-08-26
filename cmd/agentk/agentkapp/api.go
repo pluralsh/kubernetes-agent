@@ -46,9 +46,8 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	}
 	pr, pw := io.Pipe()
 	val := newValueOrError(func(err error) error {
-		cancel()                                               // 1. Cancel the other goroutine and the client.
-		err = grpctool.MaybeWrapWithCorrelationId(err, client) // 2. Get correlation id from header (can block if called before cancel)
-		_ = pw.CloseWithError(err)                             // 3. Close the "write side" of the pipe
+		cancel()                   // 1. Cancel the other goroutine and the client.
+		_ = pw.CloseWithError(err) // 2. Close the "write side" of the pipe
 		return err
 	})
 
@@ -196,7 +195,7 @@ func handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, 
 		// Log at Info for now.
 		log.Info(msg, logz.Error(err))
 	} else {
-		// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
+		// don't add logz.TraceIdFromContext(ctx) here as it's been added to the logger already
 		log.Error(msg, logz.Error(err))
 	}
 }

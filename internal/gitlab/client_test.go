@@ -22,13 +22,13 @@ var (
 )
 
 func TestRequestOptions(t *testing.T) {
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	c := mock_gitlab.SetupClient(t, "/ok", func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertRequestMethod(t, r, "CUSTOM_METHOD")
 		testhelpers.AssertRequestAccept(t, r, "Bla")
 		testhelpers.AssertAgentToken(t, r, testhelpers.AgentkToken)
 		assert.Empty(t, r.Header[httpz.ContentTypeHeader])
-		testhelpers.AssertCommonRequestParams(t, r, correlationId)
+		testhelpers.AssertCommonRequestParams(t, r, traceId)
 		testhelpers.AssertJWTSignature(t, r)
 		assert.Equal(t, "1", r.URL.Query().Get("a"))
 		assert.Equal(t, "val1", r.URL.Query().Get("key"))

@@ -12,7 +12,7 @@ import (
 )
 
 func TestGetAgentInfo(t *testing.T) {
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	response := getAgentInfoResponse{
 		ProjectId: 234,
 		AgentId:   555,
@@ -33,7 +33,7 @@ func TestGetAgentInfo(t *testing.T) {
 		DefaultBranch: "main",
 	}
 	c := mock_gitlab.SetupClient(t, AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		testhelpers.RespondWithJSON(t, w, response)
 	})
 	agentInfo, err := GetAgentInfo(ctx, c, testhelpers.AgentkToken)

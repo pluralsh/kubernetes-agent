@@ -72,7 +72,6 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("Connect(): %w", err) // wrap
 	}
-	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, tunnel)
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Descriptor_{
 			Descriptor_: &rpc.Descriptor{

@@ -13,7 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"gitlab.com/gitlab-org/labkit/correlation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -59,9 +59,9 @@ func logAndCapture(ctx context.Context, hub SentryHub, log *zap.Logger, agentId 
 			Stacktrace: sentry.ExtractStacktrace(err),
 		},
 	}
-	correlationID := correlation.ExtractFromContext(ctx)
-	if correlationID != "" {
-		event.Tags[modserver.CorrelationIdSentryField] = correlationID
+	traceId := trace.SpanContextFromContext(ctx).TraceID()
+	if traceId.IsValid() {
+		event.Tags[modserver.TraceIdSentryField] = traceId.String()
 	}
 	hub.CaptureEvent(event)
 }

@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
@@ -66,12 +67,12 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(strconv.Itoa(tc.httpStatus), func(t *testing.T) {
-			ctx, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, tc.httpStatus)
+			ctx, log, hub, rpcApi, traceId := setupAgentRpcApi(t, tc.httpStatus)
 			if tc.captureErr != "" {
 				hub.EXPECT().
 					CaptureEvent(gomock.Any()).
 					Do(func(event *sentry.Event) {
-						assert.Equal(t, correlationId, event.Tags[modserver.CorrelationIdSentryField])
+						assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
 						assert.Empty(t, event.User.ID)
 						assert.Equal(t, sentry.LevelError, event.Level)
 						assert.Equal(t, "*gitlab.ClientError", event.Exception[0].Type)
@@ -92,12 +93,12 @@ func TestRpcHandleProcessingError_UserError(t *testing.T) {
 }
 
 func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
-	_, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, http.StatusInternalServerError)
+	_, log, hub, rpcApi, traceId := setupAgentRpcApi(t, http.StatusInternalServerError)
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.Equal(t, correlationId, event.Tags[modserver.CorrelationIdSentryField])
+			assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
@@ -107,12 +108,12 @@ func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 }
 
 func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
-	_, log, hub, rpcApi, correlationId := setupAgentRpcApi(t, http.StatusInternalServerError)
+	_, log, hub, rpcApi, traceId := setupAgentRpcApi(t, http.StatusInternalServerError)
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.Equal(t, correlationId, event.Tags[modserver.CorrelationIdSentryField])
+			assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
@@ -121,13 +122,13 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	rpcApi.HandleProcessingError(log, modshared.NoAgentId, "Bla", err)
 }
 
-func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, string) {
+func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, trace.TraceID) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	hub := NewMockSentryHub(ctrl)
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		w.WriteHeader(statusCode)
 	})
 	rpcApi := &serverAgentRpcApi{
@@ -142,5 +143,5 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 		GitLabClient:   gitLabClient,
 		AgentInfoCache: cache.NewWithError(0, 0, func(err error) bool { return false }), // no cache!
 	}
-	return ctx, log, hub, rpcApi, correlationId
+	return ctx, log, hub, rpcApi, traceId
 }

@@ -29,7 +29,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
-	"gitlab.com/gitlab-org/labkit/correlation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -522,13 +522,13 @@ func projectInfo() *api.ProjectInfo {
 }
 
 func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServer, *server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAgentRpcApi) {
-	correlationId := correlation.SafeRandomID()
+	var traceId trace.TraceID
 	ctx, s, ctrl, mockRpcApi, gitalyPool := setupServerWithAgentInfo(t, func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
-	ctx = correlation.ContextWithCorrelation(ctx, correlationId)
+	ctx, traceId = testhelpers.InjectSpanContext(t, ctx)
 
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().

@@ -8,7 +8,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"gitlab.com/gitlab-org/labkit/correlation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -35,21 +35,21 @@ type serverRpcApiFactory struct {
 
 func (f *serverRpcApiFactory) New(ctx context.Context, fullMethodName string) modserver.RpcApi {
 	service, method := grpctool.SplitGrpcMethod(fullMethodName)
-	correlationId := correlation.ExtractFromContext(ctx)
+	traceID := trace.SpanContextFromContext(ctx).TraceID()
 	return &serverRpcApi{
 		RpcApiStub: modshared.RpcApiStub{
 			Logger: f.log.With(
-				logz.CorrelationId(correlationId),
+				logz.TraceId(traceID),
 				logz.GrpcService(service),
 				logz.GrpcMethod(method),
 			),
 			StreamCtx: ctx,
 		},
-		Hub: f.hub(service, method, correlationId),
+		Hub: f.hub(service, method, traceID),
 	}
 }
 
-func (f *serverRpcApiFactory) hub(service, method, correlationId string) SentryHub {
+func (f *serverRpcApiFactory) hub(service, method string, traceID trace.TraceID) SentryHub {
 	hub := f.sentryHub.Clone()
 	scope := hub.Scope()
 	scope.SetTag(modserver.GrpcServiceSentryField, service)
@@ -57,8 +57,8 @@ func (f *serverRpcApiFactory) hub(service, method, correlationId string) SentryH
 	transaction := service + "::" + method                               // Like in Gitaly
 	scope.SetTransaction(transaction)                                    // Like in Gitaly
 	scope.SetFingerprint([]string{"{{ default }}", "grpc", transaction}) // use Sentry's default error hash but also split by gRPC transaction
-	if correlationId != "" {
-		scope.SetTag(modserver.CorrelationIdSentryField, correlationId)
+	if traceID.IsValid() {
+		scope.SetTag(modserver.TraceIdSentryField, traceID.String())
 	}
 	return hub
 }

@@ -66,7 +66,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		)
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {
-				o.Log.Error("GetObjectsToSynchronize.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
+				o.Log.Error("GetObjectsToSynchronize.Recv failed", logz.Error(err))
 			}
 			return nil, retry.Backoff
 		}

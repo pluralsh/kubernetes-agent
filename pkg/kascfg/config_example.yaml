@@ -49,8 +49,7 @@ observability:
     address: 127.0.0.1:8151
   prometheus:
     url_path: /metrics
-  tracing:
-    connection_string: ""
+  tracing: {}
   sentry:
     dsn: ""
     environment: ""

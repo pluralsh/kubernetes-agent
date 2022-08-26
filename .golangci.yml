@@ -18,15 +18,7 @@ run:
   # include test files or not, default is true
   tests: true
 
-  # list of build tags, all linters use it. Default is empty list.
-  # The same list of go build tags must be in four places:
-  # - Makefile
-  # - Workspace
-  # - .bazelrc
-  # - .golangci.yml
-  build-tags:
-    - tracer_static
-    - tracer_static_jaeger
+#  build-tags:
 
   # which dirs to skip: issues from them won't be reported;
   # can use regexp here: generated.*, regexp is applied on full path;

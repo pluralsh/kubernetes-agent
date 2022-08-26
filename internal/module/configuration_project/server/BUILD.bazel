@@ -48,6 +48,5 @@ go_custom_test(
         "@org_golang_google_grpc//credentials/insecure",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//testing/protocmp",
-        "@org_uber_go_zap//zaptest",
     ],
 )

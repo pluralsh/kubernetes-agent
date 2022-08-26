@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
-	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -106,21 +104,6 @@ func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
 		result[k] = val
 	}
 	return result
-}
-
-func MaybeWrapWithCorrelationId(err error, client grpc.ClientStream) error {
-	md, headerErr := client.Header()
-	if headerErr != nil {
-		return err
-	}
-	return errz.MaybeWrapWithCorrelationId(err, grpccorrelation.CorrelationIDFromMetadata(md))
-}
-
-func DeferMaybeWrapWithCorrelationId(err *error, client grpc.ClientStream) {
-	if *err == nil {
-		return
-	}
-	*err = MaybeWrapWithCorrelationId(*err, client)
 }
 
 func SplitGrpcMethod(fullMethodName string) (string /* service */, string /* method */) {

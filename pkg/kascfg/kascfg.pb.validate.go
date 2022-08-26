@@ -476,7 +476,20 @@ func (m *TracingCF) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for ConnectionString
+	if m.OtlpEndpoint != nil {
+
+		if len(m.GetOtlpEndpoint()) < 1 {
+			err := TracingCFValidationError{
+				field:  "OtlpEndpoint",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
 
 	if len(errors) > 0 {
 		return TracingCFMultiError(errors)

@@ -10,6 +10,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -24,11 +27,10 @@ const (
 	// that is forwarding the request to an agentk.
 	RoutingAgentIdMetadataKey = RoutingHopPrefix + "routing-agent-id"
 
-	// CorrelationIdSentryField is the name of the Sentry field for correlation ID.
-	// LabKit uses 'gitlab.CorrelationID', but GitLab and Gitaly use 'correlation_id'.
-	CorrelationIdSentryField = "correlation_id"
-	GrpcServiceSentryField   = "grpc.service"
-	GrpcMethodSentryField    = "grpc.method"
+	// TraceIdSentryField is the name of the Sentry field for trace ID.
+	TraceIdSentryField     = "trace_id"
+	GrpcServiceSentryField = "grpc.service"
+	GrpcMethodSentryField  = "grpc.method"
 )
 
 // ApplyDefaults is a signature of a public function, exposed by modules to perform defaulting.
@@ -59,8 +61,11 @@ type Config struct {
 	RegisterAgentApi func(*grpc.ServiceDesc)
 	// AgentConn is a gRPC connection that can be used to send requests to an agentk instance.
 	// Agent Id must be specified in the request metadata in RoutingAgentIdMetadataKey field.
-	AgentConn grpc.ClientConnInterface
-	Gitaly    gitaly.PoolInterface
+	AgentConn       grpc.ClientConnInterface
+	Gitaly          gitaly.PoolInterface
+	TraceProvider   trace.TracerProvider
+	TracePropagator propagation.TextMapPropagator
+	MeterProvider   metric.MeterProvider
 	// KasName is a string "gitlab-kas". Can be used as a user agent, server name, service name, etc.
 	KasName string
 	// Version is gitlab-kas version.

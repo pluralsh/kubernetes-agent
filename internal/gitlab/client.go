@@ -11,8 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tracing"
-	"gitlab.com/gitlab-org/labkit/correlation"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -58,13 +57,9 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 		}
 	}
 	httpClient := &http.Client{
-		Transport: tracing.NewRoundTripper(
-			correlation.NewInstrumentedRoundTripper(
-				transport,
-				correlation.WithClientName(o.clientName),
-			),
-			tracing.WithRoundTripperTracer(o.tracer),
-			tracing.WithLogger(o.log),
+		Transport: otelhttp.NewTransport(
+			transport,
+			otelhttp.WithPropagators(o.tracePropagator),
 		),
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse

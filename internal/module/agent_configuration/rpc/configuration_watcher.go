@@ -56,7 +56,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 					return nil, retry.ContinueImmediately // immediately reconnect after a clean close
 				case grpctool.RequestCanceledOrTimedOut(err):
 				default:
-					w.Log.Warn("GetConfiguration.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
+					w.Log.Warn("GetConfiguration.Recv failed", logz.Error(err))
 				}
 				return nil, retry.Backoff
 			}
@@ -66,7 +66,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 			}
 			err = w.ConfigPreProcessor(data)
 			if err != nil {
-				w.Log.Error("Failed to preprocess configuration", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, res)))
+				w.Log.Error("Failed to preprocess configuration", logz.Error(err))
 				continue
 			}
 			callback(ctx, data)

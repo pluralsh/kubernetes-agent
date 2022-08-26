@@ -386,8 +386,6 @@ func TestRecvMsgUnblocksIfNotStartedStreaming(t *testing.T) {
 				<-connectCtx.Done()
 				return connectCtx.Err()
 			}),
-		tunnel.EXPECT().
-			Header(),
 	)
 
 	err := c.attempt(ctx)
@@ -440,8 +438,6 @@ func TestContextIgnoredIfStartedStreaming(t *testing.T) {
 				}
 				return errors.New("expected err")
 			}),
-		tunnel.EXPECT().
-			Header(),
 	)
 
 	err := c.attempt(ctx)
@@ -463,8 +459,6 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 				},
 			})).
 			Return(errors.New("expected err")),
-		tunnel.EXPECT().
-			Header(),
 	)
 	err := c.attempt(context.Background())
 	require.EqualError(t, err, "Send(descriptor): expected err")
@@ -497,8 +491,6 @@ func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("expected recv error")),
-		tunnel.EXPECT().
-			Header(),
 	)
 	gomock.InOrder(
 		clientStream.EXPECT().
