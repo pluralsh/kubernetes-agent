@@ -79,6 +79,7 @@ type App struct {
 	LogLevel     zap.AtomicLevel
 	GrpcLogLevel zap.AtomicLevel
 	AgentMeta    *modshared.AgentMeta
+	AgentId      *AgentIdHolder
 	// KasAddress specifies the address of kas.
 	KasAddress         string
 	ServiceAccountName string
@@ -112,8 +113,6 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(internalServerConn, &retErr)
 
-	agentId := newAgentIdHolder()
-
 	// Construct Kubernetes tools.
 	k8sFactory := util.NewFactory(a.K8sClientGetter)
 	kubeClient, err := k8sFactory.KubernetesClientSet()
@@ -129,7 +128,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	lr := newLeaderRunner(&leaseLeaderElector{
 		namespace: a.AgentMeta.PodNamespace,
 		name: func(ctx context.Context) (string, error) {
-			id, err := agentId.get(ctx) // nolint: govet
+			id, err := a.AgentId.get(ctx) // nolint: govet
 			if err != nil {
 				return "", err
 			}
@@ -148,7 +147,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	runner := a.newModuleRunner(kasConn, agentId)
+	runner := a.newModuleRunner(kasConn)
 	modulesRun := runner.RegisterModules(modules)
 	internalModulesRun := runner.RegisterModules(internalModules)
 
@@ -186,7 +185,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *App) newModuleRunner(kasConn *grpc.ClientConn, agentId *agentIdHolder) *moduleRunner {
+func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 	return &moduleRunner{
 		log: a.Log,
 		configurationWatcher: &rpc.ConfigurationWatcher{
@@ -201,7 +200,7 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn, agentId *agentIdHolder) 
 				getConfigurationJitter,
 			)),
 			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
-				return agentId.set(data.Config.AgentId)
+				return a.AgentId.set(data.Config.AgentId)
 			},
 		},
 	}
@@ -388,6 +387,7 @@ func NewCommand() *cobra.Command {
 			Version:  cmd.Version,
 			CommitId: cmd.Commit,
 		},
+		AgentId:            NewAgentIdHolder(),
 		ServiceAccountName: os.Getenv(envVarServiceAccountName),
 		K8sClientGetter:    kubeConfigFlags,
 	}
@@ -408,14 +408,14 @@ func NewCommand() *cobra.Command {
 			a.AgentMeta.PodName = podName
 			lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
 			var err error
-			a.Log, a.LogLevel, err = logger(defaultLogLevel, lockedSyncer)
+			a.Log, a.LogLevel, err = a.logger(defaultLogLevel, lockedSyncer)
 			if err != nil {
 				return err
 			}
 			defer errz.SafeCall(a.Log.Sync, &retErr)
 
 			var grpcLog *zap.Logger
-			grpcLog, a.GrpcLogLevel, err = logger(defaultGrpcLogLevel, lockedSyncer)
+			grpcLog, a.GrpcLogLevel, err = a.logger(defaultGrpcLogLevel, lockedSyncer)
 			if err != nil {
 				return err
 			}
@@ -438,15 +438,6 @@ func NewCommand() *cobra.Command {
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
 	cobra.CheckErr(c.MarkFlagRequired("token-file"))
 	return c
-}
-
-func logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) (*zap.Logger, zap.AtomicLevel, error) {
-	level, err := logz.LevelFromString(levelEnum.String())
-	if err != nil {
-		return nil, zap.NewAtomicLevel(), err
-	}
-	atomicLevel := zap.NewAtomicLevelAt(level)
-	return logz.LoggerWithLevel(atomicLevel, sync), atomicLevel, nil
 }
 
 func grpcHostWithPort(u *url.URL) string {

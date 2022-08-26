@@ -21,18 +21,11 @@ func LevelFromString(levelStr string) (zapcore.Level, error) {
 	return level, nil
 }
 
-func LoggerWithLevel(level zapcore.LevelEnabler, sync zapcore.WriteSyncer) *zap.Logger {
+func NewProductionEncoderConfig() zapcore.EncoderConfig {
 	cfg := zap.NewProductionEncoderConfig()
 	cfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	cfg.TimeKey = "time"
-	return zap.New(
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(cfg),
-			sync,
-			level,
-		),
-		zap.ErrorOutput(sync),
-	)
+	return cfg
 }
 
 // NoSync can be used to wrap a io.Writer that implements zapcore.WriteSyncer but does not actually

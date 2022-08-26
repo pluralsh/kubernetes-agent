@@ -5,20 +5,20 @@ import (
 	"fmt"
 )
 
-// agentIdHolder holds agent id of this agentk.
-type agentIdHolder struct {
+// AgentIdHolder holds agent id of this agentk.
+type AgentIdHolder struct {
 	agentId    int64
 	agentIdSet chan struct{}
 }
 
-func newAgentIdHolder() *agentIdHolder {
-	return &agentIdHolder{
+func NewAgentIdHolder() *AgentIdHolder {
+	return &AgentIdHolder{
 		agentIdSet: make(chan struct{}),
 	}
 }
 
 // set is not safe for concurrent use. It's ok since we don't need that.
-func (a *agentIdHolder) set(agentId int64) error {
+func (a *AgentIdHolder) set(agentId int64) error {
 	select {
 	case <-a.agentIdSet: // already set
 		if a.agentId != agentId {
@@ -31,11 +31,20 @@ func (a *agentIdHolder) set(agentId int64) error {
 	return nil
 }
 
-func (a *agentIdHolder) get(ctx context.Context) (int64, error) {
+func (a *AgentIdHolder) get(ctx context.Context) (int64, error) {
 	select {
 	case <-a.agentIdSet:
 		return a.agentId, nil
 	case <-ctx.Done():
 		return 0, ctx.Err()
+	}
+}
+
+func (a *AgentIdHolder) tryGet() (int64, bool) {
+	select {
+	case <-a.agentIdSet:
+		return a.agentId, true
+	default:
+		return 0, false
 	}
 }
