@@ -120,10 +120,18 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			AgentId:       agentInfo.Id,
 			ProjectId:     agentInfo.ProjectId,
 			CiAccess:      configFile.CiAccess,
-			Starboard:     configFile.Starboard,
+			Starboard:     s.fetchContainerScanningConfiguration(configFile),
 		},
 		CommitId: commitId,
 	})
+}
+
+func (s *server) fetchContainerScanningConfiguration(configFile *agentcfg.ConfigurationFile) *agentcfg.StarboardCF {
+	if configFile.ContainerScanning == nil {
+		return configFile.Starboard
+	}
+
+	return configFile.ContainerScanning
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
