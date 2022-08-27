@@ -17,8 +17,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -101,13 +99,13 @@ func TestRefreshRegistrations(t *testing.T) {
 
 func TestGetTunnelsByAgentId_HappyPath(t *testing.T) {
 	r, hash, ti := setupTracker(t)
-	any, err := anypb.New(ti)
+	tiBytes, err := proto.Marshal(ti)
 	require.NoError(t, err)
 	hash.EXPECT().
 		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			var done bool
-			done, err = cb(any, nil)
+			done, err = cb(tiBytes, nil)
 			if err != nil || done {
 				return 0, err
 			}
@@ -145,11 +143,8 @@ func TestGetTunnelsByAgentId_UnmarshalError(t *testing.T) {
 	hash.EXPECT().
 		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb(&anypb.Any{
-				TypeUrl: "gitlab.agent.reverse_tunnel.tracker.TunnelInfo", // valid
-				Value:   []byte{1, 2, 3},                                  // invalid
-			}, nil)
-			require.NoError(t, err) // ignores error to keep going
+			done, err := cb([]byte{1, 2, 3}, nil) // invalid data
+			require.NoError(t, err)               // ignores error to keep going
 			assert.False(t, done)
 			return 0, nil
 		})
@@ -189,7 +184,7 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 }
 
 func TestTunnelInfoSize(t *testing.T) {
-	infoAny, err := anypb.New(&TunnelInfo{
+	tiBytes, err := proto.Marshal(&TunnelInfo{
 		AgentDescriptor: &info.AgentDescriptor{
 			Services: []*info.Service{},
 		},
@@ -199,8 +194,8 @@ func TestTunnelInfoSize(t *testing.T) {
 	})
 	require.NoError(t, err)
 	data, err := proto.Marshal(&redistool.ExpiringValue{
-		ExpiresAt: timestamppb.Now(),
-		Value:     infoAny,
+		ExpiresAt: time.Now().Unix(),
+		Value:     tiBytes,
 	})
 	require.NoError(t, err)
 	t.Log(len(data))

@@ -12,7 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/proto"
 )
 
 const refreshOverlap = 5 * time.Second
@@ -89,7 +89,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 }
 
 func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAgentInfo) error {
-	infoAny, err := anypb.New(info)
+	infoBytes, err := proto.Marshal(info)
 	if err != nil {
 		// This should never happen
 		return fmt.Errorf("failed to marshal object: %w", err)
@@ -97,8 +97,8 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 	var set []redistool.IOFunc
 	ok := t.mu.RunLocked(ctx, func() {
 		set = []redistool.IOFunc{
-			t.connectionsByProjectId.Set(info.ProjectId, info.ConnectionId, infoAny),
-			t.connectionsByAgentId.Set(info.AgentId, info.ConnectionId, infoAny),
+			t.connectionsByProjectId.Set(info.ProjectId, info.ConnectionId, infoBytes),
+			t.connectionsByAgentId.Set(info.AgentId, info.ConnectionId, infoBytes),
 			t.connectedAgents.Set(nil, info.AgentId, nil),
 		}
 	})
@@ -155,15 +155,15 @@ func (t *RedisTracker) GetConnectedAgentsCount(ctx context.Context) (int64, erro
 }
 
 func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface, key interface{}, cb ConnectedAgentInfoCallback) error {
-	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
+	_, err := hash.Scan(ctx, key, func(value []byte, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
 		}
 		var info ConnectedAgentInfo
-		err = value.UnmarshalTo(&info)
+		err = proto.Unmarshal(value, &info)
 		if err != nil {
-			t.log.Error("Redis proto.UnmarshalTo(ConnectedAgentInfo)", logz.Error(err))
+			t.log.Error("Redis proto.Unmarshal(ConnectedAgentInfo)", logz.Error(err))
 			return false, nil
 		}
 		return cb(&info)

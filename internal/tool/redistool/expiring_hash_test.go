@@ -9,18 +9,15 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/testing/protocmp"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
 	redisURLEnvName = "REDIS_URL"
-	ttl             = time.Second
+	ttl             = 2 * time.Second
 )
 
 func TestExpiringHash_Set(t *testing.T) {
@@ -69,7 +66,7 @@ func TestExpiringHash_GC(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	time.Sleep(ttl + 100*time.Millisecond)
+	time.Sleep(ttl + time.Second)
 	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
 
 	keysDeleted, err := hash.GC()(context.Background())
@@ -96,7 +93,6 @@ func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
 
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	h1 := getHash(t, client, key)
-	time.Sleep(ttl / 2)
 	require.NoError(t, hash.Refresh(time.Now().Add(ttl/10))(context.Background()))
 	h2 := getHash(t, client, key)
 	assert.Equal(t, h1, h2)
@@ -105,7 +101,7 @@ func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
 func TestExpiringHash_ScanEmpty(t *testing.T) {
 	_, hash, key, _ := setupHash(t)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(value *anypb.Any, err error) (bool, error) {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(value []byte, err error) (bool, error) {
 		require.NoError(t, err)
 		assert.FailNow(t, "unexpected callback invocation")
 		return false, nil
@@ -117,9 +113,9 @@ func TestExpiringHash_ScanEmpty(t *testing.T) {
 func TestExpiringHash_Scan(t *testing.T) {
 	_, hash, key, value := setupHash(t)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) (bool, error) {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(v []byte, err error) (bool, error) {
 		require.NoError(t, err)
-		assert.Empty(t, cmp.Diff(value, v, protocmp.Transform()))
+		assert.Equal(t, value, v)
 		return false, nil
 	})
 	require.NoError(t, err)
@@ -144,19 +140,19 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	time.Sleep(ttl + 100*time.Millisecond)
+	time.Sleep(ttl + time.Second)
 	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) (bool, error) {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(v []byte, err error) (bool, error) {
 		require.NoError(t, err)
-		assert.Empty(t, cmp.Diff(value, v, protocmp.Transform()))
+		assert.Equal(t, value, v)
 		return false, nil
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, keysDeleted)
 }
 
-func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, *anypb.Any) {
+func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(func() {
@@ -170,10 +166,7 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, *any
 	hash := NewExpiringHash(zaptest.NewLogger(t), client, func(key interface{}) string {
 		return key.(string)
 	}, ttl)
-	return client, hash, key, &anypb.Any{
-		TypeUrl: "bla",
-		Value:   []byte{1, 2, 3},
-	}
+	return client, hash, key, []byte{1, 2, 3}
 }
 
 func redisClient(t *testing.T) redis.UniversalClient {
@@ -193,7 +186,7 @@ func getHash(t *testing.T, client redis.UniversalClient, key string) map[string]
 	return reply
 }
 
-func equalHash(t *testing.T, client redis.UniversalClient, key string, hashKey int64, value *anypb.Any) {
+func equalHash(t *testing.T, client redis.UniversalClient, key string, hashKey int64, value []byte) {
 	hash := getHash(t, client, key)
 	require.Len(t, hash, 1)
 	connectionIdStr := strconv.FormatInt(hashKey, 10)
@@ -202,7 +195,7 @@ func equalHash(t *testing.T, client redis.UniversalClient, key string, hashKey i
 	var msg ExpiringValue
 	err := proto.Unmarshal([]byte(val), &msg)
 	require.NoError(t, err)
-	assert.Empty(t, cmp.Diff(value, msg.Value, protocmp.Transform()))
+	assert.Equal(t, value, msg.Value)
 }
 
 func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, expireAfter time.Time) {
@@ -212,6 +205,6 @@ func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, e
 		var msg ExpiringValue
 		err := proto.Unmarshal([]byte(val), &msg)
 		require.NoError(t, err)
-		assert.True(t, msg.ExpiresAt.AsTime().After(expireAfter))
+		assert.Greater(t, msg.ExpiresAt, expireAfter.Unix())
 	}
 }

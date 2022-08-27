@@ -14,25 +14,23 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // KeyToRedisKey is used to convert key1 in
 // HSET key1 key2 value.
 type KeyToRedisKey func(key interface{}) string
-type ScanCallback func(value *anypb.Any, err error) (bool /* done */, error)
+type ScanCallback func(value []byte, err error) (bool /* done */, error)
 
 // IOFunc is a function that should be called to perform the I/O of the requested operation.
 // It is safe to call concurrently as it does not interfere with the hash's operation.
 type IOFunc func(ctx context.Context) error
 
-// ExpiringHashInterface represents a two-level hash: key any -> hashKey int64 -> value *anypb.Any.
+// ExpiringHashInterface represents a two-level hash: key any -> hashKey int64 -> value []byte.
 // key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
 // It is not safe for concurrent use directly, but it allows to perform I/O with backing store concurrently by
 // returning functions for doing that.
 type ExpiringHashInterface interface {
-	Set(key interface{}, hashKey int64, value *anypb.Any) IOFunc
+	Set(key interface{}, hashKey int64, value []byte) IOFunc
 	Unset(key interface{}, hashKey int64) IOFunc
 	// Forget only removes the item from the in-memory map.
 	Forget(key interface{}, hashKey int64)
@@ -65,9 +63,9 @@ func NewExpiringHash(log *zap.Logger, client redis.UniversalClient, keyToRedisKe
 	}
 }
 
-func (h *ExpiringHash) Set(key interface{}, hashKey int64, value *anypb.Any) IOFunc {
+func (h *ExpiringHash) Set(key interface{}, hashKey int64, value []byte) IOFunc {
 	ev := &ExpiringValue{
-		ExpiresAt: timestamppb.New(time.Now().Add(h.ttl)),
+		ExpiresAt: time.Now().Add(h.ttl).Unix(),
 		Value:     value,
 	}
 	h.setData(key, hashKey, ev)
@@ -108,7 +106,7 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 		}
 		keysDeleted = len(keysToDelete)
 	}()
-	now := time.Now()
+	now := time.Now().Unix()
 	// Scan keys of a hash. See https://redis.io/commands/scan
 	iter := h.client.HScan(ctx, redisKey, 0, "", 0).Iterator()
 	for iter.Next(ctx) {
@@ -132,7 +130,7 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 			}
 			continue // try to skip and continue
 		}
-		if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(now) {
+		if msg.ExpiresAt < now {
 			keysToDelete = append(keysToDelete, k)
 			continue
 		}
@@ -166,7 +164,7 @@ func (h *ExpiringHash) GC() func(context.Context) (int, error) {
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
 func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error) {
-	return h.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
+	return h.Scan(ctx, key, func(value []byte, err error) (bool, error) {
 		// nothing to do
 		return false, nil
 	})
@@ -197,9 +195,10 @@ func (h *ExpiringHash) Refresh(nextRefresh time.Time) IOFunc {
 
 func (h *ExpiringHash) prepareRefreshKey(hashData map[int64]*ExpiringValue, nextRefresh time.Time) []interface{} {
 	args := make([]interface{}, 0, len(hashData)*2)
-	expiresAt := timestamppb.New(time.Now().Add(h.ttl))
+	expiresAt := time.Now().Add(h.ttl).Unix()
+	nextRefreshUnix := nextRefresh.Unix()
 	for hashKey, value := range hashData {
-		if value.ExpiresAt.AsTime().After(nextRefresh) {
+		if value.ExpiresAt > nextRefreshUnix {
 			// Expires after next refresh. Will be refreshed later, no need to refresh now.
 			continue
 		}

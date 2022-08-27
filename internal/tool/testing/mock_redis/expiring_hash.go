@@ -11,7 +11,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
-	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
 // MockExpiringHashInterface is a mock of ExpiringHashInterface interface.
@@ -108,7 +107,7 @@ func (mr *MockExpiringHashInterfaceMockRecorder) Scan(arg0, arg1, arg2 interface
 }
 
 // Set mocks base method.
-func (m *MockExpiringHashInterface) Set(arg0 interface{}, arg1 int64, arg2 *anypb.Any) redistool.IOFunc {
+func (m *MockExpiringHashInterface) Set(arg0 interface{}, arg1 int64, arg2 []byte) redistool.IOFunc {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(redistool.IOFunc)

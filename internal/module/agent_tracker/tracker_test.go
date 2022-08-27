@@ -15,8 +15,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -300,13 +300,13 @@ func TestRefresh_AllCalledOnError(t *testing.T) {
 
 func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
 	r, _, _, byProjectId, info := setupTracker(t)
-	any, err := anypb.New(info)
+	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byProjectId.EXPECT().
 		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			var done bool
-			done, err = cb(any, nil)
+			done, err = cb(infoBytes, nil)
 			if err != nil || done {
 				return 0, err
 			}
@@ -344,11 +344,8 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 	byProjectId.EXPECT().
 		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb(&anypb.Any{
-				TypeUrl: "gitlab.agent.agent_tracker.ConnectedAgentInfo", // valid
-				Value:   []byte{1, 2, 3},                                 // invalid
-			}, nil)
-			require.NoError(t, err) // ignores error to keep going
+			done, err := cb([]byte{1, 2, 3}, nil) // invalid bytes
+			require.NoError(t, err)               // ignores error to keep going
 			assert.False(t, done)
 			return 0, nil
 		})
@@ -361,13 +358,13 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 
 func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
 	r, _, byAgentId, _, info := setupTracker(t)
-	any, err := anypb.New(info)
+	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byAgentId.EXPECT().
 		Scan(gomock.Any(), info.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			var done bool
-			done, err = cb(any, nil)
+			done, err = cb(infoBytes, nil)
 			if err != nil || done {
 				return 0, err
 			}
@@ -405,11 +402,8 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 	byAgentId.EXPECT().
 		Scan(gomock.Any(), info.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb(&anypb.Any{
-				TypeUrl: "gitlab.agent.agent_tracker.ConnectedAgentInfo", // valid
-				Value:   []byte{1, 2, 3},                                 // invalid
-			}, nil)
-			require.NoError(t, err) // ignores error to keep going
+			done, err := cb([]byte{1, 2, 3}, nil) // invalid bytes
+			require.NoError(t, err)               // ignores error to keep going
 			assert.False(t, done)
 			return 0, nil
 		})
