@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 )
@@ -46,16 +44,14 @@ type ExpiringHashInterface interface {
 }
 
 type ExpiringHash struct {
-	log           *zap.Logger
 	client        redis.UniversalClient
 	keyToRedisKey KeyToRedisKey
 	ttl           time.Duration
 	data          map[interface{}]map[int64]*ExpiringValue // key -> hash key -> value
 }
 
-func NewExpiringHash(log *zap.Logger, client redis.UniversalClient, keyToRedisKey KeyToRedisKey, ttl time.Duration) *ExpiringHash {
+func NewExpiringHash(client redis.UniversalClient, keyToRedisKey KeyToRedisKey, ttl time.Duration) *ExpiringHash {
 	return &ExpiringHash{
-		log:           log,
 		client:        client,
 		keyToRedisKey: keyToRedisKey,
 		ttl:           ttl,
@@ -171,15 +167,23 @@ func (h *ExpiringHash) GC() func(context.Context) (int, error) {
 func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error) {
 	now := time.Now().Unix()
 	var msg ExpiringValueTimestamp
-	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+	var firstErr error
+	deleted, err := h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
 		err := proto.UnmarshalOptions{
 			DiscardUnknown: true, // We know there is one more field, but we don't need it
 		}.Unmarshal([]byte(v), &msg)
 		if err != nil {
-			return false, false, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			return false, false, nil
 		}
 		return false, msg.ExpiresAt < now, nil
 	})
+	if err != nil {
+		return deleted, err
+	}
+	return deleted, firstErr
 }
 
 func (h *ExpiringHash) Refresh(nextRefresh time.Time) IOFunc {
@@ -223,12 +227,15 @@ func (h *ExpiringHash) prepareRefreshKey(hashData map[int64]*ExpiringValue, next
 }
 
 func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, args []interface{}) error {
+	var marshalErr error
 	hsetArgs := make([]interface{}, 0, len(args))
 	for i := 0; i < len(args); i += 2 {
 		redisValue, err := proto.Marshal(args[i+1].(*ExpiringValue))
 		if err != nil {
 			// This should never happen
-			h.log.Error("Failed to marshal ExpiringValue", logz.Error(err))
+			if marshalErr == nil {
+				marshalErr = fmt.Errorf("failed to marshal ExpiringValue: %w", err)
+			}
 			continue // skip this value
 		}
 		hsetArgs = append(hsetArgs, args[i], redisValue)
@@ -242,7 +249,10 @@ func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, args []i
 		p.PExpire(ctx, redisKey, h.ttl)
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return marshalErr
 }
 
 func (h *ExpiringHash) setData(key interface{}, hashKey int64, value *ExpiringValue) {
