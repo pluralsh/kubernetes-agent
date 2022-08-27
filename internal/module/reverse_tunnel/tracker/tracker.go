@@ -10,7 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/proto"
 )
 
 const refreshOverlap = 5 * time.Second
@@ -83,14 +83,14 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 }
 
 func (t *RedisTracker) RegisterTunnel(ctx context.Context, info *TunnelInfo) error {
-	infoAny, err := anypb.New(info)
+	infoBytes, err := proto.Marshal(info)
 	if err != nil {
 		// This should never happen
 		return fmt.Errorf("failed to marshal tunnel info: %w", err)
 	}
 	var register redistool.IOFunc
 	ok := t.mu.RunLocked(ctx, func() {
-		register = t.tunnelsByAgentId.Set(info.AgentId, info.ConnectionId, infoAny)
+		register = t.tunnelsByAgentId.Set(info.AgentId, info.ConnectionId, infoBytes)
 	})
 	if !ok {
 		return ctx.Err()
@@ -110,15 +110,15 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) e
 }
 
 func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error {
-	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(value *anypb.Any, err error) (bool, error) {
+	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(value []byte, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
 		}
 		var info TunnelInfo
-		err = value.UnmarshalTo(&info)
+		err = proto.Unmarshal(value, &info)
 		if err != nil {
-			t.log.Error("Redis proto.UnmarshalTo(TunnelInfo)", logz.Error(err))
+			t.log.Error("Redis proto.Unmarshal(TunnelInfo)", logz.Error(err))
 			return false, nil
 		}
 		return cb(&info)

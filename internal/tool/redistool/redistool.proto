@@ -6,11 +6,14 @@ package gitlab.agent.redistool;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool";
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
-
 message ExpiringValue {
-  // When the value should be considered expired.
-  google.protobuf.Timestamp expires_at = 1;
-  google.protobuf.Any value = 2;
+  // When the value should be considered expired. Number of seconds since UNIX epoch.
+  int64 expires_at = 1;
+  bytes value = 2;
+}
+
+// ExpiringValueTimestamp has the timestamp only. Can be used to skip unmarshaling the payload.
+message ExpiringValueTimestamp {
+  // When the value should be considered expired. Number of seconds since UNIX epoch.
+  int64 expires_at = 1;
 }
