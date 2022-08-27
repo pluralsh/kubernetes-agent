@@ -1,4 +1,4 @@
-package agent
+package manifestops
 
 import (
 	"context"
@@ -10,7 +10,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
@@ -38,8 +40,11 @@ const (
 )
 
 var (
-	_ GitopsWorker        = &defaultGitopsWorker{}
-	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
+	_ modagent.LeaderModule = &module{}
+	_ modagent.Factory      = &Factory{}
+	_ agent.Worker          = &worker{}
+	_ agent.WorkerFactory   = &workerFactory{}
+	_ agent.WorkSource      = &manifestSource{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {
@@ -306,13 +311,13 @@ func assertK8sObjectsMatch(t *testing.T, expected, actual interface{}) {
 	assert.Empty(t, cmp.Diff(expected, actual, kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()))
 }
 
-func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
+func setupWorker(t *testing.T) (*worker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	ctrl := gomock.NewController(t)
 	applier := NewMockApplier(ctrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
 	tf := cmdtesting.NewTestFactory()
 	t.Cleanup(tf.Cleanup)
-	w := &defaultGitopsWorker{
+	w := &worker{
 		log: zaptest.NewLogger(t),
 		project: &agentcfg.ManifestProjectCF{
 			Id:               projectId,

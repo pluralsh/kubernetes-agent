@@ -1,5 +1,7 @@
 package gitops
 
 const (
-	ModuleName = "gitops"
+	ModuleName              = "gitops"
+	AgentManifestModuleName = "gitops-manifest"
+	AgentChartModuleName    = "gitops-chart"
 )

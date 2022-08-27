@@ -1,13 +1,15 @@
-package agent
+package manifestops
 
 import (
 	"context"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/resource"
 	"sigs.k8s.io/cli-utils/pkg/apply"
@@ -54,15 +56,7 @@ type Applier interface {
 	Run(ctx context.Context, invInfo inventory.Info, objects object.UnstructuredSet, options apply.ApplierOptions) <-chan event.Event
 }
 
-type GitopsWorkerFactory interface {
-	New(int64, *agentcfg.ManifestProjectCF) GitopsWorker
-}
-
-type GitopsWorker interface {
-	Run(context.Context)
-}
-
-type defaultGitopsWorkerFactory struct {
+type workerFactory struct {
 	log               *zap.Logger
 	applier           Applier
 	restClientGetter  resource.RESTClientGetter
@@ -72,9 +66,10 @@ type defaultGitopsWorkerFactory struct {
 	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
-func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
-	l := f.log.With(logz.ProjectId(project.Id))
-	return &defaultGitopsWorker{
+func (f *workerFactory) New(agentId int64, source agent.WorkSource) agent.Worker {
+	project := source.Configuration().(*agentcfg.ManifestProjectCF)
+	l := f.log.With(logz.WorkerId(source.ID()))
+	return &worker{
 		log:               l,
 		agentId:           agentId,
 		project:           project,
@@ -110,7 +105,15 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 	}
 }
 
-func (f *defaultGitopsWorkerFactory) mapDryRunStrategy(strategy string) common.DryRunStrategy {
+func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []agent.WorkSource {
+	res := make([]agent.WorkSource, 0, len(cfg.Gitops.ManifestProjects))
+	for _, project := range cfg.Gitops.ManifestProjects {
+		res = append(res, (*manifestSource)(project))
+	}
+	return res
+}
+
+func (f *workerFactory) mapDryRunStrategy(strategy string) common.DryRunStrategy {
 	ret, ok := dryRunStrategyMapping[strategy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
@@ -121,7 +124,7 @@ func (f *defaultGitopsWorkerFactory) mapDryRunStrategy(strategy string) common.D
 	return ret
 }
 
-func (f *defaultGitopsWorkerFactory) mapPrunePropagationPolicy(policy string) metav1.DeletionPropagation {
+func (f *workerFactory) mapPrunePropagationPolicy(policy string) metav1.DeletionPropagation {
 	ret, ok := prunePropagationPolicyMapping[policy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
@@ -132,7 +135,7 @@ func (f *defaultGitopsWorkerFactory) mapPrunePropagationPolicy(policy string) me
 	return ret
 }
 
-func (f *defaultGitopsWorkerFactory) mapInventoryPolicy(policy string) inventory.Policy {
+func (f *workerFactory) mapInventoryPolicy(policy string) inventory.Policy {
 	ret, ok := inventoryPolicyMapping[policy]
 	if !ok {
 		// This shouldn't happen because we've checked the value in DefaultAndValidateConfiguration().
@@ -141,4 +144,14 @@ func (f *defaultGitopsWorkerFactory) mapInventoryPolicy(policy string) inventory
 		ret = inventory.PolicyMustMatch
 	}
 	return ret
+}
+
+type manifestSource agentcfg.ManifestProjectCF
+
+func (s *manifestSource) ID() string {
+	return s.Id
+}
+
+func (s *manifestSource) Configuration() proto.Message {
+	return (*agentcfg.ManifestProjectCF)(s)
 }

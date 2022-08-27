@@ -1,4 +1,4 @@
-package agent
+package manifestops
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 )
 
-func (w *defaultGitopsWorker) watch(ctx context.Context, desiredState chan<- rpc.ObjectsToSynchronizeData) {
+func (w *worker) watch(ctx context.Context, desiredState chan<- rpc.ObjectsToSynchronizeData) {
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: w.project.Id,
 		Paths:     w.project.Paths,
