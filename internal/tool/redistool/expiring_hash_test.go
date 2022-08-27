@@ -152,6 +152,37 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 	assert.EqualValues(t, 1, keysDeleted)
 }
 
+func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
+	d, err := proto.Marshal(&ExpiringValue{
+		ExpiresAt: 123123123,
+		Value:     []byte("1231231231232313"),
+	})
+	require.NoError(b, err)
+	b.Run("ExpiringValue", func(b *testing.B) {
+		b.ReportAllocs()
+		var val ExpiringValue
+		for i := 0; i < b.N; i++ {
+			err = proto.Unmarshal(d, &val)
+		}
+	})
+	b.Run("ExpiringValueTimestamp", func(b *testing.B) {
+		b.ReportAllocs()
+		var val ExpiringValueTimestamp
+		for i := 0; i < b.N; i++ {
+			err = proto.Unmarshal(d, &val)
+		}
+	})
+	b.Run("ExpiringValueTimestamp DiscardUnknown", func(b *testing.B) {
+		b.ReportAllocs()
+		var val ExpiringValueTimestamp
+		for i := 0; i < b.N; i++ {
+			err = proto.UnmarshalOptions{
+				DiscardUnknown: true,
+			}.Unmarshal(d, &val)
+		}
+	})
+}
+
 func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, []byte) {
 	t.Parallel()
 	client := redisClient(t)

@@ -11,3 +11,9 @@ message ExpiringValue {
   int64 expires_at = 1;
   bytes value = 2;
 }
+
+// ExpiringValueTimestamp has the timestamp only. Can be used to skip unmarshaling the payload.
+message ExpiringValueTimestamp {
+  // When the value should be considered expired. Number of seconds since UNIX epoch.
+  int64 expires_at = 1;
+}

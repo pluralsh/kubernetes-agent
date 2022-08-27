@@ -90,14 +90,14 @@ func (h *ExpiringHash) Len(ctx context.Context, key interface{}) (size int64, re
 	return h.client.HLen(ctx, redisKey).Result()
 }
 
-func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallback) (keysDeleted int, retErr error) {
+func (h *ExpiringHash) scan(ctx context.Context, key interface{}, cb func(k, v string) (bool /*done*/, bool /*delete*/, error)) (keysDeleted int, retErr error) {
 	redisKey := h.keyToRedisKey(key)
 	var keysToDelete []string
 	defer func() {
 		if len(keysToDelete) == 0 {
 			return
 		}
-		_, err := h.client.HDel(ctx, redisKey, keysToDelete...).Result()
+		err := h.client.HDel(ctx, redisKey, keysToDelete...).Err()
 		if err != nil {
 			if retErr == nil {
 				retErr = err
@@ -106,7 +106,6 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 		}
 		keysDeleted = len(keysToDelete)
 	}()
-	now := time.Now().Unix()
 	// Scan keys of a hash. See https://redis.io/commands/scan
 	iter := h.client.HScan(ctx, redisKey, 0, "", 0).Iterator()
 	for iter.Next(ctx) {
@@ -120,26 +119,32 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 			return 0, errors.New("invalid Redis reply")
 		}
 		v := iter.Val()
-		var msg ExpiringValue
-		err := proto.Unmarshal([]byte(v), &msg)
-		if err != nil {
-			var done bool
-			done, err = cb(nil, fmt.Errorf("failed to unmarshal hash value from key 0x%x: %w", k, err))
-			if err != nil || done {
-				return 0, err
-			}
-			continue // try to skip and continue
-		}
-		if msg.ExpiresAt < now {
+		done, del, err := cb(k, v)
+		if del {
 			keysToDelete = append(keysToDelete, k)
-			continue
 		}
-		done, err := cb(msg.Value, nil)
 		if err != nil || done {
 			return 0, err
 		}
 	}
 	return 0, iter.Err()
+}
+
+func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallback) (keysDeleted int, retErr error) {
+	now := time.Now().Unix()
+	var msg ExpiringValue
+	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+		err := proto.Unmarshal([]byte(v), &msg)
+		if err != nil {
+			done, cbErr := cb(nil, fmt.Errorf("failed to unmarshal hash value from key 0x%x: %w", k, err))
+			return done, false, cbErr
+		}
+		if msg.ExpiresAt < now {
+			return false, true, nil
+		}
+		done, cbErr := cb(msg.Value, nil)
+		return done, false, cbErr
+	})
 }
 
 func (h *ExpiringHash) GC() func(context.Context) (int, error) {
@@ -164,9 +169,16 @@ func (h *ExpiringHash) GC() func(context.Context) (int, error) {
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
 func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error) {
-	return h.Scan(ctx, key, func(value []byte, err error) (bool, error) {
-		// nothing to do
-		return false, nil
+	now := time.Now().Unix()
+	var msg ExpiringValueTimestamp
+	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+		err := proto.UnmarshalOptions{
+			DiscardUnknown: true, // We know there is one more field, but we don't need it
+		}.Unmarshal([]byte(v), &msg)
+		if err != nil {
+			return false, false, err
+		}
+		return false, msg.ExpiresAt < now, nil
 	})
 }
 
