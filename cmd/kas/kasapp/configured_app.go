@@ -648,7 +648,7 @@ func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient)
 	return agent_tracker.NewRedisTracker(
 		a.Log,
 		redisClient,
-		cfg.Redis.KeyPrefix+":agent_tracker",
+		cfg.Redis.KeyPrefix+":agent_tracker2",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
@@ -660,7 +660,7 @@ func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient
 	return tracker.NewRedisTracker(
 		a.Log,
 		redisClient,
-		cfg.Redis.KeyPrefix+":tunnel_tracker",
+		cfg.Redis.KeyPrefix+":tunnel_tracker2",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
