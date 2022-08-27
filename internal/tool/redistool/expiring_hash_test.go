@@ -11,7 +11,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -194,7 +193,7 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, []by
 	_, err := r.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash(zaptest.NewLogger(t), client, func(key interface{}) string {
+	hash := NewExpiringHash(client, func(key interface{}) string {
 		return key.(string)
 	}, ttl)
 	return client, hash, key, []byte{1, 2, 3}

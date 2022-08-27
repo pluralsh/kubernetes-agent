@@ -50,7 +50,7 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		refreshPeriod:    refreshPeriod,
 		gcPeriod:         gcPeriod,
 		mu:               syncz.NewMutex(),
-		tunnelsByAgentId: redistool.NewExpiringHash(log, client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
+		tunnelsByAgentId: redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
 	}
 }
 

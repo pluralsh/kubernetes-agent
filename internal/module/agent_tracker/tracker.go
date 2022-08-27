@@ -61,9 +61,9 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		gcPeriod:               gcPeriod,
 		refreshMu:              syncz.NewRWMutex(),
 		mu:                     syncz.NewMutex(),
-		connectionsByAgentId:   redistool.NewExpiringHash(log, client, connectionsByAgentIdHashKey(agentKeyPrefix), ttl),
-		connectionsByProjectId: redistool.NewExpiringHash(log, client, connectionsByProjectIdHashKey(agentKeyPrefix), ttl),
-		connectedAgents:        redistool.NewExpiringHash(log, client, connectedAgentsHashKey(agentKeyPrefix), ttl),
+		connectionsByAgentId:   redistool.NewExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), ttl),
+		connectionsByProjectId: redistool.NewExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), ttl),
+		connectedAgents:        redistool.NewExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), ttl),
 	}
 }
 
