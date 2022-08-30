@@ -48,3 +48,10 @@ func (e *agentIdEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field
 	}
 	return e.Encoder.EncodeEntry(entry, fields)
 }
+
+func (e *agentIdEncoder) Clone() zapcore.Encoder {
+	return &agentIdEncoder{
+		Encoder: e.Encoder.Clone(),
+		agentId: e.agentId,
+	}
+}
