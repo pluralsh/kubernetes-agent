@@ -8,19 +8,19 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "16e9fca53ed6bd4ff4ad76facc9b7b651a89db1689a2877d6fd7b82aa824e366",
+    sha256 = "099a9fb96a376ccbbb7d291ed4ecbdfd42f6bc822ab77ae6f1b5cb9e914e94fa",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.34.0/rules_go-v0.34.0.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.34.0/rules_go-v0.34.0.zip",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
     ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "501deb3d5695ab658e82f6f6f549ba681ea3ca2a5fb7911154b5aa45596183fa",
+    sha256 = "efbbba6ac1a4fd342d5122cbdfdb82aeb2cf2862e35022c752eaddffada7c3f3",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.26.0/bazel-gazelle-v0.26.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.26.0/bazel-gazelle-v0.26.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.27.0/bazel-gazelle-v0.27.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.27.0/bazel-gazelle-v0.27.0.tar.gz",
     ],
 )
 
@@ -46,10 +46,10 @@ http_archive(
 
 http_archive(
     name = "rules_proto",
-    sha256 = "e017528fd1c91c5a33f15493e3a398181a9e821a804eb7ff5acdd1d2d6c2b18d",
-    strip_prefix = "rules_proto-4.0.0-3.20.0",
+    sha256 = "80d3a4ec17354cccc898bfe32118edd934f851b03029d63ef3fc7c8663a7415c",
+    strip_prefix = "rules_proto-5.3.0-21.5",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/refs/tags/4.0.0-3.20.0.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/refs/tags/5.3.0-21.5.tar.gz",
     ],
 )
 
@@ -89,8 +89,8 @@ go_repository(
     ],  # keep
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel",
-    sum = "h1:8WZNQFIB2a71LnANS9JeyidJKKGOOremcUtb/OtHISw=",
-    version = "v1.9.0",
+    sum = "h1:Y7DTJMR6zs1xkS/upamJYk0SxxN4C9AqRd77jmZnyY4=",
+    version = "v1.10.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -102,8 +102,20 @@ go_repository(
     ],
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
-    sum = "h1:NN90Cuna0CnBg8YNu1Q0V35i2E8LDByFOwHRCq/ZP9I=",
-    version = "v1.9.0",
+    sum = "h1:pDDYmo0QadUPal5fwXoY1pmMpFcdyhXOmL5drCrI3vU=",
+    version = "v1.10.0",
+)
+
+# See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
+go_repository(
+    name = "io_opentelemetry_go_otel_exporters_otlp_otlptrace_otlptracehttp",
+    build_directives = [
+        "gazelle:resolve go go.opentelemetry.io/otel/exporters/otlp/internal @io_opentelemetry_go_otel//exporters/otlp/internal",
+    ],
+    build_file_proto_mode = "disable_global",
+    importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
+    sum = "h1:S8DedULB3gp93Rh+9Z+7NTEv+6Id/KYS7LDyipZ9iCE=",
+    version = "v1.10.0",
 )
 
 go_repository(
@@ -118,8 +130,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:qcZcULcd/abmQg6dwigimCNEyi4gg31M/xaciQlDml8=",
-    version = "v0.6.7",
+    sum = "h1:B2cR/FAaiMtYDHv5BQpaqtkjGuWQIgr2KQZtHQ7f6i8=",
+    version = "v0.6.8",
 )
 
 # Copied from rules_go to keep patches in place
@@ -135,12 +147,12 @@ http_archive(
         # releaser:patch-cmd gazelle -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
     ],
-    sha256 = "d31521bddf3380e4ae2ae1ce6dcfca301bce6072527a07d612e13902c93916ef",
-    strip_prefix = "tools-0.1.11",
-    # v0.1.11, latest as of 2022-07-19
+    sha256 = "4e3d94e7bf8dde5dad681c5ddddda6e634f8c8c500683fdf3d2f77a9c086702d",
+    strip_prefix = "tools-0.1.12",
+    # v0.1.12, latest as of 2022-09-10
     urls = [
-        "https://mirror.bazel.build/github.com/golang/tools/archive/refs/tags/v0.1.11.zip",
-        "https://github.com/golang/tools/archive/refs/tags/v0.1.11.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/refs/tags/v0.1.12.zip",
+        "https://github.com/golang/tools/archive/refs/tags/v0.1.12.zip",
     ],
 )
 
@@ -149,8 +161,8 @@ go_repository(
     name = "com_github_lyft_protoc_gen_star",
     build_file_proto_mode = "default",
     importpath = "github.com/lyft/protoc-gen-star",
-    sum = "h1:xOpFu4vwmIoUeUrRuAtdCrZZymT/6AkW/bsUWA506Fo=",
-    version = "v0.6.0",
+    sum = "h1:erE0rdztuaDq3bpGifD95wfoPrSZc95nGA6tbiNYh6M=",
+    version = "v0.6.1",
 )
 
 load("//build:repositories.bzl", "go_repositories")
