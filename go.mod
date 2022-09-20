@@ -36,7 +36,7 @@ require (
 	golang.org/x/net v0.0.0-20220809012201-f428fae20770
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
-	golang.org/x/tools v0.1.11
+	golang.org/x/tools v0.1.12
 	google.golang.org/api v0.91.0
 	google.golang.org/genproto v0.0.0-20220808204814-fd01256a5276
 	google.golang.org/grpc v1.48.0
@@ -210,4 +210,4 @@ require (
 )
 
 // same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
-replace golang.org/x/tools => golang.org/x/tools v0.1.11
+replace golang.org/x/tools => golang.org/x/tools v0.1.12
