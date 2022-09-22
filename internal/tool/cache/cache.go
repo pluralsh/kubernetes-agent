@@ -77,3 +77,12 @@ func (c *Cache) GetOrCreateCacheEntry(key interface{}) *Entry {
 	c.data[key] = entry
 	return entry
 }
+
+func (c *Cache) EvictEntry(key interface{}, entry *Entry) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	existingEntry := c.data[key]
+	if existingEntry == entry {
+		delete(c.data, key)
+	}
+}

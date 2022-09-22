@@ -45,6 +45,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
@@ -145,7 +146,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// RPC API factory
-	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient)
+	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
 	agentServer, err := a.constructAgentServer(ctx, tp, redisClient, ssh, agentRpcApiFactory)
@@ -263,6 +264,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			TraceProvider:    tp,
 			TracePropagator:  p,
 			MeterProvider:    global.MeterProvider(), // TODO
+			RedisClient:      redisClient,
 			KasName:          kasName,
 			Version:          cmd.Version,
 			CommitId:         cmd.Commit,
@@ -312,16 +314,30 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface,
+	redisClient redis.UniversalClient) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
 		sentryHub: sentryHub,
 	}
 	fAgent := serverAgentRpcApiFactory{
-		rpcApiFactory:  f.New,
-		gitLabClient:   gitLabClient,
-		agentInfoCache: cache.NewWithError(aCfg.InfoCacheTtl.AsDuration(), aCfg.InfoCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
+		rpcApiFactory: f.New,
+		gitLabClient:  gitLabClient,
+		agentInfoCache: cache.NewWithError(
+			aCfg.InfoCacheTtl.AsDuration(),
+			aCfg.InfoCacheErrorTtl.AsDuration(),
+			&redistool.ErrCacher{
+				Log:          a.Log,
+				Client:       redisClient,
+				ErrMarshaler: prototool.ProtoErrMarshaler{},
+				KeyToRedisKey: func(agentToken interface{}) string {
+					key := api.AgentToken2key(agentToken.(api.AgentToken))
+					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(key)
+				},
+			},
+			gapi.IsCacheableError,
+		),
 	}
 	return f.New, fAgent.New
 }

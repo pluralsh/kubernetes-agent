@@ -7,29 +7,31 @@ import (
 
 type GetItemDirectly func() (interface{}, error)
 
-// ErrCacheStrategy determines whether an error is cacheable or not.
-// Returns true if cacheable and false otherwise.
-type ErrCacheStrategy func(error) bool
-
-type EntryWithErr struct {
-	// Item is the cached item.
-	Item interface{}
-	Err  error
+type ErrCacher interface {
+	// GetError retrieves a cached error.
+	// Returns nil if no cached error found or if there was a problem accessing the cache.
+	GetError(ctx context.Context, key interface{}) error
+	// CacheError puts error into the cache.
+	CacheError(ctx context.Context, key interface{}, err error, errTtl time.Duration)
 }
 
 type CacheWithErr struct {
-	cache            *Cache
-	ttl              time.Duration
-	errTtl           time.Duration
-	errCacheStrategy ErrCacheStrategy
+	cache     *Cache
+	ttl       time.Duration
+	errTtl    time.Duration
+	errCacher ErrCacher
+	// isCacheable determines whether an error is cacheable or not.
+	// Returns true if cacheable and false otherwise.
+	isCacheable func(error) bool
 }
 
-func NewWithError(ttl, errTtl time.Duration, errCacheStrategy ErrCacheStrategy) *CacheWithErr {
+func NewWithError(ttl, errTtl time.Duration, errCacher ErrCacher, isCacheableFunc func(error) bool) *CacheWithErr {
 	return &CacheWithErr{
-		cache:            New(minDuration(ttl, errTtl)),
-		ttl:              ttl,
-		errTtl:           errTtl,
-		errCacheStrategy: errCacheStrategy,
+		cache:       New(ttl),
+		ttl:         ttl,
+		errTtl:      errTtl,
+		errCacher:   errCacher,
+		isCacheable: isCacheableFunc,
 	}
 }
 
@@ -42,31 +44,33 @@ func (c *CacheWithErr) GetItem(ctx context.Context, key interface{}, f GetItemDi
 	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
 		return nil, ctx.Err()
 	}
-	defer entry.Unlock()
-	var entryWithErr EntryWithErr
-	if entry.IsNeedRefreshLocked() {
-		entryWithErr.Item, entryWithErr.Err = f()
-		var ttl time.Duration
-		switch {
-		case entryWithErr.Err == nil: // no error
-			ttl = c.ttl
-		case c.errCacheStrategy(entryWithErr.Err): // cacheable error
-			ttl = c.errTtl
-		default: // not a cacheable error
-			return nil, entryWithErr.Err
+	evictEntry := false
+	defer func() {
+		entry.Unlock()
+		if evictEntry {
+			// Currently, cache (e.g. in EvictExpiredEntries()) grabs the cache lock and then an entry's lock,
+			// but only via TryLock(). We may need to use Lock() rather than TryLock() in the future in some
+			// other method. That would lead to deadlocks if we grab an entry's lock and then such method is called
+			// concurrently. Hence,	to future-proof the code, calling EvictEntry() after entry's lock has been
+			// unlocked here.
+			c.cache.EvictEntry(key, entry)
 		}
-		entry.Item = entryWithErr
-		entry.Expires = time.Now().Add(ttl)
-	} else {
-		entryWithErr = entry.Item.(EntryWithErr)
+	}()
+	if entry.IsNeedRefreshLocked() {
+		err := c.errCacher.GetError(ctx, key)
+		if err != nil {
+			evictEntry = true
+			return nil, err
+		}
+		entry.Item, err = f()
+		if err != nil {
+			if c.isCacheable(err) {
+				// cacheable error
+				c.errCacher.CacheError(ctx, key, err, c.errTtl)
+			}
+			return nil, err
+		}
+		entry.Expires = time.Now().Add(c.ttl)
 	}
-	return entryWithErr.Item, entryWithErr.Err
-}
-
-func minDuration(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-
-	return b
+	return entry.Item, nil
 }

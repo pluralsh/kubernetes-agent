@@ -3,13 +3,17 @@ package server
 import (
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 )
 
@@ -27,7 +31,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s, err := newServerFromConfig(config)
+	s, err := newServerFromConfig(config, config.RedisClient)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +43,7 @@ func (f *Factory) Name() string {
 	return gitops.ModuleName
 }
 
-func newServerFromConfig(config *modserver.Config) (*server, error) {
+func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient) (*server, error) {
 	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
 	err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
 	if err != nil {
@@ -49,8 +53,21 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 	return &server{
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
-			GitLabClient:     config.GitLabClient,
-			ProjectInfoCache: cache.NewWithError(gitops.ProjectInfoCacheTtl.AsDuration(), gitops.ProjectInfoCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
+			GitLabClient: config.GitLabClient,
+			ProjectInfoCache: cache.NewWithError(
+				gitops.ProjectInfoCacheTtl.AsDuration(),
+				gitops.ProjectInfoCacheErrorTtl.AsDuration(),
+				&redistool.ErrCacher{
+					Log:          config.Log,
+					Client:       redisClient,
+					ErrMarshaler: prototool.ProtoErrMarshaler{},
+					KeyToRedisKey: func(agentToken interface{}) string {
+						key := api.AgentToken2key(agentToken.(api.AgentToken))
+						return config.Config.Redis.KeyPrefix + ":project_info_errs:" + string(key)
+					},
+				},
+				gapi.IsCacheableError,
+			),
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,

@@ -14,6 +14,7 @@ go_library(
     name = "prototool",
     srcs = [
         "defaulting.go",
+        "err_marshaler.go",
         "jsonbox.go",
         "prototool.extra_methods.go",
         "prototool.pb.go",

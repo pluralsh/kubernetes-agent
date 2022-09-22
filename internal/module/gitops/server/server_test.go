@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/go-redis/redismock/v8"
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -550,6 +551,7 @@ func setupServerWithAgentInfo(t *testing.T, handler func(http.ResponseWriter, *h
 
 func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWriter, *http.Request)) (context.Context, *server, *gomock.Controller, *mock_modserver.MockAgentRpcApi, *mock_internalgitaly.MockPoolInterface) {
 	ctrl := gomock.NewController(t)
+	client, _ := redismock.NewClientMock()
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)
 	ctx := mock_modserver.IncomingAgentCtx(t, mockRpcApi)
@@ -569,7 +571,7 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		Gitaly:       gitalyPool,
-	})
+	}, client)
 	require.NoError(t, err)
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }

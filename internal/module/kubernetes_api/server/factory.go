@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"net"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -50,11 +53,24 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	m := &module{
 		log: config.Log,
 		proxy: kubernetesApiProxy{
-			log:                  config.Log,
-			api:                  config.Api,
-			kubernetesApiClient:  rpc.NewKubernetesApiClient(config.AgentConn),
-			gitLabClient:         config.GitLabClient,
-			allowedAgentsCache:   cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration(), gapi.IsCacheableError),
+			log:                 config.Log,
+			api:                 config.Api,
+			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
+			gitLabClient:        config.GitLabClient,
+			allowedAgentsCache: cache.NewWithError(
+				k8sApi.AllowedAgentCacheTtl.AsDuration(),
+				k8sApi.AllowedAgentCacheErrorTtl.AsDuration(),
+				&redistool.ErrCacher{
+					Log:          config.Log,
+					Client:       config.RedisClient,
+					ErrMarshaler: prototool.ProtoErrMarshaler{},
+					KeyToRedisKey: func(agentToken interface{}) string {
+						key := api.AgentToken2key(agentToken.(api.AgentToken))
+						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(key)
+					},
+				},
+				gapi.IsCacheableError,
+			),
 			requestCounter:       config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			ciTunnelUsersCounter: config.UsageTracker.RegisterUniqueCounter(usersCiTunnelInteractionsCountMetric),
 			responseSerializer:   serializer.NewCodecFactory(runtime.NewScheme()),
