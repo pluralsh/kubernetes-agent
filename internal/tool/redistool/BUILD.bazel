@@ -11,6 +11,7 @@ go_library(
     name = "redistool",
     srcs = [
         "doc.go",
+        "err_cacher.go",
         "expiring_hash.go",
         "redistool.pb.go",
         "token_limiter.go",
@@ -31,6 +32,7 @@ go_library(
 go_custom_test(
     name = "redistool_test",
     srcs = [
+        "err_cacher_test.go",
         "expiring_hash_test.go",
         "mock_for_test.go",
         "token_limiter_test.go",
