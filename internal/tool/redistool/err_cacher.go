@@ -2,6 +2,7 @@ package redistool
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -26,7 +27,9 @@ type ErrCacher struct {
 func (c *ErrCacher) GetError(ctx context.Context, key interface{}) error {
 	result, err := c.Client.Get(ctx, c.KeyToRedisKey(key)).Bytes()
 	if err != nil {
-		c.Log.Error("Failed to get cached error from Redis", logz.Error(err))
+		if !errors.Is(err, redis.Nil) {
+			c.Log.Error("Failed to get cached error from Redis", logz.Error(err))
+		}
 		return nil // Returns nil according to the interface contract.
 	}
 	if len(result) == 0 {

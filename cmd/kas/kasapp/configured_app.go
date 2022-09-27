@@ -685,7 +685,6 @@ func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient
 
 func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
-	a.Log.Debug("Initializing Sentry error tracking")
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
