@@ -11,6 +11,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/utils/clock"
 )
 
@@ -30,6 +32,7 @@ var (
 type Pool struct {
 	mu       sync.Mutex
 	log      *zap.Logger
+	tlsCreds credentials.TransportCredentials
 	dialOpts []grpc.DialOption
 	conns    map[string]*connHolder // target -> conn
 	clk      clock.PassiveClock
@@ -38,9 +41,9 @@ type Pool struct {
 func (p *Pool) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for target, conn := range p.conns {
-		delete(p.conns, target)
-		log := p.log.With(logz.PoolConnectionUrl(conn.targetUrl))
+	for targetUrl, conn := range p.conns {
+		delete(p.conns, targetUrl)
+		log := p.log.With(logz.PoolConnectionUrl(targetUrl))
 		if conn.numUsers > 0 {
 			log.Sugar().Warnf("Closing pool connection that is being used by %d callers", conn.numUsers)
 		}
@@ -54,9 +57,10 @@ func (p *Pool) Close() error {
 	return nil
 }
 
-func NewPool(log *zap.Logger, dialOpts ...grpc.DialOption) *Pool {
+func NewPool(log *zap.Logger, tlsCreds credentials.TransportCredentials, dialOpts ...grpc.DialOption) *Pool {
 	return &Pool{
 		log:      log,
+		tlsCreds: tlsCreds,
 		dialOpts: dialOpts,
 		conns:    map[string]*connHolder{},
 		clk:      clock.RealClock{},
@@ -64,32 +68,37 @@ func NewPool(log *zap.Logger, dialOpts ...grpc.DialOption) *Pool {
 }
 
 func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
-	u, err := url.Parse(targetUrl)
-	if err != nil {
-		return nil, err
-	}
-	var target string
-	switch u.Scheme {
-	case "grpc":
-		target = u.Host
-	//case "grpcs":
-	// TODO support TLS
-	default:
-		return nil, fmt.Errorf("unsupported pool URL scheme in %s", targetUrl)
-	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	conn := p.conns[target]
+	conn := p.conns[targetUrl]
 	if conn == nil {
-		grpcConn, err := grpc.DialContext(ctx, target, p.dialOpts...)
+		u, err := url.Parse(targetUrl)
+		if err != nil {
+			return nil, err
+		}
+		var creds credentials.TransportCredentials
+		var target string
+		switch u.Scheme {
+		case "grpc":
+			target = u.Host
+			creds = insecure.NewCredentials()
+		case "grpcs":
+			target = u.Host
+			creds = p.tlsCreds
+		default:
+			return nil, fmt.Errorf("unsupported URL scheme in %s", targetUrl)
+		}
+		opts := make([]grpc.DialOption, 0, len(p.dialOpts)+1)
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+		opts = append(opts, p.dialOpts...)
+		grpcConn, err := grpc.DialContext(ctx, target, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("pool gRPC dial: %w", err)
 		}
 		conn = &connHolder{
 			ClientConn: grpcConn,
-			targetUrl:  targetUrl,
 		}
-		p.conns[target] = conn
+		p.conns[targetUrl] = conn
 	}
 	conn.numUsers++
 	return &poolConn{
@@ -108,14 +117,14 @@ func (p *Pool) connDone(conn *connHolder) {
 
 func (p *Pool) runGcLocked() {
 	expireAt := p.clk.Now().Add(-evictIdleConnAfter)
-	for target, conn := range p.conns {
+	for targetUrl, conn := range p.conns {
 		if conn.numUsers == 0 && conn.lastUsed.Before(expireAt) {
-			delete(p.conns, target)
+			delete(p.conns, targetUrl)
 			err := conn.Close()
 			if err != nil {
-				p.log.Error("Error closing idle pool connection", logz.Error(err), logz.PoolConnectionUrl(conn.targetUrl))
+				p.log.Error("Error closing idle pool connection", logz.Error(err), logz.PoolConnectionUrl(targetUrl))
 			} else {
-				p.log.Debug("Closed idle pool connection", logz.PoolConnectionUrl(conn.targetUrl))
+				p.log.Debug("Closed idle pool connection", logz.PoolConnectionUrl(targetUrl))
 			}
 		}
 	}
@@ -123,9 +132,8 @@ func (p *Pool) runGcLocked() {
 
 type connHolder struct {
 	*grpc.ClientConn
-	targetUrl string
-	lastUsed  time.Time
-	numUsers  int32 // protected by mutex
+	lastUsed time.Time
+	numUsers int32 // protected by mutex
 }
 
 type poolConn struct {

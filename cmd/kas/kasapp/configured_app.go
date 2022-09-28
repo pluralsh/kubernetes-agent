@@ -354,6 +354,10 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 	if err != nil {
 		return nil, err
 	}
+	tlsCreds, err := tlstool.DefaultClientTLSConfigWithCACert(listenCfg.CaCertificateFile)
+	if err != nil {
+		return nil, err
+	}
 	kasRoutingDuration := constructKasRoutingDurationHistogram()
 	err = metric.Register(registerer, kasRoutingDuration)
 	if err != nil {
@@ -361,7 +365,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 	}
 	return &router{
 		kasPool: grpctool.NewPool(a.Log,
-			grpc.WithTransportCredentials(insecure.NewCredentials()), // TODO support TLS
+			credentials.NewTLS(tlsCreds),
 			grpc.WithUserAgent(kasServerName()),
 			grpc.WithStatsHandler(csh),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -372,7 +376,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 				Secret:   jwtSecret,
 				Audience: kasName,
 				Issuer:   kasName,
-				Insecure: true, // TODO support TLS
+				Insecure: true, // We may or may not have TLS setup, so always say creds don't need TLS.
 			}),
 			grpc.WithChainStreamInterceptor(
 				grpc_prometheus.StreamClientInterceptor,

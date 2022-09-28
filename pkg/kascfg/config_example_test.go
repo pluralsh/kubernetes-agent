@@ -45,7 +45,7 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 			},
 		},
 		PrivateApi: &kascfg.PrivateApiCF{
-			Listen: &kascfg.ListenApiCF{
+			Listen: &kascfg.ListenPrivateApiCF{
 				AuthenticationSecretFile: "/some/file",
 			},
 		},

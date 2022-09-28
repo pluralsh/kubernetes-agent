@@ -79,7 +79,7 @@ message GitLabCF {
   string address = 1 [json_name = "address", (validate.rules).string.min_bytes = 1, (validate.rules).string.uri = true];
   // Secret to generate JWT tokens to authenticate with GitLab.
   string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_bytes = 1];
-  // Optional X.509 certificate for TLS in PEM format.
+  // Optional X.509 CA certificate for TLS in PEM format.
   // Should be set for self-signed certificates.
   string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
   // Rate limiting configuration for talking to the GitLab API.
@@ -312,6 +312,27 @@ message ListenApiCF {
   google.protobuf.Duration max_connection_age = 6 [json_name = "max_connection_age", (validate.rules).duration = {gt: {}}];
 }
 
+message ListenPrivateApiCF {
+  // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+  optional string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
+  // Address to listen on.
+  string address = 2 [json_name = "address"];
+  // Secret to verify JWT tokens.
+  string authentication_secret_file = 3 [json_name = "authentication_secret_file", (validate.rules).string.min_bytes = 1];
+  // X.509 certificate for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string certificate_file = 4 [json_name = "certificate_file"];
+  // X.509 key file for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string key_file = 5 [json_name = "key_file"];
+  // Max age of a connection. Connection is closed gracefully once it's
+  // too old and there is no streaming happening.
+  google.protobuf.Duration max_connection_age = 6 [json_name = "max_connection_age", (validate.rules).duration = {gt: {}}];
+  // Optional X.509 CA certificate for TLS in PEM format.
+  // Should be set for self-signed certificates.
+  string ca_certificate_file = 7 [json_name = "ca_certificate_file"];
+}
+
 message ApiCF {
   // RPC listener configuration for API connections.
   ListenApiCF listen = 1 [json_name = "listen", (validate.rules).message.required = true];
@@ -319,7 +340,7 @@ message ApiCF {
 
 message PrivateApiCF {
   // RPC listener configuration for API connections.
-  ListenApiCF listen = 1 [json_name = "listen", (validate.rules).message.required = true];
+  ListenPrivateApiCF listen = 1 [json_name = "listen", (validate.rules).message.required = true];
 }
 
 // ConfigurationFile represents kas configuration file.

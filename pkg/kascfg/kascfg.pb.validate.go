@@ -3804,6 +3804,179 @@ var _ListenApiCF_Network_InLookup = map[string]struct{}{
 	"unix": {},
 }
 
+// Validate checks the field values on ListenPrivateApiCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ListenPrivateApiCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListenPrivateApiCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListenPrivateApiCFMultiError, or nil if none found.
+func (m *ListenPrivateApiCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListenPrivateApiCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Address
+
+	if len(m.GetAuthenticationSecretFile()) < 1 {
+		err := ListenPrivateApiCFValidationError{
+			field:  "AuthenticationSecretFile",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for CertificateFile
+
+	// no validation rules for KeyFile
+
+	if d := m.GetMaxConnectionAge(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenPrivateApiCFValidationError{
+				field:  "MaxConnectionAge",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenPrivateApiCFValidationError{
+					field:  "MaxConnectionAge",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
+
+	// no validation rules for CaCertificateFile
+
+	if m.Network != nil {
+
+		if _, ok := _ListenPrivateApiCF_Network_InLookup[m.GetNetwork()]; !ok {
+			err := ListenPrivateApiCFValidationError{
+				field:  "Network",
+				reason: "value must be in list [tcp tcp4 tcp6 unix]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ListenPrivateApiCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListenPrivateApiCFMultiError is an error wrapping multiple validation errors
+// returned by ListenPrivateApiCF.ValidateAll() if the designated constraints
+// aren't met.
+type ListenPrivateApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListenPrivateApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListenPrivateApiCFMultiError) AllErrors() []error { return m }
+
+// ListenPrivateApiCFValidationError is the validation error returned by
+// ListenPrivateApiCF.Validate if the designated constraints aren't met.
+type ListenPrivateApiCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListenPrivateApiCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListenPrivateApiCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListenPrivateApiCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListenPrivateApiCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListenPrivateApiCFValidationError) ErrorName() string {
+	return "ListenPrivateApiCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListenPrivateApiCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListenPrivateApiCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListenPrivateApiCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListenPrivateApiCFValidationError{}
+
+var _ListenPrivateApiCF_Network_InLookup = map[string]struct{}{
+	"tcp":  {},
+	"tcp4": {},
+	"tcp6": {},
+	"unix": {},
+}
+
 // Validate checks the field values on ApiCF with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.

@@ -30,7 +30,7 @@ func TestValidation_Valid(t *testing.T) {
 					},
 				},
 				PrivateApi: &PrivateApiCF{
-					Listen: &ListenApiCF{
+					Listen: &ListenPrivateApiCF{
 						AuthenticationSecretFile: "/some/file",
 					},
 				},
