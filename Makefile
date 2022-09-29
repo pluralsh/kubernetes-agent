@@ -6,6 +6,7 @@ BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
 ifeq ($(GIT_TAG), )
 	GIT_TAG = "v0.0.0"
 endif
+BAZELISK_VERSION = v1.14.0
 
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
@@ -161,11 +162,30 @@ release-commit:
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
 gdk-install:
-	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
+	bazel run //cmd/kas:extract_kas_race -- "$(TARGET_DIRECTORY)"
+
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+.PHONY: omnibus-install
+omnibus-install:
+	# Run bazelisk via 'go run' instead of real bazel.
+	# bazel version is managed in .bazelversion file.
+	go run "github.com/bazelbuild/bazelisk@$(BAZELISK_VERSION)" \
+		run --@io_bazel_rules_go//go/toolchain:sdk_version=host \
+		//cmd/kas:extract_kas -- "$(TARGET_DIRECTORY)"
+
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+.PHONY: cng-install
+cng-install:
+	# Run bazelisk via 'go run' instead of real bazel.
+	# bazel version is managed in .bazelversion file.
+	go run "github.com/bazelbuild/bazelisk@$(BAZELISK_VERSION)" \
+		run --@io_bazel_rules_go//go/toolchain:sdk_version=host \
+		//cmd/kas:extract_kas -- "$(TARGET_DIRECTORY)"
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: kas
 kas:
+	echo "This target is deprecated. It will be removed in GitLab 16.0"
 	go build \
 		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit=$(GIT_COMMIT) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime=$(BUILD_TIME)" \
 		-o "$(TARGET_DIRECTORY)" ./cmd/kas

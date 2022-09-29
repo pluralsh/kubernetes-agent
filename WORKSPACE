@@ -8,11 +8,9 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "099a9fb96a376ccbbb7d291ed4ecbdfd42f6bc822ab77ae6f1b5cb9e914e94fa",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
-    ],
+    sha256 = "f40017dfe8678404e9e0efdeda50d44cf7a468bad41a9c9e87460b07d9b3abd0",
+    strip_prefix = "rules_go-3e0fcc4f47ed6a63b19aea036b05aed03a7e0b1e",
+    urls = ["https://github.com/bazelbuild/rules_go/archive/3e0fcc4f47ed6a63b19aea036b05aed03a7e0b1e.tar.gz"],
 )
 
 http_archive(
@@ -78,7 +76,7 @@ http_archive(
     ],
 )
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_download_sdk", "go_host_sdk", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -174,13 +172,20 @@ load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 
 bazel_skylib_workspace()
 
-go_rules_dependencies()
-
-go_register_toolchains(
+go_download_sdk(
+    name = "go_sdk",
     version = "1.18.6",
 )
 
-gazelle_dependencies()
+go_host_sdk(
+    name = "host_sdk",
+)
+
+go_rules_dependencies()
+
+go_register_toolchains()
+
+gazelle_dependencies(go_sdk = "go_sdk")
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
