@@ -51,17 +51,3 @@ multirun(
         "//pkg/ruby:extract_configuration_project_rpc_services_pb",
     ],
 )
-
-multirun(
-    name = "extract_binaries_for_gdk",
-    commands = [
-        "//cmd/kas:extract_kas",
-    ],
-)
-
-multirun(
-    name = "extract_race_binaries_for_gdk",
-    commands = [
-        "//cmd/kas:extract_kas_race",
-    ],
-)
