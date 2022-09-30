@@ -1,7 +1,8 @@
 SHELL = /usr/bin/env bash -eo pipefail
 
-GIT_COMMIT = $(shell git rev-parse --short HEAD)
-GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
+# git invocations must be conditional because git is not available in e.g. CNG and variables are supplied manually.
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
+GIT_TAG ?= $(shell git tag --points-at HEAD 2>/dev/null || true)
 BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
 ifeq ($(GIT_TAG), )
 	GIT_TAG = "v0.0.0"
