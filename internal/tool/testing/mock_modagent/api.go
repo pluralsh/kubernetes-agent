@@ -37,6 +37,21 @@ func (m *MockApi) EXPECT() *MockApiMockRecorder {
 	return m.recorder
 }
 
+// GetAgentId mocks base method.
+func (m *MockApi) GetAgentId(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAgentId", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAgentId indicates an expected call of GetAgentId.
+func (mr *MockApiMockRecorder) GetAgentId(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentId", reflect.TypeOf((*MockApi)(nil).GetAgentId), arg0)
+}
+
 // HandleProcessingError mocks base method.
 func (m *MockApi) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, arg2 int64, arg3 string, arg4 error) {
 	m.ctrl.T.Helper()
@@ -67,6 +82,21 @@ func (mr *MockApiMockRecorder) MakeGitLabRequest(arg0, arg1 interface{}, arg2 ..
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeGitLabRequest", reflect.TypeOf((*MockApi)(nil).MakeGitLabRequest), varargs...)
+}
+
+// TryGetAgentId mocks base method.
+func (m *MockApi) TryGetAgentId() (int64, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TryGetAgentId")
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// TryGetAgentId indicates an expected call of TryGetAgentId.
+func (mr *MockApiMockRecorder) TryGetAgentId() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryGetAgentId", reflect.TypeOf((*MockApi)(nil).TryGetAgentId))
 }
 
 // MockFactory is a mock of Factory interface.

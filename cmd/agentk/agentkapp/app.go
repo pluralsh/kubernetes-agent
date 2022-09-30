@@ -233,6 +233,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
 				moduleName: moduleName,
+				agentId:    a.AgentId,
 				client:     accessClient,
 			},
 			K8sUtilFactory:     k8sFactory,

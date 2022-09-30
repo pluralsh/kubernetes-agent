@@ -256,6 +256,7 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 	clientStream := mock_gitlab_access.NewMockGitlabAccess_MakeRequestClient(ctrl)
 	return &agentAPI{
 		moduleName: moduleName,
+		agentId:    NewAgentIdHolder(),
 		client:     client,
 	}, client, clientStream
 }
