@@ -50,6 +50,8 @@ type GitLabResponse struct {
 type Api interface {
 	modshared.Api
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
+	GetAgentId(ctx context.Context) (int64, error)
+	TryGetAgentId() (int64, bool)
 }
 
 // RpcApi provides the API for the module's gRPC handlers to use.

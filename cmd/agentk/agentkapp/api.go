@@ -23,7 +23,16 @@ import (
 // agentAPI is an implementation of modagent.API.
 type agentAPI struct {
 	moduleName string
+	agentId    *AgentIdHolder
 	client     gitlab_access_rpc.GitlabAccessClient
+}
+
+func (a *agentAPI) GetAgentId(ctx context.Context) (int64, error) {
+	return a.agentId.get(ctx)
+}
+
+func (a *agentAPI) TryGetAgentId() (int64, bool) {
+	return a.agentId.tryGet()
 }
 
 func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
