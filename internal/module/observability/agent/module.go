@@ -21,11 +21,11 @@ type module struct {
 	grpcLogLevel        zap.AtomicLevel
 	defaultGrpcLogLevel agentcfg.LogLevelEnum
 	api                 modshared.Api
+	listener            func() (net.Listener, error)
 	serverName          string
 }
 
 const (
-	listenAddress         = ":8080"
 	prometheusUrlPath     = "/metrics"
 	livenessProbeUrlPath  = "/liveness"
 	readinessProbeUrlPath = "/readiness"
@@ -55,9 +55,9 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 			})
 			// Start metrics server
 			stage.Go(func(ctx context.Context) error {
-				lis, err := net.Listen("tcp", listenAddress) // nolint:gosec
+				lis, err := m.listener()
 				if err != nil {
-					return fmt.Errorf("Observability listener failed to start: %w", err)
+					return fmt.Errorf("observability listener failed to start: %w", err)
 				}
 				// Error is ignored because metricSrv.Run() closes the listener and
 				// a second close always produces an error.
