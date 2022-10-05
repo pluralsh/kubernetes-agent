@@ -82,11 +82,13 @@ type App struct {
 	AgentMeta    *modshared.AgentMeta
 	AgentId      *AgentIdHolder
 	// KasAddress specifies the address of kas.
-	KasAddress         string
-	ServiceAccountName string
-	CACertFile         string
-	TokenFile          string
-	K8sClientGetter    genericclioptions.RESTClientGetter
+	KasAddress            string
+	KasCACertFile         string
+	ServiceAccountName    string
+	ObservabilityCertFile string
+	ObservabilityKeyFile  string
+	TokenFile             string
+	K8sClientGetter       genericclioptions.RESTClientGetter
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -214,6 +216,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&observability_agent.Factory{
 			LogLevel:            a.LogLevel,
 			GrpcLogLevel:        a.GrpcLogLevel,
+			CertFile:            a.ObservabilityCertFile,
+			KeyFile:             a.ObservabilityKeyFile,
 			DefaultGrpcLogLevel: defaultGrpcLogLevel,
 		},
 		&manifestops.Factory{},
@@ -261,7 +265,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		return nil, fmt.Errorf("token file: %w", err)
 	}
 	tokenData = bytes.TrimSuffix(tokenData, []byte{'\n'})
-	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.KasCACertFile)
 	if err != nil {
 		return nil, err
 	}
@@ -435,8 +439,13 @@ func NewCommand() *cobra.Command {
 	}
 	f := c.Flags()
 	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
-	f.StringVar(&a.CACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format")
 	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
+
+	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
+
+	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "Optional file with X.509 certificate in PEM format. User for observability endpoint TLS")
+	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "Optional file with X.509 key in PEM format. User for observability endpoint TLS")
+
 	kubeConfigFlags.AddFlags(f)
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
 	cobra.CheckErr(c.MarkFlagRequired("token-file"))
