@@ -9,4 +9,4 @@ It's implemented as two communicating pieces - GitLab Agent (`agentk`) that is r
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Third-party trademarks
-[Kubernetes](https://kubernetes.io/) is a registered trademark of The Linux Foundation.
+[Kubernetes](https://kubernetes.io/) is a registered trademark of [The Linux Foundation](https://www.linuxfoundation.org/).
