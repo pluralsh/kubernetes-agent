@@ -74,6 +74,7 @@ func TestValidation_Valid(t *testing.T) {
 			Name: "minimal Environment",
 			Valid: &Environment{
 				Slug: "prod",
+				Tier: "production",
 			},
 		},
 		{

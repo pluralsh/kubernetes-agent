@@ -1017,6 +1017,17 @@ func (m *Environment) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	if len(m.GetTier()) < 1 {
+		err := EnvironmentValidationError{
+			field:  "Tier",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if len(errors) > 0 {
 		return EnvironmentMultiError(errors)
 	}
