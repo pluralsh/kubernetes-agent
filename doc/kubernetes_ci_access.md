@@ -31,6 +31,9 @@ ci_access:
   projects:
     - id: group1/group1-1/project1
       default_namespace: namespace-to-use-as-default
+      environments:
+        - staging
+        - review/*
       access_as:
         agent: {}
         impersonate:
@@ -50,6 +53,7 @@ ci_access:
   groups:
     - id: group2/group2-1
       default_namespace: ...
+      environments: ...
       access_as: ...
 ```
 
@@ -62,6 +66,9 @@ to its location on disk. The file contains a
 per GitLab Agent that this CI job is allowed to access.
 
 The `ci_access.projects[].default_namespace` specifies the namespace for the context used in the CI/CD tunnel. Omitting `default_namespace` does not set a namespace in the context.
+
+`ci_access.projects[].environments[]` restricts agent usage to CI jobs that deploy to a matching
+[environment](https://docs.gitlab.com/ee/ci/environments/). See [Branch and Environment restrictions](#branch-and-environment-restrictions).
 
 If the project, where the CI job is running, has certificate-based integration configured, then the generated
 configuration file contains contexts for both integrations. This allows users to use both integration
@@ -102,6 +109,23 @@ https://gitlab.com/gitlab-org/gitlab/-/issues/330591 and is initially out of sco
     value and the context's name are the only unique values across contexts.
   - `<CI_JOB_TOKEN>` is the value of the
     [`CI_JOB_TOKEN`](https://docs.gitlab.com/ee/user/project/new_ci_build_permissions_model.html#job-token) variable.
+
+### Branch and Environment restrictions
+
+When `ci_access.projects[].environments[]` is present in an agent's configuration, only CI jobs that deploy
+to a matching [environment](https://docs.gitlab.com/ee/ci/environments/) are allowed to use the agent.
+
+One or more environment entries can be specified, where each contains either the environment name or a wildcard
+[environment scope](https://docs.gitlab.com/ee/ci/environments/#scope-environments-with-specs). If the CI job's
+environment does not match any entries:
+
+- The injected configuration does not have a context for the agent.
+- The `allowed_agents` API response does not include the agent.
+
+Environments can also be specified at the group level with `ci_access.groups[].environments[]`. If a project is
+authorized multiple times (for example, at both the project and group level), only the most specific configuration
+is used and environment entries are not merged. See [`/api/v4/job/allowed_agents` API](#apiv4joballowed_agents-api)
+for details on configuration specificity.
 
 ### Identifiers
 
