@@ -20,12 +20,14 @@ import (
 )
 
 const (
-	envVarOwnPrivateApiUrl = "OWN_PRIVATE_API_URL"
+	envVarOwnPrivateApiUrl  = "OWN_PRIVATE_API_URL"
+	envVarOwnPrivateApiHost = "OWN_PRIVATE_API_HOST"
 )
 
 type App struct {
 	ConfigurationFile string
 	OwnPrivateApiUrl  string
+	OwnPrivateApiHost string
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -48,9 +50,10 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(log))
 	app := ConfiguredApp{
-		Log:              log,
-		Configuration:    cfg,
-		OwnPrivateApiUrl: a.OwnPrivateApiUrl,
+		Log:               log,
+		Configuration:     cfg,
+		OwnPrivateApiUrl:  a.OwnPrivateApiUrl,
+		OwnPrivateApiHost: a.OwnPrivateApiHost,
 	}
 	return app.Run(ctx)
 }
@@ -78,7 +81,8 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 
 func NewCommand() *cobra.Command {
 	a := App{
-		OwnPrivateApiUrl: os.Getenv(envVarOwnPrivateApiUrl),
+		OwnPrivateApiUrl:  os.Getenv(envVarOwnPrivateApiUrl),
+		OwnPrivateApiHost: os.Getenv(envVarOwnPrivateApiHost),
 	}
 	c := &cobra.Command{
 		Use:   "kas",
