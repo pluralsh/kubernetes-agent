@@ -1,11 +1,11 @@
 package server
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 	"net"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/rpc"
@@ -64,9 +64,13 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 					Log:          config.Log,
 					Client:       config.RedisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(agentToken interface{}) string {
-						key := api.AgentToken2key(agentToken.(api.AgentToken))
-						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(key)
+					KeyToRedisKey: func(key interface{}) string {
+						jobToken := key.(string)
+						// Hash half of the token. Even if that hash leaks, it's not a big deal.
+						// We do the same in api.AgentToken2key().
+						n := len(jobToken) / 2
+						tokenHash := sha256.Sum256([]byte(jobToken[:n]))
+						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(tokenHash[:])
 					},
 				},
 				gapi.IsCacheableError,

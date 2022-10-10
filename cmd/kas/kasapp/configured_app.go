@@ -331,9 +331,9 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 				Log:          a.Log,
 				Client:       redisClient,
 				ErrMarshaler: prototool.ProtoErrMarshaler{},
-				KeyToRedisKey: func(agentToken interface{}) string {
-					key := api.AgentToken2key(agentToken.(api.AgentToken))
-					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(key)
+				KeyToRedisKey: func(key interface{}) string {
+					k := api.AgentToken2key(key.(api.AgentToken))
+					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(k)
 				},
 			},
 			gapi.IsCacheableError,

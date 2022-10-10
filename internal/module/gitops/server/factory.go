@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -61,9 +62,15 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 					Log:          config.Log,
 					Client:       redisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(agentToken interface{}) string {
-						key := api.AgentToken2key(agentToken.(api.AgentToken))
-						return config.Config.Redis.KeyPrefix + ":project_info_errs:" + string(key)
+					KeyToRedisKey: func(key interface{}) string {
+						cacheKey := key.(projectInfoCacheKey)
+						var result strings.Builder
+						result.WriteString(config.Config.Redis.KeyPrefix)
+						result.WriteString(":project_info_errs:")
+						result.Write(api.AgentToken2key(cacheKey.agentToken))
+						result.WriteByte(':')
+						result.WriteString(cacheKey.projectId)
+						return result.String()
 					},
 				},
 				gapi.IsCacheableError,
