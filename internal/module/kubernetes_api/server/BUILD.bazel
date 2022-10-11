@@ -12,7 +12,6 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/server",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/api",
         "//internal/gitlab",
         "//internal/gitlab/api",
         "//internal/module/kubernetes_api",
