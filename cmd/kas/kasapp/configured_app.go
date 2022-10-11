@@ -91,9 +91,10 @@ const (
 )
 
 type ConfiguredApp struct {
-	Log              *zap.Logger
-	Configuration    *kascfg.ConfigurationFile
-	OwnPrivateApiUrl string
+	Log               *zap.Logger
+	Configuration     *kascfg.ConfigurationFile
+	OwnPrivateApiUrl  string
+	OwnPrivateApiHost string
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
@@ -358,6 +359,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 	if err != nil {
 		return nil, err
 	}
+	tlsCreds.ServerName = a.OwnPrivateApiHost
 	kasRoutingDuration := constructKasRoutingDurationHistogram()
 	err = metric.Register(registerer, kasRoutingDuration)
 	if err != nil {
@@ -625,6 +627,9 @@ func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tp trace.
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
 		return nil, err
+	}
+	if a.OwnPrivateApiHost == "" && len(credsOpt) > 0 {
+		return nil, fmt.Errorf("%s environment variable is not set. Set it to the kas' host name if you want to use TLS for kas->kas communication", envVarOwnPrivateApiHost)
 	}
 	serverOpts = append(serverOpts, credsOpt...)
 
