@@ -128,8 +128,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:B2cR/FAaiMtYDHv5BQpaqtkjGuWQIgr2KQZtHQ7f6i8=",
-    version = "v0.6.8",
+    sum = "h1:TvDcILLkjuZV3ER58VkBmncKsLUBqBDxra/XctCzuMM=",
+    version = "v0.6.13",
 )
 
 # Copied from rules_go to keep patches in place
@@ -174,7 +174,7 @@ bazel_skylib_workspace()
 
 go_download_sdk(
     name = "go_sdk",
-    version = "1.18.6",
+    version = "1.18.7",
 )
 
 go_host_sdk(
