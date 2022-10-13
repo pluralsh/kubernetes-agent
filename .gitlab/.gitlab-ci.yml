@@ -250,15 +250,16 @@ create_release:
 #    reports:
 #      lsif: dump.lsif
 
-container_scanning_agentk:
+container_scanning:
   extends: container_scanning
+  stage: scan
   variables:
     CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/agentk"
     CI_APPLICATION_TAG: latest
 
 # enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
 appsec_container_scanning:
-  stage: test
+  stage: scan
   image: ruby:3
   environment:
     name: appsec_container_scanning
