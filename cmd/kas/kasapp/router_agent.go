@@ -58,11 +58,7 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 		}
 		return err
 	}
-	return tunnel.ForwardStream(log, rpcApi, stream, wrappingCallback{
-		log:    log,
-		rpcApi: rpcApi,
-		stream: stream,
-	})
+	return tunnel.ForwardStream(log, rpcApi, stream, newWrappingCallback(log, rpcApi, stream))
 }
 
 func removeHopMeta(md metadata.MD) metadata.MD {
@@ -76,16 +72,34 @@ func removeHopMeta(md metadata.MD) metadata.MD {
 }
 
 var (
-	_ reverse_tunnel.TunnelDataCallback = wrappingCallback{}
+	_ reverse_tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
 )
 
 type wrappingCallback struct {
 	log    *zap.Logger
 	rpcApi modserver.RpcApi
 	stream grpc.ServerStream
+	// msgResp is an embedded Message response to allocate it only once, not for each message
+	msgResp GatewayKasResponse
+	data    *[]byte
 }
 
-func (c wrappingCallback) Header(md map[string]*prototool.Values) error {
+func newWrappingCallback(log *zap.Logger, rpcApi modserver.RpcApi, stream grpc.ServerStream) *wrappingCallback {
+	message := &GatewayKasResponse_Message{}
+	return &wrappingCallback{
+		log:    log,
+		rpcApi: rpcApi,
+		stream: stream,
+		msgResp: GatewayKasResponse{
+			Msg: &GatewayKasResponse_Message_{
+				Message: message,
+			},
+		},
+		data: &message.Data,
+	}
+}
+
+func (c *wrappingCallback) Header(md map[string]*prototool.Values) error {
 	return c.sendMsg("SendMsg(GatewayKasResponse_Header) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Header_{
 			Header: &GatewayKasResponse_Header{
@@ -95,17 +109,12 @@ func (c wrappingCallback) Header(md map[string]*prototool.Values) error {
 	})
 }
 
-func (c wrappingCallback) Message(data []byte) error {
-	return c.sendMsg("SendMsg(GatewayKasResponse_Message) failed", &GatewayKasResponse{
-		Msg: &GatewayKasResponse_Message_{
-			Message: &GatewayKasResponse_Message{
-				Data: data,
-			},
-		},
-	})
+func (c *wrappingCallback) Message(data []byte) error {
+	*c.data = data
+	return c.sendMsg("SendMsg(GatewayKasResponse_Message) failed", &c.msgResp)
 }
 
-func (c wrappingCallback) Trailer(md map[string]*prototool.Values) error {
+func (c *wrappingCallback) Trailer(md map[string]*prototool.Values) error {
 	return c.sendMsg("SendMsg(GatewayKasResponse_Trailer) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Trailer_{
 			Trailer: &GatewayKasResponse_Trailer{
@@ -115,7 +124,7 @@ func (c wrappingCallback) Trailer(md map[string]*prototool.Values) error {
 	})
 }
 
-func (c wrappingCallback) Error(stat *statuspb.Status) error {
+func (c *wrappingCallback) Error(stat *statuspb.Status) error {
 	return c.sendMsg("SendMsg(GatewayKasResponse_Error) failed", &GatewayKasResponse{
 		Msg: &GatewayKasResponse_Error_{
 			Error: &GatewayKasResponse_Error{
@@ -125,7 +134,7 @@ func (c wrappingCallback) Error(stat *statuspb.Status) error {
 	})
 }
 
-func (c wrappingCallback) sendMsg(errMsg string, msg *GatewayKasResponse) error {
+func (c *wrappingCallback) sendMsg(errMsg string, msg *GatewayKasResponse) error {
 	err := c.stream.SendMsg(msg)
 	if err != nil {
 		return c.rpcApi.HandleIoError(c.log, errMsg, err)
