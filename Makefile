@@ -5,8 +5,18 @@ GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_TAG ?= $(shell git tag --points-at HEAD 2>/dev/null || true)
 BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
 ifeq ($(GIT_TAG), )
-	GIT_TAG = "v0.0.0"
+	GIT_TAG = v0.0.0
 endif
+
+FIPS_TAG_GIT = $(CI_REGISTRY_IMAGE)/agentk-fips:$(GIT_TAG)
+FIPS_TAG_GIT_ARCH = $(FIPS_TAG_GIT)-$(ARCH)
+
+FIPS_TAG_STABLE = $(CI_REGISTRY_IMAGE)/agentk-fips:stable
+FIPS_TAG_STABLE_ARCH = $(FIPS_TAG_STABLE)-$(ARCH)
+
+LDFLAGS := -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version=$(GIT_TAG)"
+LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit=$(GIT_COMMIT)"
+LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime=$(BUILD_TIME)"
 
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
@@ -93,6 +103,13 @@ test: fmt update-bazel
 test-ci:
 	bazel test -- //... //cmd:push-latest //cmd/kas:container
 
+.PHONY: test-ci-fips
+test-ci-fips:
+	# No -race because it doesn't work on arm64: https://github.com/golang/go/issues/29948
+	# FATAL: ThreadSanitizer: unsupported VMA range
+	# FATAL: Found 39 - Supported 48
+	go test -v ./...
+
 .PHONY: verify-ci
 verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks fmt update-bazel update-repos
 	git add .
@@ -143,26 +160,65 @@ release-latest:
 release-tag-and-stable:
 	bazel run //cmd:push-tag-and-stable
 	build/push_multiarch_agentk.sh 'stable'
-	build/push_multiarch_agentk.sh "$(GIT_TAG)"
+	build/push_multiarch_agentk.sh '$(GIT_TAG)'
+
+# Build and push all FIPS docker images tagged with the tag on the current commit and as "stable".
+# This only works on a linux machine
+# Set ARCH to the desired CPU architecture.
+# Set CI_REGISTRY_IMAGE to the desired container image name.
+# Set BUILDER_IMAGE to the image to be used for building the agentk binary.
+.PHONY: release-tag-and-stable-fips
+release-tag-and-stable-fips:
+	docker buildx build --build-arg 'BUILDER_IMAGE=$(BUILDER_IMAGE)' --platform 'linux/$(ARCH)' --file build/agentk.ubi8-fips.Dockerfile --tag '$(FIPS_TAG_GIT_ARCH)' --tag '$(FIPS_TAG_STABLE_ARCH)' .
+	docker push '$(FIPS_TAG_GIT_ARCH)'
+	docker push '$(FIPS_TAG_STABLE_ARCH)'
+
+.PHONY: release-tag-and-stable-fips-manifest
+release-tag-and-stable-fips-manifest:
+	docker manifest create '$(FIPS_TAG_GIT)' \
+		--amend '$(FIPS_TAG_GIT)-amd64' \
+		--amend '$(FIPS_TAG_GIT)-arm64'
+	docker manifest push '$(FIPS_TAG_GIT)'
+	docker manifest create '$(FIPS_TAG_STABLE)' \
+		--amend '$(FIPS_TAG_STABLE)-amd64' \
+		--amend '$(FIPS_TAG_STABLE)-arm64'
+	docker manifest push '$(FIPS_TAG_STABLE)'
 
 # Build and push all docker images tagged with the tag on the current commit.
 # This only works on a linux machine
 .PHONY: release-tag
 release-tag:
 	bazel run //cmd:push-tag
-	build/push_multiarch_agentk.sh "$(GIT_TAG)"
+	build/push_multiarch_agentk.sh '$(GIT_TAG)'
+
+# Build and push all FIPS docker images tagged with the tag on the current commit.
+# This only works on a linux machine
+# Set ARCH to the desired CPU architecture.
+# Set CI_REGISTRY_IMAGE to the desired container image name.
+# Set BUILDER_IMAGE to the image to be used for building the agentk binary.
+.PHONY: release-tag-fips
+release-tag-fips:
+	docker buildx build --build-arg 'BUILDER_IMAGE=$(BUILDER_IMAGE)' --platform 'linux/$(ARCH)' --file build/agentk.ubi8-fips.Dockerfile --tag '$(FIPS_TAG_GIT_ARCH)' .
+	docker push '$(FIPS_TAG_GIT_ARCH)'
+
+.PHONY: release-tag-fips-manifest
+release-tag-fips-manifest:
+	docker manifest create '$(FIPS_TAG_GIT)' \
+		--amend '$(FIPS_TAG_GIT)-amd64' \
+		--amend '$(FIPS_TAG_GIT)-arm64'
+	docker manifest push '$(FIPS_TAG_GIT)'
 
 # Build and push all docker images tagged with as the current commit.
 # This only works on a linux machine
 .PHONY: release-commit
 release-commit:
 	bazel run //cmd:push-commit
-	build/push_multiarch_agentk.sh "$(GIT_COMMIT)"
+	build/push_multiarch_agentk.sh '$(GIT_COMMIT)'
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
 gdk-install:
-	bazel run //cmd/kas:extract_kas_race -- "$(TARGET_DIRECTORY)"
+	bazel run //cmd/kas:extract_kas_race -- '$(TARGET_DIRECTORY)'
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 # Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
@@ -172,8 +228,17 @@ gdk-install:
 .PHONY: kas
 kas:
 	go build \
-		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit=$(GIT_COMMIT) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime=$(BUILD_TIME)" \
-		-o "$(TARGET_DIRECTORY)" ./cmd/kas
+		-ldflags '$(LDFLAGS)' \
+		-o '$(TARGET_DIRECTORY)' ./cmd/kas
+
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+# Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
+# This target is used by FIPS build in this repo.
+.PHONY: agentk
+agentk:
+	go build \
+		-ldflags '$(LDFLAGS)' \
+		-o '$(TARGET_DIRECTORY)' ./cmd/agentk
 
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates

@@ -1,0 +1,16 @@
+**/BUILD.bazel
+**/*.bzl
+.gitlab
+build/deployment
+doc
+examples
+.bazelrc
+.bazelversion
+.editorconfig
+.gitignore
+.gitmodules
+.golangci.yml
+CONTRIBUTING.md
+LICENSE
+README.md
+WORKSPACE

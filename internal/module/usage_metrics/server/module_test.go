@@ -112,6 +112,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 }
 
 func TestSendUsageHttp(t *testing.T) {
+	t.SkipNow() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/319
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

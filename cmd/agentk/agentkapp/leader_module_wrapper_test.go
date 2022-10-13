@@ -195,6 +195,7 @@ func TestLMW_Run_RunnableThenNotRunnableStopError(t *testing.T) {
 }
 
 func TestLMW_Run_EarlyReturnNoError(t *testing.T) {
+	t.SkipNow() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/318
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
