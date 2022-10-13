@@ -251,7 +251,6 @@ create_release:
 #      lsif: dump.lsif
 
 container_scanning:
-  extends: container_scanning
   stage: scan
   variables:
     CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/agentk"
