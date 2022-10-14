@@ -44,6 +44,7 @@ func (f *kasStreamForwarder) ForwardStream(kasStream grpc.ClientStream, stream g
 
 func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, stream grpc.ServerStream) error {
 	var statusFromKasStream error
+	var frame grpctool.RawFrame // Outside the loop to allocate once vs on each message
 	err := f.gatewayKasVisitor.Visit(kasStream,
 		grpctool.WithStartState(tunnelReadyFieldNumber),
 		grpctool.WithCallback(headerFieldNumber, func(header *GatewayKasResponse_Header) error {
@@ -54,9 +55,8 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 			return nil
 		}),
 		grpctool.WithCallback(messageFieldNumber, func(message *GatewayKasResponse_Message) error {
-			err := stream.SendMsg(&grpctool.RawFrame{
-				Data: message.Data,
-			})
+			frame.Data = message.Data
+			err := stream.SendMsg(&frame)
 			if err != nil {
 				return f.rpcApi.HandleIoError(f.log, "router kas->stream SendMsg() failed", err)
 			}

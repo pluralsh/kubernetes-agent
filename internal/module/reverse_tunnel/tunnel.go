@@ -107,8 +107,15 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 			err = rpcApi.HandleIoError(log, "Send(ConnectResponse_RequestInfo)", err)
 			return err, err
 		}
+		// Outside the loop to allocate once vs on each message
+		var frame grpctool.RawFrame
+		var msg rpc.Message
+		response := &rpc.ConnectResponse{
+			Msg: &rpc.ConnectResponse_Message{
+				Message: &msg,
+			},
+		}
 		for {
-			var frame grpctool.RawFrame
 			err = incomingStream.RecvMsg(&frame)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
@@ -116,13 +123,8 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 				}
 				return status.Error(codes.Canceled, "read from incoming stream"), err
 			}
-			err = t.tunnel.Send(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_Message{
-					Message: &rpc.Message{
-						Data: frame.Data,
-					},
-				},
-			})
+			msg.Data = frame.Data
+			err = t.tunnel.Send(response)
 			if err != nil {
 				err = rpcApi.HandleIoError(log, "Send(ConnectResponse_Message)", err)
 				return err, err
