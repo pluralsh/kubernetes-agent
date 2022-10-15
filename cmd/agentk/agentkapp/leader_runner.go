@@ -51,7 +51,7 @@ type leaderRunner struct {
 	stopFunc         chan stopFuncReq
 	onStartedLeading chan struct{}
 	onStoppedLeading chan struct{}
-	funcs            map[int32]funcHolder
+	funcs            map[int32]*funcHolder
 	electorCancel    context.CancelFunc
 	idxCounter       int32
 	status           electorStatus
@@ -74,7 +74,7 @@ func newLeaderRunner(leaderElector LeaderElector) *leaderRunner {
 		stopFunc:         make(chan stopFuncReq),
 		onStartedLeading: make(chan struct{}),
 		onStoppedLeading: make(chan struct{}),
-		funcs:            make(map[int32]funcHolder),
+		funcs:            make(map[int32]*funcHolder),
 		status:           notRunning,
 	}
 }
@@ -121,7 +121,7 @@ func (r *leaderRunner) Run(ctx context.Context) {
 		case add := <-r.addFunc:
 			idx := r.idxCounter
 			r.idxCounter++
-			holder := funcHolder{
+			holder := &funcHolder{
 				f:      add.f,
 				cancel: func() {},
 				wait:   func() {},
@@ -174,9 +174,8 @@ func (r *leaderRunner) Run(ctx context.Context) {
 				// Nothing to do here.
 			case runningButNotLeader:
 				r.status = runningAndLeader
-				for idx, holder := range r.funcs {
+				for _, holder := range r.funcs {
 					holder.start() // nolint: contextcheck
-					r.funcs[idx] = holder
 				}
 			case runningAndLeader:
 				// This can happen if elector is stopped and started again really quickly and callback from the second

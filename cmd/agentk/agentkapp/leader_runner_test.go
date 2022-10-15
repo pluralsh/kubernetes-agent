@@ -132,6 +132,44 @@ func TestLR_RunLeaderRunStopStop(t *testing.T) {
 	<-stopped2
 }
 
+func TestLR_MultipleRunLeaderThenLeader(t *testing.T) {
+	ctx, cancel, lr, elector := setupLR(t)
+	startLeading := make(chan struct{})
+	elector.EXPECT().
+		Run(gomock.Any(), gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
+			<-startLeading
+			onStartedLeading()
+			<-ctx.Done()
+			onStoppedLeading()
+		})
+	var wg wait.Group
+	defer wg.Wait()
+	defer cancel()
+	wg.StartWithContext(ctx, lr.Run)
+	started1 := make(chan struct{})
+	stopped1 := make(chan struct{})
+	stop1 := lr.RunWhenLeader(func(ctx context.Context) {
+		close(started1)
+		<-ctx.Done()
+		close(stopped1)
+	})
+	started2 := make(chan struct{})
+	stopped2 := make(chan struct{})
+	stop2 := lr.RunWhenLeader(func(ctx context.Context) {
+		close(started2)
+		<-ctx.Done()
+		close(stopped2)
+	})
+	close(startLeading) // start leader election after multiple RunWhenLeader()
+	<-started1
+	<-started2
+	stop1()
+	stop2()
+	<-stopped1
+	<-stopped2
+}
+
 func TestLR_RunLeaderNotLeaderLeaderStop(t *testing.T) {
 	ctx, cancel, lr, elector := setupLR(t)
 
