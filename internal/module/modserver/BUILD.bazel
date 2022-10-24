@@ -36,6 +36,7 @@ go_library(
         "//internal/gitaly",
         "//internal/gitlab",
         "//internal/module/modshared",
+        "//internal/module/observability",
         "//internal/module/usage_metrics",
         "//pkg/kascfg",
         "@com_github_go_redis_redis_v8//:redis",

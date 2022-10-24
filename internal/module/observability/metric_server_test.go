@@ -1,4 +1,4 @@
-package observability
+package observability_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
 	"go.uber.org/zap/zaptest"
 )
@@ -22,16 +23,9 @@ func TestMetricServer(t *testing.T) {
 	require.NoError(t, err)
 	defer listener.Close()
 	logger := zaptest.NewLogger(t)
-	innerLivenessProbe := NoopProbe
-	innerReadinessProbe := NoopProbe
-	livenessProbe := func(ctx context.Context) error {
-		return innerLivenessProbe(ctx)
-	}
-	readinessProbe := func(ctx context.Context) error {
-		return innerReadinessProbe(ctx)
-	}
 	mockApi := mock_modserver.NewMockApi(ctrl)
-	metricSrv := MetricServer{
+	probeRegistry := observability.NewProbeRegistry()
+	metricSrv := observability.MetricServer{
 		Api:                   mockApi,
 		Log:                   logger,
 		Name:                  "test-server",
@@ -41,10 +35,9 @@ func TestMetricServer(t *testing.T) {
 		ReadinessProbeUrlPath: "/readiness",
 		Gatherer:              prometheus.DefaultGatherer,
 		Registerer:            prometheus.DefaultRegisterer,
-		LivenessProbe:         livenessProbe,
-		ReadinessProbe:        readinessProbe,
+		ProbeRegistry:         probeRegistry,
 	}
-	handler := metricSrv.constructHandler()
+	handler := metricSrv.ConstructHandler()
 
 	httpGet := func(t *testing.T, path string) *httptest.ResponseRecorder {
 		request, err := http.NewRequest("GET", path, nil) // nolint:noctx
@@ -63,44 +56,61 @@ func TestMetricServer(t *testing.T) {
 	})
 
 	t.Run("/liveness", func(t *testing.T) {
+		// succeeds when there are no probes
 		rec := httpGet(t, "/liveness")
 		httpResponse := rec.Result()
 		require.Equal(t, http.StatusOK, httpResponse.StatusCode)
 		require.Empty(t, rec.Body)
 		httpResponse.Body.Close()
 
-		expectedErr := fmt.Errorf("failed liveness on purpose")
-		innerLivenessProbe = func(context.Context) error {
-			return expectedErr
-		}
+		// fails when a probe fails
+		probeErr := fmt.Errorf("failed liveness on purpose")
+		expectedErr := fmt.Errorf("test-liveness: %w", probeErr)
+		probeRegistry.RegisterLivenessProbe("test-liveness", func(ctx context.Context) error {
+			return probeErr
+		})
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "LivenessProbe failed", expectedErr)
-
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed liveness on purpose\n", rec.Body.String())
+		require.Equal(t, "test-liveness: failed liveness on purpose\n", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 
 	t.Run("/readiness", func(t *testing.T) {
+		markReady := probeRegistry.RegisterReadinessToggle("test-readiness-toggle")
+
+		// fails when toggle has not been called
+		expectedErr := fmt.Errorf("test-readiness-toggle: %w", fmt.Errorf("not ready yet"))
+		mockApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "ReadinessProbe failed", expectedErr)
 		rec := httpGet(t, "/readiness")
 		httpResponse := rec.Result()
+		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
+		require.Equal(t, "test-readiness-toggle: not ready yet\n", rec.Body.String())
+		httpResponse.Body.Close()
+
+		// succeeds when toggle has been called
+		markReady()
+		rec = httpGet(t, "/readiness")
+		httpResponse = rec.Result()
 		require.Equal(t, http.StatusOK, httpResponse.StatusCode)
 		require.Empty(t, rec.Body)
 		httpResponse.Body.Close()
 
-		expectedErr := fmt.Errorf("failed readiness on purpose")
-		innerReadinessProbe = func(context.Context) error {
-			return expectedErr
-		}
+		// fails when a probe fails
+		probeErr := fmt.Errorf("failed readiness on purpose")
+		expectedErr = fmt.Errorf("test-readiness: %w", probeErr)
+		probeRegistry.RegisterReadinessProbe("test-readiness", func(ctx context.Context) error {
+			return probeErr
+		})
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), modshared.NoAgentId, "ReadinessProbe failed", expectedErr)
 
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed readiness on purpose\n", rec.Body.String())
+		require.Equal(t, "test-readiness: failed readiness on purpose\n", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 }
