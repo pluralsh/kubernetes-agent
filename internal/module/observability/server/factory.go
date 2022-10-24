@@ -12,9 +12,7 @@ import (
 )
 
 type Factory struct {
-	Gatherer       prometheus.Gatherer
-	LivenessProbe  observability.Probe
-	ReadinessProbe observability.Probe
+	Gatherer prometheus.Gatherer
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
@@ -35,15 +33,14 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		}
 	}
 	return &module{
-		log:            config.Log,
-		api:            config.Api,
-		cfg:            config.Config.Observability,
-		listener:       listener,
-		gatherer:       f.Gatherer,
-		registerer:     config.Registerer,
-		serverName:     fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
-		livenessProbe:  f.LivenessProbe,
-		readinessProbe: f.ReadinessProbe,
+		log:           config.Log,
+		api:           config.Api,
+		cfg:           config.Config.Observability,
+		listener:      listener,
+		gatherer:      f.Gatherer,
+		registerer:    config.Registerer,
+		serverName:    fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
+		probeRegistry: config.ProbeRegistry,
 	}, nil
 }
 

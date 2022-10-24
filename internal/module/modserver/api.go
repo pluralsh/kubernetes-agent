@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"go.opentelemetry.io/otel/metric"
@@ -74,6 +75,8 @@ type Config struct {
 	Version string
 	// CommitId is gitlab-kas commit sha.
 	CommitId string
+	// ProbeRegistry is for registering liveness probes and readiness probes
+	ProbeRegistry *observability.ProbeRegistry
 }
 
 // Api provides the API for the module to use.

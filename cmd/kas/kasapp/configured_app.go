@@ -116,6 +116,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	cfg := a.Configuration
 
+	// Probe Registry
+	probeRegistry := observability.NewProbeRegistry()
+
 	// Tracing
 	tp, p, tpStop, err := a.constructTracingTools(ctx)
 	if err != nil {
@@ -145,6 +148,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
 
 	// RPC API factory
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
@@ -154,18 +158,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
+	agentServerReadinessToggle := probeRegistry.RegisterReadinessToggle("agentServer")
 
 	// Server for handling external requests e.g. from GitLab
 	apiServer, err := a.constructApiServer(ctx, tp, p, ssh, rpcApiFactory)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
+	apiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("apiServer")
 
 	// Server for handling API requests from other kas instances
 	privateApiServer, err := a.constructPrivateApiServer(ctx, tp, p, ssh, rpcApiFactory)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
+	privateApiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("privateApiServer")
 
 	// Internal gRPC client->listener pipe
 	internalListener := grpctool.NewDialListener()
@@ -188,6 +195,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Construct internal gRPC server
 	internalServer := a.constructInternalServer(ctx, tp, p, rpcApiFactory)
+	internalServerReadinessToggle := probeRegistry.RegisterReadinessToggle("internalServer")
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
@@ -216,9 +224,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
-			Gatherer:       gatherer,
-			LivenessProbe:  observability.NoopProbe,
-			ReadinessProbe: constructReadinessProbe(redisClient),
+			Gatherer: gatherer,
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
@@ -269,6 +275,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			KasName:          kasName,
 			Version:          cmd.Version,
 			CommitId:         cmd.Commit,
+			ProbeRegistry:    probeRegistry,
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %w", factory.Name(), err)
@@ -304,13 +311,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// it's impossible for them to make a request to the internal server and get a failure because
 		// it has stopped already.
 		func(stage stager.Stage) {
-			a.startInternalServer(stage, internalServer, internalListener)
+			a.startInternalServer(stage, internalServer, internalListener, internalServerReadinessToggle)
 		},
 		// Start other gRPC servers.
 		func(stage stager.Stage) {
-			a.startAgentServer(stage, agentServer)
-			a.startApiServer(stage, apiServer)
-			a.startPrivateApiServer(stage, privateApiServer)
+			a.startAgentServer(stage, agentServer, agentServerReadinessToggle)
+			a.startApiServer(stage, apiServer, apiServerReadinessToggle)
+			a.startPrivateApiServer(stage, privateApiServer, privateApiServerReadinessToggle)
 		},
 	)
 }
@@ -408,7 +415,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 	}, nil
 }
 
-func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server) {
+func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, markReady func()) {
 	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Agent.Listen
 		var lis net.Listener
@@ -445,11 +452,14 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			logz.NetAddressFromAddr(addr),
 			logz.IsWebSocket(listenCfg.Websocket),
 		)
+
+		markReady()
+
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server) {
+func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func()) {
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Api.Listen
 		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
@@ -461,11 +471,12 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 			logz.NetNetworkFromAddr(addr),
 			logz.NetAddressFromAddr(addr),
 		)
+		markReady()
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server) {
+func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func()) {
 	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.PrivateApi.Listen
 		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
@@ -477,12 +488,14 @@ func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grp
 			logz.NetNetworkFromAddr(addr),
 			logz.NetAddressFromAddr(addr),
 		)
+		markReady()
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
+func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, markReady func()) {
 	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
+		markReady()
 		return internalListener, nil
 	})
 }
@@ -908,7 +921,7 @@ func constructKasRoutingDurationHistogram() *prometheus.HistogramVec {
 	}, []string{kasRoutingStatusLabelName})
 }
 
-func constructReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
+func constructRedisReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
 	return func(ctx context.Context) error {
 		status := redisClient.Ping(ctx)
 		err := status.Err()

@@ -2,9 +2,12 @@ package observability
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,6 +33,83 @@ func NoopProbe(context.Context) error {
 	return nil
 }
 
+func NewProbeRegistry() *ProbeRegistry {
+	return &ProbeRegistry{
+		liveness:  make(map[string]Probe),
+		readiness: make(map[string]Probe),
+	}
+}
+
+type ProbeRegistry struct {
+	mu        sync.Mutex
+	liveness  map[string]Probe
+	readiness map[string]Probe
+}
+
+type toggleValue struct {
+	mu    sync.Mutex
+	value bool
+}
+
+func (t *toggleValue) SetTrue() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.value = true
+}
+
+func (t *toggleValue) True() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.value
+}
+
+func (p *ProbeRegistry) RegisterLivenessProbe(key string, probe Probe) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.liveness[key] = probe
+}
+
+func (p *ProbeRegistry) RegisterReadinessProbe(key string, probe Probe) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.readiness[key] = probe
+}
+
+func (p *ProbeRegistry) Liveness(ctx context.Context) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return execProbeMap(ctx, p.liveness)
+}
+
+func (p *ProbeRegistry) Readiness(ctx context.Context) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return execProbeMap(ctx, p.readiness)
+}
+
+func (p *ProbeRegistry) RegisterReadinessToggle(key string) func() {
+	var value toggleValue
+	p.RegisterReadinessProbe(key, func(ctx context.Context) error {
+		if value.True() {
+			return nil
+		}
+		return errors.New("not ready yet")
+	})
+	return value.SetTrue
+}
+
+func execProbeMap(ctx context.Context, probes map[string]Probe) error {
+	var err error
+	for key, probe := range probes {
+		err = probe(ctx)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", key, err)
+			return err
+		}
+	}
+	return nil
+}
+
 type MetricServer struct {
 	Log *zap.Logger
 	Api modshared.Api
@@ -41,13 +121,12 @@ type MetricServer struct {
 	ReadinessProbeUrlPath string
 	Gatherer              prometheus.Gatherer
 	Registerer            prometheus.Registerer
-	LivenessProbe         Probe
-	ReadinessProbe        Probe
+	ProbeRegistry         *ProbeRegistry
 }
 
 func (s *MetricServer) Run(ctx context.Context) error {
 	srv := &http.Server{ // nolint: gosec
-		Handler:      s.constructHandler(), // nolint: contextcheck
+		Handler:      s.ConstructHandler(), // nolint: contextcheck
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
@@ -55,7 +134,7 @@ func (s *MetricServer) Run(ctx context.Context) error {
 	return httpz.RunServer(ctx, srv, s.Listener, shutdownTimeout)
 }
 
-func (s *MetricServer) constructHandler() http.Handler {
+func (s *MetricServer) ConstructHandler() http.Handler {
 	mux := http.NewServeMux()
 	s.probesHandler(mux) // nolint: contextcheck
 	s.pprofHandler(mux)
@@ -74,7 +153,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.LivenessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			err := s.LivenessProbe(request.Context())
+			err := s.ProbeRegistry.Liveness(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "LivenessProbe failed", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -86,7 +165,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.ReadinessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			err := s.ReadinessProbe(request.Context())
+			err := s.ProbeRegistry.Readiness(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "ReadinessProbe failed", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
