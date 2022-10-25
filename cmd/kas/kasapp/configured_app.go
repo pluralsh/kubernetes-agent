@@ -14,7 +14,6 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-redis/redis/v8"
-	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd"
@@ -49,7 +48,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v15/client"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -61,11 +59,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
@@ -79,8 +75,7 @@ const (
 	routingBackoffFactor   = 2.0
 	routingJitter          = 1.0
 
-	authSecretLength      = 32
-	defaultMaxMessageSize = 10 * 1024 * 1024
+	authSecretLength = 32
 
 	kasName = "gitlab-kas"
 
@@ -113,8 +108,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-
-	cfg := a.Configuration
 
 	// Probe Registry
 	probeRegistry := observability.NewProbeRegistry()
@@ -154,35 +147,29 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentServer, err := a.constructAgentServer(ctx, tp, redisClient, ssh, agentRpcApiFactory)
+	agentSrv, err := newAgentServer(ctx, a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
-	agentServerReadinessToggle := probeRegistry.RegisterReadinessToggle("agentServer")
 
 	// Server for handling external requests e.g. from GitLab
-	apiServer, err := a.constructApiServer(ctx, tp, p, ssh, rpcApiFactory)
+	apiSrv, err := newApiServer(ctx, a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
-	apiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("apiServer")
 
 	// Server for handling API requests from other kas instances
-	privateApiServer, err := a.constructPrivateApiServer(ctx, tp, p, ssh, rpcApiFactory)
+	privateApiSrv, err := newPrivateApiServer(ctx, a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
-	privateApiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("privateApiServer")
 
-	// Internal gRPC client->listener pipe
-	internalListener := grpctool.NewDialListener()
-
-	// Construct connection to internal gRPC server
-	internalServerConn, err := a.constructInternalServerConn(ctx, tp, p, internalListener.DialContext)
+	// Construct internal gRPC server
+	internalSrv, err := newInternalServer(ctx, tp, p, rpcApiFactory, probeRegistry)
 	if err != nil {
 		return err
 	}
-	defer errz.SafeClose(internalServerConn, &retErr)
+	defer errz.SafeClose(internalSrv.conn, &retErr)
 
 	// Reverse gRPC tunnel tracker
 	tunnelTracker := a.constructTunnelTracker(redisClient)
@@ -193,10 +180,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(ctx, tp, p, rpcApiFactory)
-	internalServerReadinessToggle := probeRegistry.RegisterReadinessToggle("internalServer")
-
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
 		tp,
@@ -204,8 +187,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		csh,
 		tunnelTracker,
 		tunnelRegistry,
-		internalServer,
-		privateApiServer,
+		internalSrv.server,
+		privateApiSrv.server,
 		registerer)
 	if err != nil {
 		return err
@@ -259,14 +242,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		module, err := factory.New(&modserver.Config{
 			Log:              a.Log.With(logz.ModuleName(factory.Name())),
 			Api:              serverApi,
-			Config:           cfg,
+			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
 			Registerer:       registerer,
 			UsageTracker:     usageTracker,
-			AgentServer:      agentServer,
-			ApiServer:        apiServer,
+			AgentServer:      agentSrv.server,
+			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,
-			AgentConn:        internalServerConn,
+			AgentConn:        internalSrv.conn,
 			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
@@ -311,13 +294,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// it's impossible for them to make a request to the internal server and get a failure because
 		// it has stopped already.
 		func(stage stager.Stage) {
-			a.startInternalServer(stage, internalServer, internalListener, internalServerReadinessToggle)
+			internalSrv.start(stage)
 		},
 		// Start other gRPC servers.
 		func(stage stager.Stage) {
-			a.startAgentServer(stage, agentServer, agentServerReadinessToggle)
-			a.startApiServer(stage, apiServer, apiServerReadinessToggle)
-			a.startPrivateApiServer(stage, privateApiServer, privateApiServerReadinessToggle)
+			agentSrv.Start(stage)
+			apiSrv.Start(stage)
+			privateApiSrv.Start(stage)
 		},
 	)
 }
@@ -413,272 +396,6 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 		kasRoutingDurationSuccess: kasRoutingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
 		kasRoutingDurationError:   kasRoutingDuration.WithLabelValues(kasRoutingStatusErrorLabelValue),
 	}, nil
-}
-
-func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, markReady func()) {
-	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
-		listenCfg := a.Configuration.Agent.Listen
-		var lis net.Listener
-		if listenCfg.Websocket { // Explicitly handle TLS for a WebSocket server
-			tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
-			if err != nil {
-				return nil, err
-			}
-			if tlsConfig != nil {
-				tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"} // h2 for gRPC, http/1.1 for WebSocket
-				lis, err = tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
-			} else {
-				lis, err = net.Listen(*listenCfg.Network, listenCfg.Address)
-			}
-			if err != nil {
-				return nil, err
-			}
-			wsWrapper := wstunnel.ListenerWrapper{
-				// TODO set timeouts
-				ReadLimit:  defaultMaxMessageSize,
-				ServerName: kasServerName(),
-			}
-			lis = wsWrapper.Wrap(lis, tlsConfig != nil)
-		} else {
-			var err error
-			lis, err = net.Listen(*listenCfg.Network, listenCfg.Address)
-			if err != nil {
-				return nil, err
-			}
-		}
-		addr := lis.Addr()
-		a.Log.Info("Agentk API endpoint is up",
-			logz.NetNetworkFromAddr(addr),
-			logz.NetAddressFromAddr(addr),
-			logz.IsWebSocket(listenCfg.Websocket),
-		)
-
-		markReady()
-
-		return lis, nil
-	})
-}
-
-func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func()) {
-	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
-		listenCfg := a.Configuration.Api.Listen
-		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
-		if err != nil {
-			return nil, err
-		}
-		addr := lis.Addr()
-		a.Log.Info("API endpoint is up",
-			logz.NetNetworkFromAddr(addr),
-			logz.NetAddressFromAddr(addr),
-		)
-		markReady()
-		return lis, nil
-	})
-}
-
-func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func()) {
-	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
-		listenCfg := a.Configuration.PrivateApi.Listen
-		lis, err := net.Listen(*listenCfg.Network, listenCfg.Address)
-		if err != nil {
-			return nil, err
-		}
-		addr := lis.Addr()
-		a.Log.Info("Private API endpoint is up",
-			logz.NetNetworkFromAddr(addr),
-			logz.NetAddressFromAddr(addr),
-		)
-		markReady()
-		return lis, nil
-	})
-}
-
-func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, markReady func()) {
-	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
-		markReady()
-		return internalListener, nil
-	})
-}
-
-func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tp trace.TracerProvider, redisClient redis.UniversalClient,
-	ssh stats.Handler, factory modserver.AgentRpcApiFactory) (*grpc.Server, error) {
-	listenCfg := a.Configuration.Agent.Listen
-	agentConnectionLimiter := redistool.NewTokenLimiter(
-		redisClient,
-		a.Configuration.Redis.KeyPrefix+":agent_limit",
-		uint64(listenCfg.ConnectionsPerTokenPerMinute),
-		func(ctx context.Context) redistool.RpcApi {
-			return &tokenLimiterApi{
-				rpcApi: modserver.AgentRpcApiFromContext(ctx),
-			}
-		},
-	)
-	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
-	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
-		grpc.StatsHandler(sh),
-		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
-			modserver.StreamAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
-			grpc_validator.StreamServerInterceptor(),                                                                      // x. wrap with validator
-			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
-		),
-		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
-			modserver.UnaryAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
-			grpc_validator.UnaryServerInterceptor(),                                                                      // x. wrap with validator
-			grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter),
-		),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             20 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		keepaliveOpt,
-	}
-
-	if !listenCfg.Websocket {
-		// If we are listening for WebSocket connections, gRPC server doesn't need TLS.
-		// TLS is handled by the HTTP/WebSocket server in this case.
-		credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		serverOpts = append(serverOpts, credsOpt...)
-	}
-
-	return grpc.NewServer(serverOpts...), nil
-}
-
-func (a *ConfiguredApp) constructApiServer(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator,
-	ssh stats.Handler, factory modserver.RpcApiFactory) (*grpc.Server, error) {
-	listenCfg := a.Configuration.Api.Listen
-	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %w", err)
-	}
-
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, "", kasName, func(ctx context.Context) *zap.Logger {
-		return modserver.RpcApiFromContext(ctx).Log()
-	})
-
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
-	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
-		grpc.StatsHandler(sh),
-		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
-		),
-		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
-		),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             20 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		keepaliveOpt,
-	}
-
-	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-	if err != nil {
-		return nil, err
-	}
-	serverOpts = append(serverOpts, credsOpt...)
-
-	return grpc.NewServer(serverOpts...), nil
-}
-
-func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator, ssh stats.Handler,
-	factory modserver.RpcApiFactory) (*grpc.Server, error) {
-	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %w", err)
-	}
-
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName, func(ctx context.Context) *zap.Logger {
-		return modserver.RpcApiFromContext(ctx).Log()
-	})
-
-	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
-		otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-		modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-		jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
-		grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
-	}
-	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
-		otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-		modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-		jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
-		grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
-	}
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
-	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
-		grpc.StatsHandler(sh),
-		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
-		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             20 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		keepaliveOpt,
-		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
-	}
-	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-	if err != nil {
-		return nil, err
-	}
-	if a.OwnPrivateApiHost == "" && len(credsOpt) > 0 {
-		return nil, fmt.Errorf("%s environment variable is not set. Set it to the kas' host name if you want to use TLS for kas->kas communication", envVarOwnPrivateApiHost)
-	}
-	serverOpts = append(serverOpts, credsOpt...)
-
-	return grpc.NewServer(serverOpts...), nil
-}
-
-func (a *ConfiguredApp) constructInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator,
-	factory modserver.RpcApiFactory) *grpc.Server {
-	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
-		grpc.ChainStreamInterceptor(
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
-			modserver.StreamRpcApiInterceptor(factory),                                                     // 2. inject RPC API
-		),
-		grpc.ChainUnaryInterceptor(
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
-			modserver.UnaryRpcApiInterceptor(factory),                                                     // 2. inject RPC API
-		),
-		grpc.ForceServerCodec(grpctool.RawCodec{}),
-	)
-}
-
-func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
-	return grpc.DialContext(ctx, "pipe",
-		grpc.WithContextDialer(dialContext),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithChainStreamInterceptor(
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
-			grpctool.StreamClientValidatingInterceptor,
-		),
-		grpc.WithChainUnaryInterceptor(
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
-			grpctool.UnaryClientValidatingInterceptor,
-		),
-	)
 }
 
 func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient) agent_tracker.Tracker {
