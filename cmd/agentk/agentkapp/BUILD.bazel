@@ -7,6 +7,7 @@ go_library(
         "agent_id.go",
         "api.go",
         "app.go",
+        "app_internal_server.go",
         "doc.go",
         "leader_module_wrapper.go",
         "leader_runner.go",
