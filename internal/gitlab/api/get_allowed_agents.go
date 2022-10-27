@@ -26,7 +26,7 @@ func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, 
 	if err != nil {
 		return nil, err
 	}
-	err = aa.Validate()
+	err = aa.ValidateAll()
 	if err != nil {
 		return nil, err
 	}

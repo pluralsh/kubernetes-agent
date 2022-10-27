@@ -331,36 +331,11 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			ErrString: "invalid GitLabCF.Address: value length must be at least 1 bytes",
-			Invalid: &GitLabCF{
-				AuthenticationSecretFile: "/some/file",
-			},
+			ErrString: "invalid GitLabCF.Address: value length must be at least 1 bytes; invalid GitLabCF.Address: value must be absolute; invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 bytes",
+			Invalid:   &GitLabCF{},
 		},
 		{
-			ErrString: "invalid GitLabCF.Address: value must be absolute",
-			Invalid: &GitLabCF{
-				Address:                  "/path",
-				AuthenticationSecretFile: "/some/file",
-			},
-		},
-		{
-			ErrString: "invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 bytes",
-			Invalid: &GitLabCF{
-				Address: "http://localhost:8080",
-			},
-		},
-		// TODO uncomment when Redis becomes a hard dependency
-		//{
-		//	ErrString: "invalid ConfigurationFile.Redis: value is required",
-		//	Invalid: &ConfigurationFile{
-		//		Gitlab: &GitLabCF{
-		//			Address:                  "http://localhost:8080",
-		//			AuthenticationSecretFile: "/some/file",
-		//		},
-		//	},
-		//},
-		{
-			ErrString: "invalid ConfigurationFile.Gitlab: value is required",
+			ErrString: "invalid ConfigurationFile.Gitlab: value is required; invalid ConfigurationFile.Redis: value is required; invalid ConfigurationFile.Api: value is required; invalid ConfigurationFile.PrivateApi: value is required",
 			Invalid:   &ConfigurationFile{},
 		},
 		{

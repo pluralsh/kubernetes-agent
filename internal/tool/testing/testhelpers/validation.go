@@ -7,7 +7,7 @@ import (
 )
 
 type Validatable interface {
-	Validate() error
+	ValidateAll() error
 }
 
 type InvalidTestcase struct {
@@ -23,7 +23,7 @@ type ValidTestcase struct {
 func AssertInvalid(t *testing.T, tests []InvalidTestcase) {
 	for _, tc := range tests {
 		t.Run(tc.ErrString, func(t *testing.T) {
-			err := tc.Invalid.Validate()
+			err := tc.Invalid.ValidateAll()
 			assert.EqualError(t, err, tc.ErrString)
 		})
 	}
@@ -32,7 +32,7 @@ func AssertInvalid(t *testing.T, tests []InvalidTestcase) {
 func AssertValid(t *testing.T, tests []ValidTestcase) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			assert.NoError(t, tc.Valid.Validate())
+			assert.NoError(t, tc.Valid.ValidateAll())
 		})
 	}
 }

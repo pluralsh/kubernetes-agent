@@ -98,14 +98,8 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			ErrString: "invalid ExtraKeyValCF.Key: value length must be at least 1 bytes",
+			ErrString: "invalid ExtraKeyValCF.Key: value length must be at least 1 bytes; invalid ExtraKeyValCF.Val: value must contain at least 1 item(s)",
 			Invalid:   &ExtraKeyValCF{},
-		},
-		{
-			ErrString: "invalid ExtraKeyValCF.Val: value must contain at least 1 item(s)",
-			Invalid: &ExtraKeyValCF{
-				Key: "1",
-			},
 		},
 	}
 	testhelpers.AssertInvalid(t, tests)

@@ -103,33 +103,12 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid:   &User{},
 		},
 		{
-			ErrString: "invalid Environment.Slug: value length must be at least 1 bytes",
+			ErrString: "invalid Environment.Slug: value length must be at least 1 bytes; invalid Environment.Tier: value length must be at least 1 bytes",
 			Invalid:   &Environment{},
 		},
 		{
-			ErrString: "invalid AllowedAgentsForJob.Job: value is required",
+			ErrString: "invalid AllowedAgentsForJob.Job: value is required; invalid AllowedAgentsForJob.Pipeline: value is required; invalid AllowedAgentsForJob.Project: value is required; invalid AllowedAgentsForJob.User: value is required",
 			Invalid:   &AllowedAgentsForJob{},
-		},
-		{
-			ErrString: "invalid AllowedAgentsForJob.Pipeline: value is required",
-			Invalid: &AllowedAgentsForJob{
-				Job: &Job{},
-			},
-		},
-		{
-			ErrString: "invalid AllowedAgentsForJob.Project: value is required",
-			Invalid: &AllowedAgentsForJob{
-				Job:      &Job{},
-				Pipeline: &Pipeline{},
-			},
-		},
-		{
-			ErrString: "invalid AllowedAgentsForJob.User: value is required",
-			Invalid: &AllowedAgentsForJob{
-				Job:      &Job{},
-				Pipeline: &Pipeline{},
-				Project:  &Project{},
-			},
 		},
 	}
 	testhelpers.AssertInvalid(t, tests)
