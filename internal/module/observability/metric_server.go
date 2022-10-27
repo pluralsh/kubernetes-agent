@@ -131,7 +131,7 @@ func (s *MetricServer) Run(ctx context.Context) error {
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
 	}
-	return httpz.RunServer(ctx, srv, s.Listener, shutdownTimeout)
+	return httpz.RunServer(ctx, srv, s.Listener, 0, shutdownTimeout)
 }
 
 func (s *MetricServer) ConstructHandler() http.Handler {

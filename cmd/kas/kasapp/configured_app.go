@@ -147,25 +147,25 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(ctx, a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry)
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(ctx, a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry)
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(ctx, a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry)
+	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(ctx, tp, p, rpcApiFactory, probeRegistry)
+	internalSrv, err := newInternalServer(tp, p, rpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// it's impossible for them to make a request to the internal server and get a failure because
 		// it has stopped already.
 		func(stage stager.Stage) {
-			internalSrv.start(stage)
+			internalSrv.Start(stage)
 		},
 		// Start other gRPC servers.
 		func(stage stager.Stage) {

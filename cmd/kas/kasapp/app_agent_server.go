@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 )
@@ -35,14 +36,20 @@ const (
 type agentServer struct {
 	log       *zap.Logger
 	listenCfg *kascfg.ListenAgentCF
+	tlsConfig *tls.Config
 	server    *grpc.Server
+	auxCancel context.CancelFunc
 	ready     func()
 }
 
-func newAgentServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
+func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
 	probeRegistry *observability.ProbeRegistry) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
+	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
+	}
 	agentConnectionLimiter := redistool.NewTokenLimiter(
 		redisClient,
 		cfg.Redis.KeyPrefix+":agent_limit",
@@ -53,6 +60,7 @@ func newAgentServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Configu
 			}
 		},
 	)
+	auxCtx, auxCancel := context.WithCancel(context.Background())
 	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
@@ -79,20 +87,18 @@ func newAgentServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Configu
 		keepaliveOpt,
 	}
 
-	if !listenCfg.Websocket {
-		// If we are listening for WebSocket connections, gRPC server doesn't need TLS.
-		// TLS is handled by the HTTP/WebSocket server in this case.
-		credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		serverOpts = append(serverOpts, credsOpt...)
+	if !listenCfg.Websocket && tlsConfig != nil {
+		// If we are listening for WebSocket connections, gRPC server doesn't need TLS as it's handled by the
+		// HTTP/WebSocket server. Otherwise, we handle it here (if configured).
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 	}
 
 	return &agentServer{
 		log:       log,
 		listenCfg: listenCfg,
+		tlsConfig: tlsConfig,
 		server:    grpc.NewServer(serverOpts...),
+		auxCancel: auxCancel,
 		ready:     probeRegistry.RegisterReadinessToggle("agentServer"),
 	}, nil
 }
@@ -100,14 +106,11 @@ func newAgentServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Configu
 func (s *agentServer) Start(stage stager.Stage) {
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
 		var lis net.Listener
+		var err error
 		if s.listenCfg.Websocket { // Explicitly handle TLS for a WebSocket server
-			tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(s.listenCfg.CertificateFile, s.listenCfg.KeyFile)
-			if err != nil {
-				return nil, err
-			}
-			if tlsConfig != nil {
-				tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"} // h2 for gRPC, http/1.1 for WebSocket
-				lis, err = tls.Listen(*s.listenCfg.Network, s.listenCfg.Address, tlsConfig)
+			if s.tlsConfig != nil {
+				s.tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"} // h2 for gRPC, http/1.1 for WebSocket
+				lis, err = tls.Listen(*s.listenCfg.Network, s.listenCfg.Address, s.tlsConfig)
 			} else {
 				lis, err = net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
 			}
@@ -119,9 +122,8 @@ func (s *agentServer) Start(stage stager.Stage) {
 				ReadLimit:  defaultMaxMessageSize,
 				ServerName: kasServerName(),
 			}
-			lis = wsWrapper.Wrap(lis, tlsConfig != nil)
+			lis = wsWrapper.Wrap(lis, s.tlsConfig != nil)
 		} else {
-			var err error
 			lis, err = net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
 			if err != nil {
 				return nil, err
@@ -137,5 +139,8 @@ func (s *agentServer) Start(stage stager.Stage) {
 		s.ready()
 
 		return lis, nil
+	}, func() {
+		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		s.auxCancel()
 	})
 }

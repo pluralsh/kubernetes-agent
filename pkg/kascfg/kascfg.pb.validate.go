@@ -97,6 +97,36 @@ func (m *ListenAgentCF) validate(all bool) error {
 		}
 	}
 
+	if d := m.GetListenGracePeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenAgentCFValidationError{
+				field:  "ListenGracePeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenAgentCFValidationError{
+					field:  "ListenGracePeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
+
 	if m.Network != nil {
 
 		if _, ok := _ListenAgentCF_Network_InLookup[m.GetNetwork()]; !ok {
@@ -1173,6 +1203,36 @@ func (m *ListenKubernetesApiCF) validate(all bool) error {
 	// no validation rules for CertificateFile
 
 	// no validation rules for KeyFile
+
+	if d := m.GetListenGracePeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenKubernetesApiCFValidationError{
+				field:  "ListenGracePeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenKubernetesApiCFValidationError{
+					field:  "ListenGracePeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
 
 	if m.Network != nil {
 
@@ -3705,6 +3765,36 @@ func (m *ListenApiCF) validate(all bool) error {
 		}
 	}
 
+	if d := m.GetListenGracePeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenApiCFValidationError{
+				field:  "ListenGracePeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenApiCFValidationError{
+					field:  "ListenGracePeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
+
 	if m.Network != nil {
 
 		if _, ok := _ListenApiCF_Network_InLookup[m.GetNetwork()]; !ok {
@@ -3874,6 +3964,36 @@ func (m *ListenPrivateApiCF) validate(all bool) error {
 	}
 
 	// no validation rules for CaCertificateFile
+
+	if d := m.GetListenGracePeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenPrivateApiCFValidationError{
+				field:  "ListenGracePeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenPrivateApiCFValidationError{
+					field:  "ListenGracePeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
 
 	if m.Network != nil {
 

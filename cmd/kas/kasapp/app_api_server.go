@@ -28,10 +28,11 @@ type apiServer struct {
 	log       *zap.Logger
 	listenCfg *kascfg.ListenApiCF
 	server    *grpc.Server
+	auxCancel context.CancelFunc
 	ready     func()
 }
 
-func newApiServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
+func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
 	probeRegistry *observability.ProbeRegistry) (*apiServer, error) {
 	listenCfg := cfg.Api.Listen
@@ -39,11 +40,16 @@ func newApiServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Configura
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
+	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
+	}
 
 	jwtAuther := grpctool.NewJWTAuther(jwtSecret, "", kasName, func(ctx context.Context) *zap.Logger {
 		return modserver.RpcApiFromContext(ctx).Log()
 	})
 
+	auxCtx, auxCancel := context.WithCancel(context.Background())
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(ssh),
@@ -69,16 +75,13 @@ func newApiServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Configura
 		keepaliveOpt,
 	}
 
-	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
-	if err != nil {
-		return nil, err
-	}
 	serverOpts = append(serverOpts, credsOpt...)
 
 	return &apiServer{
 		log:       log,
 		listenCfg: listenCfg,
 		server:    grpc.NewServer(serverOpts...),
+		auxCancel: auxCancel,
 		ready:     probeRegistry.RegisterReadinessToggle("apiServer"),
 	}, nil
 }
@@ -96,5 +99,8 @@ func (s *apiServer) Start(stage stager.Stage) {
 		)
 		s.ready()
 		return lis, nil
+	}, func() {
+		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		s.auxCancel()
 	})
 }

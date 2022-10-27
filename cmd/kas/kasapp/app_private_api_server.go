@@ -28,48 +28,17 @@ type privateApiServer struct {
 	log       *zap.Logger
 	listenCfg *kascfg.ListenPrivateApiCF
 	server    *grpc.Server
+	auxCancel context.CancelFunc
 	ready     func()
 }
 
-func newPrivateApiServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
+func newPrivateApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
 	ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry) (*privateApiServer, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
-	}
-
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName, func(ctx context.Context) *zap.Logger {
-		return modserver.RpcApiFromContext(ctx).Log()
-	})
-
-	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
-		otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-		modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-		jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
-		grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
-	}
-	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
-		otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-		modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-		jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
-		grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
-	}
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
-	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
-		grpc.StatsHandler(sh),
-		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
-		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             20 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		keepaliveOpt,
-		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -78,12 +47,44 @@ func newPrivateApiServer(auxCtx context.Context, log *zap.Logger, cfg *kascfg.Co
 	if ownPrivateApiHost == "" && len(credsOpt) > 0 {
 		return nil, fmt.Errorf("%s environment variable is not set. Set it to the kas' host name if you want to use TLS for kas->kas communication", envVarOwnPrivateApiHost)
 	}
+
+	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName, func(ctx context.Context) *zap.Logger {
+		return modserver.RpcApiFromContext(ctx).Log()
+	})
+
+	auxCtx, auxCancel := context.WithCancel(context.Background())
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
+	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(sh),
+		grpc.ChainStreamInterceptor(
+			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
+			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
+			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
+			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
+			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
+		),
+		grpc.ChainUnaryInterceptor(
+			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
+			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
+			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
+			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
+			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+		),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             20 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		keepaliveOpt,
+		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
+	}
 	serverOpts = append(serverOpts, credsOpt...)
 
 	return &privateApiServer{
 		log:       log,
 		listenCfg: listenCfg,
 		server:    grpc.NewServer(serverOpts...),
+		auxCancel: auxCancel,
 		ready:     probeRegistry.RegisterReadinessToggle("privateApiServer"),
 	}, nil
 }
@@ -101,5 +102,8 @@ func (s *privateApiServer) Start(stage stager.Stage) {
 		)
 		s.ready()
 		return lis, nil
+	}, func() {
+		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		s.auxCancel()
 	})
 }

@@ -18,6 +18,8 @@ const (
 	defaultGitLabApiRateLimitRefillRate = 10.0
 	defaultGitLabApiRateLimitBucketSize = 50
 
+	defaultListenGracePeriod = 5 * time.Second
+
 	defaultAgentInfoCacheTTL         = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL    = 1 * time.Minute
 	defaultAgentRedisConnInfoTTL     = 5 * time.Minute
@@ -91,6 +93,7 @@ func defaultApi(api *kascfg.ApiCF) {
 	prototool.StringPtr(&api.Listen.Network, defaultApiListenNetwork)
 	prototool.String(&api.Listen.Address, defaultApiListenAddress)
 	prototool.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
+	prototool.Duration(&api.Listen.ListenGracePeriod, defaultListenGracePeriod)
 }
 
 func defaultPrivateApi(api *kascfg.PrivateApiCF) {
@@ -98,6 +101,7 @@ func defaultPrivateApi(api *kascfg.PrivateApiCF) {
 	prototool.StringPtr(&api.Listen.Network, defaultPrivateApiListenNetwork)
 	prototool.String(&api.Listen.Address, defaultPrivateApiListenAddress)
 	prototool.Duration(&api.Listen.MaxConnectionAge, defaultPrivateApiListenMaxConnectionAge)
+	prototool.Duration(&api.Listen.ListenGracePeriod, defaultListenGracePeriod)
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {
@@ -112,6 +116,7 @@ func defaultAgent(a *kascfg.AgentCF) {
 	prototool.String(&a.Listen.Address, defaultAgentListenAddress)
 	prototool.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
 	prototool.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
+	prototool.Duration(&a.Listen.ListenGracePeriod, defaultListenGracePeriod)
 
 	prototool.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	prototool.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)

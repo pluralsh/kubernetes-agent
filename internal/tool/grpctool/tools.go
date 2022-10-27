@@ -58,7 +58,7 @@ func RequestTimedOut(err error) bool {
 	return false
 }
 
-func StartServer(stage stager.Stage, server *grpc.Server, listener func() (net.Listener, error)) {
+func StartServer(stage stager.Stage, server *grpc.Server, listener func() (net.Listener, error), onStop func()) {
 	stage.Go(func(ctx context.Context) error {
 		// gRPC listener
 		lis, err := listener()
@@ -69,6 +69,7 @@ func StartServer(stage stager.Stage, server *grpc.Server, listener func() (net.L
 	})
 	stage.Go(func(ctx context.Context) error {
 		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
+		onStop()
 		server.GracefulStop()
 		return nil
 	})

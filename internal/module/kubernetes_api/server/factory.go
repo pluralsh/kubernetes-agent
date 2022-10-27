@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"time"
 
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api"
@@ -19,6 +20,8 @@ import (
 )
 
 const (
+	shutdownTimeout = 15 * time.Second
+
 	k8sApiRequestCountKnownMetric        = "k8s_api_proxy_request"
 	usersCiTunnelInteractionsCountMetric = "agent_users_using_ci_tunnel"
 )
@@ -84,6 +87,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			serverName:           serverName,
 			serverVia:            "gRPC/1.0 " + serverName,
 			urlPathPrefix:        k8sApi.UrlPathPrefix,
+			listenerGracePeriod:  listenCfg.ListenGracePeriod.AsDuration(),
+			shutdownTimeout:      shutdownTimeout,
 		},
 		listener: listener,
 	}
