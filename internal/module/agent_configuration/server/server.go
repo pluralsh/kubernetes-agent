@@ -159,7 +159,7 @@ func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	if err != nil {
 		return nil, errz.NewUserErrorWithCause(err, "failed to parse agent configuration")
 	}
-	err = configFile.Validate()
+	err = configFile.ValidateAll()
 	if err != nil {
 		return nil, errz.NewUserErrorWithCause(err, "invalid agent configuration")
 	}

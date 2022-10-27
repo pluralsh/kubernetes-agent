@@ -72,7 +72,7 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 	if err != nil {
 		return nil, fmt.Errorf("protojson.Unmarshal: %w", err)
 	}
-	err = cfg.Validate()
+	err = cfg.ValidateAll()
 	if err != nil {
 		return nil, fmt.Errorf("kascfg.Validate: %w", err)
 	}
