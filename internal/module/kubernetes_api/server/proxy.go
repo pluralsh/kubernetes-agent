@@ -34,7 +34,6 @@ import (
 )
 
 const (
-	shutdownTimeout   = 15 * time.Second
 	readHeaderTimeout = 10 * time.Second
 	idleTimeout       = 1 * time.Minute
 
@@ -81,7 +80,9 @@ type kubernetesApiProxy struct {
 	serverName           string
 	serverVia            string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
-	urlPathPrefix string
+	urlPathPrefix       string
+	listenerGracePeriod time.Duration
+	shutdownTimeout     time.Duration
 }
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
@@ -98,7 +99,7 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 		ReadHeaderTimeout: readHeaderTimeout,
 		IdleTimeout:       idleTimeout,
 	}
-	return httpz.RunServer(ctx, srv, listener, shutdownTimeout)
+	return httpz.RunServer(ctx, srv, listener, p.listenerGracePeriod, p.shutdownTimeout)
 }
 
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {

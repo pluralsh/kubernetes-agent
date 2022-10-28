@@ -110,3 +110,20 @@ func (m serverMaxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.C
 
 func (m serverMaxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
 }
+
+type ServerNoopMaxConnAgeStatsHandler struct {
+}
+
+func (m ServerNoopMaxConnAgeStatsHandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
+	return AddMaxConnectionAgeContext(ctx, context.Background())
+}
+
+func (m ServerNoopMaxConnAgeStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStats) {
+}
+
+func (m ServerNoopMaxConnAgeStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+	return ctx
+}
+
+func (m ServerNoopMaxConnAgeStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
+}

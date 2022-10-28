@@ -22,12 +22,13 @@ type internalServer struct {
 	ready    func()
 }
 
-func newInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator,
+func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry) (*internalServer, error) {
 
 	// Internal gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
 
+	// Construct connection to internal gRPC server
 	conn, err := grpc.DialContext(context.Background(), "pipe", // nolint: contextcheck
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -45,7 +46,7 @@ func newInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propag
 	}
 	return &internalServer{
 		server: grpc.NewServer(
-			grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
+			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.ChainStreamInterceptor(
 				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
 				modserver.StreamRpcApiInterceptor(factory),                                                     // 2. inject RPC API
@@ -62,9 +63,9 @@ func newInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propag
 	}, nil
 }
 
-func (s *internalServer) start(stage stager.Stage) {
+func (s *internalServer) Start(stage stager.Stage) {
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
 		s.ready()
 		return s.listener, nil
-	})
+	}, func() {})
 }

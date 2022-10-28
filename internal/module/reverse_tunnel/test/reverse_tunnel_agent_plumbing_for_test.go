@@ -70,7 +70,7 @@ func agentConstructInternalServer(ctx context.Context) *grpc.Server {
 func agentStartInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
 	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
-	})
+	}, func() {})
 }
 
 func agentConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {

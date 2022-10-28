@@ -12,7 +12,6 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
-	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd"
@@ -103,18 +102,12 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(kasConn, &retErr)
 
-	// Internal gRPC client->listener pipe
-	internalListener := grpctool.NewDialListener()
-
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(ctx, tp, p)
-
-	// Construct connection to internal gRPC server
-	internalServerConn, err := a.constructInternalServerConn(ctx, internalListener.DialContext)
+	internalSrv, err := newInternalServer(a.Log, tp, p) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
-	defer errz.SafeClose(internalServerConn, &retErr)
+	defer errz.SafeClose(internalSrv.conn, &retErr)
 
 	// Construct Kubernetes tools.
 	k8sFactory := util.NewFactory(a.K8sClientGetter)
@@ -146,7 +139,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	})
 
 	// Construct agent modules
-	modules, internalModules, err := a.constructModules(internalServer, kasConn, internalServerConn, k8sFactory, lr)
+	modules, internalModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr)
 	if err != nil {
 		return err
 	}
@@ -175,7 +168,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		},
 		func(stage stager.Stage) {
 			// Start internal gRPC server. It is used by internal modules, so it is shut down after them.
-			a.startInternalServer(stage, internalServer, internalListener)
+			internalSrv.Start(stage)
 		},
 		func(stage stager.Stage) {
 			// Start modules that use internal server.
@@ -345,46 +338,6 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		return nil, fmt.Errorf("gRPC.dial: %w", err)
 	}
 	return conn, nil
-}
-
-func (a *App) constructInternalServer(auxCtx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator) *grpc.Server {
-	factory := func(ctx context.Context, method string) modagent.RpcApi {
-		return &agentRpcApi{
-			RpcApiStub: modshared.RpcApiStub{
-				Logger:    a.Log.With(logz.TraceIdFromContext(ctx)),
-				StreamCtx: ctx,
-			},
-		}
-	}
-	return grpc.NewServer(
-		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(auxCtx, 0)),
-		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modagent.StreamRpcApiInterceptor(factory),                                                      // 3. inject RPC API
-			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
-		),
-		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modagent.UnaryRpcApiInterceptor(factory),                                                      // 3. inject RPC API
-			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
-		),
-	)
-}
-
-func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
-	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
-		return internalListener, nil
-	})
-}
-
-func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
-	return grpc.DialContext(ctx, "pipe",
-		grpc.WithContextDialer(dialContext),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.ForceCodec(grpctool.RawCodec{})),
-	)
 }
 
 func NewCommand() *cobra.Command {

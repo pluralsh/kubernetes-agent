@@ -156,7 +156,7 @@ func serverConstructKasConnection(agentToken api.AgentToken, dialContext func(ct
 func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
 	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
-	})
+	}, func() {})
 }
 
 func serverConstructAgentServer(ctx context.Context, rpcApi modserver.AgentRpcApi) *grpc.Server {
@@ -181,7 +181,7 @@ func serverConstructAgentServer(ctx context.Context, rpcApi modserver.AgentRpcAp
 func serverStartAgentServer(stage stager.Stage, agentServer *grpc.Server, agentServerListener net.Listener) {
 	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		return agentServerListener, nil
-	})
+	}, func() {})
 }
 
 type serverRpcApiForTest struct {

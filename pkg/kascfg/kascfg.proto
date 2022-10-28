@@ -33,6 +33,8 @@ message ListenAgentCF {
   // Max age of a connection. Connection is closed gracefully once it's
   // too old and there is no streaming happening.
   google.protobuf.Duration max_connection_age = 7 [json_name = "max_connection_age", (validate.rules).duration = {gt: {}}];
+  // How much time to wait before stopping accepting new connections on shutdown.
+  google.protobuf.Duration listen_grace_period = 8 [json_name = "listen_grace_period", (validate.rules).duration = {gt: {}}];
 }
 
 message PrometheusCF {
@@ -128,6 +130,8 @@ message ListenKubernetesApiCF {
   // X.509 key file for TLS in PEM format.
   // TLS is enabled iff both certificate_file and key_file are provided.
   string key_file = 4 [json_name = "key_file"];
+  // How much time to wait before stopping accepting new connections on shutdown.
+  google.protobuf.Duration listen_grace_period = 5 [json_name = "listen_grace_period", (validate.rules).duration = {gt: {}}];
 }
 
 message KubernetesApiCF {
@@ -310,6 +314,8 @@ message ListenApiCF {
   // Max age of a connection. Connection is closed gracefully once it's
   // too old and there is no streaming happening.
   google.protobuf.Duration max_connection_age = 6 [json_name = "max_connection_age", (validate.rules).duration = {gt: {}}];
+  // How much time to wait before stopping accepting new connections on shutdown.
+  google.protobuf.Duration listen_grace_period = 7 [json_name = "listen_grace_period", (validate.rules).duration = {gt: {}}];
 }
 
 message ListenPrivateApiCF {
@@ -331,6 +337,8 @@ message ListenPrivateApiCF {
   // Optional X.509 CA certificate for TLS in PEM format.
   // Should be set for self-signed certificates.
   string ca_certificate_file = 7 [json_name = "ca_certificate_file"];
+  // How much time to wait before stopping accepting new connections on shutdown.
+  google.protobuf.Duration listen_grace_period = 8 [json_name = "listen_grace_period", (validate.rules).duration = {gt: {}}];
 }
 
 message ApiCF {
