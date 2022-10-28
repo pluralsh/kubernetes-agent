@@ -133,14 +133,20 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		w.WriteHeader(statusCode)
 	})
-	rpcApi := &serverAgentRpcApi{
-		RpcApi: &serverRpcApi{
-			RpcApiStub: modshared.RpcApiStub{
-				Logger:    log,
-				StreamCtx: ctx,
-			},
-			Hub: hub,
+	sra := &serverRpcApi{
+		RpcApiStub: modshared.RpcApiStub{
+			Logger:    log,
+			StreamCtx: ctx,
 		},
+		sentryHubRoot: sentry.NewHub(nil, sentry.NewScope()),
+		service:       "svc",
+		method:        "method",
+	}
+	sra.hub() // so that Once fires here and doesn't overwrite our mock later
+	sra.sentryHub = hub
+
+	rpcApi := &serverAgentRpcApi{
+		RpcApi:         sra,
 		Token:          testhelpers.AgentkToken,
 		GitLabClient:   gitLabClient,
 		AgentInfoCache: cache.NewWithError(0, 0, errCacher, func(err error) bool { return false }), // no cache!
