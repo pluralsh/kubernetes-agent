@@ -259,19 +259,18 @@ container_scanning:
 # enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
 appsec_container_scanning:
   stage: scan
-  image: ruby:3
+  image: registry.gitlab.com/gitlab-com/gl-security/appsec/container-scanners:latest
   environment:
     name: appsec_container_scanning
     action: prepare
-  before_script:
-    - cd .gitlab/ci
-    - bundle install
+  variables:
+    IMAGES:
   script:
-    - ./appsec-container-scan "$CI_REGISTRY_IMAGE/agentk:latest,$CI_REGISTRY_IMAGE/agentk:latest-race,$CI_REGISTRY_IMAGE/agentk-fips:stable" > gl-container-scanning-report.json
+    - /run/appsec-container-scan "$CI_REGISTRY_IMAGE/agentk:latest,$CI_REGISTRY_IMAGE/agentk:latest-race,$CI_REGISTRY_IMAGE/agentk-fips:stable" > gl-container-scanning-report.json
   artifacts:
     reports:
       container_scanning: .gitlab/ci/gl-container-scanning-report.json
   rules:
     # Skip on forks, because external contributors can't run this pipeline
-    - if: $PIPELINE_TRIGGER_TOKEN
+    - if: $CONTAINER_SCAN_PIPELINE_TRIGGER_TOKEN
       allow_failure: true
