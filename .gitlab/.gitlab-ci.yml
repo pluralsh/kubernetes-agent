@@ -267,7 +267,7 @@ appsec_container_scanning:
     - cd .gitlab/ci
     - bundle install
   script:
-    - ./appsec-container-scan "$CI_REGISTRY_IMAGE/agentk:latest, $CI_REGISTRY_IMAGE/agentk:latest-race, $(CI_REGISTRY_IMAGE)/agentk-fips:stable, $(FIPS_TAG_STABLE)-$(ARCH)" > gl-container-scanning-report.json
+    - ./appsec-container-scan "$CI_REGISTRY_IMAGE/agentk:latest,$CI_REGISTRY_IMAGE/agentk:latest-race,$CI_REGISTRY_IMAGE/agentk-fips:stable" > gl-container-scanning-report.json
   artifacts:
     reports:
       container_scanning: .gitlab/ci/gl-container-scanning-report.json
