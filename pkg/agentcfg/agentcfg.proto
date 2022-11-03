@@ -9,6 +9,7 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 
 // CF suffix stands for Configuration File, meaning a message is
 // part of ConfigurationFile.
@@ -86,9 +87,17 @@ message ChartSourceCF {
 message ChartCF {
   string release_name = 1 [json_name = "release_name", (validate.rules).string.min_bytes = 1];
   ChartSourceCF source = 2 [json_name = "source", (validate.rules).message.required = true];
-  reserved 3; // TODO values source
+  repeated ChartValuesCF values = 3 [json_name = "values"];
   optional string namespace = 4 [json_name = "namespace", (validate.rules).string.min_bytes = 1];
   optional int32 max_history = 5 [json_name = "max_history", (validate.rules).int32.gt = 0];
+}
+
+message ChartValuesCF {
+  oneof as {
+    option (validate.required) = true;
+
+    google.protobuf.Struct inline = 1 [json_name = "inline", (validate.rules).message.required = true];
+  }
 }
 
 message GitopsCF {
