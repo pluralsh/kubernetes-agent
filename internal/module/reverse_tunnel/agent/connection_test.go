@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -31,6 +32,7 @@ func TestPropagateUntilStop(t *testing.T) {
 	ctxParent, cancelParent := context.WithCancel(context.Background())
 	ctx, cancel, stop := propagateUntil(ctxParent)
 	stop()
+	runtime.Gosched()
 	cancelParent()
 	select {
 	case <-ctx.Done():
