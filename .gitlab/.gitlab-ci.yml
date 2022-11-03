@@ -16,13 +16,13 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3159885731
-  BUILD_IMAGE_SHA: "917a53ed1a0be62070be9c2be5991a95cc0108e0f6e2acc36fcd763051b4a94a"
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3171062563
-  FIPS_BUILD_IMAGE_SHA: "bcf8f745a13bfa2e0b3c344c91a536c17277d2f8510adb2ec38fb462d6a637d6"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3266525219
+  BUILD_IMAGE_SHA: "d11d7dc0b231806e4e6cee193c4675b39a99946fd7d27cae2051ea0de6e722fa"
+  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3266525222
+  FIPS_BUILD_IMAGE_SHA: "003937570420633a0b862223d132f775a79fc304a7965b72fc875af4beedcffc"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
-  DOCKER_VERSION: 20.10.18 # https://hub.docker.com/_/docker
+  DOCKER_VERSION: 20.10.21 # https://hub.docker.com/_/docker
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
