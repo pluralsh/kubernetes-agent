@@ -25,6 +25,8 @@ func TestConnManager_StartsMinIdleConnectionsOnRun(t *testing.T) {
 	defer cancel()
 	go cm.Run(ctx)
 	require.Eventually(t, func() bool {
+		cm.mu.Lock()
+		defer cm.mu.Unlock()
 		mu.Lock()
 		defer mu.Unlock()
 		return len(*conns) == int(cm.minIdleConnections)
