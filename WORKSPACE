@@ -244,6 +244,7 @@ load("@com_github_ash2k_bazel_tools//multirun:deps.bzl", "multirun_dependencies"
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
+load("@rules_proto_grpc//doc:repositories.bzl", rules_proto_grpc_doc_repos = "doc_repos")
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
@@ -259,6 +260,8 @@ rules_proto_grpc_go_repos()
 rules_proto_dependencies()
 
 rules_proto_toolchains()
+
+rules_proto_grpc_doc_repos()
 
 container_repositories()
 
