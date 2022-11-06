@@ -315,16 +315,15 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 	fAgent := serverAgentRpcApiFactory{
 		rpcApiFactory: f.New,
 		gitLabClient:  gitLabClient,
-		agentInfoCache: cache.NewWithError(
+		agentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
 			aCfg.InfoCacheTtl.AsDuration(),
 			aCfg.InfoCacheErrorTtl.AsDuration(),
-			&redistool.ErrCacher{
+			&redistool.ErrCacher[api.AgentToken]{
 				Log:          a.Log,
 				Client:       redisClient,
 				ErrMarshaler: prototool.ProtoErrMarshaler{},
-				KeyToRedisKey: func(key interface{}) string {
-					k := api.AgentToken2key(key.(api.AgentToken))
-					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(k)
+				KeyToRedisKey: func(key api.AgentToken) string {
+					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
 				},
 			},
 			gapi.IsCacheableError,

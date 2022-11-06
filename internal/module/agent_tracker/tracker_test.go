@@ -39,7 +39,7 @@ func TestRegisterConnection_HappyPath(t *testing.T) {
 		Set(info.AgentId, info.ConnectionId, gomock.Any()).
 		Return(nopIOFunc)
 	connectedAgents.EXPECT().
-		Set(nil, info.AgentId, gomock.Any()).
+		Set(connectedAgentsKey, info.AgentId, gomock.Any()).
 		Return(func(ctx context.Context) error {
 			cancel()
 			return nil
@@ -68,7 +68,7 @@ func TestRegisterConnection_AllCalledOnError(t *testing.T) {
 		Set(info.AgentId, info.ConnectionId, gomock.Any()).
 		Return(func(ctx context.Context) error { return err2 })
 	connectedAgents.EXPECT().
-		Set(nil, info.AgentId, gomock.Any()).
+		Set(connectedAgentsKey, info.AgentId, gomock.Any()).
 		Return(func(ctx context.Context) error {
 			cancel()
 			return err3
@@ -109,10 +109,10 @@ func TestUnregisterConnection_HappyPath(t *testing.T) {
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(nil, info.AgentId, gomock.Any()).
+			Set(connectedAgentsKey, info.AgentId, gomock.Any()).
 			Return(nopIOFunc),
 		connectedAgents.EXPECT().
-			Forget(nil, info.AgentId),
+			Forget(connectedAgentsKey, info.AgentId),
 	)
 	go func() {
 		assert.NoError(t, r.RegisterConnection(context.Background(), info))
@@ -153,10 +153,10 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(nil, info.AgentId, gomock.Any()).
+			Set(connectedAgentsKey, info.AgentId, gomock.Any()).
 			Return(nopIOFunc),
 		connectedAgents.EXPECT().
-			Forget(nil, info.AgentId),
+			Forget(connectedAgentsKey, info.AgentId),
 	)
 
 	go func() {
@@ -417,7 +417,7 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 func TestGetConnectedAgentsCount_HappyPath(t *testing.T) {
 	r, connectedAgents, _, _, _ := setupTracker(t)
 	connectedAgents.EXPECT().
-		Len(gomock.Any(), nil).
+		Len(gomock.Any(), connectedAgentsKey).
 		Return(int64(1), nil)
 	size, err := r.GetConnectedAgentsCount(context.Background())
 	require.NoError(t, err)
@@ -427,7 +427,7 @@ func TestGetConnectedAgentsCount_HappyPath(t *testing.T) {
 func TestGetConnectedAgentsCount_LenError(t *testing.T) {
 	r, connectedAgents, _, _, _ := setupTracker(t)
 	connectedAgents.EXPECT().
-		Len(gomock.Any(), gomock.Any()).
+		Len(gomock.Any(), connectedAgentsKey).
 		Return(int64(0), errors.New("intended error"))
 	size, err := r.GetConnectedAgentsCount(context.Background())
 	require.Error(t, err)
@@ -438,11 +438,11 @@ func nopIOFunc(ctx context.Context) error {
 	return nil
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface, *mock_redis.MockExpiringHashInterface, *mock_redis.MockExpiringHashInterface, *ConnectedAgentInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int], *mock_redis.MockExpiringHashInterface[int64], *mock_redis.MockExpiringHashInterface[int64], *ConnectedAgentInfo) {
 	ctrl := gomock.NewController(t)
-	connectedAgents := mock_redis.NewMockExpiringHashInterface(ctrl)
-	byAgentId := mock_redis.NewMockExpiringHashInterface(ctrl)
-	byProjectId := mock_redis.NewMockExpiringHashInterface(ctrl)
+	connectedAgents := mock_redis.NewMockExpiringHashInterface[int](ctrl)
+	byAgentId := mock_redis.NewMockExpiringHashInterface[int64](ctrl)
+	byProjectId := mock_redis.NewMockExpiringHashInterface[int64](ctrl)
 	tr := &RedisTracker{
 		log:                    zaptest.NewLogger(t),
 		refreshPeriod:          time.Minute,

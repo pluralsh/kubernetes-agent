@@ -14,13 +14,13 @@ const (
 )
 
 func TestEntry(t *testing.T) {
-	c := New(time.Minute)
+	c := New[int, int](time.Minute)
 	expires := time.Now().Add(time.Hour)
 	checkEntry := func() {
 		entry := c.GetOrCreateCacheEntry(key)
 		entry.Lock(context.Background())
 		defer entry.Unlock()
-		assert.False(t, entry.IsEmptyLocked())
+		assert.True(t, entry.HasItem)
 		assert.False(t, entry.IsExpiredLocked(time.Now()))
 		assert.False(t, entry.IsNeedRefreshLocked())
 		assert.Equal(t, itemVal, entry.Item)
@@ -30,20 +30,22 @@ func TestEntry(t *testing.T) {
 	entry.Lock(context.Background())
 	defer entry.Unlock()
 	go checkEntry() // started while holding the lock
-	assert.True(t, entry.IsEmptyLocked())
+	assert.False(t, entry.HasItem)
 	assert.True(t, entry.IsExpiredLocked(time.Now()))
 	assert.True(t, entry.IsNeedRefreshLocked())
 	entry.Item = itemVal
+	entry.HasItem = true
 	entry.Expires = expires
 }
 
 func TestEvictExpiredEntries_RemovesExpired(t *testing.T) {
-	c := New(time.Minute)
+	c := New[int, int](time.Minute)
 	func() { // init entry
 		entry := c.GetOrCreateCacheEntry(key)
 		entry.Lock(context.Background())
 		defer entry.Unlock()
 		entry.Item = itemVal
+		entry.HasItem = true
 		entry.Expires = time.Now().Add(-time.Second)
 	}()
 	c.EvictExpiredEntries()
@@ -55,7 +57,7 @@ func TestEvictExpiredEntries_RemovesExpired(t *testing.T) {
 }
 
 func TestEvictExpiredEntries_IgnoresBusy(t *testing.T) {
-	c := New(time.Minute)
+	c := New[int, int](time.Minute)
 	expires := time.Now().Add(-time.Second)
 	func() {
 		entry := c.GetOrCreateCacheEntry(key)
@@ -63,6 +65,7 @@ func TestEvictExpiredEntries_IgnoresBusy(t *testing.T) {
 		defer entry.Unlock()
 		entry.Expires = expires
 		entry.Item = itemVal
+		entry.HasItem = true
 		c.EvictExpiredEntries() // evict while locked
 	}()
 	entry := c.GetOrCreateCacheEntry(key)

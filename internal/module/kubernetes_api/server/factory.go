@@ -60,15 +60,14 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			api:                 config.Api,
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:        config.GitLabClient,
-			allowedAgentsCache: cache.NewWithError(
+			allowedAgentsCache: cache.NewWithError[string, *gapi.AllowedAgentsForJob](
 				k8sApi.AllowedAgentCacheTtl.AsDuration(),
 				k8sApi.AllowedAgentCacheErrorTtl.AsDuration(),
-				&redistool.ErrCacher{
+				&redistool.ErrCacher[string]{
 					Log:          config.Log,
 					Client:       config.RedisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(key interface{}) string {
-						jobToken := key.(string)
+					KeyToRedisKey: func(jobToken string) string {
 						// Hash half of the token. Even if that hash leaks, it's not a big deal.
 						// We do the same in api.AgentToken2key().
 						n := len(jobToken) / 2

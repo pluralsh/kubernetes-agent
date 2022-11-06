@@ -133,6 +133,7 @@ go_custom_test(
     ],
     embed = [":kasapp"],
     deps = [
+        "//internal/api",
         "//internal/gitlab/api",
         "//internal/module/modserver",
         "//internal/module/modshared",

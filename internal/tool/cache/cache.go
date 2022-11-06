@@ -7,42 +7,39 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 )
 
-type Entry struct {
+type Entry[V any] struct {
 	// protects state in this object.
 	syncz.Mutex
 	// Expires holds the time when this entry should be removed from the cache.
 	Expires time.Time
 	// Item is the cached item.
-	Item interface{}
+	Item    V
+	HasItem bool
 }
 
-func (e *Entry) IsNeedRefreshLocked() bool {
-	return e.IsEmptyLocked() || e.IsExpiredLocked(time.Now())
+func (e *Entry[V]) IsNeedRefreshLocked() bool {
+	return !e.HasItem || e.IsExpiredLocked(time.Now())
 }
 
-func (e *Entry) IsEmptyLocked() bool {
-	return e.Item == nil
-}
-
-func (e *Entry) IsExpiredLocked(t time.Time) bool {
+func (e *Entry[V]) IsExpiredLocked(t time.Time) bool {
 	return e.Expires.Before(t)
 }
 
-type Cache struct {
+type Cache[K comparable, V any] struct {
 	mu                    sync.Mutex
-	data                  map[interface{}]*Entry
+	data                  map[K]*Entry[V]
 	expirationCheckPeriod time.Duration
 	nextExpirationCheck   time.Time
 }
 
-func New(expirationCheckPeriod time.Duration) *Cache {
-	return &Cache{
-		data:                  make(map[interface{}]*Entry),
+func New[K comparable, V any](expirationCheckPeriod time.Duration) *Cache[K, V] {
+	return &Cache[K, V]{
+		data:                  make(map[K]*Entry[V]),
 		expirationCheckPeriod: expirationCheckPeriod,
 	}
 }
 
-func (c *Cache) EvictExpiredEntries() {
+func (c *Cache[K, V]) EvictExpiredEntries() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	now := time.Now()
@@ -64,21 +61,21 @@ func (c *Cache) EvictExpiredEntries() {
 	}
 }
 
-func (c *Cache) GetOrCreateCacheEntry(key interface{}) *Entry {
+func (c *Cache[K, V]) GetOrCreateCacheEntry(key K) *Entry[V] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	entry := c.data[key]
 	if entry != nil {
 		return entry
 	}
-	entry = &Entry{
+	entry = &Entry[V]{
 		Mutex: syncz.NewMutex(),
 	}
 	c.data[key] = entry
 	return entry
 }
 
-func (c *Cache) EvictEntry(key interface{}, entry *Entry) {
+func (c *Cache[K, V]) EvictEntry(key K, entry *Entry[V]) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	existingEntry := c.data[key]

@@ -70,7 +70,7 @@ type kubernetesApiProxy struct {
 	api                  modserver.Api
 	kubernetesApiClient  rpc.KubernetesApiClient
 	gitLabClient         gitlab.ClientInterface
-	allowedAgentsCache   *cache.CacheWithErr
+	allowedAgentsCache   *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
 	requestCounter       usage_metrics.Counter
 	ciTunnelUsersCounter usage_metrics.UniqueCounter
 	responseSerializer   runtime.NegotiatedSerializer
@@ -182,7 +182,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 }
 
 func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *zap.Logger, agentId int64, jobToken string) (*gapi.AllowedAgentsForJob, *grpctool.ErrResp) {
-	allowedForJob, err := p.allowedAgentsCache.GetItem(ctx, jobToken, func() (interface{}, error) {
+	allowedForJob, err := p.allowedAgentsCache.GetItem(ctx, jobToken, func() (*gapi.AllowedAgentsForJob, error) {
 		return gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
 	})
 	if err != nil {
@@ -212,7 +212,7 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *za
 			Err:        err,
 		}
 	}
-	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
+	return allowedForJob, nil
 }
 
 func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request,

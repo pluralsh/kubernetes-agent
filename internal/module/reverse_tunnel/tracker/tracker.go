@@ -41,7 +41,7 @@ type RedisTracker struct {
 
 	// mu protects fields below
 	mu               syncz.Mutex
-	tunnelsByAgentId redistool.ExpiringHashInterface // agentId -> connectionId -> TunnelInfo
+	tunnelsByAgentId redistool.ExpiringHashInterface[int64] // agentId -> connectionId -> TunnelInfo
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -50,7 +50,7 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		refreshPeriod:    refreshPeriod,
 		gcPeriod:         gcPeriod,
 		mu:               syncz.NewMutex(),
-		tunnelsByAgentId: redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
+		tunnelsByAgentId: redistool.NewExpiringHash[int64](client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
 	}
 }
 
@@ -156,9 +156,9 @@ func (c *TunnelInfoCollector) Collect(info *TunnelInfo) (bool, error) {
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled TunnelInfo).
-func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
+func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int64] {
 	prefix := agentKeyPrefix + ":conn_by_agent_id:"
-	return func(agentId interface{}) string {
-		return redistool.PrefixedInt64Key(prefix, agentId.(int64))
+	return func(agentId int64) string {
+		return redistool.PrefixedInt64Key(prefix, agentId)
 	}
 }
