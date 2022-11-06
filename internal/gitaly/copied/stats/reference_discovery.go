@@ -73,15 +73,16 @@ func ParseReferenceDiscovery(body io.Reader, cb ReferenceCb) error {
 				state = referenceDiscoveryExpectEnd
 				continue
 			}
-			split := bytes.SplitN(data, []byte{0}, 2)
-			if len(split) != 2 {
+			split0, _, found := bytes.Cut(data, []byte{0})
+			if !found {
 				return errors.New("invalid first reference line")
 			}
-			ref := bytes.SplitN(split[0], []byte{' '}, 2)
-			if len(ref) != 2 {
+
+			ref0, ref1, found := bytes.Cut(split0, []byte{' '})
+			if !found {
 				return errors.New("invalid reference line")
 			}
-			if cb(Reference{Oid: ref[0], Name: ref[1]}) {
+			if cb(Reference{Oid: ref0, Name: ref1}) {
 				return nil
 			}
 
@@ -92,11 +93,11 @@ func ParseReferenceDiscovery(body io.Reader, cb ReferenceCb) error {
 				continue
 			}
 
-			split := bytes.SplitN(data, []byte{' '}, 2)
-			if len(split) != 2 {
+			split0, split1, found := bytes.Cut(data, []byte{' '})
+			if !found {
 				return errors.New("invalid reference line")
 			}
-			if cb(Reference{Oid: split[0], Name: split[1]}) {
+			if cb(Reference{Oid: split0, Name: split1}) {
 				return nil
 			}
 		case referenceDiscoveryExpectEnd:
