@@ -54,7 +54,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 		return nil, errReq
 	}
 	pr, pw := io.Pipe()
-	val := newValueOrError(func(err error) error {
+	val := newValueOrError[*modagent.GitLabResponse](func(err error) error {
 		cancel()                   // 1. Cancel the other goroutine and the client.
 		_ = pw.CloseWithError(err) // 2. Close the "write side" of the pipe
 		return err
@@ -102,7 +102,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 		wg.Wait() // Wait for both goroutines to finish before returning
 		return nil, err
 	}
-	return resp.(*modagent.GitLabResponse), nil
+	return resp, nil
 }
 
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
@@ -227,24 +227,24 @@ func (c cancelingReadCloser) Close() error {
 // onError is a callback that is called on each SetError() invocation, regardless of whether a value or an error
 // has already been set.
 // Thread safe.
-type valueOrError struct {
+type valueOrError[T any] struct {
 	mu      sync.Mutex
 	locker  *sync.Cond
 	onError func(error) error
-	value   interface{}
+	value   T
 	err     error
 	isSet   bool
 }
 
-func newValueOrError(onError func(error) error) *valueOrError {
-	v := &valueOrError{
+func newValueOrError[T any](onError func(error) error) *valueOrError[T] {
+	v := &valueOrError[T]{
 		onError: onError,
 	}
 	v.locker = sync.NewCond(&v.mu)
 	return v
 }
 
-func (v *valueOrError) SetValue(value interface{}) {
+func (v *valueOrError[T]) SetValue(value T) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if v.isSet {
@@ -255,7 +255,7 @@ func (v *valueOrError) SetValue(value interface{}) {
 	v.locker.Broadcast()
 }
 
-func (v *valueOrError) SetError(err error) {
+func (v *valueOrError[T]) SetError(err error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	err = v.onError(err)
@@ -268,7 +268,7 @@ func (v *valueOrError) SetError(err error) {
 }
 
 // Wait returns a value or an error, blocking the caller until one of them is set.
-func (v *valueOrError) Wait() (interface{}, error) {
+func (v *valueOrError[T]) Wait() (T, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if !v.isSet {
