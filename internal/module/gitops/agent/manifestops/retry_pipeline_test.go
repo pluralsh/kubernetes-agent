@@ -5,30 +5,31 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/clock"
 )
 
 func TestRetryPipeline_LastInputOnly(t *testing.T) {
-	inputCh := make(chan inputT)
-	outputCh := make(chan outputT)
-	in1 := inputT{
+	inputCh := make(chan rpc.ObjectsToSynchronizeData)
+	outputCh := make(chan applyJob)
+	in1 := rpc.ObjectsToSynchronizeData{
 		ProjectId: 1,
 	}
-	in2 := inputT{
+	in2 := rpc.ObjectsToSynchronizeData{
 		ProjectId: 2,
 	}
-	out2 := outputT{
+	out2 := applyJob{
 		commitId: "2",
 	}
-	p := retryPipeline{
+	p := retryPipeline[rpc.ObjectsToSynchronizeData, applyJob]{
 		inputCh:      inputCh,
 		outputCh:     outputCh,
 		retryBackoff: backoffMgr(),
-		process: func(input inputT) (outputT, processResult) {
+		process: func(input rpc.ObjectsToSynchronizeData) (applyJob, processResult) {
 			switch input.ProjectId { // we can receive either value because `select` is not deterministic.
 			case in1.ProjectId:
-				return outputT{}, backoff // pretend there was an issue
+				return applyJob{}, backoff // pretend there was an issue
 			case in2.ProjectId:
 				return out2, success
 			default:
@@ -45,26 +46,26 @@ func TestRetryPipeline_LastInputOnly(t *testing.T) {
 }
 
 func TestRetryPipeline_LastOutputOnly(t *testing.T) {
-	inputCh := make(chan inputT)
-	outputCh := make(chan outputT)
+	inputCh := make(chan rpc.ObjectsToSynchronizeData)
+	outputCh := make(chan applyJob)
 	in2wait := make(chan struct{})
-	in1 := inputT{
+	in1 := rpc.ObjectsToSynchronizeData{
 		ProjectId: 1,
 	}
-	in2 := inputT{
+	in2 := rpc.ObjectsToSynchronizeData{
 		ProjectId: 2,
 	}
-	out1 := outputT{
+	out1 := applyJob{
 		commitId: "1",
 	}
-	out2 := outputT{
+	out2 := applyJob{
 		commitId: "2",
 	}
-	p := retryPipeline{
+	p := retryPipeline[rpc.ObjectsToSynchronizeData, applyJob]{
 		inputCh:      inputCh,
 		outputCh:     outputCh,
 		retryBackoff: backoffMgr(),
-		process: func(input inputT) (outputT, processResult) {
+		process: func(input rpc.ObjectsToSynchronizeData) (applyJob, processResult) {
 			switch input.ProjectId { // we can receive either value because `select` is not deterministic.
 			case in1.ProjectId:
 				return out1, success
