@@ -53,10 +53,11 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		fullMethod:    grpc.ServerTransportStreamFromContext(ctx).Method(),
 		agentId:       agentId,
 		outgoingCtx:   metadata.NewOutgoingContext(ctx, md),
+		pollConfig:    r.pollConfig,
 		foundTunnel:   tChan,
 		connections:   make(map[string]kasConnAttempt),
 	}
-	go tf.poll(ctx, r.pollConfig())
+	go tf.Run(ctx)
 	select {
 	case <-ctx.Done():
 		return nil, "", nil, status.FromContextError(ctx.Err()).Err()
