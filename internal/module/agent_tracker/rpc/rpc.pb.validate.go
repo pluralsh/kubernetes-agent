@@ -57,15 +57,38 @@ func (m *GetConnectedAgentsRequest) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Request.(type) {
-
+	oneofRequestPresent := false
+	switch v := m.Request.(type) {
 	case *GetConnectedAgentsRequest_ProjectId:
+		if v == nil {
+			err := GetConnectedAgentsRequestValidationError{
+				field:  "Request",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRequestPresent = true
 		// no validation rules for ProjectId
-
 	case *GetConnectedAgentsRequest_AgentId:
+		if v == nil {
+			err := GetConnectedAgentsRequestValidationError{
+				field:  "Request",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRequestPresent = true
 		// no validation rules for AgentId
-
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofRequestPresent {
 		err := GetConnectedAgentsRequestValidationError{
 			field:  "Request",
 			reason: "value is required",
@@ -74,7 +97,6 @@ func (m *GetConnectedAgentsRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

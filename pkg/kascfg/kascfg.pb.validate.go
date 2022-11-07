@@ -3157,9 +3157,20 @@ func (m *RedisCF) validate(all bool) error {
 		}
 	}
 
-	switch m.RedisConfig.(type) {
-
+	oneofRedisConfigPresent := false
+	switch v := m.RedisConfig.(type) {
 	case *RedisCF_Server:
+		if v == nil {
+			err := RedisCFValidationError{
+				field:  "RedisConfig",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRedisConfigPresent = true
 
 		if m.GetServer() == nil {
 			err := RedisCFValidationError{
@@ -3202,6 +3213,17 @@ func (m *RedisCF) validate(all bool) error {
 		}
 
 	case *RedisCF_Sentinel:
+		if v == nil {
+			err := RedisCFValidationError{
+				field:  "RedisConfig",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRedisConfigPresent = true
 
 		if m.GetSentinel() == nil {
 			err := RedisCFValidationError{
@@ -3244,6 +3266,9 @@ func (m *RedisCF) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofRedisConfigPresent {
 		err := RedisCFValidationError{
 			field:  "RedisConfig",
 			reason: "value is required",
@@ -3252,7 +3277,6 @@ func (m *RedisCF) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

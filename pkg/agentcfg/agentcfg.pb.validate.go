@@ -304,11 +304,21 @@ func (m *ManifestProjectCF) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	switch m.PruneOneof.(type) {
-
+	switch v := m.PruneOneof.(type) {
 	case *ManifestProjectCF_Prune:
+		if v == nil {
+			err := ManifestProjectCFValidationError{
+				field:  "PruneOneof",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for Prune
-
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
@@ -549,9 +559,20 @@ func (m *ChartSourceCF) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Source.(type) {
-
+	oneofSourcePresent := false
+	switch v := m.Source.(type) {
 	case *ChartSourceCF_Project:
+		if v == nil {
+			err := ChartSourceCFValidationError{
+				field:  "Source",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofSourcePresent = true
 
 		if m.GetProject() == nil {
 			err := ChartSourceCFValidationError{
@@ -594,6 +615,9 @@ func (m *ChartSourceCF) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofSourcePresent {
 		err := ChartSourceCFValidationError{
 			field:  "Source",
 			reason: "value is required",
@@ -602,7 +626,6 @@ func (m *ChartSourceCF) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -918,9 +941,20 @@ func (m *ChartValuesCF) validate(all bool) error {
 
 	var errors []error
 
-	switch m.As.(type) {
-
+	oneofAsPresent := false
+	switch v := m.As.(type) {
 	case *ChartValuesCF_Inline:
+		if v == nil {
+			err := ChartValuesCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
 
 		if m.GetInline() == nil {
 			err := ChartValuesCFValidationError{
@@ -963,6 +997,9 @@ func (m *ChartValuesCF) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofAsPresent {
 		err := ChartValuesCFValidationError{
 			field:  "As",
 			reason: "value is required",
@@ -971,7 +1008,6 @@ func (m *ChartValuesCF) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -1928,9 +1964,20 @@ func (m *CiAccessAsCF) validate(all bool) error {
 
 	var errors []error
 
-	switch m.As.(type) {
-
+	oneofAsPresent := false
+	switch v := m.As.(type) {
 	case *CiAccessAsCF_Agent:
+		if v == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
 
 		if m.GetAgent() == nil {
 			err := CiAccessAsCFValidationError{
@@ -1973,6 +2020,17 @@ func (m *CiAccessAsCF) validate(all bool) error {
 		}
 
 	case *CiAccessAsCF_Impersonate:
+		if v == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
 
 		if m.GetImpersonate() == nil {
 			err := CiAccessAsCFValidationError{
@@ -2015,6 +2073,17 @@ func (m *CiAccessAsCF) validate(all bool) error {
 		}
 
 	case *CiAccessAsCF_CiJob:
+		if v == nil {
+			err := CiAccessAsCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
 
 		if m.GetCiJob() == nil {
 			err := CiAccessAsCFValidationError{
@@ -2057,6 +2126,9 @@ func (m *CiAccessAsCF) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofAsPresent {
 		err := CiAccessAsCFValidationError{
 			field:  "As",
 			reason: "value is required",
@@ -2065,7 +2137,6 @@ func (m *CiAccessAsCF) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

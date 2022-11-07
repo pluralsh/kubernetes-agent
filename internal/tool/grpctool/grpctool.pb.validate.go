@@ -57,9 +57,20 @@ func (m *HttpRequest) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message.(type) {
-
+	oneofMessagePresent := false
+	switch v := m.Message.(type) {
 	case *HttpRequest_Header_:
+		if v == nil {
+			err := HttpRequestValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetHeader() == nil {
 			err := HttpRequestValidationError{
@@ -102,6 +113,17 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	case *HttpRequest_Data_:
+		if v == nil {
+			err := HttpRequestValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetData() == nil {
 			err := HttpRequestValidationError{
@@ -144,6 +166,17 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	case *HttpRequest_Trailer_:
+		if v == nil {
+			err := HttpRequestValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetTrailer() == nil {
 			err := HttpRequestValidationError{
@@ -186,6 +219,17 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	case *HttpRequest_UpgradeData_:
+		if v == nil {
+			err := HttpRequestValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetUpgradeData() == nil {
 			err := HttpRequestValidationError{
@@ -228,6 +272,9 @@ func (m *HttpRequest) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMessagePresent {
 		err := HttpRequestValidationError{
 			field:  "Message",
 			reason: "value is required",
@@ -236,7 +283,6 @@ func (m *HttpRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -338,9 +384,20 @@ func (m *HttpResponse) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message.(type) {
-
+	oneofMessagePresent := false
+	switch v := m.Message.(type) {
 	case *HttpResponse_Header_:
+		if v == nil {
+			err := HttpResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetHeader() == nil {
 			err := HttpResponseValidationError{
@@ -383,6 +440,17 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	case *HttpResponse_Data_:
+		if v == nil {
+			err := HttpResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetData() == nil {
 			err := HttpResponseValidationError{
@@ -425,6 +493,17 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	case *HttpResponse_Trailer_:
+		if v == nil {
+			err := HttpResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetTrailer() == nil {
 			err := HttpResponseValidationError{
@@ -467,6 +546,17 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	case *HttpResponse_UpgradeData_:
+		if v == nil {
+			err := HttpResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetUpgradeData() == nil {
 			err := HttpResponseValidationError{
@@ -509,6 +599,9 @@ func (m *HttpResponse) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMessagePresent {
 		err := HttpResponseValidationError{
 			field:  "Message",
 			reason: "value is required",
@@ -517,7 +610,6 @@ func (m *HttpResponse) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

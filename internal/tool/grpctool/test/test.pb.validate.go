@@ -166,15 +166,46 @@ func (m *Response) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message.(type) {
-
+	oneofMessagePresent := false
+	switch v := m.Message.(type) {
 	case *Response_Scalar:
+		if v == nil {
+			err := ResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 		// no validation rules for Scalar
-
 	case *Response_X1:
+		if v == nil {
+			err := ResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 		// no validation rules for X1
-
 	case *Response_Data_:
+		if v == nil {
+			err := ResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if all {
 			switch v := interface{}(m.GetData()).(type) {
@@ -206,6 +237,17 @@ func (m *Response) validate(all bool) error {
 		}
 
 	case *Response_Last_:
+		if v == nil {
+			err := ResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if all {
 			switch v := interface{}(m.GetLast()).(type) {
@@ -237,6 +279,9 @@ func (m *Response) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMessagePresent {
 		err := ResponseValidationError{
 			field:  "Message",
 			reason: "value is required",
@@ -245,7 +290,6 @@ func (m *Response) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -446,24 +490,61 @@ func (m *TwoOneofs) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message1.(type) {
-
+	switch v := m.Message1.(type) {
 	case *TwoOneofs_M11:
+		if v == nil {
+			err := TwoOneofsValidationError{
+				field:  "Message1",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M11
-
 	case *TwoOneofs_M12:
+		if v == nil {
+			err := TwoOneofsValidationError{
+				field:  "Message1",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M12
-
+	default:
+		_ = v // ensures v is used
 	}
-
-	switch m.Message2.(type) {
-
+	switch v := m.Message2.(type) {
 	case *TwoOneofs_M21:
+		if v == nil {
+			err := TwoOneofsValidationError{
+				field:  "Message2",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M21
-
 	case *TwoOneofs_M22:
+		if v == nil {
+			err := TwoOneofsValidationError{
+				field:  "Message2",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M22
-
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
@@ -565,24 +646,61 @@ func (m *TwoValidOneofs) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message1.(type) {
-
+	switch v := m.Message1.(type) {
 	case *TwoValidOneofs_M11:
+		if v == nil {
+			err := TwoValidOneofsValidationError{
+				field:  "Message1",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M11
-
 	case *TwoValidOneofs_M12:
+		if v == nil {
+			err := TwoValidOneofsValidationError{
+				field:  "Message1",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M12
-
+	default:
+		_ = v // ensures v is used
 	}
-
-	switch m.Message2.(type) {
-
+	switch v := m.Message2.(type) {
 	case *TwoValidOneofs_M21:
+		if v == nil {
+			err := TwoValidOneofsValidationError{
+				field:  "Message2",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M21
-
 	case *TwoValidOneofs_M22:
+		if v == nil {
+			err := TwoValidOneofsValidationError{
+				field:  "Message2",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M22
-
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
@@ -687,14 +805,33 @@ func (m *OutOfOneof) validate(all bool) error {
 
 	// no validation rules for X
 
-	switch m.Message.(type) {
-
+	switch v := m.Message.(type) {
 	case *OutOfOneof_M1:
+		if v == nil {
+			err := OutOfOneofValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M1
-
 	case *OutOfOneof_M2:
+		if v == nil {
+			err := OutOfOneofValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M2
-
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
@@ -796,17 +933,45 @@ func (m *NotAllReachable) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message.(type) {
-
+	switch v := m.Message.(type) {
 	case *NotAllReachable_M1:
+		if v == nil {
+			err := NotAllReachableValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M1
-
 	case *NotAllReachable_M2:
+		if v == nil {
+			err := NotAllReachableValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M2
-
 	case *NotAllReachable_M3:
+		if v == nil {
+			err := NotAllReachableValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 		// no validation rules for M3
-
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
