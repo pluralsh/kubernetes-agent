@@ -152,8 +152,8 @@ def go_repositories():
         name = "com_github_aquasecurity_starboard",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/aquasecurity/starboard",
-        sum = "h1:VzwNZqE1Z6sI4JGJ2Nm2E11g4PCR3JM6ap573OWmjZY=",
-        version = "v0.15.8",
+        sum = "h1:LUUSOSfAqsYa0wbA66kMTD9dNwyIYZ/VG8sdr8VZUkU=",
+        version = "v0.15.11",
     )
     go_repository(
         name = "com_github_arbovm_levenshtein",
@@ -4122,8 +4122,8 @@ def go_repositories():
         name = "com_github_sergi_go_diff",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/sergi/go-diff",
-        sum = "h1:we8PVUC3FE2uYfodKH/nBHMSetSfHDR6scGdBi+erh0=",
-        version = "v1.1.0",
+        sum = "h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=",
+        version = "v1.2.0",
     )
     go_repository(
         name = "com_github_shazow_go_diff",
@@ -4596,13 +4596,6 @@ def go_repositories():
         importpath = "github.com/vbatts/tar-split",
         sum = "h1:Via6XqJr0hceW4wff3QRzD5gAk/tatMw/4ZA7cTlIME=",
         version = "v0.11.2",
-    )
-    go_repository(
-        name = "com_github_vektah_gqlparser_v2",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/vektah/gqlparser/v2",
-        sum = "h1:Yjzp66g6oVq93Jihbi0qhGnf/6zIWjcm8H6gA27zstE=",
-        version = "v2.4.6",
     )
 
     go_repository(

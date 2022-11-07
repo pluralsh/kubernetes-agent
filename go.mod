@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/profiler v0.3.0
-	github.com/aquasecurity/starboard v0.15.8
+	github.com/aquasecurity/starboard v0.15.11
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/envoyproxy/protoc-gen-validate v0.8.0
