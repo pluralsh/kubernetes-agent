@@ -218,9 +218,20 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Message.(type) {
-
+	oneofMessagePresent := false
+	switch v := m.Message.(type) {
 	case *ObjectsToSynchronizeResponse_Header_:
+		if v == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetHeader() == nil {
 			err := ObjectsToSynchronizeResponseValidationError{
@@ -263,6 +274,17 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 		}
 
 	case *ObjectsToSynchronizeResponse_Object_:
+		if v == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetObject() == nil {
 			err := ObjectsToSynchronizeResponseValidationError{
@@ -305,6 +327,17 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 		}
 
 	case *ObjectsToSynchronizeResponse_Trailer_:
+		if v == nil {
+			err := ObjectsToSynchronizeResponseValidationError{
+				field:  "Message",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMessagePresent = true
 
 		if m.GetTrailer() == nil {
 			err := ObjectsToSynchronizeResponseValidationError{
@@ -347,6 +380,9 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMessagePresent {
 		err := ObjectsToSynchronizeResponseValidationError{
 			field:  "Message",
 			reason: "value is required",
@@ -355,7 +391,6 @@ func (m *ObjectsToSynchronizeResponse) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

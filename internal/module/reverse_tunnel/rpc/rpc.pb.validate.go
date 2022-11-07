@@ -722,9 +722,20 @@ func (m *ConnectRequest) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Msg.(type) {
-
+	oneofMsgPresent := false
+	switch v := m.Msg.(type) {
 	case *ConnectRequest_Descriptor_:
+		if v == nil {
+			err := ConnectRequestValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetDescriptor_() == nil {
 			err := ConnectRequestValidationError{
@@ -767,6 +778,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Header:
+		if v == nil {
+			err := ConnectRequestValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetHeader() == nil {
 			err := ConnectRequestValidationError{
@@ -809,6 +831,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Message:
+		if v == nil {
+			err := ConnectRequestValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetMessage() == nil {
 			err := ConnectRequestValidationError{
@@ -851,6 +884,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Trailer:
+		if v == nil {
+			err := ConnectRequestValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetTrailer() == nil {
 			err := ConnectRequestValidationError{
@@ -893,6 +937,17 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	case *ConnectRequest_Error:
+		if v == nil {
+			err := ConnectRequestValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetError() == nil {
 			err := ConnectRequestValidationError{
@@ -935,6 +990,9 @@ func (m *ConnectRequest) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMsgPresent {
 		err := ConnectRequestValidationError{
 			field:  "Msg",
 			reason: "value is required",
@@ -943,7 +1001,6 @@ func (m *ConnectRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -1292,9 +1349,20 @@ func (m *ConnectResponse) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Msg.(type) {
-
+	oneofMsgPresent := false
+	switch v := m.Msg.(type) {
 	case *ConnectResponse_RequestInfo:
+		if v == nil {
+			err := ConnectResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetRequestInfo() == nil {
 			err := ConnectResponseValidationError{
@@ -1337,6 +1405,17 @@ func (m *ConnectResponse) validate(all bool) error {
 		}
 
 	case *ConnectResponse_Message:
+		if v == nil {
+			err := ConnectResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetMessage() == nil {
 			err := ConnectResponseValidationError{
@@ -1379,6 +1458,17 @@ func (m *ConnectResponse) validate(all bool) error {
 		}
 
 	case *ConnectResponse_CloseSend:
+		if v == nil {
+			err := ConnectResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetCloseSend() == nil {
 			err := ConnectResponseValidationError{
@@ -1421,6 +1511,9 @@ func (m *ConnectResponse) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMsgPresent {
 		err := ConnectResponseValidationError{
 			field:  "Msg",
 			reason: "value is required",
@@ -1429,7 +1522,6 @@ func (m *ConnectResponse) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {

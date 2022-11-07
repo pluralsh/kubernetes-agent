@@ -157,9 +157,20 @@ func (m *GatewayKasResponse) validate(all bool) error {
 
 	var errors []error
 
-	switch m.Msg.(type) {
-
+	oneofMsgPresent := false
+	switch v := m.Msg.(type) {
 	case *GatewayKasResponse_TunnelReady_:
+		if v == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetTunnelReady() == nil {
 			err := GatewayKasResponseValidationError{
@@ -202,6 +213,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Header_:
+		if v == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetHeader() == nil {
 			err := GatewayKasResponseValidationError{
@@ -244,6 +266,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Message_:
+		if v == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetMessage() == nil {
 			err := GatewayKasResponseValidationError{
@@ -286,6 +319,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Trailer_:
+		if v == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetTrailer() == nil {
 			err := GatewayKasResponseValidationError{
@@ -328,6 +372,17 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	case *GatewayKasResponse_Error_:
+		if v == nil {
+			err := GatewayKasResponseValidationError{
+				field:  "Msg",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofMsgPresent = true
 
 		if m.GetError() == nil {
 			err := GatewayKasResponseValidationError{
@@ -370,6 +425,9 @@ func (m *GatewayKasResponse) validate(all bool) error {
 		}
 
 	default:
+		_ = v // ensures v is used
+	}
+	if !oneofMsgPresent {
 		err := GatewayKasResponseValidationError{
 			field:  "Msg",
 			reason: "value is required",
@@ -378,7 +436,6 @@ func (m *GatewayKasResponse) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
