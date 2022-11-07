@@ -323,25 +323,24 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 		return 0, "", fmt.Errorf("%s header: expecting %stoken", httpz.AuthorizationHeader, authorizationHeaderBearerPrefix)
 	}
 	tokenValue := header[len(authorizationHeaderBearerPrefix):]
-	tokenValueParts := strings.SplitN(tokenValue, tokenSeparator, 2)
-	if len(tokenValueParts) != 2 {
+	tokenType, tokenContents, found := strings.Cut(tokenValue, tokenSeparator)
+	if !found {
 		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
-	switch tokenValueParts[0] {
+	switch tokenType {
 	case tokenTypeCi:
 	default:
 		return 0, "", fmt.Errorf("%s header: unknown token type", httpz.AuthorizationHeader)
 	}
-	agentIdAndToken := tokenValueParts[1]
-	agentIdAndTokenParts := strings.SplitN(agentIdAndToken, tokenSeparator, 2)
-	if len(agentIdAndTokenParts) != 2 {
+	agentIdAndToken := tokenContents
+	agentIdStr, token, found := strings.Cut(agentIdAndToken, tokenSeparator)
+	if !found {
 		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
-	agentId, err := strconv.ParseInt(agentIdAndTokenParts[0], 10, 64)
+	agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
 	if err != nil {
 		return 0, "", fmt.Errorf("%s header: failed to parse: %w", httpz.AuthorizationHeader, err)
 	}
-	token := agentIdAndTokenParts[1]
 	if token == "" {
 		return 0, "", fmt.Errorf("%s header: empty token", httpz.AuthorizationHeader)
 	}
