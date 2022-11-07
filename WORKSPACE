@@ -89,8 +89,8 @@ go_repository(
     ],  # keep
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel",
-    sum = "h1:kfToEGMDq6TrVrJ9Vht84Y8y9enykSZzDDZglV0kIEk=",
-    version = "v1.11.0",
+    sum = "h1:4WLLAmcfkmDk2ukNXJyq3/kiz/3UzCaYq6PskJsaou4=",
+    version = "v1.11.1",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -114,8 +114,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable_global",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
-    sum = "h1:v29I/NbVp7LXQYMFZhU6q17D0jSEbYOAVONlrO1oH5s=",
-    version = "v1.11.0",
+    sum = "h1:tFl63cpAAcD9TOU6U8kZU7KyXuSRYAZlbx1C61aaB74=",
+    version = "v1.11.1",
 )
 
 go_repository(
@@ -130,8 +130,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:TvDcILLkjuZV3ER58VkBmncKsLUBqBDxra/XctCzuMM=",
-    version = "v0.6.13",
+    sum = "h1:eZxAlfY5c/HTcV7aN9EUL3Ej/zY/WDmawwClR16nfDA=",
+    version = "v0.8.0",
 )
 
 # Copied from rules_go to keep patches in place
