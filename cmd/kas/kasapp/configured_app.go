@@ -64,7 +64,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/stats"
 )
 
 const (
@@ -101,10 +100,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// reg := prometheus.NewPedanticRegistry()
 	registerer := prometheus.DefaultRegisterer
 	gatherer := prometheus.DefaultGatherer
-	ssh := metric.ServerStatsHandler()
-	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
-	err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
+	err := metric.Register(registerer, gitlabBuildInfoGauge())
 	if err != nil {
 		return err
 	}
@@ -147,19 +144,19 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry) // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -184,7 +181,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
 		tp,
 		p,
-		csh,
 		tunnelTracker,
 		tunnelRegistry,
 		internalSrv.server,
@@ -201,7 +197,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(csh, tp, p)
+	gitalyClientPool := a.constructGitalyPool(tp, p)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
@@ -333,7 +329,7 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 	return f.New, fAgent.New
 }
 
-func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p propagation.TextMapPropagator, csh stats.Handler,
+func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar,
 	registerer prometheus.Registerer) (kasRouter, error) {
 	listenCfg := a.Configuration.PrivateApi.Listen
@@ -359,7 +355,6 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p pro
 		kasPool: grpctool.NewPool(a.Log,
 			credentials.NewTLS(tlsCreds),
 			grpc.WithUserAgent(kasServerName()),
-			grpc.WithStatsHandler(csh),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
 				Time:                55 * time.Second,
 				PermitWithoutStream: true,
@@ -492,7 +487,7 @@ func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, p propagation.TextMapPropagator) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(tp trace.TracerProvider, p propagation.TextMapPropagator) *client.Pool {
 	g := a.Configuration.Gitaly
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
@@ -501,7 +496,6 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 	return client.NewPoolWithOptions(
 		client.WithDialOptions(
 			grpc.WithUserAgent(kasServerName()),
-			grpc.WithStatsHandler(csh),
 			// Don't put interceptors here as order is important. Put them below.
 		),
 		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {

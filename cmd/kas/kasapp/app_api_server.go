@@ -21,7 +21,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/stats"
 )
 
 type apiServer struct {
@@ -33,7 +32,7 @@ type apiServer struct {
 }
 
 func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
+	p propagation.TextMapPropagator, factory modserver.RpcApiFactory,
 	probeRegistry *observability.ProbeRegistry) (*apiServer, error) {
 	listenCfg := cfg.Api.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
@@ -52,7 +51,6 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 	auxCtx, auxCancel := context.WithCancel(context.Background())
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations

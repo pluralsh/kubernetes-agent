@@ -19,7 +19,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/imdario/mergo v0.3.13
-	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.13.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.6.1
