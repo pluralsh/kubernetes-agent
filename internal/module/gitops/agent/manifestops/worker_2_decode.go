@@ -24,20 +24,20 @@ func (w *worker) decode(desiredState <-chan rpc.ObjectsToSynchronizeData, jobs c
 		defaultNamespace: w.project.DefaultNamespace,
 	}
 
-	p := retryPipeline{
+	p := retryPipeline[rpc.ObjectsToSynchronizeData, applyJob]{
 		inputCh:      desiredState,
 		outputCh:     jobs,
 		retryBackoff: w.decodeRetryPolicy,
-		process: func(input inputT) (outputT, processResult) {
+		process: func(input rpc.ObjectsToSynchronizeData) (applyJob, processResult) {
 			objs, err := d.Decode(input.Sources)
 			if err != nil {
 				w.log.Error("Failed to decode manifest objects", logz.Error(err), logz.CommitId(input.CommitId))
-				return outputT{}, backoff
+				return applyJob{}, backoff
 			}
 			invObj, objs, err := w.splitObjects(input.ProjectId, objs)
 			if err != nil {
 				w.log.Error("Failed to locate inventory object in manifest objects", logz.Error(err), logz.CommitId(input.CommitId))
-				return outputT{}, done
+				return applyJob{}, done
 			}
 			if jobCancel != nil {
 				jobCancel() // Cancel running/pending job ASAP

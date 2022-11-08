@@ -625,14 +625,14 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	k8sClient := mock_kubernetes_api.NewMockKubernetesApiClient(ctrl)
 	requestCount := mock_usage_metrics.NewMockCounter(ctrl)
 	ciTunnelUsageSet := mock_usage_metrics.NewMockUniqueCounter(ctrl)
-	errCache := mock_cache.NewMockErrCacher(ctrl)
+	errCache := mock_cache.NewMockErrCacher[string](ctrl)
 
 	p := kubernetesApiProxy{
 		log:                  zaptest.NewLogger(t),
 		api:                  mockApi,
 		kubernetesApiClient:  k8sClient,
 		gitLabClient:         mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
-		allowedAgentsCache:   cache.NewWithError(0, 0, errCache, func(err error) bool { return false }),
+		allowedAgentsCache:   cache.NewWithError[string, *gapi.AllowedAgentsForJob](0, 0, errCache, func(err error) bool { return false }),
 		requestCounter:       requestCount,
 		ciTunnelUsersCounter: ciTunnelUsageSet,
 		responseSerializer:   serializer.NewCodecFactory(runtime.NewScheme()),

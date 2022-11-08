@@ -10,6 +10,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
@@ -127,7 +128,7 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	hub := NewMockSentryHub(ctrl)
-	errCacher := mock_cache.NewMockErrCacher(ctrl)
+	errCacher := mock_cache.NewMockErrCacher[api.AgentToken](ctrl)
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
@@ -149,7 +150,7 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 		RpcApi:         sra,
 		Token:          testhelpers.AgentkToken,
 		GitLabClient:   gitLabClient,
-		AgentInfoCache: cache.NewWithError(0, 0, errCacher, func(err error) bool { return false }), // no cache!
+		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](0, 0, errCacher, func(err error) bool { return false }), // no cache!
 	}
 	return ctx, log, hub, rpcApi, traceId
 }

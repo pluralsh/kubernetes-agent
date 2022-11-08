@@ -55,15 +55,14 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient: config.GitLabClient,
-			ProjectInfoCache: cache.NewWithError(
+			ProjectInfoCache: cache.NewWithError[projectInfoCacheKey, *api.ProjectInfo](
 				gitops.ProjectInfoCacheTtl.AsDuration(),
 				gitops.ProjectInfoCacheErrorTtl.AsDuration(),
-				&redistool.ErrCacher{
+				&redistool.ErrCacher[projectInfoCacheKey]{
 					Log:          config.Log,
 					Client:       redisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(key interface{}) string {
-						cacheKey := key.(projectInfoCacheKey)
+					KeyToRedisKey: func(cacheKey projectInfoCacheKey) string {
 						var result strings.Builder
 						result.WriteString(config.Config.Redis.KeyPrefix)
 						result.WriteString(":project_info_errs:")

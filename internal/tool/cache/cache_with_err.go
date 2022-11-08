@@ -5,29 +5,29 @@ import (
 	"time"
 )
 
-type GetItemDirectly func() (interface{}, error)
+type GetItemDirectly[V any] func() (V, error)
 
-type ErrCacher interface {
+type ErrCacher[K any] interface {
 	// GetError retrieves a cached error.
 	// Returns nil if no cached error found or if there was a problem accessing the cache.
-	GetError(ctx context.Context, key interface{}) error
+	GetError(ctx context.Context, key K) error
 	// CacheError puts error into the cache.
-	CacheError(ctx context.Context, key interface{}, err error, errTtl time.Duration)
+	CacheError(ctx context.Context, key K, err error, errTtl time.Duration)
 }
 
-type CacheWithErr struct {
-	cache     *Cache
+type CacheWithErr[K comparable, V any] struct {
+	cache     *Cache[K, V]
 	ttl       time.Duration
 	errTtl    time.Duration
-	errCacher ErrCacher
+	errCacher ErrCacher[K]
 	// isCacheable determines whether an error is cacheable or not.
 	// Returns true if cacheable and false otherwise.
 	isCacheable func(error) bool
 }
 
-func NewWithError(ttl, errTtl time.Duration, errCacher ErrCacher, isCacheableFunc func(error) bool) *CacheWithErr {
-	return &CacheWithErr{
-		cache:       New(ttl),
+func NewWithError[K comparable, V any](ttl, errTtl time.Duration, errCacher ErrCacher[K], isCacheableFunc func(error) bool) *CacheWithErr[K, V] {
+	return &CacheWithErr[K, V]{
+		cache:       New[K, V](ttl),
 		ttl:         ttl,
 		errTtl:      errTtl,
 		errCacher:   errCacher,
@@ -35,14 +35,15 @@ func NewWithError(ttl, errTtl time.Duration, errCacher ErrCacher, isCacheableFun
 	}
 }
 
-func (c *CacheWithErr) GetItem(ctx context.Context, key interface{}, f GetItemDirectly) (interface{}, error) {
+func (c *CacheWithErr[K, V]) GetItem(ctx context.Context, key K, f GetItemDirectly[V]) (V, error) {
 	if c.ttl == 0 {
 		return f()
 	}
 	c.cache.EvictExpiredEntries()
 	entry := c.cache.GetOrCreateCacheEntry(key)
 	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
-		return nil, ctx.Err()
+		var v V
+		return v, ctx.Err()
 	}
 	evictEntry := false
 	defer func() {
@@ -60,16 +61,20 @@ func (c *CacheWithErr) GetItem(ctx context.Context, key interface{}, f GetItemDi
 		err := c.errCacher.GetError(ctx, key)
 		if err != nil {
 			evictEntry = true
-			return nil, err
+			var v V
+			return v, err
 		}
-		entry.Item, err = f()
+		item, err := f()
 		if err != nil {
 			if c.isCacheable(err) {
 				// cacheable error
 				c.errCacher.CacheError(ctx, key, err, c.errTtl)
 			}
-			return nil, err
+			var v V
+			return v, err
 		}
+		entry.Item = item
+		entry.HasItem = true
 		entry.Expires = time.Now().Add(c.ttl)
 	}
 	return entry.Item, nil

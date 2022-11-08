@@ -19,6 +19,10 @@ const (
 	ttl             = 2 * time.Second
 )
 
+var (
+	_ ExpiringHashInterface[int] = (*ExpiringHash[int])(nil)
+)
+
 func TestExpiringHash_Set(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
@@ -182,7 +186,7 @@ func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	})
 }
 
-func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, []byte) {
+func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(func() {
@@ -193,8 +197,8 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash, string, []by
 	_, err := r.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash(client, func(key interface{}) string {
-		return key.(string)
+	hash := NewExpiringHash[string](client, func(key string) string {
+		return key
 	}, ttl)
 	return client, hash, key, []byte{1, 2, 3}
 }

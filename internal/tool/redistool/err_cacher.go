@@ -17,14 +17,14 @@ type ErrMarshaler interface {
 	Unmarshal([]byte) (error, error)
 }
 
-type ErrCacher struct {
+type ErrCacher[K any] struct {
 	Log           *zap.Logger
 	Client        redis.UniversalClient
 	ErrMarshaler  ErrMarshaler
-	KeyToRedisKey KeyToRedisKey
+	KeyToRedisKey KeyToRedisKey[K]
 }
 
-func (c *ErrCacher) GetError(ctx context.Context, key interface{}) error {
+func (c *ErrCacher[K]) GetError(ctx context.Context, key K) error {
 	result, err := c.Client.Get(ctx, c.KeyToRedisKey(key)).Bytes()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
@@ -43,7 +43,7 @@ func (c *ErrCacher) GetError(ctx context.Context, key interface{}) error {
 	return e
 }
 
-func (c *ErrCacher) CacheError(ctx context.Context, key interface{}, err error, errTtl time.Duration) {
+func (c *ErrCacher[K]) CacheError(ctx context.Context, key K, err error, errTtl time.Duration) {
 	data, err := c.ErrMarshaler.Marshal(err)
 	if err != nil {
 		c.Log.Error("Failed to marshal error for caching", logz.Error(err))

@@ -11,18 +11,14 @@ import (
 
 type projectInfoClient struct {
 	GitLabClient     gitlab.ClientInterface
-	ProjectInfoCache *cache.CacheWithErr
+	ProjectInfoCache *cache.CacheWithErr[projectInfoCacheKey, *api.ProjectInfo]
 }
 
 func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	key := projectInfoCacheKey{agentToken: agentToken, projectId: projectId}
-	projectInfo, err := c.ProjectInfoCache.GetItem(ctx, key, func() (interface{}, error) {
+	return c.ProjectInfoCache.GetItem(ctx, key, func() (*api.ProjectInfo, error) {
 		return gapi.GetProjectInfo(ctx, c.GitLabClient, agentToken, projectId, gitlab.WithoutRetries())
 	})
-	if err != nil {
-		return nil, err
-	}
-	return projectInfo.(*api.ProjectInfo), nil
 }
 
 type projectInfoCacheKey struct {

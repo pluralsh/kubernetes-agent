@@ -1904,8 +1904,8 @@ def go_repositories():
         name = "com_github_golang_mock",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/golang/mock",
-        sum = "h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=",
-        version = "v1.6.0",
+        sum = "h1:8AzxBXzXPCzl8EEsgWirPPDA5ru+bm5dVEV/KkpAKnE=",
+        version = "v1.7.0-rc.1.0.20220812172401-5b455625bd2c",
     )
     go_repository(
         name = "com_github_golang_protobuf",

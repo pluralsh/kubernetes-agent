@@ -54,9 +54,9 @@ func TestErrCacher_CacheError_MarshalError(t *testing.T) {
 	ec.CacheError(context.Background(), errKey, errors.New("boom"), time.Minute)
 }
 
-func setupNormal(t *testing.T) (*ErrCacher, redismock.ClientMock) {
+func setupNormal(t *testing.T) (*ErrCacher[string], redismock.ClientMock) {
 	client, mock := redismock.NewClientMock()
-	ec := &ErrCacher{
+	ec := &ErrCacher[string]{
 		Log:    zaptest.NewLogger(t),
 		Client: client,
 		ErrMarshaler: testErrMarshaler{
@@ -67,16 +67,16 @@ func setupNormal(t *testing.T) (*ErrCacher, redismock.ClientMock) {
 				return errors.New(string(data)), nil
 			},
 		},
-		KeyToRedisKey: func(key interface{}) string {
-			return key.(string)
+		KeyToRedisKey: func(key string) string {
+			return key
 		},
 	}
 	return ec, mock
 }
 
-func setupError(t *testing.T) (*ErrCacher, redismock.ClientMock) {
+func setupError(t *testing.T) (*ErrCacher[string], redismock.ClientMock) {
 	client, mock := redismock.NewClientMock()
-	ec := &ErrCacher{
+	ec := &ErrCacher[string]{
 		Log:    zaptest.NewLogger(t),
 		Client: client,
 		ErrMarshaler: testErrMarshaler{
@@ -87,8 +87,8 @@ func setupError(t *testing.T) (*ErrCacher, redismock.ClientMock) {
 				return nil, errors.New("unmarshal error")
 			},
 		},
-		KeyToRedisKey: func(key interface{}) string {
-			return key.(string)
+		KeyToRedisKey: func(key string) string {
+			return key
 		},
 	}
 	return ec, mock

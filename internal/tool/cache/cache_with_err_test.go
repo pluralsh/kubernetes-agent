@@ -14,18 +14,18 @@ import (
 
 func TestGetItem_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	errCacher := mock_cache.NewMockErrCacher(ctrl)
+	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errCacher.EXPECT().GetError(gomock.Any(), key)
-	c := NewWithError(time.Minute, time.Minute, errCacher, alwaysCache)
-	item, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, alwaysCache)
+	item, err := c.GetItem(context.Background(), key, func() (int, error) {
 		return itemVal, nil
 	})
 	require.NoError(t, err)
 	assert.Equal(t, itemVal, item)
 
-	item, err = c.GetItem(context.Background(), key, func() (interface{}, error) {
+	item, err = c.GetItem(context.Background(), key, func() (int, error) {
 		t.FailNow()
-		return nil, nil
+		return 0, nil
 	})
 	require.NoError(t, err)
 	assert.Equal(t, itemVal, item)
@@ -33,7 +33,7 @@ func TestGetItem_HappyPath(t *testing.T) {
 
 func TestGetItem_CacheableError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	errCacher := mock_cache.NewMockErrCacher(ctrl)
+	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errToCache := errors.New("boom")
 	gomock.InOrder(
 		errCacher.EXPECT().
@@ -44,44 +44,44 @@ func TestGetItem_CacheableError(t *testing.T) {
 			GetError(gomock.Any(), key).
 			Return(errToCache),
 	)
-	c := NewWithError(time.Second, time.Minute, errCacher, alwaysCache)
-	_, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
-		return nil, errToCache
+	c := NewWithError[int, int](time.Second, time.Minute, errCacher, alwaysCache)
+	_, err := c.GetItem(context.Background(), key, func() (int, error) {
+		return 0, errToCache
 	})
 	assert.EqualError(t, err, "boom")
 
-	_, err = c.GetItem(context.Background(), key, func() (interface{}, error) {
+	_, err = c.GetItem(context.Background(), key, func() (int, error) {
 		t.FailNow()
-		return nil, nil
+		return 0, nil
 	})
 	assert.EqualError(t, err, "boom")
 }
 
 func TestGetItem_NonCacheableError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	errCacher := mock_cache.NewMockErrCacher(ctrl)
+	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errCacher.EXPECT().
 		GetError(gomock.Any(), key).
 		Times(2)
-	c := NewWithError(time.Minute, time.Minute, errCacher, func(err error) bool {
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, func(err error) bool {
 		return false
 	})
-	_, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
-		return nil, errors.New("boom")
+	_, err := c.GetItem(context.Background(), key, func() (int, error) {
+		return 0, errors.New("boom")
 	})
 	assert.EqualError(t, err, "boom")
 
-	_, err = c.GetItem(context.Background(), key, func() (interface{}, error) {
-		return nil, errors.New("bAAm")
+	_, err = c.GetItem(context.Background(), key, func() (int, error) {
+		return 0, errors.New("bAAm")
 	})
 	assert.EqualError(t, err, "bAAm")
 }
 
 func TestGetItem_Context(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	errCacher := mock_cache.NewMockErrCacher(ctrl)
+	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errCacher.EXPECT().GetError(gomock.Any(), key)
-	c := NewWithError(time.Minute, time.Minute, errCacher, alwaysCache)
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, alwaysCache)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	start := make(chan struct{})
@@ -89,12 +89,12 @@ func TestGetItem_Context(t *testing.T) {
 	go func() {
 		defer close(done)
 		<-start
-		_, err := c.GetItem(ctx, key, func() (interface{}, error) {
-			return "Stalemate. No-oh, too late, too late", nil
+		_, err := c.GetItem(ctx, key, func() (int, error) {
+			return -itemVal, nil
 		})
 		assert.Equal(t, context.Canceled, err)
 	}()
-	item, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
+	item, err := c.GetItem(context.Background(), key, func() (int, error) {
 		close(start)
 		cancel()
 		<-done

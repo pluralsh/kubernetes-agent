@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"k8s.io/utils/clock"
 )
@@ -20,30 +19,25 @@ const (
 	done
 )
 
-// TODO remove aliases and use generics.
-
-type inputT = rpc.ObjectsToSynchronizeData
-type outputT = applyJob
-
-type processFunc func(input inputT) (outputT, processResult)
+type processFunc[IN any, OUT any] func(input IN) (OUT, processResult)
 
 // retryPipeline takes a channel with input, a processor function, and a channel for output.
 // It reads values from input, processes them, and, if/when successful, sends the result into the output channel.
 // If processing fails, it is retried with backoff.
 // Results are sent to the output eventually. The old result, if it hasn't been sent already, is discarded when a new
 // one becomes available. I.e. level-based rather than edge-based behavior.
-type retryPipeline struct {
-	inputCh      <-chan inputT
-	outputCh     chan<- outputT
+type retryPipeline[IN any, OUT any] struct {
+	inputCh      <-chan IN
+	outputCh     chan<- OUT
 	retryBackoff retry.BackoffManager
-	process      processFunc
+	process      processFunc[IN, OUT]
 }
 
-func (p *retryPipeline) run() {
+func (p *retryPipeline[IN, OUT]) run() {
 	var (
-		input        inputT
-		output       outputT
-		outputCh     chan<- outputT
+		input        IN
+		output       OUT
+		outputCh     chan<- OUT
 		attemptCh    <-chan time.Time
 		attemptTimer clock.Timer
 	)
@@ -87,8 +81,9 @@ func (p *retryPipeline) run() {
 			}
 		case outputCh <- output:
 			// Success!
-			output = outputT{} // Erase contents to help GC
-			outputCh = nil     // Disable this select case (send to nil channel blocks forever)
+			var empty OUT
+			output = empty // Erase contents to help GC
+			outputCh = nil // Disable this select case (send to nil channel blocks forever)
 		}
 	}
 }
