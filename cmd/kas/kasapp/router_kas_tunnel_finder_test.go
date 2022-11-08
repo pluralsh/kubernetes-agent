@@ -2,7 +2,6 @@ package kasapp
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 func TestTunnelFinder_NoDialsForNonMatchingService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	tChan, tf, querier, _, _ := setupTunnelFinder(ctx, t)
+	tf, querier, _, _ := setupTunnelFinder(ctx, t)
 	tf.fullMethod = "/service/method" // doesn't match tunnel
 	gomock.InOrder(
 		querier.EXPECT().
@@ -35,31 +34,16 @@ func TestTunnelFinder_NoDialsForNonMatchingService(t *testing.T) {
 				cancel()
 			}),
 	)
-	go tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)()) // 10 times
-	select {
-	case <-ctx.Done():
-	case <-tChan:
-		t.FailNow()
-	}
-	assert.Eventually(t, func() bool {
-		tf.mu.Lock()
-		defer tf.mu.Unlock()
-		return len(tf.connections) == 0
-	}, time.Second, 10*time.Millisecond) // wait for goroutines to stop
+	tf.Run(ctx)
+	assert.Empty(t, tf.connections)
 }
 
 func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	exitDial := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		wg.Wait()
-		time.Sleep(200 * time.Millisecond)
-		cancel()
-	}()
-	tChan, tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
+	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
+
+	cnt := 0
 
 	querier.EXPECT().
 		GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
@@ -72,48 +56,33 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 			done, err = cb(ti)
 			assert.NoError(t, err)
 			assert.False(t, done)
+			cnt++
+			if cnt == 2 {
+				cancel()
+			}
 		}).
-		MinTimes(2)
+		Times(2)
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), "grpc://pipe").
 			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
-				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
-				<-exitDial   // avoid race with poller. Otherwise, poller might manage to start another dial.
 				return nil, ctx.Err()
 			}),
 		rpcApi.EXPECT().
 			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
 	)
 
-	go func() {
-		defer close(exitDial)
-		tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
-	}()
-	select {
-	case <-ctx.Done():
-	case <-tChan:
-		t.FailNow()
-	}
-	assert.Eventually(t, func() bool {
-		tf.mu.Lock()
-		defer tf.mu.Unlock()
-		return len(tf.connections) == 0
-	}, time.Second, 10*time.Millisecond) // wait for goroutines to stop
+	tf.Run(ctx)
+	assert.Len(t, tf.connections, 1)
 }
 
 func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	var dialStartWg, dialStopWg sync.WaitGroup
-	dialStartWg.Add(2)
-	go func() {
-		dialStartWg.Wait()
-		time.Sleep(200 * time.Millisecond)
-		cancel()
-	}()
-	tChan, tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
+	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
+
+	cnt := 0
 
 	querier.EXPECT().
 		GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
@@ -127,53 +96,38 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 			done, err = cb(ti)
 			assert.NoError(t, err)
 			assert.False(t, done)
+			cnt++
+			if cnt == 3 {
+				cancel()
+			}
 		}).
-		MinTimes(2)
+		Times(3)
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
-			dialStartWg.Done()
 			<-ctx.Done() // block to simulate a long running dial
-			dialStopWg.Wait()
 			return nil, ctx.Err()
 		})
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe2").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
-			dialStartWg.Done()
 			<-ctx.Done() // block to simulate a long running dial
-			dialStopWg.Wait()
 			return nil, ctx.Err()
 		})
 	rpcApi.EXPECT().
 		HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
 		Times(2)
-
-	dialStopWg.Add(1)
-	go func() {
-		defer dialStopWg.Done() // unblock dials once polling is done. This is to avoid flakes.
-		tf.poll(ctx, testhelpers.NewPollConfig(100*time.Millisecond)())
-	}()
-	select {
-	case <-ctx.Done():
-	case <-tChan:
-		t.FailNow()
-	}
-	assert.Eventually(t, func() bool {
-		tf.mu.Lock()
-		defer tf.mu.Unlock()
-		return len(tf.connections) == 0
-	}, time.Second, 10*time.Millisecond) // wait for goroutines to stop
+	tf.Run(ctx)
+	assert.Len(t, tf.connections, 2)
 }
 
-func setupTunnelFinder(ctx context.Context, t *testing.T) (chan readyTunnel, *tunnelFinder, *mock_reverse_tunnel_tracker.MockQuerier, *mock_modserver.MockRpcApi, *MockKasPool) {
+func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tracker.MockQuerier, *mock_modserver.MockRpcApi, *MockKasPool) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	kasPool := NewMockKasPool(ctrl)
 
-	tChan := make(chan readyTunnel)
 	tf := &tunnelFinder{
 		log:           zaptest.NewLogger(t),
 		kasPool:       kasPool,
@@ -182,8 +136,9 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (chan readyTunnel, *tu
 		fullMethod:    "/gitlab.agent.grpctool.test.Testing/RequestResponse",
 		agentId:       testhelpers.AgentId,
 		outgoingCtx:   ctx,
-		foundTunnel:   tChan,
+		pollConfig:    testhelpers.NewPollConfig(100 * time.Millisecond),
+		foundTunnel:   make(chan readyTunnel),
 		connections:   make(map[string]kasConnAttempt),
 	}
-	return tChan, tf, querier, rpcApi, kasPool
+	return tf, querier, rpcApi, kasPool
 }

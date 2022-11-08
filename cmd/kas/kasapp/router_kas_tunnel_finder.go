@@ -44,17 +44,21 @@ type tunnelFinder struct {
 	fullMethod    string // /service/method
 	agentId       int64
 	outgoingCtx   context.Context
+	pollConfig    retry.PollConfigFactory
 	foundTunnel   chan<- readyTunnel
 
+	wg          wait.Group
 	mu          sync.Mutex                // protects connections,done
 	connections map[string]kasConnAttempt // kas URL -> conn info
 	done        bool                      // successfully done searching
 }
 
-func (f *tunnelFinder) poll(ctx context.Context, pollConfig retry.PollConfig) {
+func (f *tunnelFinder) Run(ctx context.Context) {
+	defer f.wg.Wait()
 	var tunnels []*tracker.TunnelInfo
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
+	pollConfig := f.pollConfig()
 	getTunnelsFunc := f.attemptToGetTunnels(&tunnels)
 	_ = wait.PollImmediateUntilWithContext(pollCtx, pollConfig.Interval, func(pollCtx context.Context) ( /*done*/ bool, error) {
 		err := retry.PollWithBackoff(pollCtx, pollConfig, getTunnelsFunc)
@@ -83,95 +87,93 @@ func (f *tunnelFinder) handleTunnel(tunnel *tracker.TunnelInfo, pollCancel conte
 	f.connections[tunnel.KasUrl] = kasConnAttempt{
 		cancel: connCancel,
 	}
-	go f.handleTunnelAsync(connCtx, connCancel, pollCancel, tunnel)
+	f.wg.Start(func() {
+		f.handleTunnelAsync(connCtx, connCancel, pollCancel, tunnel)
+	})
 	return true
 }
 
 func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, tunnel *tracker.TunnelInfo) {
-	success := false
-	defer func() {
-		if !success {
-			cancel()
-		}
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		delete(f.connections, tunnel.KasUrl)
-	}()
-
-	// 1. Dial another kas
 	log := f.log.With(logz.KasUrl(tunnel.KasUrl)) // nolint:govet
-	log.Debug("Trying tunnel")
-	kasConn, err := f.kasPool.Dial(ctx, tunnel.KasUrl)
-	if err != nil {
-		f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to dial kas", err)
-		return
-	}
-	defer func() {
-		if !success {
-			kasConn.Done()
+	// err can only be retry.ErrWaitTimeout
+	_ = retry.PollWithBackoff(ctx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+		success := false
+
+		// 1. Dial another kas
+		log.Debug("Trying tunnel")
+		kasConn, err := f.kasPool.Dial(ctx, tunnel.KasUrl)
+		if err != nil {
+			f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to dial kas", err)
+			return nil, retry.Backoff
 		}
-	}()
+		defer func() {
+			if !success {
+				kasConn.Done()
+			}
+		}()
 
-	// 2. Open a stream to the desired service/method
-	kasStream, err := kasConn.NewStream(
-		ctx,
-		&proxyStreamDesc,
-		f.fullMethod,
-		grpc.ForceCodec(grpctool.RawCodecWithProtoFallback{}),
-	)
-	if err != nil {
-		f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to open new stream to kas", err)
-		return
-	}
-
-	// 3. Wait for the other kas to say it's ready to start streaming i.e. has a suitable tunnel to an agent
-	var kasResponse GatewayKasResponse
-	err = kasStream.RecvMsg(&kasResponse) // Wait for the tunnel to be found
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			// Gateway kas closed the connection cleanly, perhaps it's been open for too long
-			return
+		// 2. Open a stream to the desired service/method
+		kasStream, err := kasConn.NewStream(
+			ctx,
+			&proxyStreamDesc,
+			f.fullMethod,
+			grpc.ForceCodec(grpctool.RawCodecWithProtoFallback{}),
+		)
+		if err != nil {
+			f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to open new stream to kas", err)
+			return nil, retry.Backoff
 		}
-		f.rpcApi.HandleProcessingError(log, f.agentId, "RecvMsg(GatewayKasResponse)", err)
-		return
-	}
-	if kasResponse.GetTunnelReady() == nil {
-		f.rpcApi.HandleProcessingError(log, f.agentId, "GetTunnelReady()", fmt.Errorf("invalid oneof value type: %T", kasResponse.Msg))
-		return
-	}
 
-	// 4. Check if another goroutine has found a suitable tunnel already
-	f.mu.Lock()
-	if f.done {
+		// 3. Wait for the other kas to say it's ready to start streaming i.e. has a suitable tunnel to an agent
+		var kasResponse GatewayKasResponse
+		err = kasStream.RecvMsg(&kasResponse) // Wait for the tunnel to be found
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// Gateway kas closed the connection cleanly, perhaps it's been open for too long
+				return nil, retry.ContinueImmediately
+			}
+			f.rpcApi.HandleProcessingError(log, f.agentId, "RecvMsg(GatewayKasResponse)", err)
+			return nil, retry.Backoff
+		}
+		if kasResponse.GetTunnelReady() == nil {
+			f.rpcApi.HandleProcessingError(log, f.agentId, "GetTunnelReady()", fmt.Errorf("invalid oneof value type: %T", kasResponse.Msg))
+			return nil, retry.Backoff
+		}
+
+		// 4. Check if another goroutine has found a suitable tunnel already
+		f.mu.Lock()
+		if f.done {
+			f.mu.Unlock()
+			return nil, retry.Done
+		}
+		f.done = true
+		pollCancel()
+		f.stopAllConnectionAttemptsExcept(tunnel.KasUrl)
 		f.mu.Unlock()
-		return
-	}
-	f.done = true
-	pollCancel()
-	f.stopAllConnectionAttemptsExcept(tunnel.KasUrl)
-	f.mu.Unlock()
 
-	// 5. Tell the other kas we are starting streaming
-	err = kasStream.SendMsg(&StartStreaming{})
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			var frame grpctool.RawFrame
-			err = kasStream.RecvMsg(&frame) // get the real error
+		// 5. Tell the other kas we are starting streaming
+		err = kasStream.SendMsg(&StartStreaming{})
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				var frame grpctool.RawFrame
+				err = kasStream.RecvMsg(&frame) // get the real error
+			}
+			_ = f.rpcApi.HandleIoError(log, "SendMsg(StartStreaming)", err)
+			return nil, retry.Backoff
 		}
-		_ = f.rpcApi.HandleIoError(log, "SendMsg(StartStreaming)", err)
-		return
-	}
-	rt := readyTunnel{
-		kasUrl:          tunnel.KasUrl,
-		kasStream:       kasStream,
-		kasConn:         kasConn,
-		kasStreamCancel: cancel,
-	}
-	select {
-	case <-ctx.Done():
-	case f.foundTunnel <- rt:
-		success = true
-	}
+		rt := readyTunnel{
+			kasUrl:          tunnel.KasUrl,
+			kasStream:       kasStream,
+			kasConn:         kasConn,
+			kasStreamCancel: cancel,
+		}
+		select {
+		case <-ctx.Done():
+		case f.foundTunnel <- rt:
+			success = true
+		}
+		return nil, retry.Done
+	})
 }
 
 // attemptToGetTunnels
