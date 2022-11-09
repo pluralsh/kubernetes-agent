@@ -72,10 +72,13 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 	}
 	messageType := s.reflectMessage.Type()
 	currentState := cfg.startState
+	// Allocate message once. proto.Unmarshal() resets messages on receive so internal message structure is
+	// fresh on each receive, but we save on allocating the outer object.
+	// Because objects in fields of the message are fresh on each receive, it's safe to retain pointers to them.
+	msgRefl := messageType.New()
+	msg := msgRefl.Interface()
 	for {
 		allowedTransitions := s.allowedTransitions[currentState]
-		msgRefl := messageType.New()
-		msg := msgRefl.Interface()
 		err = stream.RecvMsg(msg)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
