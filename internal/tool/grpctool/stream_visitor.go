@@ -90,7 +90,7 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 		}
 		field := msgRefl.WhichOneof(s.oneof)
 		if field == nil {
-			return fmt.Errorf("no fields in the oneof group %s is set", s.oneof.FullName())
+			return status.Errorf(codes.InvalidArgument, "no fields in the oneof group %s is set", s.oneof.FullName())
 		}
 		newState := field.Number()
 		if !isTransitionAllowed(newState, allowedTransitions) {
