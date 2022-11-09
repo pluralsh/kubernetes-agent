@@ -2,10 +2,16 @@
 
 ## Repository overview
 
-You can watch the video below to understand how this repository is
+Most up-to-date video describing how this repository is
 structured:
 
-[![GitLab Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/0.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "GitLab Agent repository overview")
+[![GitLab Agent repository overview - It's time to Go! Episode 5](https://img.youtube.com/vi/Mh7PG4_cBxI/0.jpg)](https://www.youtube.com/watch?v=Mh7PG4_cBxI "GitLab Agent repository overview")
+
+### Past recordings
+
+#### 2021-11-20
+
+[![GitLab Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/1.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "GitLab Agent repository overview")
 
 ## Running kas and agentk locally
 
