@@ -176,6 +176,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	defer tunnelRegistry.Stop() // nolint: contextcheck
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
@@ -264,14 +265,19 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Start things up. Stages are shut down in reverse order.
 	return stager.RunStages(ctx,
-		// connRegistry depends on tunnelTracker so it must be stopped last
+		// tunnelTracker is used by tunnelRegistry, so it must be stopped last.
 		func(stage stager.Stage) {
 			stage.Go(tunnelTracker.Run)
 		},
 		// Start things that modules use.
 		func(stage stager.Stage) {
+			stage.Go(func(ctx context.Context) error {
+				<-ctx.Done()
+				// Stop tunnelRegistry before stopping tunnelTracker.
+				tunnelRegistry.Stop() // nolint: contextcheck
+				return nil
+			})
 			stage.Go(agentTracker.Run)
-			stage.Go(tunnelRegistry.Run)
 		},
 		// Start modules.
 		func(stage stager.Stage) {

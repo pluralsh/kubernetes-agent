@@ -2,7 +2,6 @@ package reverse_tunnel
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
@@ -21,9 +20,18 @@ import (
 type stateType int
 
 const (
-	stateReady stateType = iota
+	// invalid - zero value is invalid to catch initialization bugs.
+	invalid stateType = iota
+	// stateReady - tunnel is owned by the registry and is ready to be found and used for forwarding.
+	stateReady
+	// stateFound - tunnel is not owned by registry, was found and about to be used for forwarding.
+	stateFound
+	// stateForwarding - tunnel is not owned by registry, is being used for forwarding.
 	stateForwarding
+	// stateDone - tunnel is not owned by anyone, it has been used for forwarding, Done() has been called.
 	stateDone
+	// stateContextDone - tunnel is not owned by anyone, reverse tunnel's context signalled done in HandleTunnel().
+	stateContextDone
 )
 
 const (
@@ -60,13 +68,14 @@ type tunnel struct {
 	tunnelRetErr        chan<- error
 	tunnelInfo          *tracker.TunnelInfo
 	state               stateType
+
+	onForward func(*tunnel) error
+	onDone    func(*tunnel)
 }
 
 func (t *tunnel) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) error {
-	if t.state == stateReady {
-		t.state = stateForwarding
-	} else {
-		return status.Errorf(codes.Internal, "Invalid state %d", t.state)
+	if err := t.onForward(t); err != nil {
+		return err
 	}
 	pair := t.forwardStream(log, rpcApi, incomingStream, cb)
 	t.tunnelRetErr <- pair.forTunnel
@@ -188,18 +197,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 }
 
 func (t *tunnel) Done() {
-	switch t.state {
-	case stateReady:
-		t.state = stateDone
-		t.tunnelRetErr <- nil // unblock tunnel
-	case stateForwarding:
-		t.state = stateDone
-	case stateDone:
-		panic(errors.New("Done() called more than once"))
-	default:
-		// Should never happen
-		panic(fmt.Errorf("invalid state: %d", t.state))
-	}
+	t.onDone(t)
 }
 
 type errPair struct {

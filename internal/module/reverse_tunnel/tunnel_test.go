@@ -79,6 +79,10 @@ func TestTunnel_ForwardStream_VisitorErrorIsReturnedOnErrorMessageAndReadError(t
 		tunnel:              connectServer,
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
+		onForward: func(t *tunnel) error {
+			return nil
+		},
+		onDone: func(t *tunnel) {},
 	}
 	err = c.ForwardStream(nil, nil, incomingStream, cb)
 	assert.EqualError(t, err, "correct error")
@@ -127,6 +131,10 @@ func TestTunnel_ForwardStream_IsUnblockedWhenIncomingStreamContextIsCancelledAft
 		tunnel:              connectServer,
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
+		onForward: func(t *tunnel) error {
+			return nil
+		},
+		onDone: func(t *tunnel) {},
 	}
 	err = c.ForwardStream(nil, nil, incomingStream, cb)
 	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = context deadline exceeded")

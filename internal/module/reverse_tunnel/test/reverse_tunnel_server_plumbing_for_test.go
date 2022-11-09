@@ -87,10 +87,6 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 
 	return func(ctx context.Context) error {
 		return stager.RunStages(ctx,
-			// Start things that modules use.
-			func(stage stager.Stage) {
-				stage.Go(tunnelRegistry.Run)
-			},
 			// Start modules.
 			func(stage stager.Stage) {
 				stage.Go(serverModule.Run)
