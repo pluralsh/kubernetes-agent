@@ -138,3 +138,11 @@ func Kind(kind string) zap.Field {
 func Error(err error) zap.Field {
 	return zap.Error(err) // nolint:forbidigo
 }
+
+func NumberOfTunnels(n int) zap.Field {
+	return zap.Int("num_tunnels", n)
+}
+
+func NumberOfTunnelFindRequests(n int) zap.Field {
+	return zap.Int("num_find_requests", n)
+}
