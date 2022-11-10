@@ -10,13 +10,7 @@ import (
 func TestValidation_Valid(t *testing.T) {
 	tests := []testhelpers.ValidTestcase{
 		{
-			Name: "minimal",
-			Valid: &TunnelInfo{
-				AgentDescriptor: &info.AgentDescriptor{},
-			},
-		},
-		{
-			Name: "grpc",
+			Name: "minimal/grpc",
 			Valid: &TunnelInfo{
 				AgentDescriptor: &info.AgentDescriptor{},
 				KasUrl:          "grpc://1.1.1.1:10",
@@ -36,7 +30,7 @@ func TestValidation_Valid(t *testing.T) {
 func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
 		{
-			ErrString: "invalid TunnelInfo.AgentDescriptor: value is required",
+			ErrString: "invalid TunnelInfo.AgentDescriptor: value is required; invalid TunnelInfo.KasUrl: value length must be at least 1 bytes",
 			Invalid:   &TunnelInfo{},
 		},
 		{

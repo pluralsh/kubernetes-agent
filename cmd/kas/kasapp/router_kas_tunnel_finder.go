@@ -206,10 +206,6 @@ type tunnelInfoCollector []*tracker.TunnelInfo
 
 func (c *tunnelInfoCollector) Collect(service, method string) tracker.GetTunnelsByAgentIdCallback {
 	return func(info *tracker.TunnelInfo) (bool /* done */, error) {
-		if info.KasUrl == "" {
-			// kas without a private API endpoint. Ignore it.
-			return false, nil
-		}
 		if !info.SupportsServiceAndMethod(service, method) {
 			// This tunnel doesn't support required API. Ignore it.
 			return false, nil

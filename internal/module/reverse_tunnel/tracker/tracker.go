@@ -121,6 +121,11 @@ func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, c
 			t.log.Error("Redis proto.Unmarshal(TunnelInfo)", logz.Error(err))
 			return false, nil
 		}
+		err = info.ValidateAll()
+		if err != nil {
+			t.log.Error("Redis proto.Unmarshal(TunnelInfo) validation", logz.Error(err))
+			return false, nil
+		}
 		return cb(&info)
 	})
 	return err
