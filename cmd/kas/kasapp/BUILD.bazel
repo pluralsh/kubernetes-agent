@@ -67,7 +67,6 @@ go_library(
         "//internal/tool/grpctool/automata",
         "//internal/tool/ioz",
         "//internal/tool/logz",
-        "//internal/tool/mathz",
         "//internal/tool/metric",
         "//internal/tool/prototool",
         "//internal/tool/redistool",

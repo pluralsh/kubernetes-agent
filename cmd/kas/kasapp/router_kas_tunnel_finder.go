@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -54,53 +53,58 @@ type tunnelFinder struct {
 
 func (f *tunnelFinder) Run(ctx context.Context) {
 	defer f.wg.Wait()
-	var tunnels []*tracker.TunnelInfo
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
-	pollConfig := f.pollConfig()
-	getTunnelsFunc := f.attemptToGetTunnels(&tunnels)
-	_ = wait.PollImmediateUntilWithContext(pollCtx, pollConfig.Interval, func(pollCtx context.Context) ( /*done*/ bool, error) {
-		err := retry.PollWithBackoff(pollCtx, pollConfig, getTunnelsFunc)
-		if err != nil {
-			return false, err // err can only be retry.ErrWaitTimeout
-		}
-		for _, tunnel := range tunnels {
-			if f.handleTunnel(tunnel, pollCancel) { // nolint: contextcheck
-				break
+	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
+
+	// err can only be retry.ErrWaitTimeout
+	_ = retry.PollWithBackoff(pollCtx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+		err := f.tunnelQuerier.GetTunnelsByAgentId(ctx, f.agentId, func(tunnel *tracker.TunnelInfo) (bool /* done */, error) {
+			if !tunnel.SupportsServiceAndMethod(service, method) {
+				// This tunnel doesn't support required API. Ignore it.
+				return false, nil
 			}
+			if f.handleTunnel(tunnel.KasUrl, pollCancel) {
+				return true, nil // stop iterating tunnels
+			}
+			return false, nil
+		})
+		if err != nil {
+			f.rpcApi.HandleProcessingError(f.log, f.agentId, "GetTunnelsByAgentId()", err)
+			return nil, retry.Backoff
 		}
-		return false, nil
+		return nil, retry.Continue
 	})
 }
 
-func (f *tunnelFinder) handleTunnel(tunnel *tracker.TunnelInfo, pollCancel context.CancelFunc) bool {
+func (f *tunnelFinder) handleTunnel(kasUrl string, pollCancel context.CancelFunc) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.done {
 		return true
 	}
-	if _, ok := f.connections[tunnel.KasUrl]; ok {
+	if _, ok := f.connections[kasUrl]; ok {
 		return false // skip tunnel via kas that we have connected to already
 	}
 	connCtx, connCancel := context.WithCancel(f.outgoingCtx)
-	f.connections[tunnel.KasUrl] = kasConnAttempt{
+	f.connections[kasUrl] = kasConnAttempt{
 		cancel: connCancel,
 	}
 	f.wg.Start(func() {
-		f.handleTunnelAsync(connCtx, connCancel, pollCancel, tunnel)
+		f.handleTunnelAsync(connCtx, connCancel, pollCancel, kasUrl)
 	})
 	return true
 }
 
-func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, tunnel *tracker.TunnelInfo) {
-	log := f.log.With(logz.KasUrl(tunnel.KasUrl)) // nolint:govet
+func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, kasUrl string) {
+	log := f.log.With(logz.KasUrl(kasUrl)) // nolint:govet
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		success := false
 
 		// 1. Dial another kas
 		log.Debug("Trying tunnel")
-		kasConn, err := f.kasPool.Dial(ctx, tunnel.KasUrl)
+		kasConn, err := f.kasPool.Dial(ctx, kasUrl)
 		if err != nil {
 			f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to dial kas", err)
 			return nil, retry.Backoff
@@ -147,7 +151,7 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 		}
 		f.done = true
 		pollCancel()
-		f.stopAllConnectionAttemptsExcept(tunnel.KasUrl)
+		f.stopAllConnectionAttemptsExcept(kasUrl)
 		f.mu.Unlock()
 
 		// 5. Tell the other kas we are starting streaming
@@ -161,7 +165,7 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 			return nil, retry.Backoff
 		}
 		rt := readyTunnel{
-			kasUrl:          tunnel.KasUrl,
+			kasUrl:          kasUrl,
 			kasStream:       kasStream,
 			kasConn:         kasConn,
 			kasStreamCancel: cancel,
@@ -175,42 +179,10 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 	})
 }
 
-// attemptToGetTunnels
-// must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (f *tunnelFinder) attemptToGetTunnels(infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffCtxFunc {
-	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
-	return func(ctx context.Context) (error, retry.AttemptResult) {
-		var infos tunnelInfoCollector = (*infosTarget)[:0] // reuse target backing array
-		err := f.tunnelQuerier.GetTunnelsByAgentId(ctx, f.agentId, infos.Collect(service, method))
-		if err != nil {
-			f.rpcApi.HandleProcessingError(f.log, f.agentId, "GetTunnelsByAgentId()", err)
-			return nil, retry.Backoff
-		}
-		mathz.Shuffle(len(infos), func(i, j int) {
-			infos[i], infos[j] = infos[j], infos[i]
-		})
-		*infosTarget = infos
-		return nil, retry.Done
-	}
-}
-
 func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
 	for url, c := range f.connections {
 		if url != kasUrl {
 			c.cancel()
 		}
-	}
-}
-
-type tunnelInfoCollector []*tracker.TunnelInfo
-
-func (c *tunnelInfoCollector) Collect(service, method string) tracker.GetTunnelsByAgentIdCallback {
-	return func(info *tracker.TunnelInfo) (bool /* done */, error) {
-		if !info.SupportsServiceAndMethod(service, method) {
-			// This tunnel doesn't support required API. Ignore it.
-			return false, nil
-		}
-		*c = append(*c, info)
-		return false, nil
 	}
 }
