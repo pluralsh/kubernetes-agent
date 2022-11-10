@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -80,7 +79,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 		},
 	})
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			_, err = tunnel.Recv() // get the actual error
 		}
 		return fmt.Errorf("Send(descriptor): %w", err) // wrap
@@ -113,7 +112,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 				Data: message.Data,
 			})
 			if err != nil {
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF { // nolint:errorlint
 					return nil // the other goroutine will receive the error in RecvMsg()
 				}
 				return fmt.Errorf("SendMsg(): %w", err)
@@ -151,7 +150,7 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 		},
 	})
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			return nil // the other goroutine will receive the error in RecvMsg()
 		}
 		return fmt.Errorf("Send(header): %w", err) // wrap
@@ -169,15 +168,15 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 				},
 			})
 			if err != nil {
-				if errors.Is(recvErr, io.EOF) {
-					if errors.Is(err, io.EOF) {
+				if recvErr == io.EOF { // nolint:errorlint
+					if err == io.EOF { // nolint:errorlint
 						return nil // the other goroutine will receive the error in RecvMsg()
 					}
 					return fmt.Errorf("Send(trailer): %w", err) // wrap
 				}
 				return fmt.Errorf("Recv(RawFrame): %w", recvErr) // return recvErr as it happened first
 			}
-			if errors.Is(recvErr, io.EOF) {
+			if recvErr == io.EOF { // nolint:errorlint
 				break
 			}
 			return sendErrorToTunnel(recvErr, tunnel)
@@ -190,7 +189,7 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 			},
 		})
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				return nil // the other goroutine will receive the error in RecvMsg()
 			}
 			return fmt.Errorf("Send(message): %w", err) // wrap
@@ -212,7 +211,7 @@ func sendErrorToTunnel(errToSend error, tunnel rpc.ReverseTunnel_ConnectClient) 
 		},
 	})
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			return nil // the other goroutine will receive the error in RecvMsg()
 		}
 		return fmt.Errorf("Send(error): %w", err) // wrap

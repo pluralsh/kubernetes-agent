@@ -251,7 +251,7 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 			}
 		}
 		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
+			if readErr == io.EOF { // nolint:errorlint
 				break
 			}
 			return x.handleIoError("read HTTP response body", readErr)
@@ -278,7 +278,7 @@ func (x *InboundGrpcToOutboundHttp) sendUpgradeResponseStream(inbound InboundGrp
 			}
 		}
 		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
+			if readErr == io.EOF {
 				break
 			}
 			return x.handleIoError("read upgrade response body", readErr)

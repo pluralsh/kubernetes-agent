@@ -1,7 +1,6 @@
 package grpctool
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -81,7 +80,7 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 		allowedTransitions := s.allowedTransitions[currentState]
 		err = stream.RecvMsg(msg)
 		if err != nil {
-			if !errors.Is(err, io.EOF) {
+			if err != io.EOF { // nolint:errorlint
 				return err
 			}
 			newState := eofState

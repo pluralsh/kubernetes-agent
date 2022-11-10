@@ -3,7 +3,6 @@ package redistool
 import (
 	"context"
 	"encoding/binary"
-	"errors"
 	"strings"
 	"time"
 
@@ -44,7 +43,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 
 	count, err := l.redisClient.Get(ctx, key).Uint64()
 	if err != nil {
-		if !errors.Is(err, redis.Nil) {
+		if err != redis.Nil { // nolint:errorlint
 			api.HandleProcessingError("redistool.TokenLimiter: error retrieving minute bucket count", err)
 			return false
 		}

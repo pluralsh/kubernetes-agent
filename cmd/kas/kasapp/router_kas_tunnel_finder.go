@@ -2,7 +2,6 @@ package kasapp
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -128,7 +127,7 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 		var kasResponse GatewayKasResponse
 		err = kasStream.RecvMsg(&kasResponse) // Wait for the tunnel to be found
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				// Gateway kas closed the connection cleanly, perhaps it's been open for too long
 				return nil, retry.ContinueImmediately
 			}
@@ -154,7 +153,7 @@ func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel
 		// 5. Tell the other kas we are starting streaming
 		err = kasStream.SendMsg(&StartStreaming{})
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				var frame grpctool.RawFrame
 				err = kasStream.RecvMsg(&frame) // get the real error
 			}

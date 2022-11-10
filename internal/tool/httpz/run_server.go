@@ -2,7 +2,6 @@ package httpz
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
 	"sync"
@@ -29,7 +28,7 @@ func RunServer(ctx context.Context, srv *http.Server, listener net.Listener, lis
 
 	err := srv.Serve(listener)
 
-	if !errors.Is(err, http.ErrServerClosed) {
+	if err != http.ErrServerClosed { // nolint:errorlint
 		// Failed to start or dirty shutdown
 		return err
 	}

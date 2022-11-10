@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -84,7 +83,7 @@ func NoContentResponseHandler() ResponseHandler {
 			case http.StatusOK, http.StatusNoContent:
 				const maxBodySlurpSize = 8 * 1024
 				_, err = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF { // nolint:errorlint
 					err = nil
 				}
 				return err

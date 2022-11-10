@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
@@ -52,7 +51,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 			config, err := res.Recv()
 			if err != nil {
 				switch {
-				case errors.Is(err, io.EOF):
+				case err == io.EOF: // nolint:errorlint
 					return nil, retry.ContinueImmediately // immediately reconnect after a clean close
 				case grpctool.RequestCanceledOrTimedOut(err):
 				default:

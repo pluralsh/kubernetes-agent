@@ -2,7 +2,6 @@ package gitaly
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats"
@@ -109,7 +108,7 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository, cb st
 	err = stats.ParseReferenceDiscovery(ioz.NewReceiveReader(func() ([]byte, error) {
 		entry, err := uploadPackResp.Recv() // nolint: govet
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				return nil, io.EOF
 			}
 			return nil, NewRpcError(err, "InfoRefsUploadPack.Recv", "")

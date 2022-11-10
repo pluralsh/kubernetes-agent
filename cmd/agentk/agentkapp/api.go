@@ -133,7 +133,7 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		},
 	})
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			return nil // the other goroutine will receive the error in RecvMsg()
 		}
 		return fmt.Errorf("send request header: %w", err) // wrap
@@ -150,7 +150,7 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		},
 	})
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			return nil // the other goroutine will receive the error in RecvMsg()
 		}
 		return fmt.Errorf("send request trailer: %w", err) // wrap
@@ -176,14 +176,15 @@ func (a *agentAPI) sendRequestBody(client gitlab_access_rpc.GitlabAccess_MakeReq
 					}},
 			})
 			if sendErr != nil {
-				if errors.Is(sendErr, io.EOF) { // the other goroutine will receive the error in RecvMsg()
+				if sendErr == io.EOF { // nolint:errorlint
+					// the other goroutine will receive the error in RecvMsg()
 					return nil
 				}
 				return fmt.Errorf("send request data: %w", sendErr) // wrap
 			}
 		}
 		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
+			if readErr == io.EOF { // nolint:errorlint
 				break
 			}
 			return fmt.Errorf("read request body: %w", readErr) // wrap
