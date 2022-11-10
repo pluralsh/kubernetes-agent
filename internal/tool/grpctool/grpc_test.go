@@ -176,7 +176,7 @@ func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 	gotEof := false
 	for !gotEof { // should eventually get an io.EOF when sending over a broken connection
 		err = resp.Send(&test.Request{})
-		gotEof = errors.Is(err, io.EOF)
+		gotEof = err == io.EOF // nolint:errorlint
 	}
 	_, err = resp.Recv()
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = error reading from server: EOF")
@@ -236,7 +236,7 @@ func TestGrpcErrors_SendingRequestWhenResponseHasBeenSent(t *testing.T) {
 	for !gotEof { // should eventually get an io.EOF when sending over a broken connection
 		// protocol error - trying to send something when the server has responded already.
 		err = resp.Send(&test.Request{})
-		gotEof = errors.Is(err, io.EOF)
+		gotEof = err == io.EOF // nolint:errorlint
 	}
 	_, err = resp.Recv()
 	assert.EqualError(t, err, "rpc error: code = NotFound desc = not found")

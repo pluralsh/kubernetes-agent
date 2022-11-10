@@ -2,7 +2,6 @@ package gitaly
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
@@ -87,7 +86,7 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 				return NewFileTooBigError(err, "TreeEntry", string(repoPath))
 			case code == codes.NotFound:
 				return NewNotFoundError("TreeEntry.Recv", string(repoPath))
-			case errors.Is(err, io.EOF):
+			case err == io.EOF: // nolint:errorlint
 				return nil
 			default:
 				return NewRpcError(err, "TreeEntry.Recv", string(repoPath))

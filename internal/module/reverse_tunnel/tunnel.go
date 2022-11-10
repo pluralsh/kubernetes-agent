@@ -1,7 +1,6 @@
 package reverse_tunnel
 
 import (
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
@@ -127,7 +126,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 		for {
 			err = incomingStream.RecvMsg(&frame)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF { // nolint:errorlint
 					break
 				}
 				return status.Error(codes.Canceled, "read from incoming stream"), err

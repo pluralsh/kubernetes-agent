@@ -2,7 +2,6 @@ package gitaly
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
@@ -33,7 +32,7 @@ entriesLoop:
 	for {
 		resp, err := entries.Recv()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				break
 			}
 			return NewRpcError(err, "GetTreeEntries.Recv", string(repoPath))

@@ -1,7 +1,6 @@
 package kasapp
 
 import (
-	"errors"
 	"io"
 	"strings"
 
@@ -52,7 +51,7 @@ func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerS
 	var start StartStreaming
 	err = stream.RecvMsg(&start)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			// Routing kas decided not to proceed
 			return nil
 		}

@@ -1,7 +1,6 @@
 package kasapp
 
 import (
-	"errors"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
@@ -84,14 +83,14 @@ func (f *kasStreamForwarder) pipeFromStreamToKas(kasStream grpc.ClientStream, st
 	for {
 		err := stream.RecvMsg(&frame)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				break
 			}
 			return err
 		}
 		err = kasStream.SendMsg(&frame)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF { // nolint:errorlint
 				return nil // the other goroutine will receive the error in RecvMsg()
 			}
 			return f.rpcApi.HandleIoError(f.log, "stream->router kas SendMsg() failed", err)

@@ -235,7 +235,7 @@ func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestCl
 			}
 		}
 		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
+			if readErr == io.EOF { // nolint:errorlint
 				break
 			}
 			// There is likely a connection problem so the client will likely not receive this
@@ -256,7 +256,7 @@ func (x *InboundHttpToOutboundGrpc) sendCloseSend(outboundClient HttpRequestClie
 func (x *InboundHttpToOutboundGrpc) send(client HttpRequestClient, errMsg string, msg *HttpRequest) *ErrResp {
 	err := client.Send(msg)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF { // nolint:errorlint
 			_, err = client.Recv()
 		}
 		return x.handleIoError(errMsg, err)
@@ -342,14 +342,14 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient
 				},
 			})
 			if sendErr != nil {
-				if errors.Is(sendErr, io.EOF) {
+				if readErr == io.EOF {
 					return nil // the other goroutine will receive the error in RecvMsg()
 				}
 				return fmt.Errorf("Send(HttpRequest_UpgradeData): %w", sendErr)
 			}
 		}
 		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
+			if readErr == io.EOF {
 				break
 			}
 			// There is likely a connection problem so the client will likely not receive this
