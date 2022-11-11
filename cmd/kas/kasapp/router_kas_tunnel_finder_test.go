@@ -55,7 +55,12 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
 				done, err := cb(tunnelInfo())
 				assert.NoError(t, err)
-				assert.True(t, done)
+				assert.False(t, done)
+				ti := tunnelInfo()
+				ti.ConnectionId = 23
+				done, err = cb(ti)
+				assert.NoError(t, err)
+				assert.False(t, done)
 			}),
 		querier.EXPECT().
 			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
@@ -94,13 +99,6 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
 
 	gomock.InOrder(
-		querier.EXPECT().
-			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
-				done, err := cb(tunnelInfo())
-				assert.NoError(t, err)
-				assert.True(t, done)
-			}),
 		querier.EXPECT().
 			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {

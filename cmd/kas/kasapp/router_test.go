@@ -316,7 +316,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
 				done, err := cb(tunnelInfo())
-				assert.True(t, done)
+				assert.False(t, done)
 				return err
 			}),
 		finder.EXPECT().
