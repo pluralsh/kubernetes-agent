@@ -181,6 +181,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
 		tunnelTracker,
 		tunnelRegistry,
+		a.OwnPrivateApiUrl,
 		internalSrv.server,
 		privateApiSrv.server,
 		privateApiSrv.kasPool,
@@ -333,8 +334,8 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 }
 
 func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder,
-	internalServer, privateApiServer grpc.ServiceRegistrar,
-	kasPool grpctool.PoolInterface, registerer prometheus.Registerer) (kasRouter, error) {
+	ownPrivateApiUrl string, internalServer, privateApiServer grpc.ServiceRegistrar, kasPool grpctool.PoolInterface,
+	registerer prometheus.Registerer) (kasRouter, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
@@ -345,9 +346,10 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 		return nil, err
 	}
 	return &router{
-		kasPool:       kasPool,
-		tunnelQuerier: tunnelQuerier,
-		tunnelFinder:  tunnelFinder,
+		kasPool:          kasPool,
+		tunnelQuerier:    tunnelQuerier,
+		tunnelFinder:     tunnelFinder,
+		ownPrivateApiUrl: ownPrivateApiUrl,
 		pollConfig: retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
 			routingInitBackoff,
 			routingMaxBackoff,

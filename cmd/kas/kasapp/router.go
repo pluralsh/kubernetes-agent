@@ -22,10 +22,11 @@ type kasRouter interface {
 // router routes traffic from kas to another kas to agentk.
 // routing kas -> gateway kas -> agentk
 type router struct {
-	kasPool       grpctool.PoolInterface
-	tunnelQuerier tracker.Querier
-	tunnelFinder  reverse_tunnel.TunnelFinder
-	pollConfig    retry.PollConfigFactory
+	kasPool          grpctool.PoolInterface
+	tunnelQuerier    tracker.Querier
+	tunnelFinder     reverse_tunnel.TunnelFinder
+	ownPrivateApiUrl string
+	pollConfig       retry.PollConfigFactory
 	// internalServer is the internal gRPC server for use inside of kas.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	internalServer grpc.ServiceRegistrar

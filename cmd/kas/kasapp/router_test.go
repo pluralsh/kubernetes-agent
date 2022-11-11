@@ -3,9 +3,11 @@ package kasapp
 import (
 	"context"
 	"io"
+	"net"
 	"testing"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -326,9 +328,10 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
-				Logger:    log,
 				StreamCtx: ctx,
+				Logger:    log,
 			},
+			sentryHubRoot: sentry.NewHub(nil, sentry.NewScope()),
 		}
 	}
 
@@ -357,10 +360,18 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	r := &router{
 		kasPool: grpctool.NewPool(log,
 			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
-			grpc.WithContextDialer(privateApiServerListener.DialContext),
+			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+				if addr == "self" {
+					<-ctx.Done()
+					return nil, ctx.Err()
+				} else {
+					return privateApiServerListener.DialContext(ctx, addr)
+				}
+			}),
 		),
 		tunnelQuerier:             querier,
 		tunnelFinder:              finder,
+		ownPrivateApiUrl:          selfAddr,
 		pollConfig:                testhelpers.NewPollConfig(time.Minute),
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,

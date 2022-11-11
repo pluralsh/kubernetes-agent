@@ -35,15 +35,16 @@ type readyTunnel struct {
 }
 
 type tunnelFinder struct {
-	log           *zap.Logger
-	kasPool       grpctool.PoolInterface
-	tunnelQuerier tracker.Querier
-	rpcApi        modserver.RpcApi
-	fullMethod    string // /service/method
-	agentId       int64
-	outgoingCtx   context.Context
-	pollConfig    retry.PollConfigFactory
-	foundTunnel   chan<- readyTunnel
+	log              *zap.Logger
+	kasPool          grpctool.PoolInterface
+	tunnelQuerier    tracker.Querier
+	rpcApi           modserver.RpcApi
+	fullMethod       string // /service/method
+	ownPrivateApiUrl string
+	agentId          int64
+	outgoingCtx      context.Context
+	pollConfig       retry.PollConfigFactory
+	foundTunnel      chan<- readyTunnel
 
 	wg          wait.Group
 	mu          sync.Mutex                // protects connections,done
@@ -56,6 +57,9 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
 	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
+
+	// Unconditionally connect to self.
+	f.handleTunnel(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
 
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(pollCtx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
