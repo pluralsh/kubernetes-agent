@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 )
@@ -140,12 +141,12 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	assert.Len(t, tf.connections, 2)
 }
 
-func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tracker.MockQuerier, *mock_modserver.MockRpcApi, *MockKasPool) {
+func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tracker.MockQuerier, *mock_modserver.MockRpcApi, *mock_rpc.MockPoolInterface) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
-	kasPool := NewMockKasPool(ctrl)
+	kasPool := mock_rpc.NewMockPoolInterface(ctrl)
 
 	tf := &tunnelFinder{
 		log:           zaptest.NewLogger(t),

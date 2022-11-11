@@ -63,7 +63,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
-	"google.golang.org/grpc/keepalive"
 )
 
 const (
@@ -156,7 +155,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -166,7 +165,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	defer errz.SafeClose(internalSrv.conn, &retErr)
+	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
 	// Reverse gRPC tunnel tracker
 	tunnelTracker := a.constructTunnelTracker(redisClient)
@@ -180,12 +179,11 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
-		tp,
-		p,
 		tunnelTracker,
 		tunnelRegistry,
 		internalSrv.server,
 		privateApiSrv.server,
+		privateApiSrv.kasPool,
 		registerer)
 	if err != nil {
 		return err
@@ -246,7 +244,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,
-			AgentConn:        internalSrv.conn,
+			AgentConn:        internalSrv.inMemConn,
 			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
@@ -334,53 +332,20 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 	return f.New, fAgent.New
 }
 
-func (a *ConfiguredApp) constructKasToAgentRouter(tp trace.TracerProvider, p propagation.TextMapPropagator,
-	tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar,
-	registerer prometheus.Registerer) (kasRouter, error) {
-	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %w", err)
-	}
+func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder,
+	internalServer, privateApiServer grpc.ServiceRegistrar,
+	kasPool grpctool.PoolInterface, registerer prometheus.Registerer) (kasRouter, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
 	}
-	tlsCreds, err := tlstool.DefaultClientTLSConfigWithCACert(listenCfg.CaCertificateFile)
-	if err != nil {
-		return nil, err
-	}
-	tlsCreds.ServerName = a.OwnPrivateApiHost
 	kasRoutingDuration := constructKasRoutingDurationHistogram()
 	err = metric.Register(registerer, kasRoutingDuration)
 	if err != nil {
 		return nil, err
 	}
 	return &router{
-		kasPool: grpctool.NewPool(a.Log,
-			credentials.NewTLS(tlsCreds),
-			grpc.WithUserAgent(kasServerName()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                55 * time.Second,
-				PermitWithoutStream: true,
-			}),
-			grpc.WithPerRPCCredentials(&grpctool.JwtCredentials{
-				Secret:   jwtSecret,
-				Audience: kasName,
-				Issuer:   kasName,
-				Insecure: true, // We may or may not have TLS setup, so always say creds don't need TLS.
-			}),
-			grpc.WithChainStreamInterceptor(
-				grpc_prometheus.StreamClientInterceptor,
-				otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
-				grpctool.StreamClientValidatingInterceptor,
-			),
-			grpc.WithChainUnaryInterceptor(
-				grpc_prometheus.UnaryClientInterceptor,
-				otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
-				grpctool.UnaryClientValidatingInterceptor,
-			),
-		),
+		kasPool:       kasPool,
 		tunnelQuerier: tunnelQuerier,
 		tunnelFinder:  tunnelFinder,
 		pollConfig: retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(

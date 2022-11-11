@@ -21,6 +21,13 @@ const (
 	t2 = "grpc://127.0.0.1:2"
 )
 
+var (
+	_ PoolInterface = (*Pool)(nil)
+	_ PoolConn      = (*poolConn)(nil)
+	_ PoolInterface = (*PoolSelf)(nil)
+	_ PoolConn      = (*selfPoolConn)(nil)
+)
+
 func TestKasPool_DialConnDifferentPort(t *testing.T) {
 	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	defer clz(t, p)

@@ -36,7 +36,7 @@ type readyTunnel struct {
 
 type tunnelFinder struct {
 	log           *zap.Logger
-	kasPool       KasPool
+	kasPool       grpctool.PoolInterface
 	tunnelQuerier tracker.Querier
 	rpcApi        modserver.RpcApi
 	fullMethod    string // /service/method

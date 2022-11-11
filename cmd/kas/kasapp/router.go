@@ -1,8 +1,6 @@
 package kasapp
 
 import (
-	"context"
-	"io"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -21,15 +19,10 @@ type kasRouter interface {
 	RegisterAgentApi(desc *grpc.ServiceDesc)
 }
 
-type KasPool interface {
-	Dial(ctx context.Context, targetUrl string) (grpctool.PoolConn, error)
-	io.Closer
-}
-
 // router routes traffic from kas to another kas to agentk.
 // routing kas -> gateway kas -> agentk
 type router struct {
-	kasPool       KasPool
+	kasPool       grpctool.PoolInterface
 	tunnelQuerier tracker.Querier
 	tunnelFinder  reverse_tunnel.TunnelFinder
 	pollConfig    retry.PollConfigFactory
