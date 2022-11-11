@@ -17,6 +17,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// IOFunc is a function that performs I/O.
+// It should be called when not holding a mutex to avoid blocking other goroutines trying to acquire the mutex
+// for the duration of the I/O.
+type IOFunc func()
+
 type TunnelHandler interface {
 	// HandleTunnel is called with server-side interface of the reverse tunnel.
 	// It registers the tunnel and blocks, waiting for a request to proxy through the tunnel.
@@ -77,7 +82,7 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 		method:  method,
 		retTun:  retTun,
 	}
-	func() {
+	doIO := func() IOFunc {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 
@@ -88,9 +93,8 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 			}
 			// Suitable tunnel found!
 			tun.state = stateFound
-			r.unregisterTunnel(tun) // nolint: contextcheck
-			retTun <- tun           // must not block because the reception is below
-			return
+			retTun <- tun // must not block because the reception is below
+			return r.unregisterTunnelLocked(tun)
 		}
 
 		// 2. No suitable tunnel found, add to the queue
@@ -100,22 +104,26 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 			r.findRequestsByAgentId[agentId] = findRequestsForAgentId
 		}
 		findRequestsForAgentId[ftr] = struct{}{}
+		return noIO
 	}()
+	doIO()
 	select {
 	case <-ctx.Done():
-		return nil, func() error {
+		doIO = func() IOFunc {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			close(retTun)
 			tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
 			if tun != nil {
 				// Got the tunnel, but it's too late so return it to the registry.
-				r.onTunnelDoneLocked(tun) // nolint: contextcheck
+				return r.onTunnelDoneLocked(tun)
 			} else {
 				r.deleteFindRequest(ftr)
+				return noIO
 			}
-			return ctx.Err()
 		}()
+		doIO()
+		return nil, ctx.Err()
 	case tun := <-retTun:
 		if tun == nil {
 			return nil, status.Error(codes.Unavailable, "kas is shutting down")
@@ -149,11 +157,12 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 		onDone:    r.onTunnelDone,
 	}
 	// Register
-	func() {
+	doIO := func() IOFunc {
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		r.registerTunnelLocked(tun)
+		return r.registerTunnelLocked(tun)
 	}()
+	doIO()
 	// Wait for return error or for cancellation
 	select {
 	case <-ctx.Done():
@@ -162,8 +171,9 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 		switch tun.state {
 		case stateReady:
 			tun.state = stateContextDone
-			r.unregisterTunnel(tun) // nolint: contextcheck
+			doIO = r.unregisterTunnelLocked(tun) // nolint: contextcheck
 			r.mu.Unlock()
+			doIO()
 			return nil
 		case stateFound:
 			// Tunnel was found but hasn't been used yet, Done() hasn't been called.
@@ -195,7 +205,7 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 	}
 }
 
-func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) {
+func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) IOFunc {
 	agentId := toReg.tunnelInfo.AgentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -207,16 +217,11 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) {
 		toReg.state = stateFound
 		ftr.retTun <- toReg      // Satisfy the waiting request ASAP
 		r.deleteFindRequest(ftr) // Remove it from the queue
-		return
+		return noIO
 	}
 
 	// 2. Register the tunnel
 	toReg.state = stateReady
-	err := r.tunnelRegisterer.RegisterTunnel(context.Background(), toReg.tunnelInfo) // register ASAP
-	if err != nil {
-		r.log.Error("Failed to register tunnel", logz.Error(err))
-		// fallthrough
-	}
 	r.tuns[toReg] = struct{}{}
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
@@ -224,20 +229,17 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) {
 		r.tunsByAgentId[agentId] = tunsByAgentId
 	}
 	tunsByAgentId[toReg] = struct{}{}
+	return r.registerTunnelIO(toReg.tunnelInfo)
 }
 
-func (r *TunnelRegistry) unregisterTunnel(toUnreg *tunnel) {
-	err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), toUnreg.tunnelInfo)
-	if err != nil {
-		r.log.Error("Failed to unregister tunnel", logz.Error(err))
-		// fallthrough
-	}
+func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnel) IOFunc {
 	delete(r.tuns, toUnreg)
 	tunsByAgentId := r.tunsByAgentId[toUnreg.tunnelInfo.AgentId]
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
 		delete(r.tunsByAgentId, toUnreg.tunnelInfo.AgentId)
 	}
+	return r.unregisterTunnelIO(toUnreg.tunnelInfo)
 }
 
 func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
@@ -263,18 +265,22 @@ func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
 }
 
 func (r *TunnelRegistry) onTunnelDone(tun *tunnel) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.onTunnelDoneLocked(tun)
+	var doIO IOFunc
+	func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		doIO = r.onTunnelDoneLocked(tun)
+	}()
+	doIO()
 }
 
-func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) {
+func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) IOFunc {
 	switch tun.state {
 	case stateReady:
 		panic(errors.New("unreachable: ready -> done should never happen"))
 	case stateFound:
 		// Tunnel was found but was not used, Done() was called. Just put it back.
-		r.registerTunnelLocked(tun)
+		return r.registerTunnelLocked(tun)
 	case stateForwarding:
 		tun.state = stateDone
 	case stateDone:
@@ -287,6 +293,7 @@ func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) {
 		// Should never happen
 		panic(fmt.Errorf("invalid state: %d", tun.state))
 	}
+	return noIO
 }
 
 func (r *TunnelRegistry) deleteFindRequest(ftr *findTunnelRequest) {
@@ -318,8 +325,10 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 	for tun := range r.tuns {
 		tun.state = stateDone
 		tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
-		r.unregisterTunnel(tun) // nolint: contextcheck
+		doIO := r.unregisterTunnelLocked(tun)
+		doIO()
 	}
+	r.log.Warn("Done stopping tunnels")
 	// Abort all waiting new stream requests
 	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
 		for ftr := range findRequestsForAgentId {
@@ -328,4 +337,25 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 		}
 	}
 	return tl, fl
+}
+
+func (r *TunnelRegistry) registerTunnelIO(info *tracker.TunnelInfo) IOFunc {
+	return func() {
+		err := r.tunnelRegisterer.RegisterTunnel(context.Background(), info)
+		if err != nil {
+			r.log.Error("Failed to register tunnel", logz.AgentId(info.AgentId), logz.Error(err))
+		}
+	}
+}
+
+func (r *TunnelRegistry) unregisterTunnelIO(info *tracker.TunnelInfo) IOFunc {
+	return func() {
+		err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), info)
+		if err != nil {
+			r.log.Error("Failed to unregister tunnel", logz.AgentId(info.AgentId), logz.Error(err))
+		}
+	}
+}
+
+func noIO() {
 }

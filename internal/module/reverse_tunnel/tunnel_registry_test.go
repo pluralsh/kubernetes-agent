@@ -135,19 +135,27 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	gomock.InOrder(
-		connectServer.EXPECT().
-			Recv().
-			Return(&rpc.ConnectRequest{
-				Msg: &rpc.ConnectRequest_Descriptor_{
-					Descriptor_: descriptor(),
-				},
-			}, nil),
-		tunnelRegisterer.EXPECT().
-			RegisterTunnel(gomock.Any(), gomock.Any()),
-		tunnelRegisterer.EXPECT().
-			UnregisterTunnel(gomock.Any(), gomock.Any()),
-	)
+	reg := make(chan struct{})
+	regCnt := 0
+	connectServer.EXPECT().
+		Recv().
+		Return(&rpc.ConnectRequest{
+			Msg: &rpc.ConnectRequest_Descriptor_{
+				Descriptor_: descriptor(),
+			},
+		}, nil)
+	tunnelRegisterer.EXPECT().
+		RegisterTunnel(gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, info *tracker.TunnelInfo) {
+			regCnt++
+			if regCnt == 1 {
+				close(reg)
+			}
+		}).
+		Times(2)
+	tunnelRegisterer.EXPECT().
+		UnregisterTunnel(gomock.Any(), gomock.Any()).
+		Times(2)
 	agentInfo := testhelpers.AgentInfoObj()
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
@@ -157,6 +165,7 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		err = r.HandleTunnel(context.Background(), agentInfo, connectServer)
 		assert.NoError(t, err)
 	})
+	<-reg
 	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	require.NoError(t, err)
 	tun.Done()
