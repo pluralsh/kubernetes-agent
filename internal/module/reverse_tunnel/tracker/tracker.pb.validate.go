@@ -101,6 +101,17 @@ func (m *TunnelInfo) validate(all bool) error {
 
 	// no validation rules for AgentId
 
+	if len(m.GetKasUrl()) < 1 {
+		err := TunnelInfoValidationError{
+			field:  "KasUrl",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if !_TunnelInfo_KasUrl_Pattern.MatchString(m.GetKasUrl()) {
 		err := TunnelInfoValidationError{
 			field:  "KasUrl",

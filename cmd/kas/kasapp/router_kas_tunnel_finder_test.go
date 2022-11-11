@@ -43,25 +43,28 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	defer cancel()
 	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
 
-	cnt := 0
-
-	querier.EXPECT().
-		GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
-			done, err := cb(tunnelInfo())
-			assert.NoError(t, err)
-			assert.False(t, done)
-			ti := tunnelInfo()
-			ti.ConnectionId = 23
-			done, err = cb(ti)
-			assert.NoError(t, err)
-			assert.False(t, done)
-			cnt++
-			if cnt == 2 {
+	gomock.InOrder(
+		querier.EXPECT().
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
+				done, err := cb(tunnelInfo())
+				assert.NoError(t, err)
+				assert.True(t, done)
+			}),
+		querier.EXPECT().
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
+				done, err := cb(tunnelInfo())
+				assert.NoError(t, err)
+				assert.False(t, done)
+				ti := tunnelInfo()
+				ti.ConnectionId = 23
+				done, err = cb(ti)
+				assert.NoError(t, err)
+				assert.False(t, done)
 				cancel()
-			}
-		}).
-		Times(2)
+			}),
+	)
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), "grpc://pipe").
@@ -82,26 +85,42 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	defer cancel()
 	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
 
-	cnt := 0
-
-	querier.EXPECT().
-		GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
-			done, err := cb(tunnelInfo())
-			assert.NoError(t, err)
-			assert.False(t, done)
-			ti := tunnelInfo()
-			ti.ConnectionId = 23
-			ti.KasUrl = "grpc://pipe2"
-			done, err = cb(ti)
-			assert.NoError(t, err)
-			assert.False(t, done)
-			cnt++
-			if cnt == 3 {
+	gomock.InOrder(
+		querier.EXPECT().
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
+				done, err := cb(tunnelInfo())
+				assert.NoError(t, err)
+				assert.True(t, done)
+			}),
+		querier.EXPECT().
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
+				done, err := cb(tunnelInfo())
+				assert.NoError(t, err)
+				assert.False(t, done)
+				ti := tunnelInfo()
+				ti.ConnectionId = 23
+				ti.KasUrl = "grpc://pipe2"
+				done, err = cb(ti)
+				assert.NoError(t, err)
+				assert.True(t, done)
+			}),
+		querier.EXPECT().
+			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) {
+				done, err := cb(tunnelInfo())
+				assert.NoError(t, err)
+				assert.False(t, done)
+				ti := tunnelInfo()
+				ti.ConnectionId = 23
+				ti.KasUrl = "grpc://pipe2"
+				done, err = cb(ti)
+				assert.NoError(t, err)
+				assert.False(t, done)
 				cancel()
-			}
-		}).
-		Times(3)
+			}),
+	)
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {

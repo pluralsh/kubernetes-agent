@@ -22,5 +22,5 @@ message TunnelInfo {
   // - 'grpc' for unencrypted connection
   // - 'grpcs' for TLS.
   // Might be empty if kas is not configured to expose it's address.
-  string kas_url = 4 [(validate.rules).string.pattern = "(?:^$|^grpcs?://)"];
+  string kas_url = 4 [(validate.rules).string.pattern = "(?:^$|^grpcs?://)", (validate.rules).string.min_bytes = 1];
 }

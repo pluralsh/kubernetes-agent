@@ -20,10 +20,9 @@ import (
 )
 
 var (
-	_ Registerer                  = &RedisTracker{}
-	_ Tracker                     = &RedisTracker{}
-	_ Querier                     = &RedisTracker{}
-	_ GetTunnelsByAgentIdCallback = (&TunnelInfoCollector{}).Collect
+	_ Registerer = &RedisTracker{}
+	_ Tracker    = &RedisTracker{}
+	_ Querier    = &RedisTracker{}
 )
 
 func TestRegisterConnection(t *testing.T) {
@@ -173,6 +172,7 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		},
 		ConnectionId: 123,
 		AgentId:      543,
+		KasUrl:       "grpc://1.1.1.1:10",
 	}
 	return &RedisTracker{
 		log:              zaptest.NewLogger(t),

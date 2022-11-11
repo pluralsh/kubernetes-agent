@@ -121,6 +121,11 @@ func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, c
 			t.log.Error("Redis proto.Unmarshal(TunnelInfo)", logz.Error(err))
 			return false, nil
 		}
+		err = info.ValidateAll()
+		if err != nil {
+			t.log.Error("Redis proto.Unmarshal(TunnelInfo) validation", logz.Error(err))
+			return false, nil
+		}
 		return cb(&info)
 	})
 	return err
@@ -146,13 +151,6 @@ func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error)
 		return 0, nil
 	}
 	return gc(ctx)
-}
-
-type TunnelInfoCollector []*TunnelInfo
-
-func (c *TunnelInfoCollector) Collect(info *TunnelInfo) (bool, error) {
-	*c = append(*c, info)
-	return false, nil
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled TunnelInfo).
