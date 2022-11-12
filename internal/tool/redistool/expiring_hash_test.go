@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	_ ExpiringHashInterface[int] = (*ExpiringHash[int])(nil)
+	_ ExpiringHashInterface[int, int] = (*ExpiringHash[int, int])(nil)
 )
 
 func TestExpiringHash_Set(t *testing.T) {
@@ -186,7 +186,7 @@ func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	})
 }
 
-func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string], string, []byte) {
+func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(func() {
@@ -197,9 +197,9 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string], stri
 	_, err := r.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash[string](client, func(key string) string {
+	hash := NewExpiringHash[string, int64](client, func(key string) string {
 		return key
-	}, ttl)
+	}, int64ToStr, ttl)
 	return client, hash, key, []byte{1, 2, 3}
 }
 
@@ -241,4 +241,8 @@ func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, e
 		require.NoError(t, err)
 		assert.Greater(t, msg.ExpiresAt, expireAfter.Unix())
 	}
+}
+
+func int64ToStr(key int64) string {
+	return strconv.FormatInt(key, 10)
 }

@@ -154,9 +154,9 @@ func TestGetTunnelsByAgentId_UnmarshalError(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64], *TunnelInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *TunnelInfo) {
 	ctrl := gomock.NewController(t)
-	hash := mock_redis.NewMockExpiringHashInterface[int64](ctrl)
+	hash := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
 	ti := &TunnelInfo{
 		AgentDescriptor: &info.AgentDescriptor{
 			Services: []*info.Service{

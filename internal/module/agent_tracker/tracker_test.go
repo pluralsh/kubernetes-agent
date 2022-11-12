@@ -438,11 +438,11 @@ func nopIOFunc(ctx context.Context) error {
 	return nil
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int], *mock_redis.MockExpiringHashInterface[int64], *mock_redis.MockExpiringHashInterface[int64], *ConnectedAgentInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *ConnectedAgentInfo) {
 	ctrl := gomock.NewController(t)
-	connectedAgents := mock_redis.NewMockExpiringHashInterface[int](ctrl)
-	byAgentId := mock_redis.NewMockExpiringHashInterface[int64](ctrl)
-	byProjectId := mock_redis.NewMockExpiringHashInterface[int64](ctrl)
+	connectedAgents := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
+	byAgentId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
+	byProjectId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
 	tr := &RedisTracker{
 		log:                    zaptest.NewLogger(t),
 		refreshPeriod:          time.Minute,

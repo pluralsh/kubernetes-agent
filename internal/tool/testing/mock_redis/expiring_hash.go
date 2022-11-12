@@ -14,42 +14,42 @@ import (
 )
 
 // MockExpiringHashInterface is a mock of ExpiringHashInterface interface.
-type MockExpiringHashInterface[K any] struct {
+type MockExpiringHashInterface[K1 any, K2 any] struct {
 	ctrl     *gomock.Controller
-	recorder *MockExpiringHashInterfaceMockRecorder[K]
+	recorder *MockExpiringHashInterfaceMockRecorder[K1, K2]
 }
 
 // MockExpiringHashInterfaceMockRecorder is the mock recorder for MockExpiringHashInterface.
-type MockExpiringHashInterfaceMockRecorder[K any] struct {
-	mock *MockExpiringHashInterface[K]
+type MockExpiringHashInterfaceMockRecorder[K1 any, K2 any] struct {
+	mock *MockExpiringHashInterface[K1, K2]
 }
 
 // NewMockExpiringHashInterface creates a new mock instance.
-func NewMockExpiringHashInterface[K any](ctrl *gomock.Controller) *MockExpiringHashInterface[K] {
-	mock := &MockExpiringHashInterface[K]{ctrl: ctrl}
-	mock.recorder = &MockExpiringHashInterfaceMockRecorder[K]{mock}
+func NewMockExpiringHashInterface[K1 any, K2 any](ctrl *gomock.Controller) *MockExpiringHashInterface[K1, K2] {
+	mock := &MockExpiringHashInterface[K1, K2]{ctrl: ctrl}
+	mock.recorder = &MockExpiringHashInterfaceMockRecorder[K1, K2]{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockExpiringHashInterface[K]) EXPECT() *MockExpiringHashInterfaceMockRecorder[K] {
+func (m *MockExpiringHashInterface[K1, K2]) EXPECT() *MockExpiringHashInterfaceMockRecorder[K1, K2] {
 	return m.recorder
 }
 
 // Forget mocks base method.
-func (m *MockExpiringHashInterface[K]) Forget(key K, hashKey int64) {
+func (m *MockExpiringHashInterface[K1, K2]) Forget(key K1, hashKey K2) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Forget", key, hashKey)
 }
 
 // Forget indicates an expected call of Forget.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Forget(key, hashKey interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Forget(key, hashKey interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Forget", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Forget), key, hashKey)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Forget", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Forget), key, hashKey)
 }
 
 // GC mocks base method.
-func (m *MockExpiringHashInterface[K]) GC() func(context.Context) (int, error) {
+func (m *MockExpiringHashInterface[K1, K2]) GC() func(context.Context) (int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GC")
 	ret0, _ := ret[0].(func(context.Context) (int, error))
@@ -57,13 +57,13 @@ func (m *MockExpiringHashInterface[K]) GC() func(context.Context) (int, error) {
 }
 
 // GC indicates an expected call of GC.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) GC() *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) GC() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).GC))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).GC))
 }
 
 // Len mocks base method.
-func (m *MockExpiringHashInterface[K]) Len(ctx context.Context, key K) (int64, error) {
+func (m *MockExpiringHashInterface[K1, K2]) Len(ctx context.Context, key K1) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Len", ctx, key)
 	ret0, _ := ret[0].(int64)
@@ -72,13 +72,13 @@ func (m *MockExpiringHashInterface[K]) Len(ctx context.Context, key K) (int64, e
 }
 
 // Len indicates an expected call of Len.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Len(ctx, key interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Len(ctx, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Len", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Len), ctx, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Len", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Len), ctx, key)
 }
 
 // Refresh mocks base method.
-func (m *MockExpiringHashInterface[K]) Refresh(nextRefresh time.Time) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Refresh(nextRefresh time.Time) redistool.IOFunc {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Refresh", nextRefresh)
 	ret0, _ := ret[0].(redistool.IOFunc)
@@ -86,13 +86,13 @@ func (m *MockExpiringHashInterface[K]) Refresh(nextRefresh time.Time) redistool.
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Refresh(nextRefresh interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Refresh(nextRefresh interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Refresh), nextRefresh)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Refresh), nextRefresh)
 }
 
 // Scan mocks base method.
-func (m *MockExpiringHashInterface[K]) Scan(ctx context.Context, key K, cb redistool.ScanCallback) (int, error) {
+func (m *MockExpiringHashInterface[K1, K2]) Scan(ctx context.Context, key K1, cb redistool.ScanCallback) (int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Scan", ctx, key, cb)
 	ret0, _ := ret[0].(int)
@@ -101,13 +101,13 @@ func (m *MockExpiringHashInterface[K]) Scan(ctx context.Context, key K, cb redis
 }
 
 // Scan indicates an expected call of Scan.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Scan(ctx, key, cb interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Scan(ctx, key, cb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Scan), ctx, key, cb)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Scan), ctx, key, cb)
 }
 
 // Set mocks base method.
-func (m *MockExpiringHashInterface[K]) Set(key K, hashKey int64, value []byte) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Set(key K1, hashKey K2, value []byte) redistool.IOFunc {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", key, hashKey, value)
 	ret0, _ := ret[0].(redistool.IOFunc)
@@ -115,13 +115,13 @@ func (m *MockExpiringHashInterface[K]) Set(key K, hashKey int64, value []byte) r
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Set(key, hashKey, value interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Set(key, hashKey, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Set), key, hashKey, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Set), key, hashKey, value)
 }
 
 // Unset mocks base method.
-func (m *MockExpiringHashInterface[K]) Unset(key K, hashKey int64) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Unset(key K1, hashKey K2) redistool.IOFunc {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unset", key, hashKey)
 	ret0, _ := ret[0].(redistool.IOFunc)
@@ -129,7 +129,7 @@ func (m *MockExpiringHashInterface[K]) Unset(key K, hashKey int64) redistool.IOF
 }
 
 // Unset indicates an expected call of Unset.
-func (mr *MockExpiringHashInterfaceMockRecorder[K]) Unset(key, hashKey interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Unset(key, hashKey interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface[K])(nil).Unset), key, hashKey)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Unset), key, hashKey)
 }

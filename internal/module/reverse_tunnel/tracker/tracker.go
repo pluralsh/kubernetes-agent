@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -41,7 +42,7 @@ type RedisTracker struct {
 
 	// mu protects fields below
 	mu               syncz.Mutex
-	tunnelsByAgentId redistool.ExpiringHashInterface[int64] // agentId -> connectionId -> TunnelInfo
+	tunnelsByAgentId redistool.ExpiringHashInterface[int64, int64] // agentId -> connectionId -> TunnelInfo
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -50,7 +51,7 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		refreshPeriod:    refreshPeriod,
 		gcPeriod:         gcPeriod,
 		mu:               syncz.NewMutex(),
-		tunnelsByAgentId: redistool.NewExpiringHash[int64](client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
+		tunnelsByAgentId: redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 
@@ -159,4 +160,8 @@ func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int6
 	return func(agentId int64) string {
 		return redistool.PrefixedInt64Key(prefix, agentId)
 	}
+}
+
+func int64ToStr(key int64) string {
+	return strconv.FormatInt(key, 10)
 }
