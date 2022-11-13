@@ -16,16 +16,16 @@ import (
 )
 
 type internalServer struct {
-	server   *grpc.Server
-	conn     *grpc.ClientConn
-	listener net.Listener
-	ready    func()
+	server        *grpc.Server
+	inMemConn     *grpc.ClientConn
+	inMemListener net.Listener
+	ready         func()
 }
 
 func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry) (*internalServer, error) {
 
-	// Internal gRPC client->listener pipe
+	// In-memory gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
 
 	// Construct connection to internal gRPC server
@@ -57,15 +57,15 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 			),
 			grpc.ForceServerCodec(grpctool.RawCodec{}),
 		),
-		conn:     conn,
-		listener: listener,
-		ready:    probeRegistry.RegisterReadinessToggle("internalServer"),
+		inMemConn:     conn,
+		inMemListener: listener,
+		ready:         probeRegistry.RegisterReadinessToggle("internalServer"),
 	}, nil
 }
 
 func (s *internalServer) Start(stage stager.Stage) {
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
 		s.ready()
-		return s.listener, nil
+		return s.inMemListener, nil
 	}, func() {})
 }

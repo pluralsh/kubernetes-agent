@@ -29,6 +29,7 @@ go_library(
         "jwt_server_auth.go",
         "max_conn_age.go",
         "pool.go",
+        "pool_self.go",
         "raw_codec.go",
         "server_limiting.go",
         "stream_visitor.go",

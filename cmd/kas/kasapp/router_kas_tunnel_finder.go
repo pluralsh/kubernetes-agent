@@ -16,6 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+const (
+	speculationFactor = 2
+)
+
 var (
 	proxyStreamDesc = grpc.StreamDesc{
 		ServerStreams: true,
@@ -35,15 +39,16 @@ type readyTunnel struct {
 }
 
 type tunnelFinder struct {
-	log           *zap.Logger
-	kasPool       KasPool
-	tunnelQuerier tracker.Querier
-	rpcApi        modserver.RpcApi
-	fullMethod    string // /service/method
-	agentId       int64
-	outgoingCtx   context.Context
-	pollConfig    retry.PollConfigFactory
-	foundTunnel   chan<- readyTunnel
+	log              *zap.Logger
+	kasPool          grpctool.PoolInterface
+	tunnelQuerier    tracker.Querier
+	rpcApi           modserver.RpcApi
+	fullMethod       string // /service/method
+	ownPrivateApiUrl string
+	agentId          int64
+	outgoingCtx      context.Context
+	pollConfig       retry.PollConfigFactory
+	foundTunnel      chan<- readyTunnel
 
 	wg          wait.Group
 	mu          sync.Mutex                // protects connections,done
@@ -57,15 +62,21 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	defer pollCancel()
 	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
 
+	// Unconditionally connect to self.
+	f.tryKas(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
+
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(pollCtx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+		newKasConnections := 0
 		err := f.tunnelQuerier.GetTunnelsByAgentId(ctx, f.agentId, func(tunnel *tracker.TunnelInfo) (bool /* done */, error) {
 			if !tunnel.SupportsServiceAndMethod(service, method) {
 				// This tunnel doesn't support required API. Ignore it.
 				return false, nil
 			}
-			if f.handleTunnel(tunnel.KasUrl, pollCancel) {
-				return true, nil // stop iterating tunnels
+			if f.tryKas(tunnel.KasUrl, pollCancel) {
+				newKasConnections++
+				// stop iterating tunnels if connected to enough new kas instances during this poll.
+				return newKasConnections == speculationFactor, nil
 			}
 			return false, nil
 		})
@@ -77,7 +88,7 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	})
 }
 
-func (f *tunnelFinder) handleTunnel(kasUrl string, pollCancel context.CancelFunc) bool {
+func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.done {
@@ -91,12 +102,12 @@ func (f *tunnelFinder) handleTunnel(kasUrl string, pollCancel context.CancelFunc
 		cancel: connCancel,
 	}
 	f.wg.Start(func() {
-		f.handleTunnelAsync(connCtx, connCancel, pollCancel, kasUrl)
+		f.tryKasAsync(connCtx, connCancel, pollCancel, kasUrl)
 	})
 	return true
 }
 
-func (f *tunnelFinder) handleTunnelAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, kasUrl string) {
+func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, kasUrl string) {
 	log := f.log.With(logz.KasUrl(kasUrl)) // nolint:govet
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {

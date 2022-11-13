@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"sync"
 	"time"
@@ -25,9 +26,10 @@ type PoolConn interface {
 	Done()
 }
 
-var (
-	_ PoolConn = &poolConn{}
-)
+type PoolInterface interface {
+	Dial(ctx context.Context, targetUrl string) (PoolConn, error)
+	io.Closer
+}
 
 type Pool struct {
 	mu       sync.Mutex
