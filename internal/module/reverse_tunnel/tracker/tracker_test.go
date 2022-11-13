@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
@@ -213,7 +212,6 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		refreshPeriod:         time.Minute,
 		gcPeriod:              time.Minute,
 		ownPrivateApiUrl:      selfUrl,
-		mu:                    syncz.NewMutex(),
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      hash,
 	}, hash

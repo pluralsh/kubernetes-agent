@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -39,7 +40,7 @@ type RedisTracker struct {
 	ownPrivateApiUrl string
 
 	// mu protects fields below
-	mu                    syncz.Mutex
+	mu                    sync.Mutex
 	tunnelsByAgentIdCount map[int64]uint16
 	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
 }
@@ -51,7 +52,6 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		refreshPeriod:         refreshPeriod,
 		gcPeriod:              gcPeriod,
 		ownPrivateApiUrl:      ownPrivateApiUrl,
-		mu:                    syncz.NewMutex(),
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
 	}
@@ -86,40 +86,32 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 }
 
 func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
-	var register redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
+	register := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
 		cnt := t.tunnelsByAgentIdCount[agentId]
 		cnt++
 		t.tunnelsByAgentIdCount[agentId] = cnt
 		if cnt == 1 {
 			// First tunnel for this agentId
-			register = t.tunnelsByAgentId.Set(agentId, t.ownPrivateApiUrl, nil)
+			return t.tunnelsByAgentId.Set(agentId, t.ownPrivateApiUrl, nil)
 		} else {
-			register = noopIO
+			return noopIO
 		}
 	})
-	if !ok {
-		return ctx.Err()
-	}
 	return register(ctx)
 }
 
 func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
-	var unregister redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
+	unregister := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
 		cnt := t.tunnelsByAgentIdCount[agentId]
 		cnt--
 		if cnt == 0 {
 			delete(t.tunnelsByAgentIdCount, agentId)
-			unregister = t.tunnelsByAgentId.Unset(agentId, t.ownPrivateApiUrl)
+			return t.tunnelsByAgentId.Unset(agentId, t.ownPrivateApiUrl)
 		} else {
 			t.tunnelsByAgentIdCount[agentId] = cnt
-			unregister = noopIO
+			return noopIO
 		}
 	})
-	if !ok {
-		return ctx.Err()
-	}
 	return unregister(ctx)
 }
 
@@ -135,24 +127,16 @@ func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb K
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	var refresh redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
-		refresh = t.tunnelsByAgentId.Refresh(nextRefresh)
+	refresh := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
+		return t.tunnelsByAgentId.Refresh(nextRefresh)
 	})
-	if !ok {
-		return nil
-	}
 	return refresh(ctx)
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error) {
-	var gc func(context.Context) (int /* keysDeleted */, error)
-	ok := t.mu.RunLocked(ctx, func() {
-		gc = t.tunnelsByAgentId.GC()
+	gc := syncz.RunWithMutex(&t.mu, func() func(ctx context.Context) (int /* keysDeleted */, error) {
+		return t.tunnelsByAgentId.GC()
 	})
-	if !ok {
-		return 0, nil
-	}
 	return gc(ctx)
 }
 
