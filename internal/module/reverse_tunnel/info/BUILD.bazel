@@ -13,6 +13,7 @@ go_proto_generate(
 go_library(
     name = "info",
     srcs = [
+        "info.extra_methods.go",
         "info.pb.go",
         "info.pb.validate.go",
     ],
@@ -28,7 +29,13 @@ go_library(
 
 go_custom_test(
     name = "info_test",
-    srcs = ["validation_test.go"],
+    srcs = [
+        "info.extra_methods_test.go",
+        "validation_test.go",
+    ],
     embed = [":info"],
-    deps = ["//internal/tool/testing/testhelpers"],
+    deps = [
+        "//internal/tool/testing/testhelpers",
+        "@com_github_stretchr_testify//assert",
+    ],
 )

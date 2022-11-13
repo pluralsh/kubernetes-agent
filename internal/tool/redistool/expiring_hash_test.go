@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	_ ExpiringHashInterface[int] = (*ExpiringHash[int])(nil)
+	_ ExpiringHashInterface[int, int] = (*ExpiringHash[int, int])(nil)
 )
 
 func TestExpiringHash_Set(t *testing.T) {
@@ -104,7 +104,7 @@ func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
 func TestExpiringHash_ScanEmpty(t *testing.T) {
 	_, hash, key, _ := setupHash(t)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(value []byte, err error) (bool, error) {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(rawHashKey string, value []byte, err error) (bool, error) {
 		require.NoError(t, err)
 		assert.FailNow(t, "unexpected callback invocation")
 		return false, nil
@@ -115,14 +115,19 @@ func TestExpiringHash_ScanEmpty(t *testing.T) {
 
 func TestExpiringHash_Scan(t *testing.T) {
 	_, hash, key, value := setupHash(t)
+	cbCalled := false
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v []byte, err error) (bool, error) {
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
+	keysDeleted, err := hash.Scan(context.Background(), key, func(rawHashKey string, v []byte, err error) (bool, error) {
+		cbCalled = true
 		require.NoError(t, err)
 		assert.Equal(t, value, v)
+		assert.Equal(t, "123", rawHashKey)
 		return false, nil
 	})
 	require.NoError(t, err)
 	assert.Zero(t, keysDeleted)
+	assert.True(t, cbCalled)
 }
 
 func TestExpiringHash_Len(t *testing.T) {
@@ -135,9 +140,11 @@ func TestExpiringHash_Len(t *testing.T) {
 
 func TestExpiringHash_ScanGC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
+	cbCalled := false
 
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
+		cbCalled = true
 		newExpireIn := 3 * ttl
 		p.PExpire(context.Background(), key, newExpireIn)
 		return nil
@@ -145,14 +152,19 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 	require.NoError(t, err)
 	time.Sleep(ttl + time.Second)
 	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
+	assert.True(t, cbCalled)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v []byte, err error) (bool, error) {
+	cbCalled = false
+	keysDeleted, err := hash.Scan(context.Background(), key, func(rawHashKey string, v []byte, err error) (bool, error) {
+		cbCalled = true
 		require.NoError(t, err)
+		assert.Equal(t, "321", rawHashKey)
 		assert.Equal(t, value, v)
 		return false, nil
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, keysDeleted)
+	assert.True(t, cbCalled)
 }
 
 func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
@@ -186,7 +198,7 @@ func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	})
 }
 
-func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string], string, []byte) {
+func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(func() {
@@ -197,9 +209,9 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string], stri
 	_, err := r.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash[string](client, func(key string) string {
+	hash := NewExpiringHash[string, int64](client, func(key string) string {
 		return key
-	}, ttl)
+	}, int64ToStr, ttl)
 	return client, hash, key, []byte{1, 2, 3}
 }
 
@@ -241,4 +253,8 @@ func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, e
 		require.NoError(t, err)
 		assert.Greater(t, msg.ExpiresAt, expireAfter.Unix())
 	}
+}
+
+func int64ToStr(key int64) string {
+	return strconv.FormatInt(key, 10)
 }

@@ -2,7 +2,6 @@ package tracker
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -10,22 +9,21 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 )
 
 const refreshOverlap = 5 * time.Second
 
-type GetTunnelsByAgentIdCallback func(*TunnelInfo) (bool /* done */, error)
+type KasUrlsByAgentIdCallback func(kasUrl string) (bool /* done */, error)
 
 type Querier interface {
-	GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error
+	KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error
 }
 
 type Registerer interface {
 	// RegisterTunnel registers tunnel with the tracker.
-	RegisterTunnel(ctx context.Context, info *TunnelInfo) error
+	RegisterTunnel(ctx context.Context, agentId int64) error
 	// UnregisterTunnel unregisters tunnel with the tracker.
-	UnregisterTunnel(ctx context.Context, info *TunnelInfo) error
+	UnregisterTunnel(ctx context.Context, agentId int64) error
 }
 
 type Tracker interface {
@@ -35,22 +33,27 @@ type Tracker interface {
 }
 
 type RedisTracker struct {
-	log           *zap.Logger
-	refreshPeriod time.Duration
-	gcPeriod      time.Duration
+	log              *zap.Logger
+	refreshPeriod    time.Duration
+	gcPeriod         time.Duration
+	ownPrivateApiUrl string
 
 	// mu protects fields below
-	mu               syncz.Mutex
-	tunnelsByAgentId redistool.ExpiringHashInterface[int64] // agentId -> connectionId -> TunnelInfo
+	mu                    syncz.Mutex
+	tunnelsByAgentIdCount map[int64]uint16
+	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
 }
 
-func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
+func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod,
+	gcPeriod time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
-		log:              log,
-		refreshPeriod:    refreshPeriod,
-		gcPeriod:         gcPeriod,
-		mu:               syncz.NewMutex(),
-		tunnelsByAgentId: redistool.NewExpiringHash[int64](client, tunnelsByAgentIdHashKey(agentKeyPrefix), ttl),
+		log:                   log,
+		refreshPeriod:         refreshPeriod,
+		gcPeriod:              gcPeriod,
+		ownPrivateApiUrl:      ownPrivateApiUrl,
+		mu:                    syncz.NewMutex(),
+		tunnelsByAgentIdCount: make(map[int64]uint16),
+		tunnelsByAgentId:      redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
 	}
 }
 
@@ -82,15 +85,18 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 	}
 }
 
-func (t *RedisTracker) RegisterTunnel(ctx context.Context, info *TunnelInfo) error {
-	infoBytes, err := proto.Marshal(info)
-	if err != nil {
-		// This should never happen
-		return fmt.Errorf("failed to marshal tunnel info: %w", err)
-	}
+func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
 	var register redistool.IOFunc
 	ok := t.mu.RunLocked(ctx, func() {
-		register = t.tunnelsByAgentId.Set(info.AgentId, info.ConnectionId, infoBytes)
+		cnt := t.tunnelsByAgentIdCount[agentId]
+		cnt++
+		t.tunnelsByAgentIdCount[agentId] = cnt
+		if cnt == 1 {
+			// First tunnel for this agentId
+			register = t.tunnelsByAgentId.Set(agentId, t.ownPrivateApiUrl, nil)
+		} else {
+			register = noopIO
+		}
 	})
 	if !ok {
 		return ctx.Err()
@@ -98,10 +104,18 @@ func (t *RedisTracker) RegisterTunnel(ctx context.Context, info *TunnelInfo) err
 	return register(ctx)
 }
 
-func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) error {
+func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
 	var unregister redistool.IOFunc
 	ok := t.mu.RunLocked(ctx, func() {
-		unregister = t.tunnelsByAgentId.Unset(info.AgentId, info.ConnectionId)
+		cnt := t.tunnelsByAgentIdCount[agentId]
+		cnt--
+		if cnt == 0 {
+			delete(t.tunnelsByAgentIdCount, agentId)
+			unregister = t.tunnelsByAgentId.Unset(agentId, t.ownPrivateApiUrl)
+		} else {
+			t.tunnelsByAgentIdCount[agentId] = cnt
+			unregister = noopIO
+		}
 	})
 	if !ok {
 		return ctx.Err()
@@ -109,24 +123,13 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) e
 	return unregister(ctx)
 }
 
-func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error {
-	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(value []byte, err error) (bool, error) {
+func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
+	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
 		}
-		var info TunnelInfo
-		err = proto.Unmarshal(value, &info)
-		if err != nil {
-			t.log.Error("Redis proto.Unmarshal(TunnelInfo)", logz.Error(err))
-			return false, nil
-		}
-		err = info.ValidateAll()
-		if err != nil {
-			t.log.Error("Redis proto.Unmarshal(TunnelInfo) validation", logz.Error(err))
-			return false, nil
-		}
-		return cb(&info)
+		return cb(rawHashKey)
 	})
 	return err
 }
@@ -153,10 +156,18 @@ func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error)
 	return gc(ctx)
 }
 
-// tunnelsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled TunnelInfo).
+// tunnelsByAgentIdHashKey returns a key for agentId -> (kasUrl -> nil).
 func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int64] {
-	prefix := agentKeyPrefix + ":conn_by_agent_id:"
+	prefix := agentKeyPrefix + ":kas_by_agent_id:"
 	return func(agentId int64) string {
 		return redistool.PrefixedInt64Key(prefix, agentId)
 	}
+}
+
+func strToStr(key string) string {
+	return key
+}
+
+func noopIO(ctx context.Context) error {
+	return nil
 }

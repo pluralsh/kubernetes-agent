@@ -3,6 +3,7 @@ package agent_tracker
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -16,8 +17,8 @@ import (
 )
 
 const (
-	refreshOverlap         = 5 * time.Second
-	connectedAgentsKey int = 0
+	refreshOverlap           = 5 * time.Second
+	connectedAgentsKey int64 = 0
 )
 
 type ConnectedAgentInfoCallback func(*ConnectedAgentInfo) (done bool, err error)
@@ -52,9 +53,9 @@ type RedisTracker struct {
 	refreshMu syncz.RWMutex
 	// mu protects fields below
 	mu                     syncz.Mutex
-	connectionsByAgentId   redistool.ExpiringHashInterface[int64] // agentId -> connectionId -> info
-	connectionsByProjectId redistool.ExpiringHashInterface[int64] // projectId -> connectionId -> info
-	connectedAgents        redistool.ExpiringHashInterface[int]   // hash name -> agentId -> ""
+	connectionsByAgentId   redistool.ExpiringHashInterface[int64, int64] // agentId -> connectionId -> info
+	connectionsByProjectId redistool.ExpiringHashInterface[int64, int64] // projectId -> connectionId -> info
+	connectedAgents        redistool.ExpiringHashInterface[int64, int64] // hash name -> agentId -> ""
 }
 
 func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -64,9 +65,9 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		gcPeriod:               gcPeriod,
 		refreshMu:              syncz.NewRWMutex(),
 		mu:                     syncz.NewMutex(),
-		connectionsByAgentId:   redistool.NewExpiringHash[int64](client, connectionsByAgentIdHashKey(agentKeyPrefix), ttl),
-		connectionsByProjectId: redistool.NewExpiringHash[int64](client, connectionsByProjectIdHashKey(agentKeyPrefix), ttl),
-		connectedAgents:        redistool.NewExpiringHash[int](client, connectedAgentsHashKey(agentKeyPrefix), ttl),
+		connectionsByAgentId:   redistool.NewExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectionsByProjectId: redistool.NewExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectedAgents:        redistool.NewExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 
@@ -218,8 +219,8 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 	return keysDeleted
 }
 
-func getConnectionsByKey[K any](ctx context.Context, log *zap.Logger, hash redistool.ExpiringHashInterface[K], key K, cb ConnectedAgentInfoCallback) error {
-	_, err := hash.Scan(ctx, key, func(value []byte, err error) (bool, error) {
+func getConnectionsByKey[K1 any, K2 any](ctx context.Context, log *zap.Logger, hash redistool.ExpiringHashInterface[K1, K2], key K1, cb ConnectedAgentInfoCallback) error {
+	_, err := hash.Scan(ctx, key, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
 			log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
@@ -252,9 +253,9 @@ func connectionsByProjectIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKe
 }
 
 // connectedAgentsHashKey returns the key for the hash of connected agents.
-func connectedAgentsHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int] {
+func connectedAgentsHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int64] {
 	prefix := agentKeyPrefix + ":connected_agents"
-	return func(_ int) string {
+	return func(_ int64) string {
 		return prefix
 	}
 }
@@ -264,4 +265,8 @@ type ConnectedAgentInfoCollector []*ConnectedAgentInfo
 func (c *ConnectedAgentInfoCollector) Collect(info *ConnectedAgentInfo) (bool, error) {
 	*c = append(*c, info)
 	return false, nil
+}
+
+func int64ToStr(key int64) string {
+	return strconv.FormatInt(key, 10)
 }

@@ -36,7 +36,7 @@ func (m *MockRegisterer) EXPECT() *MockRegistererMockRecorder {
 }
 
 // RegisterTunnel mocks base method.
-func (m *MockRegisterer) RegisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) error {
+func (m *MockRegisterer) RegisterTunnel(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterTunnel", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -50,7 +50,7 @@ func (mr *MockRegistererMockRecorder) RegisterTunnel(arg0, arg1 interface{}) *go
 }
 
 // UnregisterTunnel mocks base method.
-func (m *MockRegisterer) UnregisterTunnel(arg0 context.Context, arg1 *tracker.TunnelInfo) error {
+func (m *MockRegisterer) UnregisterTunnel(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnregisterTunnel", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -86,16 +86,16 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
-// GetTunnelsByAgentId mocks base method.
-func (m *MockQuerier) GetTunnelsByAgentId(arg0 context.Context, arg1 int64, arg2 tracker.GetTunnelsByAgentIdCallback) error {
+// KasUrlsByAgentId mocks base method.
+func (m *MockQuerier) KasUrlsByAgentId(arg0 context.Context, arg1 int64, arg2 tracker.KasUrlsByAgentIdCallback) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTunnelsByAgentId", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "KasUrlsByAgentId", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GetTunnelsByAgentId indicates an expected call of GetTunnelsByAgentId.
-func (mr *MockQuerierMockRecorder) GetTunnelsByAgentId(arg0, arg1, arg2 interface{}) *gomock.Call {
+// KasUrlsByAgentId indicates an expected call of KasUrlsByAgentId.
+func (mr *MockQuerierMockRecorder) KasUrlsByAgentId(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTunnelsByAgentId", reflect.TypeOf((*MockQuerier)(nil).GetTunnelsByAgentId), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KasUrlsByAgentId", reflect.TypeOf((*MockQuerier)(nil).KasUrlsByAgentId), arg0, arg1, arg2)
 }

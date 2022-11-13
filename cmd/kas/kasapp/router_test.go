@@ -16,7 +16,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool/test"
@@ -41,6 +40,10 @@ var (
 	_ kasRouter          = (*router)(nil)
 	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectKasHandler
 	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectAgentHandler
+)
+
+const (
+	kasUrlPipe = "grpc://pipe"
 )
 
 func TestRouter_UnaryHappyPath(t *testing.T) {
@@ -232,29 +235,6 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 	})
 }
 
-func tunnelInfo() *tracker.TunnelInfo {
-	return &tracker.TunnelInfo{
-		AgentDescriptor: &info.AgentDescriptor{
-			Services: []*info.Service{
-				{
-					Name: "gitlab.agent.grpctool.test.Testing",
-					Methods: []*info.Method{
-						{
-							Name: "RequestResponse",
-						},
-						{
-							Name: "StreamingRequestResponse",
-						},
-					},
-				},
-			},
-		},
-		ConnectionId: 1312312313,
-		AgentId:      testhelpers.AgentId,
-		KasUrl:       "grpc://pipe",
-	}
-}
-
 func meta() (metadata.MD, metadata.MD, metadata.MD) {
 	payloadMD := metadata.Pairs("key1", "value1")
 	responseMD := metadata.Pairs("key2", "value2")
@@ -313,9 +293,9 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 
 	gomock.InOrder(
 		querier.EXPECT().
-			GetTunnelsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
-				done, err := cb(tunnelInfo())
+			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.KasUrlsByAgentIdCallback) error {
+				done, err := cb(kasUrlPipe)
 				assert.False(t, done)
 				return err
 			}),

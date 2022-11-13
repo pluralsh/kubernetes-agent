@@ -386,6 +386,7 @@ func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
+		a.OwnPrivateApiUrl,
 	)
 }
 
