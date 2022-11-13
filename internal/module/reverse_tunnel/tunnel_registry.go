@@ -11,7 +11,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/mathz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -88,7 +87,7 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 
 		// 1. Check if we have a suitable tunnel
 		for tun := range r.tunsByAgentId[agentId] {
-			if !tun.tunnelInfo.SupportsServiceAndMethod(service, method) {
+			if !tun.agentDescriptor.SupportsServiceAndMethod(service, method) {
 				continue
 			}
 			// Suitable tunnel found!
@@ -146,15 +145,11 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 		tunnel:              server,
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
-		tunnelInfo: &tracker.TunnelInfo{
-			AgentDescriptor: descriptor.Descriptor_.AgentDescriptor,
-			ConnectionId:    mathz.Int63(),
-			AgentId:         agentInfo.Id,
-			KasUrl:          r.ownPrivateApiUrl,
-		},
-		state:     stateReady,
-		onForward: r.onTunnelForward,
-		onDone:    r.onTunnelDone,
+		agentId:             agentInfo.Id,
+		agentDescriptor:     descriptor.Descriptor_.AgentDescriptor,
+		state:               stateReady,
+		onForward:           r.onTunnelForward,
+		onDone:              r.onTunnelDone,
 	}
 	// Register
 	doIO := func() IOFunc {
@@ -206,11 +201,11 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 }
 
 func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) IOFunc {
-	agentId := toReg.tunnelInfo.AgentId
+	agentId := toReg.agentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
 	for ftr := range findRequestsForAgentId {
-		if !toReg.tunnelInfo.SupportsServiceAndMethod(ftr.service, ftr.method) {
+		if !toReg.agentDescriptor.SupportsServiceAndMethod(ftr.service, ftr.method) {
 			continue
 		}
 		// Waiting request found!
@@ -229,17 +224,18 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) IOFunc {
 		r.tunsByAgentId[agentId] = tunsByAgentId
 	}
 	tunsByAgentId[toReg] = struct{}{}
-	return r.registerTunnelIO(toReg.tunnelInfo)
+	return r.registerTunnelIO(agentId)
 }
 
 func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnel) IOFunc {
+	agentId := toUnreg.agentId
 	delete(r.tuns, toUnreg)
-	tunsByAgentId := r.tunsByAgentId[toUnreg.tunnelInfo.AgentId]
+	tunsByAgentId := r.tunsByAgentId[agentId]
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
-		delete(r.tunsByAgentId, toUnreg.tunnelInfo.AgentId)
+		delete(r.tunsByAgentId, agentId)
 	}
-	return r.unregisterTunnelIO(toUnreg.tunnelInfo)
+	return r.unregisterTunnelIO(agentId)
 }
 
 func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
@@ -339,20 +335,20 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 	return tl, fl
 }
 
-func (r *TunnelRegistry) registerTunnelIO(info *tracker.TunnelInfo) IOFunc {
+func (r *TunnelRegistry) registerTunnelIO(agentId int64) IOFunc {
 	return func() {
-		err := r.tunnelRegisterer.RegisterTunnel(context.Background(), info)
+		err := r.tunnelRegisterer.RegisterTunnel(context.Background(), agentId)
 		if err != nil {
-			r.log.Error("Failed to register tunnel", logz.AgentId(info.AgentId), logz.Error(err))
+			r.log.Error("Failed to register tunnel", logz.AgentId(agentId), logz.Error(err))
 		}
 	}
 }
 
-func (r *TunnelRegistry) unregisterTunnelIO(info *tracker.TunnelInfo) IOFunc {
+func (r *TunnelRegistry) unregisterTunnelIO(agentId int64) IOFunc {
 	return func() {
-		err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), info)
+		err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), agentId)
 		if err != nil {
-			r.log.Error("Failed to unregister tunnel", logz.AgentId(info.AgentId), logz.Error(err))
+			r.log.Error("Failed to unregister tunnel", logz.AgentId(agentId), logz.Error(err))
 		}
 	}
 }

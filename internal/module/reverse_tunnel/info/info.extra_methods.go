@@ -1,7 +1,7 @@
-package tracker
+package info
 
-func (x *TunnelInfo) SupportsServiceAndMethod(service, method string) bool {
-	for _, s := range x.GetAgentDescriptor().GetServices() {
+func (x *AgentDescriptor) SupportsServiceAndMethod(service, method string) bool {
+	for _, s := range x.GetServices() {
 		if s.Name != service {
 			continue
 		}

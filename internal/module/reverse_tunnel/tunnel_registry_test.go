@@ -3,6 +3,7 @@ package reverse_tunnel
 import (
 	"context"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
@@ -95,7 +95,7 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 			}, nil),
 		tunnelRegisterer.EXPECT(). // HandleTunnel()
 						RegisterTunnel(gomock.Any(), gomock.Any()).
-						Do(func(ctx context.Context, info *tracker.TunnelInfo) {
+						Do(func(ctx context.Context, agentId int64) {
 				close(reg)
 			}),
 		tunnelRegisterer.EXPECT(). // FindTunnel()
@@ -146,7 +146,7 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		}, nil)
 	tunnelRegisterer.EXPECT().
 		RegisterTunnel(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, info *tracker.TunnelInfo) {
+		Do(func(ctx context.Context, agentId int64) {
 			regCnt++
 			if regCnt == 1 {
 				close(reg)
@@ -216,8 +216,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	reg1 := make(chan struct{})
-	reg2 := make(chan struct{})
+	var regWg sync.WaitGroup
+	regWg.Add(2)
 	d1 := descriptor()
 	connectServer1.EXPECT().
 		Recv().
@@ -235,12 +235,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		}, nil)
 	tunnelRegisterer.EXPECT().
 		RegisterTunnel(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, info *tracker.TunnelInfo) {
-			if info.AgentDescriptor == d1.AgentDescriptor {
-				close(reg1)
-			} else {
-				close(reg2)
-			}
+		Do(func(ctx context.Context, agentId int64) {
+			regWg.Done()
 		}).Times(2)
 	tunnelRegisterer.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any()).
@@ -262,8 +258,7 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		assert.NoError(t, r.HandleTunnel(ctx2, agentInfo, connectServer2))
 	})
 	// wait for both to register
-	<-reg1
-	<-reg2
+	regWg.Wait()
 	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	require.NoError(t, err)
 	// cancel context for the found tunnel

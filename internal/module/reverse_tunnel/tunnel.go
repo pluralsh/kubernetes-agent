@@ -3,8 +3,8 @@ package reverse_tunnel
 import (
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"go.uber.org/zap"
@@ -65,7 +65,8 @@ type tunnel struct {
 	tunnel              rpc.ReverseTunnel_ConnectServer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
-	tunnelInfo          *tracker.TunnelInfo
+	agentId             int64
+	agentDescriptor     *info.AgentDescriptor
 	state               stateType
 
 	onForward func(*tunnel) error

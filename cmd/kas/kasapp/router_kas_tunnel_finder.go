@@ -60,7 +60,6 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	defer f.wg.Wait()
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
-	service, method := grpctool.SplitGrpcMethod(f.fullMethod)
 
 	// Unconditionally connect to self.
 	f.tryKas(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
@@ -68,12 +67,8 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(pollCtx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		newKasConnections := 0
-		err := f.tunnelQuerier.GetTunnelsByAgentId(ctx, f.agentId, func(tunnel *tracker.TunnelInfo) (bool /* done */, error) {
-			if !tunnel.SupportsServiceAndMethod(service, method) {
-				// This tunnel doesn't support required API. Ignore it.
-				return false, nil
-			}
-			if f.tryKas(tunnel.KasUrl, pollCancel) {
+		err := f.tunnelQuerier.KasUrlsByAgentId(ctx, f.agentId, func(kasUrl string) (bool /* done */, error) {
+			if f.tryKas(kasUrl, pollCancel) {
 				newKasConnections++
 				// stop iterating tunnels if connected to enough new kas instances during this poll.
 				return newKasConnections == speculationFactor, nil
@@ -81,7 +76,7 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 			return false, nil
 		})
 		if err != nil {
-			f.rpcApi.HandleProcessingError(f.log, f.agentId, "GetTunnelsByAgentId()", err)
+			f.rpcApi.HandleProcessingError(f.log, f.agentId, "KasUrlsByAgentId()", err)
 			return nil, retry.Backoff
 		}
 		return nil, retry.Continue

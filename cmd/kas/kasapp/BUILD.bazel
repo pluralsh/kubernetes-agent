@@ -136,7 +136,6 @@ go_custom_test(
         "//internal/module/modserver",
         "//internal/module/modshared",
         "//internal/module/reverse_tunnel",
-        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/tracker",
         "//internal/tool/cache",
         "//internal/tool/errz",

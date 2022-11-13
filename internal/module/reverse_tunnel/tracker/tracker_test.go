@@ -3,21 +3,17 @@ package tracker
 import (
 	"context"
 	"errors"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
@@ -26,20 +22,45 @@ var (
 	_ Querier    = &RedisTracker{}
 )
 
+const (
+	selfUrl = "grpc://1.1.1.1:10"
+)
+
 func TestRegisterConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash, ti := setupTracker(t)
+	r, hash := setupTracker(t)
 
 	hash.EXPECT().
-		Set(ti.AgentId, ti.ConnectionId, gomock.Any()).
+		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
 		Return(func(ctx context.Context) error {
 			cancel()
 			return nil
 		})
 
 	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	}()
+
+	require.NoError(t, r.Run(ctx))
+}
+
+func TestRegisterConnection_TwoConnections(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r, hash := setupTracker(t)
+
+	hash.EXPECT().
+		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+		Return(func(ctx context.Context) error {
+			cancel()
+			return nil
+		})
+
+	go func() {
+		// Two registrations result in a single Set() call
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // first
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // second
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -48,14 +69,14 @@ func TestRegisterConnection(t *testing.T) {
 func TestUnregisterConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash, ti := setupTracker(t)
+	r, hash := setupTracker(t)
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(ti.AgentId, ti.ConnectionId, gomock.Any()).
+			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
 			Return(nopIOFunc),
 		hash.EXPECT().
-			Unset(ti.AgentId, ti.ConnectionId).
+			Unset(testhelpers.AgentId, selfUrl).
 			Return(func(ctx context.Context) error {
 				cancel()
 				return nil
@@ -63,15 +84,63 @@ func TestUnregisterConnection(t *testing.T) {
 	)
 
 	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), ti))
-		assert.NoError(t, r.UnregisterTunnel(context.Background(), ti))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+	}()
+
+	require.NoError(t, r.Run(ctx))
+}
+
+func TestUnregisterConnection_TwoConnections(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r, hash := setupTracker(t)
+
+	gomock.InOrder(
+		hash.EXPECT().
+			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+			Return(nopIOFunc),
+		hash.EXPECT().
+			Unset(testhelpers.AgentId, selfUrl).
+			Return(func(ctx context.Context) error {
+				cancel()
+				return nil
+			}),
+	)
+
+	go func() {
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+	}()
+
+	require.NoError(t, r.Run(ctx))
+}
+
+// This test ensures Unset() is only called when there are no registered connections i.e. it is NOT called
+// for two RegisterTunnel() and a single UnregisterTunnel().
+func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r, hash := setupTracker(t)
+
+	hash.EXPECT().
+		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+		Return(nopIOFunc)
+
+	go func() {
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+		cancel()
 	}()
 
 	require.NoError(t, r.Run(ctx))
 }
 
 func TestGC(t *testing.T) {
-	r, hash, _ := setupTracker(t)
+	r, hash := setupTracker(t)
 
 	wasCalled := false
 
@@ -89,7 +158,7 @@ func TestGC(t *testing.T) {
 }
 
 func TestRefreshRegistrations(t *testing.T) {
-	r, hash, _ := setupTracker(t)
+	r, hash := setupTracker(t)
 
 	hash.EXPECT().
 		Refresh(gomock.Any()).
@@ -97,130 +166,57 @@ func TestRefreshRegistrations(t *testing.T) {
 	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 
-func TestGetTunnelsByAgentId_HappyPath(t *testing.T) {
-	r, hash, ti := setupTracker(t)
-	tiBytes, err := proto.Marshal(ti)
-	require.NoError(t, err)
+func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
+	r, hash := setupTracker(t)
 	hash.EXPECT().
-		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
+		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			var done bool
-			done, err = cb(strconv.FormatInt(ti.ConnectionId, 10), tiBytes, nil)
+			done, err := cb(selfUrl, nil, nil)
 			if err != nil || done {
 				return 0, err
 			}
 			return 0, nil
 		})
 	var cbCalled int
-	err = r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
+	err := r.KasUrlsByAgentId(context.Background(), testhelpers.AgentId, func(kasUrl string) (bool, error) {
 		cbCalled++
-		assert.Empty(t, cmp.Diff(tunnelInfo, ti, protocmp.Transform()))
+		assert.Equal(t, selfUrl, kasUrl)
 		return false, nil
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, cbCalled)
 }
 
-func TestGetTunnelsByAgentId_ScanError(t *testing.T) {
-	r, hash, ti := setupTracker(t)
+func TestKasUrlsByAgentId_ScanError(t *testing.T) {
+	r, hash := setupTracker(t)
 	hash.EXPECT().
-		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
+		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			done, err := cb("", nil, errors.New("intended error"))
 			require.NoError(t, err)
 			assert.False(t, done)
 			return 0, nil
 		})
-	err := r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
+	err := r.KasUrlsByAgentId(context.Background(), testhelpers.AgentId, func(kasUrl string) (bool, error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
 	})
 	require.NoError(t, err)
 }
 
-func TestGetTunnelsByAgentId_UnmarshalError(t *testing.T) {
-	r, hash, ti := setupTracker(t)
-	hash.EXPECT().
-		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb(strconv.FormatInt(ti.ConnectionId, 10), []byte{1, 2, 3}, nil) // invalid data
-			require.NoError(t, err)                                                       // ignores error to keep going
-			assert.False(t, done)
-			return 0, nil
-		})
-	err := r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
-		require.FailNow(t, "unexpected call")
-		return false, nil
-	})
-	require.NoError(t, err)
-}
-
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *TunnelInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, string]) {
 	ctrl := gomock.NewController(t)
-	hash := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
-	ti := &TunnelInfo{
-		AgentDescriptor: &info.AgentDescriptor{
-			Services: []*info.Service{
-				{
-					Name: "bla",
-					Methods: []*info.Method{
-						{
-							Name: "bab",
-						},
-					},
-				},
-			},
-		},
-		ConnectionId: 123,
-		AgentId:      543,
-		KasUrl:       "grpc://1.1.1.1:10",
-	}
+	hash := mock_redis.NewMockExpiringHashInterface[int64, string](ctrl)
 	return &RedisTracker{
-		log:              zaptest.NewLogger(t),
-		refreshPeriod:    time.Minute,
-		gcPeriod:         time.Minute,
-		mu:               syncz.NewMutex(),
-		tunnelsByAgentId: hash,
-	}, hash, ti
-}
-
-func TestTunnelInfoSize(t *testing.T) {
-	tiBytes, err := proto.Marshal(&TunnelInfo{
-		AgentDescriptor: &info.AgentDescriptor{
-			Services: []*info.Service{},
-		},
-		ConnectionId: 1231232,
-		AgentId:      123123,
-		KasUrl:       "grpcs://123.123.123.123:123",
-	})
-	require.NoError(t, err)
-	data, err := proto.Marshal(&redistool.ExpiringValue{
-		ExpiresAt: time.Now().Unix(),
-		Value:     tiBytes,
-	})
-	require.NoError(t, err)
-	t.Log(len(data))
-}
-
-func TestSupportsServiceAndMethod(t *testing.T) {
-	ti := TunnelInfo{
-		AgentDescriptor: &info.AgentDescriptor{
-			Services: []*info.Service{
-				{
-					Name: "empire.fleet.DeathStar",
-					Methods: []*info.Method{
-						{
-							Name: "BlastPlanet",
-						},
-					},
-				},
-			},
-		},
-	}
-	assert.True(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "BlastPlanet"))
-	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.DeathStar", "Explode"))
-	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "BlastPlanet"))
-	assert.False(t, ti.SupportsServiceAndMethod("empire.fleet.hangar.DeathStar", "Debug"))
+		log:                   zaptest.NewLogger(t),
+		refreshPeriod:         time.Minute,
+		gcPeriod:              time.Minute,
+		ownPrivateApiUrl:      selfUrl,
+		mu:                    syncz.NewMutex(),
+		tunnelsByAgentIdCount: make(map[int64]uint16),
+		tunnelsByAgentId:      hash,
+	}, hash
 }
 
 func nopIOFunc(ctx context.Context) error {
