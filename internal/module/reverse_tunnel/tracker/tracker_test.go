@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -104,7 +105,7 @@ func TestGetTunnelsByAgentId_HappyPath(t *testing.T) {
 		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
 			var done bool
-			done, err = cb(tiBytes, nil)
+			done, err = cb(strconv.FormatInt(ti.ConnectionId, 10), tiBytes, nil)
 			if err != nil || done {
 				return 0, err
 			}
@@ -125,7 +126,7 @@ func TestGetTunnelsByAgentId_ScanError(t *testing.T) {
 	hash.EXPECT().
 		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb(nil, errors.New("intended error"))
+			done, err := cb("", nil, errors.New("intended error"))
 			require.NoError(t, err)
 			assert.False(t, done)
 			return 0, nil
@@ -142,8 +143,8 @@ func TestGetTunnelsByAgentId_UnmarshalError(t *testing.T) {
 	hash.EXPECT().
 		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb([]byte{1, 2, 3}, nil) // invalid data
-			require.NoError(t, err)               // ignores error to keep going
+			done, err := cb(strconv.FormatInt(ti.ConnectionId, 10), []byte{1, 2, 3}, nil) // invalid data
+			require.NoError(t, err)                                                       // ignores error to keep going
 			assert.False(t, done)
 			return 0, nil
 		})

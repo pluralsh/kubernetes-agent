@@ -220,7 +220,7 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 }
 
 func getConnectionsByKey[K1 any, K2 any](ctx context.Context, log *zap.Logger, hash redistool.ExpiringHashInterface[K1, K2], key K1, cb ConnectedAgentInfoCallback) error {
-	_, err := hash.Scan(ctx, key, func(value []byte, err error) (bool, error) {
+	_, err := hash.Scan(ctx, key, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
 			log.Error("Redis hash scan", logz.Error(err))
 			return false, nil

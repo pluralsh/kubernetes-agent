@@ -16,7 +16,7 @@ import (
 // KeyToRedisKey is used to convert typed key (key1 or key2) into a string.
 // HSET key1 key2 value.
 type KeyToRedisKey[K any] func(key K) string
-type ScanCallback func(value []byte, err error) (bool /* done */, error)
+type ScanCallback func(rawHashKey string, value []byte, err error) (bool /* done */, error)
 
 // IOFunc is a function that should be called to perform the I/O of the requested operation.
 // It is safe to call concurrently as it does not interfere with the hash's operation.
@@ -134,13 +134,13 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
 		err := proto.Unmarshal([]byte(v), &msg)
 		if err != nil {
-			done, cbErr := cb(nil, fmt.Errorf("failed to unmarshal hash value from key 0x%x: %w", k, err))
+			done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
 			return done, false, cbErr
 		}
 		if msg.ExpiresAt < now {
 			return false, true, nil
 		}
-		done, cbErr := cb(msg.Value, nil)
+		done, cbErr := cb(k, msg.Value, nil)
 		return done, false, cbErr
 	})
 }

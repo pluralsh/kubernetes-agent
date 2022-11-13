@@ -111,7 +111,7 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) e
 }
 
 func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error {
-	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(value []byte, err error) (bool, error) {
+	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
