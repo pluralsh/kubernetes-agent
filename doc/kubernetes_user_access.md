@@ -33,21 +33,13 @@ Issue: https://gitlab.com/gitlab-org/gitlab/-/issues/331431
 ### Agent admin side
 
 In the agent's configuration file, managed in code in the agent's configuration project,
-the user specifies a list of:
+the user configures a `user_access` object. The following keys are available:
 
-- **projects** whose members should have access
-- **groups** whose members should have access
-
-Each entry is an object with the following keys:
-
-- `id`: Required. A `string`. The full path of the group or project.
-- `minimum_role`: **(PREMIUM)** Optional. A `string`. The minimum role for a member to be
-  able to talk to the Kubernetes API server at all. Defaults to `developer`.
-  GitLab Free and GitLab Core cannot customize this value and implicitly use the
-  default.
-- `access_as`: Optional. An object. One of:
-   - `{ agent: {} }`: Default. [Access using the agent's service account](#access_as-agent).
-   - `{ user: {} }`: **(PREMIUM)** [Impersonate the user](#access_as-user-premium).
+- `projects`: A list of projects whose members should have access.
+- `groups`: A list of groups whose members should have access.
+- `access_as`: Required. Can have one of two values:
+  - `{ agent: {} }`: Connect using the [agent's service account](#plain-access).
+  - `{ user: {} }`: **(PREMIUM)** [Impersonate the authenticated user](#user-impersonation-premium)
 
 For example:
 
@@ -55,14 +47,11 @@ For example:
 # .gitlab/agents/my-agent/config.yaml
 
 user_access:
+  access_as:
+    user: {}
   projects:
     - id: group-1/project-1
-      minimum_role: developer # the default
-      access_as:
-        agent: {} # the default
     - id: group-2/project-2
-      access_as:
-        user: {}
   groups:
     - id: group-2
     - id: group-3/subgroup
@@ -72,13 +61,17 @@ user_access:
 
 Authorized users should be granted API access to the Kubernetes API in a
 [variety of ways](#authentication), using their [GitLab identity when
-interacting with the API](#kubernetes-request-identity).
+interacting with the API](#user-impersonation).
 
-When a user visits a group's or project's `Infrastructure > Kubernetes` page,
-they see agents shared with them via that project or group. For each such agent,
-there should be an option to connect to the agent. The user can see all agents
-available to the group or project, but only connect to agents for which they
-have the required `minimum_role`.
+This functionality is exposed the user as follows:
+
+1. Under the user's personal preferences, there is a `Kubernetes` page listing
+   the agents shared directly with them.
+1. When a user visits a group's or project's `Infrastructure > Kubernetes` page,
+   they see agents shared with them via that project or group. For each such
+   agent, there should be an option to connect to the agent..
+
+Only **developers** and above can connect to an agent with `user_access`.
 
 ## Implementation
 
@@ -266,8 +259,38 @@ provided user credentials and agent ID:
 ```
 
 GitLab resolves the credentials to a user, and, on success, responds back with
-user's identity, and list of details about the _most specific matching entry_ in
-`user_access`. Example:
+user's identity, and list of details about the access type and matching entries
+in `user_access`.
+
+When responding to the request:
+
+1. Resolve the user. If the access key is invalid, return `401 Unauthorized`
+   with a body `Invalid user access key` (the body helps KAS differentiate
+   between that and invalid KAS <-> GitLab secret). KAS should return `401
+   Unauthorized` to the user.
+1. Loop through `user_access.projects` and `user_access.groups`. If the user is
+   not at least a **developer** in at least one group or project, return `403
+   Forbidden`. KAS should return `401 Unauthorized` to the user, identical to
+   the one above to prevent database enumeration of agent IDs.
+1. Then, when
+   - `access_as.agent`: No further processing is required. Return `200 Success`.
+   - `access_as.user`: The `authorize_proxy_user` endpoint **must** only return
+     information about `projects` and `groups` where the user is at least a
+     `developer`. If the list of such authorizations is empty, then
+
+   See [response examples](#response-examples) for details on the response
+   structure.
+
+Once KAS has authenticated and authorized the request, the request gets
+forwarded to agentk. The format depends on the value of `user_access.access_as`
+in the agent's configuration file:
+
+- `{ agent: {...} }`: The request gets [made using the agent's service account](#plain-access).
+- `{ user: {...} }`: The agent [impersonates the authenticated user](#user-impersonation-premium).
+
+##### Response examples
+
+`access_as.agent` response:
 
 ```javascript
 // HTTP/1.1 200 OK
@@ -278,33 +301,94 @@ user's identity, and list of details about the _most specific matching entry_ in
         "id": 1234,
         "username": "the-user"
     },
-    "authorization_source": {
-        "project": { // can also be "group"
-            "id": "group-1/project-1",
-            "access_as": { "user": {} },
-            "roles": [ "reporter", "developer", "maintainer" ]
+    "authorizations": {
+        "agent": {}
+    }
+}
+```
+
+
+`access_as.user` response:
+```javascript
+// HTTP/1.1 200 OK
+// Content-Type: application/json
+{
+    "agent_id": 9999,
+    "user": { // the user requesting access
+        "id": 1234,
+        "username": "the-user"
+    },
+    "authorizations": {
+        "user": {
+            // **ONLY** projects where the user is a developer or above
+            "projects": [
+                {
+                    "id": "group-1/project-1",
+                    "roles": [ "reporter", "developer", "maintainer" ]
+                }
+            ],
+            // **ONLY** groups where the user is a developer or above
+            "groups": [
+                {
+                    "id": "group-2",
+                    "roles": [ "reporter", "developer" ]
+                }
+            ]
         }
     }
 }
 ```
 
-#### Kubernetes request identity
+Simplified protobuf schema for response:
+```protobuf
+message AuthorizeProxyUserResponse {
+  int64 agent_id = 1;
+  User user = 2;
+  Authorization authorizations = 3;
+}
 
-Once KAS has authorized the request, it gets forwarded to agentk, together with
-the authorization information. Agentk then translates the identity based on the
-`access_as` field of the `authorization_source`.
+message User {
+  int64 id = 1;
+  string username = 2;
+}
 
-##### `access_as: { agent: {} }`
+message ProxyAuthorization {
+  oneof authorization {
+    AccessAsAgentAuthorization agent = 1;
+    AccessAsUserAuthorization user = 2;
+  }
+}
 
-The request is made directly using the agent's service account.
+message AccessAsAgentAuthorization {}
 
-##### `access_as: { user: {} }` **(PREMIUM)**
+message AccessAsUserAuthorization {
+  repeated AccessCF projects = 1;
+  repeated AccessCF groups = 2;
+}
+
+message AccessCF {
+  string id = 1;
+  repeated string roles = 2;
+}
+```
+
+
+#### Plain access
+
+When `user_access.access_as` has the value `{ agent: {...} }`, requests is
+forwarded to the API server using the agent's service account.
+
+#### User impersonation **(PREMIUM)**
+
+When `user_access.access_as` is `{ user: {...} }`, the request should be
+transformed into an impersonation request for the authenticated user, where
+agentk impersonates _all_ of the `authorizations` present, as follows:
 
 - `UserName` is set to `gitlab:user:<username>`
 - `Groups` is set to:
   - `gitlab:user`: Common to all requests coming from GitLab users.
-  - `gitlab:project_role:<project_id>:<role>` for each role in the authorization source, _if it is a project_. Otherwise left out.
-  - `gitlab:group_role:<group_id>:<role>` for each role in the authorization source, _if it is a group_. Otherwise left out.
+  - `gitlab:project_role:<project_id>:<role>` for each role in each authorized project.
+  - `gitlab:group_role:<group_id>:<role>` for each role in each authorized group.
 - `Extra` carries extra information about the request:
      - `agent.gitlab.com/id`: The agent id.
      - `agent.gitlab.com/username`: The username of the GitLab user.
@@ -312,7 +396,7 @@ The request is made directly using the agent's service account.
      - `agent.gitlab.com/access_type`: One of `personal_access_token`,
        `oidc_id_token`, `session_cookie`
 
-**Important:** Only the most specific group or project under
+**Important:** Only projects and groups directly listed in the under
 `user_access` in the configuration file get impersonated. For example,
 if we have:
 
@@ -330,10 +414,12 @@ user_access:
 
 Then:
 
-- Members of `project-1` _only_ receive the Kubernetes RBAC groups
-  `gitlab:project_role:1:<role>` (one for each of their roles).
-- Members of `group-2/project-2`, _only_ receive `gitlab:project_role:2:<role>`.
-  Other members of `group-2`, _only_ receive `gitlab:group_role:2:<role>`
+- If a user is only a member of `group-1`, they would _only_ receive
+  the Kubernetes RBAC groups `gitlab:project_role:1:<role>`.
+- On the other hand, members of `group-2`, would receive both of the following
+  Kubernetes RBAC groups:
+  - `gitlab:project_role:2:<role>`,
+  - `gitlab:group_role:2:<role>`.
 
 ### Default configuration
 
