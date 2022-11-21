@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ash2k/stager"
@@ -83,6 +84,7 @@ type App struct {
 	// KasAddress specifies the address of kas.
 	KasAddress            string
 	KasCACertFile         string
+	KasHeaders            []string
 	ServiceAccountName    string
 	ObservabilityCertFile string
 	ObservabilityKeyFile  string
@@ -266,6 +268,10 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %w", err)
 	}
+	kasHeaders, err := parseHeaders(a.KasHeaders)
+	if err != nil {
+		return nil, err
+	}
 	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
@@ -301,6 +307,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}
+		kasHeaders.Set(httpz.UserAgentHeader, userAgent)
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
 			HTTPClient: &http.Client{
 				Transport: &http.Transport{
@@ -317,15 +324,17 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 					return http.ErrUseLastResponse
 				},
 			},
-			HTTPHeader: http.Header{
-				httpz.UserAgentHeader: []string{userAgent},
-			},
+			HTTPHeader: kasHeaders,
 		})))
 	case "grpc":
 		addressToDial = grpcHostWithPort(u)
+		opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)))
 	case "grpcs":
 		addressToDial = grpcHostWithPort(u)
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+		opts = append(opts,
+			grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
+		)
 	default:
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
@@ -395,6 +404,7 @@ func NewCommand() *cobra.Command {
 	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
 
 	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
+	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "Optional HTTP headers to set when connecting to the agent server")
 
 	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "Optional file with X.509 certificate in PEM format. User for observability endpoint TLS")
 	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "Optional file with X.509 key in PEM format. User for observability endpoint TLS")
@@ -419,4 +429,20 @@ func grpcHostWithPort(u *url.URL) string {
 		// Function called with unknown scheme, just return the original host.
 		return u.Host
 	}
+}
+
+func parseHeaders(raw []string) (http.Header, error) {
+	header := http.Header{}
+	for _, h := range raw {
+		k, v, ok := strings.Cut(h, ":")
+		if !ok {
+			return nil, fmt.Errorf("invalid header supplied: %s", h)
+		}
+		k, v = strings.Trim(k, " "), strings.Trim(v, " ")
+		if len(k) < 1 || len(v) < 1 {
+			return nil, fmt.Errorf("invalid header supplied: %s", h)
+		}
+		header.Add(k, v)
+	}
+	return header, nil
 }
