@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -52,7 +53,7 @@ type RedisTracker struct {
 	// never written back into Redis by refresh process.
 	refreshMu syncz.RWMutex
 	// mu protects fields below
-	mu                     syncz.Mutex
+	mu                     sync.Mutex
 	connectionsByAgentId   redistool.ExpiringHashInterface[int64, int64] // agentId -> connectionId -> info
 	connectionsByProjectId redistool.ExpiringHashInterface[int64, int64] // projectId -> connectionId -> info
 	connectedAgents        redistool.ExpiringHashInterface[int64, int64] // hash name -> agentId -> ""
@@ -64,7 +65,6 @@ func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPref
 		refreshPeriod:          refreshPeriod,
 		gcPeriod:               gcPeriod,
 		refreshMu:              syncz.NewRWMutex(),
-		mu:                     syncz.NewMutex(),
 		connectionsByAgentId:   redistool.NewExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
 		connectionsByProjectId: redistool.NewExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
 		connectedAgents:        redistool.NewExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
@@ -98,28 +98,13 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 		// This should never happen
 		return fmt.Errorf("failed to marshal object: %w", err)
 	}
-	var set []redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
-		set = []redistool.IOFunc{
+	return t.runIOFuncs(ctx, func() []redistool.IOFunc {
+		return []redistool.IOFunc{
 			t.connectionsByProjectId.Set(info.ProjectId, info.ConnectionId, infoBytes),
 			t.connectionsByAgentId.Set(info.AgentId, info.ConnectionId, infoBytes),
 			t.connectedAgents.Set(connectedAgentsKey, info.AgentId, nil),
 		}
 	})
-	if !ok {
-		return ctx.Err()
-	}
-
-	// Ensure data is put into all sets, even if there was an error
-	// Put data concurrently to reduce latency.
-	var g errgroup.Group
-	for _, s := range set {
-		s := s
-		g.Go(func() error {
-			return s(ctx)
-		})
-	}
-	return g.Wait()
 }
 
 func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *ConnectedAgentInfo) error {
@@ -127,23 +112,13 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 		return ctx.Err()
 	}
 	defer t.refreshMu.RUnlock()
-	var unset1, unset2 redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
-		unset1 = t.connectionsByProjectId.Unset(info.ProjectId, info.ConnectionId)
-		unset2 = t.connectionsByAgentId.Unset(info.AgentId, info.ConnectionId)
+	return t.runIOFuncs(ctx, func() []redistool.IOFunc {
 		t.connectedAgents.Forget(connectedAgentsKey, info.AgentId)
+		return []redistool.IOFunc{
+			t.connectionsByProjectId.Unset(info.ProjectId, info.ConnectionId),
+			t.connectionsByAgentId.Unset(info.AgentId, info.ConnectionId),
+		}
 	})
-	if !ok {
-		return ctx.Err()
-	}
-	var g errgroup.Group
-	g.Go(func() error {
-		return unset1(ctx)
-	})
-	g.Go(func() error {
-		return unset2(ctx)
-	})
-	return g.Wait()
 }
 
 func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error {
@@ -163,17 +138,13 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 		return
 	}
 	defer t.refreshMu.Unlock()
-	var refreshFuncs []redistool.IOFunc
-	ok := t.mu.RunLocked(ctx, func() {
-		refreshFuncs = []redistool.IOFunc{
+	refreshFuncs := syncz.RunWithMutex(&t.mu, func() []redistool.IOFunc {
+		return []redistool.IOFunc{
 			t.connectionsByProjectId.Refresh(nextRefresh),
 			t.connectionsByAgentId.Refresh(nextRefresh),
 			t.connectedAgents.Refresh(nextRefresh),
 		}
 	})
-	if !ok {
-		return
-	}
 	// No rush so run refresh sequentially to not stress RAM/CPU/Redis/network.
 	// We have more important work to do that we shouldn't impact.
 	for _, refresh := range refreshFuncs {
@@ -190,17 +161,13 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) int {
-	var gcFuncs []func(context.Context) (int, error)
-	ok := t.mu.RunLocked(ctx, func() {
-		gcFuncs = []func(context.Context) (int, error){
+	gcFuncs := syncz.RunWithMutex(&t.mu, func() []func(context.Context) (int, error) {
+		return []func(context.Context) (int, error){
 			t.connectionsByProjectId.GC(),
 			t.connectionsByAgentId.GC(),
 			t.connectedAgents.GC(),
 		}
 	})
-	if !ok {
-		return 0
-	}
 	keysDeleted := 0
 	// No rush so run GC sequentially to not stress RAM/CPU/Redis/network.
 	// We have more important work to do that we shouldn't impact.
@@ -217,6 +184,18 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 		keysDeleted += deleted
 	}
 	return keysDeleted
+}
+
+func (t *RedisTracker) runIOFuncs(ctx context.Context, f func() []redistool.IOFunc) error {
+	ios := syncz.RunWithMutex(&t.mu, f)
+	var g errgroup.Group
+	for _, s := range ios {
+		s := s
+		g.Go(func() error {
+			return s(ctx)
+		})
+	}
+	return g.Wait()
 }
 
 func getConnectionsByKey[K1 any, K2 any](ctx context.Context, log *zap.Logger, hash redistool.ExpiringHashInterface[K1, K2], key K1, cb ConnectedAgentInfoCallback) error {

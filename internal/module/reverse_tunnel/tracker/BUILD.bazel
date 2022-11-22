@@ -22,7 +22,6 @@ go_custom_test(
     embed = [":tracker"],
     deps = [
         "//internal/tool/redistool",
-        "//internal/tool/syncz",
         "//internal/tool/testing/mock_redis",
         "//internal/tool/testing/testhelpers",
         "@com_github_golang_mock//gomock",
