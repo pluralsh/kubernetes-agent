@@ -60,7 +60,7 @@ func loadValues(valuesCf []*agentcfg.ChartValuesCF) (map[string]interface{}, err
 	for _, entry := range valuesCf {
 		switch v := entry.As.(type) {
 		case *agentcfg.ChartValuesCF_Inline:
-			err := mergo.MergeWithOverwrite(&result, v.Inline.AsMap())
+			err := mergo.Merge(&result, v.Inline.AsMap(), mergo.WithOverride)
 			if err != nil {
 				return nil, err
 			}
