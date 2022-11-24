@@ -9,7 +9,7 @@ import (
 )
 
 func NewHeaderMetadata(header http.Header, insecure bool) credentials.PerRPCCredentials {
-	m := map[string]string{}
+	m := make(map[string]string, len(header))
 	for k, v := range header {
 		m[k] = strings.Join(v, ",")
 	}
