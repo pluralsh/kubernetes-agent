@@ -45,8 +45,9 @@ func (m *WorkerManager[C]) startNewWorker(agentId int64, source WorkSource[C]) {
 	worker := m.workerFactory.New(agentId, source)
 	ctx, cancel := context.WithCancel(context.Background())
 	holder := &workerHolder[C]{
-		source: source,
-		stop:   cancel,
+		sourceId: id,
+		config:   source.Configuration(),
+		stop:     cancel,
 	}
 	holder.wg.StartWithContext(ctx, worker.Run)
 	m.workers[id] = holder
@@ -69,7 +70,7 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 		if holder == nil { // New source added
 			sourcesToStartWorkersFor = append(sourcesToStartWorkersFor, source)
 		} else { // We have a worker for this source already
-			if proto.Equal(source.Configuration(), holder.source.Configuration()) {
+			if proto.Equal(source.Configuration(), holder.config) {
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
 			}
@@ -89,14 +90,14 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 
 	// Tell workers that should be stopped to stop.
 	for _, holder := range workersToStop {
-		m.log.Info("Stopping worker", logz.WorkerId(holder.source.ID()))
+		m.log.Info("Stopping worker", logz.WorkerId(holder.sourceId))
 		holder.stop()
-		delete(m.workers, holder.source.ID())
+		delete(m.workers, holder.sourceId)
 	}
 
 	// Wait for stopped workers to finish.
 	for _, holder := range workersToStop {
-		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.source.ID()))
+		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.sourceId))
 		holder.wg.Wait()
 	}
 
@@ -119,7 +120,8 @@ func (m *WorkerManager[C]) StopAllWorkers() {
 }
 
 type workerHolder[C proto.Message] struct {
-	source WorkSource[C]
-	wg     wait.Group
-	stop   context.CancelFunc
+	sourceId string
+	config   C
+	wg       wait.Group
+	stop     context.CancelFunc
 }
