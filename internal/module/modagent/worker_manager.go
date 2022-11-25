@@ -41,7 +41,7 @@ func NewWorkerManager[C proto.Message](log *zap.Logger, workerFactory WorkerFact
 
 func (m *WorkerManager[C]) startNewWorker(agentId int64, source WorkSource[C]) {
 	id := source.ID()
-	m.log.Info("Starting synchronization worker", logz.WorkerId(id))
+	m.log.Info("Starting worker", logz.WorkerId(id))
 	worker := m.workerFactory.New(agentId, source)
 	ctx, cancel := context.WithCancel(context.Background())
 	holder := &workerHolder[C]{
@@ -73,7 +73,7 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
 			}
-			m.log.Info("Configuration has been updated, restarting synchronization worker", logz.WorkerId(id))
+			m.log.Info("Configuration has been updated, restarting worker", logz.WorkerId(id))
 			workersToStop = append(workersToStop, holder)
 			sourcesToStartWorkersFor = append(sourcesToStartWorkersFor, source)
 		}
@@ -89,14 +89,14 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 
 	// Tell workers that should be stopped to stop.
 	for _, holder := range workersToStop {
-		m.log.Info("Stopping synchronization worker", logz.WorkerId(holder.source.ID()))
+		m.log.Info("Stopping worker", logz.WorkerId(holder.source.ID()))
 		holder.stop()
 		delete(m.workers, holder.source.ID())
 	}
 
 	// Wait for stopped workers to finish.
 	for _, holder := range workersToStop {
-		m.log.Info("Waiting for synchronization worker to stop", logz.WorkerId(holder.source.ID()))
+		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.source.ID()))
 		holder.wg.Wait()
 	}
 
