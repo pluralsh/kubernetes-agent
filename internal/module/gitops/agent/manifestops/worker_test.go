@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
@@ -40,11 +39,11 @@ const (
 )
 
 var (
-	_ modagent.LeaderModule = &module{}
-	_ modagent.Factory      = &Factory{}
-	_ agent.Worker          = &worker{}
-	_ agent.WorkerFactory   = &workerFactory{}
-	_ agent.WorkSource      = &manifestSource{}
+	_ modagent.LeaderModule                               = &module{}
+	_ modagent.Factory                                    = &Factory{}
+	_ modagent.Worker                                     = &worker{}
+	_ modagent.WorkerFactory[*agentcfg.ManifestProjectCF] = &workerFactory{}
+	_ modagent.WorkSource[*agentcfg.ManifestProjectCF]    = &manifestSource{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {

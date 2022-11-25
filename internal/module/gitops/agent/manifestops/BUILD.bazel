@@ -19,7 +19,6 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/gitops",
-        "//internal/module/gitops/agent",
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/errz",
@@ -42,7 +41,6 @@ go_library(
         "@io_k8s_sigs_cli_utils//pkg/object/validation",
         "@io_k8s_sigs_cli_utils//pkg/printers",
         "@io_k8s_utils//clock",
-        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -57,7 +55,6 @@ go_custom_test(
     ],
     embed = [":manifestops"],
     deps = [
-        "//internal/module/gitops/agent",
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/retry",

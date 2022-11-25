@@ -16,7 +16,6 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/gitops",
-        "//internal/module/gitops/agent",
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/errz",
@@ -27,7 +26,6 @@ go_library(
         "@com_github_imdario_mergo//:mergo",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/util/wait",
-        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
         "@sh_helm_helm_v3//pkg/action",
         "@sh_helm_helm_v3//pkg/chart",
