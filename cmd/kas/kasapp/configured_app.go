@@ -66,12 +66,13 @@ import (
 )
 
 const (
-	routingAttemptInterval = 50 * time.Millisecond
-	routingInitBackoff     = 100 * time.Millisecond
-	routingMaxBackoff      = 1 * time.Second
-	routingResetDuration   = 10 * time.Second
-	routingBackoffFactor   = 2.0
-	routingJitter          = 1.0
+	routingAttemptInterval   = 50 * time.Millisecond
+	routingInitBackoff       = 100 * time.Millisecond
+	routingMaxBackoff        = 1 * time.Second
+	routingResetDuration     = 10 * time.Second
+	routingBackoffFactor     = 2.0
+	routingJitter            = 1.0
+	routingTunnelFindTimeout = 20 * time.Second
 
 	authSecretLength = 32
 
@@ -362,6 +363,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 		gatewayKasVisitor:         gatewayKasVisitor,
 		kasRoutingDurationSuccess: kasRoutingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
 		kasRoutingDurationError:   kasRoutingDuration.WithLabelValues(kasRoutingStatusErrorLabelValue),
+		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}, nil
 }
 

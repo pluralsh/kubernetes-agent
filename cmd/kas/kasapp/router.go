@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
@@ -36,14 +37,15 @@ type router struct {
 	gatewayKasVisitor         *grpctool.StreamVisitor
 	kasRoutingDurationSuccess prometheus.Observer
 	kasRoutingDurationError   prometheus.Observer
+	tunnelFindTimeout         time.Duration
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {
 	// 1. Munge the descriptor into the right shape:
 	//    - turn all unary calls into streaming calls
 	//    - all streaming calls, including the ones from above, are handled by routing handlers
-	internalServerDesc := mungeDescriptor(desc, r.RouteToCorrectKasHandler)
-	privateApiServerDesc := mungeDescriptor(desc, r.RouteToCorrectAgentHandler)
+	internalServerDesc := mungeDescriptor(desc, r.RouteToKasStreamHandler)
+	privateApiServerDesc := mungeDescriptor(desc, r.RouteToAgentStreamHandler)
 
 	// 2. Register on InternalServer gRPC server so that ReverseTunnelClient can be used in kas to send data to
 	//    this API within this kas instance. This kas instance then routes the stream to the gateway kas instance.

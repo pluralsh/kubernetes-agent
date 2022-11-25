@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (r *router) RouteToCorrectAgentHandler(srv interface{}, stream grpc.ServerStream) error {
+func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerStream) error {
 	ctx := stream.Context()
 	md, _ := metadata.FromIncomingContext(ctx)
 	agentId, err := agentIdFromMeta(md)

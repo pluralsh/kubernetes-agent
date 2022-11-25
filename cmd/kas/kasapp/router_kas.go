@@ -7,13 +7,14 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-// RouteToCorrectKasHandler is a gRPC handler that routes the request to another kas instance.
+// RouteToKasStreamHandler is a gRPC handler that routes the request to another kas instance.
 // Must return a gRPC status-compatible error.
-func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStream) error {
+func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStream) error {
 	// 0. boilerplate
 	startRouting := time.Now()
 	ctx := stream.Context()
@@ -58,10 +59,16 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		foundTunnel:      tChan,
 		connections:      make(map[string]kasConnAttempt),
 	}
+	t := time.NewTimer(r.tunnelFindTimeout)
+	defer t.Stop()
 	go tf.Run(ctx)
 	select {
 	case <-ctx.Done():
 		return nil, "", nil, status.FromContextError(ctx.Err()).Err()
+	case <-t.C:
+		// No need to cancel ctx explicitly here.
+		// ctx will be cancelled when we return from the RPC handler and tf.Run() will stop.
+		return nil, "", nil, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
 	case rt := <-tChan:
 		return rt.kasStream, rt.kasUrl, func() {
 			rt.kasStreamCancel()

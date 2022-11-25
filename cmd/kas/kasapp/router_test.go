@@ -38,8 +38,8 @@ import (
 
 var (
 	_ kasRouter          = (*router)(nil)
-	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectKasHandler
-	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectAgentHandler
+	_ grpc.StreamHandler = (*router)(nil).RouteToKasStreamHandler
+	_ grpc.StreamHandler = (*router)(nil).RouteToAgentStreamHandler
 )
 
 const (
@@ -235,6 +235,107 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 	})
 }
 
+func TestRouter_FindTunnelTimeout(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	log := zaptest.NewLogger(t)
+	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
+	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
+	internalServerListener := grpctool.NewDialListener()
+	defer internalServerListener.Close()
+	privateApiServerListener := grpctool.NewDialListener()
+	defer privateApiServerListener.Close()
+
+	querier.EXPECT().
+		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.KasUrlsByAgentIdCallback) error {
+			<-ctx.Done()
+			return nil
+		})
+	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
+		return &serverRpcApi{
+			RpcApiStub: modshared.RpcApiStub{
+				StreamCtx: ctx,
+				Logger:    log,
+			},
+			sentryHubRoot: sentry.NewHub(nil, sentry.NewScope()),
+		}
+	}
+
+	internalServer := grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(context.Background(), 0)),
+		grpc.ChainStreamInterceptor(
+			modserver.StreamRpcApiInterceptor(factory),
+		),
+		grpc.ChainUnaryInterceptor(
+			modserver.UnaryRpcApiInterceptor(factory),
+		),
+		grpc.ForceServerCodec(grpctool.RawCodec{}),
+	)
+	privateApiServer := grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewServerMaxConnAgeStatsHandler(context.Background(), 0)),
+		grpc.ChainStreamInterceptor(
+			modserver.StreamRpcApiInterceptor(factory),
+		),
+		grpc.ChainUnaryInterceptor(
+			modserver.UnaryRpcApiInterceptor(factory),
+		),
+		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
+	)
+	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	require.NoError(t, err)
+	r := &router{
+		kasPool: grpctool.NewPool(log,
+			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
+			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+				if addr == "self" {
+					<-ctx.Done()
+					return nil, ctx.Err()
+				} else {
+					return privateApiServerListener.DialContext(ctx, addr)
+				}
+			}),
+		),
+		tunnelQuerier:             querier,
+		tunnelFinder:              finder,
+		ownPrivateApiUrl:          selfAddr,
+		pollConfig:                testhelpers.NewPollConfig(time.Minute),
+		internalServer:            internalServer,
+		privateApiServer:          privateApiServer,
+		gatewayKasVisitor:         gatewayKasVisitor,
+		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationError:   prometheus.ObserverFunc(func(f float64) {}),
+		tunnelFindTimeout:         100 * time.Millisecond,
+	}
+	r.RegisterAgentApi(&test.Testing_ServiceDesc)
+	var wg wait.Group
+	defer wg.Wait()
+	defer internalServer.GracefulStop()
+	defer privateApiServer.GracefulStop()
+	wg.Start(func() {
+		assert.NoError(t, internalServer.Serve(internalServerListener))
+	})
+	wg.Start(func() {
+		assert.NoError(t, privateApiServer.Serve(privateApiServerListener))
+	})
+	internalServerConn, err := grpc.DialContext(context.Background(), "pipe",
+		grpc.WithContextDialer(internalServerListener.DialContext),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainStreamInterceptor(
+			grpctool.StreamClientValidatingInterceptor,
+		),
+		grpc.WithChainUnaryInterceptor(
+			grpctool.UnaryClientValidatingInterceptor,
+		),
+	)
+	require.NoError(t, err)
+	defer internalServerConn.Close()
+	client := test.NewTestingClient(internalServerConn)
+	routingMetadata := modserver.RoutingMetadata(testhelpers.AgentId)
+	ctx := metadata.NewOutgoingContext(context.Background(), routingMetadata)
+	_, err = client.RequestResponse(ctx, &test.Request{})
+	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = Agent connection not found. Is agent up to date and connected?")
+}
+
 func meta() (metadata.MD, metadata.MD, metadata.MD) {
 	payloadMD := metadata.Pairs("key1", "value1")
 	responseMD := metadata.Pairs("key2", "value2")
@@ -358,6 +459,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		gatewayKasVisitor:         gatewayKasVisitor,
 		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
 		kasRoutingDurationError:   prometheus.ObserverFunc(func(f float64) {}),
+		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group
