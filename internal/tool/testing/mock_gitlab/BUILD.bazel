@@ -2,6 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "mock_gitlab",
+    testonly = True,
     srcs = ["testing_helpers.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab",
     visibility = ["//:__subpackages__"],

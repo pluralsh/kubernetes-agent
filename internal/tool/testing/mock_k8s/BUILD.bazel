@@ -2,6 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "mock_k8s",
+    testonly = True,
     srcs = [
         "doc.go",
         "meta.go",

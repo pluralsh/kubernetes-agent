@@ -1,1 +1,2 @@
 fix unusedLoads|//...:__pkg__
+set testonly True|//internal/tool/testing/...:%go_library
