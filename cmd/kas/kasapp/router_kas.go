@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// RouteToCorrectKasHandler is a gRPC handler that routes the request to another kas instance.
+// RouteToKasStreamHandler is a gRPC handler that routes the request to another kas instance.
 // Must return a gRPC status-compatible error.
-func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStream) error {
+func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStream) error {
 	// 0. boilerplate
 	startRouting := time.Now()
 	ctx := stream.Context()

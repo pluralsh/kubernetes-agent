@@ -38,8 +38,8 @@ import (
 
 var (
 	_ kasRouter          = (*router)(nil)
-	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectKasHandler
-	_ grpc.StreamHandler = (*router)(nil).RouteToCorrectAgentHandler
+	_ grpc.StreamHandler = (*router)(nil).RouteToKasStreamHandler
+	_ grpc.StreamHandler = (*router)(nil).RouteToAgentStreamHandler
 )
 
 const (
