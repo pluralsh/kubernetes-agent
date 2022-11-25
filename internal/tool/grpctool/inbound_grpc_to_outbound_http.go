@@ -236,16 +236,17 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
+	data := &HttpResponse_Data{} // allocate once
+	msg := &HttpResponse{
+		Message: &HttpResponse_Data_{
+			Data: data,
+		},
+	}
 	for {
 		n, readErr := resp.Body.Read(buffer)
 		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
-			sendErr := inbound.Send(&HttpResponse{
-				Message: &HttpResponse_Data_{
-					Data: &HttpResponse_Data{
-						Data: buffer[:n],
-					},
-				},
-			})
+			data.Data = buffer[:n]
+			sendErr := inbound.Send(msg)
 			if sendErr != nil {
 				return x.handleIoError("SendMsg(HttpResponse_Data) failed", sendErr)
 			}
@@ -263,16 +264,17 @@ func (x *InboundGrpcToOutboundHttp) sendResponseHeaderAndBody(inbound InboundGrp
 func (x *InboundGrpcToOutboundHttp) sendUpgradeResponseStream(inbound InboundGrpcToOutboundHttpStream, upgradeConn *bufio.Reader) error {
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
+	data := &HttpResponse_UpgradeData{} // allocate once
+	msg := &HttpResponse{
+		Message: &HttpResponse_UpgradeData_{
+			UpgradeData: data,
+		},
+	}
 	for {
 		n, readErr := upgradeConn.Read(buffer)
 		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
-			sendErr := inbound.Send(&HttpResponse{
-				Message: &HttpResponse_UpgradeData_{
-					UpgradeData: &HttpResponse_UpgradeData{
-						Data: buffer[:n],
-					},
-				},
-			})
+			data.Data = buffer[:n]
+			sendErr := inbound.Send(msg)
 			if sendErr != nil {
 				return x.handleIoError("SendMsg(HttpResponse_UpgradeData) failed", sendErr)
 			}
