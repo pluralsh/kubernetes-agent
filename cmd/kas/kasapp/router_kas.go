@@ -26,25 +26,25 @@ func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStre
 	rpcApi := modserver.RpcApiFromContext(ctx)
 
 	// 1. find a ready, suitable tunnel
-	kasStream, kasUrl, done, err := r.findReadyTunnel(ctx, rpcApi, md, agentId)
+	rt, err := r.findReadyTunnel(ctx, rpcApi, md, agentId)
 	routingDuration := time.Since(startRouting).Seconds()
 	if err != nil {
 		r.kasRoutingDurationError.Observe(routingDuration)
 		return err
 	}
-	defer done()
+	defer rt.Done()
 	r.kasRoutingDurationSuccess.Observe(routingDuration)
 
 	// 2. start streaming via the found tunnel
 	f := kasStreamForwarder{
-		log:               rpcApi.Log().With(logz.AgentId(agentId), logz.KasUrl(kasUrl)),
+		log:               rpcApi.Log().With(logz.AgentId(agentId), logz.KasUrl(rt.kasUrl)),
 		rpcApi:            rpcApi,
 		gatewayKasVisitor: r.gatewayKasVisitor,
 	}
-	return f.ForwardStream(kasStream, stream)
+	return f.ForwardStream(rt.kasStream, stream)
 }
 
-func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, md metadata.MD, agentId int64) (grpc.ClientStream, string, func(), error) {
+func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, md metadata.MD, agentId int64) (readyTunnel, error) {
 	tChan := make(chan readyTunnel)
 	tf := tunnelFinder{
 		log:              rpcApi.Log().With(logz.AgentId(agentId)),
@@ -64,15 +64,12 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 	go tf.Run(ctx)
 	select {
 	case <-ctx.Done():
-		return nil, "", nil, status.FromContextError(ctx.Err()).Err()
+		return readyTunnel{}, status.FromContextError(ctx.Err()).Err()
 	case <-t.C:
 		// No need to cancel ctx explicitly here.
 		// ctx will be cancelled when we return from the RPC handler and tf.Run() will stop.
-		return nil, "", nil, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
+		return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
 	case rt := <-tChan:
-		return rt.kasStream, rt.kasUrl, func() {
-			rt.kasStreamCancel()
-			rt.kasConn.Done()
-		}, nil
+		return rt, nil
 	}
 }
