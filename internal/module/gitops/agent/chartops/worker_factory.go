@@ -1,8 +1,8 @@
 package chartops
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -18,7 +18,7 @@ type workerFactory struct {
 	watchPollConfig   retry.PollConfigFactory
 }
 
-func (f *workerFactory) New(agentId int64, source agent.WorkSource[*agentcfg.ChartCF]) agent.Worker {
+func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.ChartCF]) modagent.Worker {
 	chartCfg := source.Configuration()
 	l := f.log.With(logz.WorkerId(source.ID()), logz.AgentId(agentId))
 	return &worker{
@@ -34,8 +34,8 @@ func (f *workerFactory) New(agentId int64, source agent.WorkSource[*agentcfg.Cha
 	}
 }
 
-func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []agent.WorkSource[*agentcfg.ChartCF] {
-	res := make([]agent.WorkSource[*agentcfg.ChartCF], 0, len(cfg.Gitops.Charts))
+func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []modagent.WorkSource[*agentcfg.ChartCF] {
+	res := make([]modagent.WorkSource[*agentcfg.ChartCF], 0, len(cfg.Gitops.Charts))
 	for _, chart := range cfg.Gitops.Charts {
 		res = append(res, (*manifestSource)(chart))
 	}

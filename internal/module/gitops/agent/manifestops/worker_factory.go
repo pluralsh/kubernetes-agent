@@ -3,8 +3,8 @@ package manifestops
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -65,7 +65,7 @@ type workerFactory struct {
 	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
-func (f *workerFactory) New(agentId int64, source agent.WorkSource[*agentcfg.ManifestProjectCF]) agent.Worker {
+func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.ManifestProjectCF]) modagent.Worker {
 	project := source.Configuration()
 	l := f.log.With(logz.WorkerId(source.ID()))
 	return &worker{
@@ -104,8 +104,8 @@ func (f *workerFactory) New(agentId int64, source agent.WorkSource[*agentcfg.Man
 	}
 }
 
-func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []agent.WorkSource[*agentcfg.ManifestProjectCF] {
-	res := make([]agent.WorkSource[*agentcfg.ManifestProjectCF], 0, len(cfg.Gitops.ManifestProjects))
+func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []modagent.WorkSource[*agentcfg.ManifestProjectCF] {
+	res := make([]modagent.WorkSource[*agentcfg.ManifestProjectCF], 0, len(cfg.Gitops.ManifestProjects))
 	for _, project := range cfg.Gitops.ManifestProjects {
 		res = append(res, (*manifestSource)(project))
 	}

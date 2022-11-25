@@ -19,7 +19,6 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/gitops",
-        "//internal/module/gitops/agent",
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/errz",
@@ -56,7 +55,6 @@ go_custom_test(
     ],
     embed = [":manifestops"],
     deps = [
-        "//internal/module/gitops/agent",
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/retry",

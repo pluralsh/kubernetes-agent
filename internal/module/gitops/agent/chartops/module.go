@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
@@ -19,11 +18,11 @@ const (
 )
 
 var (
-	_ modagent.LeaderModule                  = &module{}
-	_ modagent.Factory                       = &Factory{}
-	_ agent.Worker                           = &worker{}
-	_ agent.WorkerFactory[*agentcfg.ChartCF] = &workerFactory{}
-	_ agent.WorkSource[*agentcfg.ChartCF]    = &manifestSource{}
+	_ modagent.LeaderModule                     = &module{}
+	_ modagent.Factory                          = &Factory{}
+	_ modagent.Worker                           = &worker{}
+	_ modagent.WorkerFactory[*agentcfg.ChartCF] = &workerFactory{}
+	_ modagent.WorkSource[*agentcfg.ChartCF]    = &manifestSource{}
 )
 
 type module struct {
@@ -36,7 +35,7 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	wm := agent.NewWorkerManager[*agentcfg.ChartCF](m.log, m.workerFactory)
+	wm := modagent.NewWorkerManager[*agentcfg.ChartCF](m.log, m.workerFactory)
 	defer wm.StopAllWorkers()
 	for config := range cfg {
 		err := wm.ApplyConfiguration(config.AgentId, config) // nolint: contextcheck

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -35,7 +35,7 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	wm := agent.NewWorkerManager[*agentcfg.ManifestProjectCF](m.log, m.workerFactory)
+	wm := modagent.NewWorkerManager[*agentcfg.ManifestProjectCF](m.log, m.workerFactory)
 	defer wm.StopAllWorkers()
 	for config := range cfg {
 		err := wm.ApplyConfiguration(config.AgentId, config) // nolint: contextcheck
