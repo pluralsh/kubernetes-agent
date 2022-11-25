@@ -2,6 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "matcher",
+    testonly = True,
     srcs = ["matchers.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher",
     visibility = ["//:__subpackages__"],

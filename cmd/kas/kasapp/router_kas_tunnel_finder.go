@@ -38,6 +38,11 @@ type readyTunnel struct {
 	kasStreamCancel context.CancelFunc
 }
 
+func (t readyTunnel) Done() {
+	t.kasStreamCancel()
+	t.kasConn.Done()
+}
+
 type tunnelFinder struct {
 	log              *zap.Logger
 	kasPool          grpctool.PoolInterface
