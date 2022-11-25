@@ -40,11 +40,11 @@ const (
 )
 
 var (
-	_ modagent.LeaderModule = &module{}
-	_ modagent.Factory      = &Factory{}
-	_ agent.Worker          = &worker{}
-	_ agent.WorkerFactory   = &workerFactory{}
-	_ agent.WorkSource      = &manifestSource{}
+	_ modagent.LeaderModule                            = &module{}
+	_ modagent.Factory                                 = &Factory{}
+	_ agent.Worker                                     = &worker{}
+	_ agent.WorkerFactory[*agentcfg.ManifestProjectCF] = &workerFactory{}
+	_ agent.WorkSource[*agentcfg.ManifestProjectCF]    = &manifestSource{}
 )
 
 func TestRun_HappyPath_NoObjects(t *testing.T) {

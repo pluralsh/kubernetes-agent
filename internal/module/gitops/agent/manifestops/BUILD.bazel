@@ -42,7 +42,6 @@ go_library(
         "@io_k8s_sigs_cli_utils//pkg/object/validation",
         "@io_k8s_sigs_cli_utils//pkg/printers",
         "@io_k8s_utils//clock",
-        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],
 )

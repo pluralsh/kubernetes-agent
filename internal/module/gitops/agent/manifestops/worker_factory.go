@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/resource"
 	"sigs.k8s.io/cli-utils/pkg/apply"
@@ -66,8 +65,8 @@ type workerFactory struct {
 	decodeRetryPolicy retry.BackoffManagerFactory
 }
 
-func (f *workerFactory) New(agentId int64, source agent.WorkSource) agent.Worker {
-	project := source.Configuration().(*agentcfg.ManifestProjectCF)
+func (f *workerFactory) New(agentId int64, source agent.WorkSource[*agentcfg.ManifestProjectCF]) agent.Worker {
+	project := source.Configuration()
 	l := f.log.With(logz.WorkerId(source.ID()))
 	return &worker{
 		log:               l,
@@ -105,8 +104,8 @@ func (f *workerFactory) New(agentId int64, source agent.WorkSource) agent.Worker
 	}
 }
 
-func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []agent.WorkSource {
-	res := make([]agent.WorkSource, 0, len(cfg.Gitops.ManifestProjects))
+func (f *workerFactory) SourcesFromConfiguration(cfg *agentcfg.AgentConfiguration) []agent.WorkSource[*agentcfg.ManifestProjectCF] {
+	res := make([]agent.WorkSource[*agentcfg.ManifestProjectCF], 0, len(cfg.Gitops.ManifestProjects))
 	for _, project := range cfg.Gitops.ManifestProjects {
 		res = append(res, (*manifestSource)(project))
 	}
@@ -152,6 +151,6 @@ func (s *manifestSource) ID() string {
 	return s.Id
 }
 
-func (s *manifestSource) Configuration() proto.Message {
+func (s *manifestSource) Configuration() *agentcfg.ManifestProjectCF {
 	return (*agentcfg.ManifestProjectCF)(s)
 }

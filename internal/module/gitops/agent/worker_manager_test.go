@@ -19,7 +19,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
 			projects := config.GetGitops().GetManifestProjects()
 			expectedNumberOfWorkers := len(projects)
-			ws := make([]WorkSource, 0, len(projects))
+			ws := make([]WorkSource[proto.Message], 0, len(projects))
 			for _, project := range projects {
 				ws = append(ws, &mockWorkSource{
 					id:     project.Id,
@@ -80,7 +80,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				Times(numProjects)
 			for _, config := range tc.configs {
 				projects := config.GetGitops().GetManifestProjects()
-				ws := make([]WorkSource, 0, len(projects))
+				ws := make([]WorkSource[proto.Message], 0, len(projects))
 				for _, project := range projects {
 					ws = append(ws, &mockWorkSource{
 						id:     project.Id,
@@ -102,7 +102,7 @@ func TestErrorsOnDuplicateSourceId(t *testing.T) {
 	cfg := &agentcfg.AgentConfiguration{}
 	factory.EXPECT().
 		SourcesFromConfiguration(cfg).
-		Return([]WorkSource{
+		Return([]WorkSource[proto.Message]{
 			&mockWorkSource{
 				id: "id1",
 			},
@@ -114,10 +114,10 @@ func TestErrorsOnDuplicateSourceId(t *testing.T) {
 	assert.EqualError(t, err, "duplicate source id: id1")
 }
 
-func setupWM(t *testing.T) (*WorkerManager, *gomock.Controller, *MockWorkerFactory) {
+func setupWM(t *testing.T) (*WorkerManager[proto.Message], *gomock.Controller, *MockWorkerFactory[proto.Message]) {
 	ctrl := gomock.NewController(t)
-	workerFactory := NewMockWorkerFactory(ctrl)
-	wm := NewWorkerManager(zaptest.NewLogger(t), workerFactory)
+	workerFactory := NewMockWorkerFactory[proto.Message](ctrl)
+	wm := NewWorkerManager[proto.Message](zaptest.NewLogger(t), workerFactory)
 	t.Cleanup(wm.StopAllWorkers)
 	return wm, ctrl, workerFactory
 }
@@ -200,7 +200,7 @@ func reverse(cfgs []*agentcfg.AgentConfiguration) {
 }
 
 var (
-	_ WorkSource = &mockWorkSource{}
+	_ WorkSource[proto.Message] = &mockWorkSource{}
 )
 
 type mockWorkSource struct {

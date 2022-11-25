@@ -19,16 +19,16 @@ const (
 )
 
 var (
-	_ modagent.LeaderModule = &module{}
-	_ modagent.Factory      = &Factory{}
-	_ agent.Worker          = &worker{}
-	_ agent.WorkerFactory   = &workerFactory{}
-	_ agent.WorkSource      = &manifestSource{}
+	_ modagent.LeaderModule                  = &module{}
+	_ modagent.Factory                       = &Factory{}
+	_ agent.Worker                           = &worker{}
+	_ agent.WorkerFactory[*agentcfg.ChartCF] = &workerFactory{}
+	_ agent.WorkSource[*agentcfg.ChartCF]    = &manifestSource{}
 )
 
 type module struct {
 	log           *zap.Logger
-	workerFactory agent.WorkerFactory
+	workerFactory *workerFactory
 }
 
 func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
@@ -36,7 +36,7 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	wm := agent.NewWorkerManager(m.log, m.workerFactory)
+	wm := agent.NewWorkerManager[*agentcfg.ChartCF](m.log, m.workerFactory)
 	defer wm.StopAllWorkers()
 	for config := range cfg {
 		err := wm.ApplyConfiguration(config.AgentId, config) // nolint: contextcheck

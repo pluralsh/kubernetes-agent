@@ -11,40 +11,40 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-type WorkSource interface {
+type WorkSource[C proto.Message] interface {
 	ID() string
-	Configuration() proto.Message
+	Configuration() C
 }
 
-type WorkerFactory interface {
-	New(agentId int64, source WorkSource) Worker
-	SourcesFromConfiguration(*agentcfg.AgentConfiguration) []WorkSource
+type WorkerFactory[C proto.Message] interface {
+	New(agentId int64, source WorkSource[C]) Worker
+	SourcesFromConfiguration(*agentcfg.AgentConfiguration) []WorkSource[C]
 }
 
 type Worker interface {
 	Run(context.Context)
 }
 
-type WorkerManager struct {
+type WorkerManager[C proto.Message] struct {
 	log           *zap.Logger
-	workerFactory WorkerFactory
-	workers       map[string]*workerHolder // source id -> worker holder instance
+	workerFactory WorkerFactory[C]
+	workers       map[string]*workerHolder[C] // source id -> worker holder instance
 }
 
-func NewWorkerManager(log *zap.Logger, workerFactory WorkerFactory) *WorkerManager {
-	return &WorkerManager{
+func NewWorkerManager[C proto.Message](log *zap.Logger, workerFactory WorkerFactory[C]) *WorkerManager[C] {
+	return &WorkerManager[C]{
 		log:           log,
 		workerFactory: workerFactory,
-		workers:       map[string]*workerHolder{},
+		workers:       map[string]*workerHolder[C]{},
 	}
 }
 
-func (m *WorkerManager) startNewWorker(agentId int64, source WorkSource) {
+func (m *WorkerManager[C]) startNewWorker(agentId int64, source WorkSource[C]) {
 	id := source.ID()
 	m.log.Info("Starting synchronization worker", logz.WorkerId(id))
 	worker := m.workerFactory.New(agentId, source)
 	ctx, cancel := context.WithCancel(context.Background())
-	holder := &workerHolder{
+	holder := &workerHolder[C]{
 		source: source,
 		stop:   cancel,
 	}
@@ -52,11 +52,11 @@ func (m *WorkerManager) startNewWorker(agentId int64, source WorkSource) {
 	m.workers[id] = holder
 }
 
-func (m *WorkerManager) ApplyConfiguration(agentId int64, cfg *agentcfg.AgentConfiguration) error {
+func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.AgentConfiguration) error {
 	sources := m.workerFactory.SourcesFromConfiguration(cfg)
 	newSetOfSources := make(map[string]struct{}, len(sources))
-	var sourcesToStartWorkersFor []WorkSource
-	var workersToStop []*workerHolder //nolint:prealloc
+	var sourcesToStartWorkersFor []WorkSource[C]
+	var workersToStop []*workerHolder[C] //nolint:prealloc
 
 	// Collect sources without workers or with updated configuration.
 	for _, source := range sources {
@@ -107,7 +107,7 @@ func (m *WorkerManager) ApplyConfiguration(agentId int64, cfg *agentcfg.AgentCon
 	return nil
 }
 
-func (m *WorkerManager) StopAllWorkers() {
+func (m *WorkerManager[C]) StopAllWorkers() {
 	// Tell all workers to stop
 	for _, holder := range m.workers {
 		holder.stop()
@@ -118,8 +118,8 @@ func (m *WorkerManager) StopAllWorkers() {
 	}
 }
 
-type workerHolder struct {
-	source WorkSource
+type workerHolder[C proto.Message] struct {
+	source WorkSource[C]
 	wg     wait.Group
 	stop   context.CancelFunc
 }
