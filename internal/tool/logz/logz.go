@@ -47,6 +47,10 @@ func CommitId(commitId string) zap.Field {
 	return zap.String("commit_id", commitId)
 }
 
+func GitRef(gitRef string) zap.Field {
+	return zap.String("git_ref", gitRef)
+}
+
 func NumberOfFilesVisited(n uint32) zap.Field {
 	return zap.Uint32("files_visited", n)
 }

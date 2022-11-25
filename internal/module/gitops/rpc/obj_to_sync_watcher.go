@@ -77,6 +77,12 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		}
 		callback(ctx, v.objs)
 		lastProcessedCommitId = v.objs.CommitId
+
+		if req.GetRef().GetCommit() != "" {
+			o.Log.Debug("GetObjectsToSynchronize configuration is for specific commit, no need to update, thus block watcher until cancelled")
+			<-ctx.Done()
+			return nil, retry.Done
+		}
 		return nil, retry.ContinueImmediately
 	})
 }

@@ -109,7 +109,7 @@ func (s *server) poll(ctx context.Context, agentInfo *api.AgentInfo, lastProcess
 	if err != nil {
 		return nil, err
 	}
-	return p.Poll(ctx, agentInfo.Repository, lastProcessedCommitId, agentInfo.DefaultBranch)
+	return p.Poll(ctx, agentInfo.Repository, lastProcessedCommitId, "refs/heads/"+agentInfo.DefaultBranch)
 }
 
 func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurationServer,

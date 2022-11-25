@@ -35,8 +35,9 @@ import (
 )
 
 const (
-	projectId = "some/project"
-	revision  = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+	projectId    = "some/project"
+	revision     = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+	branchPrefix = "refs/heads/"
 
 	maxConfigurationFileSize = 128 * 1024
 )
@@ -155,7 +156,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -181,7 +182,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, agentInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, branchPrefix+agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: false,
@@ -212,7 +213,7 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -238,7 +239,7 @@ func TestGetConfiguration_EmptyRepository(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				EmptyRepository: true,
 			}, nil),
@@ -265,7 +266,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &agentInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", agentInfo.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
 					Return(&gitaly.PollInfo{
 						CommitId:        revision,
 						UpdateAvailable: true,

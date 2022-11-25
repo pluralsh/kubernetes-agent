@@ -31,6 +31,7 @@ func (w *worker) fetchFromGitLabRepo(ctx context.Context, src *agentcfg.ChartPro
 	pathWithSlash := strings.TrimSuffix(src.Path, "/") + "/"
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: src.Id,
+		Ref:       src.Ref,
 		Paths:     []*agentcfg.PathCF{{Glob: pathWithSlash + "**"}}, // TODO validate it's a path, not a glob?
 	}
 	w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
