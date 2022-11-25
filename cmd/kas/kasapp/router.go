@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
@@ -36,6 +37,7 @@ type router struct {
 	gatewayKasVisitor         *grpctool.StreamVisitor
 	kasRoutingDurationSuccess prometheus.Observer
 	kasRoutingDurationError   prometheus.Observer
+	tunnelFindTimeout         time.Duration
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {
