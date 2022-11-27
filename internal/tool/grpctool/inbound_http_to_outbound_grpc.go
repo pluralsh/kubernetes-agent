@@ -131,7 +131,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 	headerWritten := false
 	var responseStatusCode int32
 	flush := x.flush(w)
-	err := HttpResponseStreamVisitor().Visit(outboundClient,
+	err := HttpResponseStreamVisitor.Get().Visit(outboundClient,
 		WithCallback(HttpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
 			responseStatusCode = header.Response.StatusCode
 			outboundResponse := header.Response.HttpHeader()
@@ -367,7 +367,7 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient
 
 func (x *InboundHttpToOutboundGrpc) pipeOutboundToInboundUpgraded(outboundClient HttpRequestClient, inboundStream io.Writer) error {
 	var writeFailed bool
-	err := HttpResponseStreamVisitor().Visit(outboundClient,
+	err := HttpResponseStreamVisitor.Get().Visit(outboundClient,
 		WithStartState(HttpResponseTrailerFieldNumber),
 		WithCallback(HttpResponseUpgradeDataFieldNumber, func(data *HttpResponse_UpgradeData) error {
 			_, err := inboundStream.Write(data.Data)

@@ -34,6 +34,7 @@ go_library(
         "raw_codec.go",
         "server_limiting.go",
         "stream_visitor.go",
+        "stream_visitor_lazy.go",
         "stream_visitor_options.go",
         "token_creds.go",
         "tools.go",
