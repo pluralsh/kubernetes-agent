@@ -70,7 +70,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	})
 	// Read response
 	wg.Start(func() {
-		readErr := grpctool.HttpResponseStreamVisitor().Visit(client,
+		readErr := grpctool.HttpResponseStreamVisitor.Get().Visit(client,
 			grpctool.WithCallback(grpctool.HttpResponseHeaderFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 				val.SetValue(&modagent.GitLabResponse{
 					Status:     header.Response.Status,

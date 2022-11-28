@@ -122,7 +122,7 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 	headerC chan<- *HttpRequest_Header, respC <-chan DoResponse, pw *io.PipeWriter) error {
 	var isUpgrade bool
 	var upgradeConn net.Conn
-	return HttpRequestStreamVisitor().Visit(inbound,
+	return HttpRequestStreamVisitor.Get().Visit(inbound,
 		WithCallback(HttpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
 			x.logRequest(header)
 			isUpgrade = header.Request.IsUpgrade()

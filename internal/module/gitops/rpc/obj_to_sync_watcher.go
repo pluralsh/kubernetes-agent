@@ -16,6 +16,10 @@ const (
 	trailerFieldNumber protoreflect.FieldNumber = 3
 )
 
+var (
+	respVisitor = grpctool.NewLazyStreamVisitor(&ObjectsToSynchronizeResponse{})
+)
+
 type ObjectSource struct {
 	Name string
 	Data []byte
@@ -41,11 +45,7 @@ type ObjectsToSynchronizeWatcher struct {
 }
 
 func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToSynchronizeRequest, callback ObjectsToSynchronizeCallback) {
-	sv, err := grpctool.NewStreamVisitor(&ObjectsToSynchronizeResponse{})
-	if err != nil {
-		// Coding error, must never happen
-		panic(err)
-	}
+	sv := respVisitor.Get()
 	lastProcessedCommitId := req.CommitId
 	_ = retry.PollWithBackoff(ctx, o.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
