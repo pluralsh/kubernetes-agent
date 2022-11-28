@@ -65,6 +65,22 @@ message ManifestProjectCF {
   // annotation in the live object.
   // https://github.com/kubernetes-sigs/cli-utils/blob/d6968048dcd80b1c7b55d9e4f31fc25f71c9b490/pkg/inventory/policy.go#L12-L66
   string inventory_policy = 11 [json_name = "inventory_policy", (validate.rules).string = {in: ["", "must_match", "adopt_if_no_inventory", "adopt_all"]}];
+  // Ref in the GitOps repository to fetch manifests from.
+  GitRefCF ref = 12 [json_name = "ref"];
+}
+
+// GitRef in the GitOps repository to fetch manifests from.
+message GitRefCF {
+  oneof ref {
+    option (validate.required) = true;
+
+    // A Git tag name, without `refs/tags/`
+    string tag = 1 [json_name = "tag", (validate.rules).string.min_bytes = 1];
+    // A Git branch name, without `refs/heads/`
+    string branch = 2 [json_name = "branch", (validate.rules).string.min_bytes = 1];
+    // A Git commit SHA
+    string commit = 3 [json_name = "commit", (validate.rules).string.min_bytes = 1];
+  }
 }
 
 message ChartProjectSourceCF {
@@ -74,6 +90,8 @@ message ChartProjectSourceCF {
   // Path in the repository.
   // e.g. charts/my-chart
   string path = 2 [json_name = "path"];
+  // Ref in the GitOps repository to fetch manifests from.
+  GitRefCF ref = 3 [json_name = "ref"];
 }
 
 message ChartSourceCF {

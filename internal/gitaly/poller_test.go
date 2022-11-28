@@ -18,19 +18,19 @@ const (
 	revision2 = "28aa7afd52802a91a0685d8507ebc6de9bcac256"
 	revision3 = "e9bcac25628aa7afd5507ebc6d2800685d82a91a"
 
-	branch = "test-branch"
+	branch = "refs/heads/test-branch"
 
 	infoRefsData = `001e# service=git-upload-pack
 00000148` + revision1 + ` HEAD` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
 003f` + revision1 + ` refs/heads/master
 003d` + revision3 + ` refs/heads/main
-0044` + revision2 + ` refs/heads/` + branch + `
+0044` + revision2 + ` refs/heads/test-branch
 0000`
 
 	infoRefsMainMasterData = `001e# service=git-upload-pack
 00000040` + revision1 + ` refs/heads/master` + "\x00" + `
 003d` + revision3 + ` refs/heads/main
-0044` + revision2 + ` refs/heads/` + branch + `
+0044` + revision2 + ` refs/heads/test-branch
 0000`
 
 	infoRefsEmptyData = `001e# service=git-upload-pack
@@ -59,14 +59,14 @@ func TestPoller(t *testing.T) {
 		},
 		{
 			name:                "main branch same commit",
-			ref:                 "main",
+			ref:                 "refs/heads/main",
 			lastProcessedCommit: revision3,
 			expectedInfoCommit:  revision3,
 			expectedInfoUpdate:  false,
 		},
 		{
 			name:                "master branch same commit",
-			ref:                 "master",
+			ref:                 "refs/heads/master",
 			lastProcessedCommit: revision1,
 			expectedInfoCommit:  revision1,
 			expectedInfoUpdate:  false,
@@ -87,7 +87,7 @@ func TestPoller(t *testing.T) {
 		},
 		{
 			name:                "master branch no commit",
-			ref:                 "master",
+			ref:                 "refs/heads/master",
 			lastProcessedCommit: "",
 			expectedInfoCommit:  revision1,
 			expectedInfoUpdate:  true,
@@ -108,14 +108,14 @@ func TestPoller(t *testing.T) {
 		},
 		{
 			name:                "main branch another commit",
-			ref:                 "main",
+			ref:                 "refs/heads/main",
 			lastProcessedCommit: "123123123",
 			expectedInfoCommit:  revision3,
 			expectedInfoUpdate:  true,
 		},
 		{
 			name:                "master branch another commit",
-			ref:                 "master",
+			ref:                 "refs/heads/master",
 			lastProcessedCommit: "123123123",
 			expectedInfoCommit:  revision1,
 			expectedInfoUpdate:  true,
@@ -162,7 +162,7 @@ func TestPoller(t *testing.T) {
 }
 
 func TestPoller_EmptyRepository(t *testing.T) {
-	for _, branch := range []string{DefaultBranch, "some_branch"} {
+	for _, branch := range []string{DefaultBranch, "refs/heads/some_branch"} {
 		t.Run(branch, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			r := repo()
@@ -197,7 +197,7 @@ func TestPoller_Errors(t *testing.T) {
 	t.Run("no HEAD", func(t *testing.T) {
 		noHEAD := `001e# service=git-upload-pack
 00000155` + revision1 + ` refs/heads/master` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
-0044` + revision2 + ` refs/heads/` + branch + `
+0044` + revision2 + ` refs/heads/test-branch
 0000`
 		ctrl := gomock.NewController(t)
 		r := repo()
@@ -215,7 +215,7 @@ func TestPoller_Errors(t *testing.T) {
 	t.Run("no HEAD no master", func(t *testing.T) {
 		noHEAD := `001e# service=git-upload-pack
 00000155` + revision1 + ` refs/heads/bababa` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
-0044` + revision2 + ` refs/heads/` + branch + `
+0044` + revision2 + ` refs/heads/test-branch
 0000`
 		ctrl := gomock.NewController(t)
 		r := repo()

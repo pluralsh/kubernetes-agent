@@ -81,30 +81,52 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 			}
 			return err, retry.Done // no wrap
 		}
-		info, err := s.poll(ctx, projectInfo, req.CommitId)
-		if err != nil {
-			rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
-			return nil, retry.Backoff
-		}
 
+		var commitToSynchronize string
+		synchronizingCommit := req.GetRef().GetCommit() != ""
+		// Declare a new logger to no append the same field in every poll.
+		log := log // nolint:govet
+		if synchronizingCommit {
+			// no need to poll, because we already have an immutable commit sha
+			commitToSynchronize = req.GetRef().GetCommit()
+			log = log.With(logz.CommitId(commitToSynchronize))
+		} else {
+			// Resolve the ref provided by the agent to a full ref which can be used to unambiguously find a Git ref.
+			fullRefName := req.GetRef().GetResolvedRef()
+			info, err := s.poll(ctx, projectInfo, req.CommitId, fullRefName) // nolint:govet
+			if err != nil {
+				rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
+				return nil, retry.Backoff
+			}
+			commitToSynchronize = info.CommitId
+			log = log.With(logz.CommitId(commitToSynchronize), logz.GitRef(fullRefName))
+
+			if info.EmptyRepository {
+				log.Debug("GitOps: empty repository")
+				return nil, retry.Continue
+			}
+		}
 		s.trackPollInterval(&lastPoll)
 
-		if info.EmptyRepository {
-			log.Debug("GitOps: empty repository")
-			return nil, retry.Continue
+		// If the commit to synchronize is the same as the previously synchronized commit, we don't need to do anything
+		if commitToSynchronize == req.CommitId {
+			log.Debug("GitOps: no updates")
+
+			if !synchronizingCommit { // the actual ref may change, and we need to poll the given ref.
+				return nil, retry.Continue
+			} else { // we are synchronizing a commit and don't need to poll again, because it doesn't change.
+				log.Debug("blocking GetObjectsToSynchronize because the request wants to synchronize a commit which already has been synced")
+				<-ctx.Done()
+				return nil, retry.Done
+			}
 		}
-		if !info.UpdateAvailable {
-			log.Debug("GitOps: no updates", logz.CommitId(req.CommitId))
-			return nil, retry.Continue
-		}
-		// re-define log to avoid accidentally using the old one
-		log := log.With(logz.CommitId(info.CommitId)) // nolint:govet
+
 		log.Info("GitOps: new commit")
-		err = s.sendObjectsToSynchronizeHeader(server, info.CommitId, projectInfo.ProjectId)
+		err = s.sendObjectsToSynchronizeHeader(server, commitToSynchronize, projectInfo.ProjectId)
 		if err != nil {
 			return rpcApi.HandleIoError(log, "GitOps: failed to send header for objects to synchronize", err), retry.Done
 		}
-		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, info.CommitId) // nolint: contextcheck
+		filesVisited, filesSent, err := s.sendObjectsToSynchronizeBody(log, rpcApi, req, server, agentInfo.Id, projectInfo, commitToSynchronize) // nolint: contextcheck
 		if err != nil {
 			return err, retry.Done // no wrap
 		}
@@ -118,12 +140,12 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	})
 }
 
-func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId string) (*gitaly.PollInfo, error) {
+func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId string, fullRefName string) (*gitaly.PollInfo, error) {
 	p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
 		return nil, err
 	}
-	return p.Poll(ctx, projectInfo.Repository, commitId, projectInfo.DefaultBranch)
+	return p.Poll(ctx, projectInfo.Repository, commitId, fullRefName)
 }
 
 func (s *server) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchronizeRequest) error {

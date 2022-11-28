@@ -18,6 +18,7 @@
     - [CiAccessProjectCF](#gitlab-agent-agentcfg-CiAccessProjectCF)
     - [ConfigurationFile](#gitlab-agent-agentcfg-ConfigurationFile)
     - [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF)
+    - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
     - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
     - [LoggingCF](#gitlab-agent-agentcfg-LoggingCF)
     - [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF)
@@ -92,6 +93,7 @@ additional config for kas.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | Project id. e.g. gitlab-org/cluster-integration/gitlab-agent |
 | path | [string](#string) |  | Path in the repository. e.g. charts/my-chart |
+| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the GitOps repository to fetch manifests from. |
 
 
 
@@ -268,6 +270,23 @@ ConfigurationFile represents user-facing configuration file.
 
 
 
+<a name="gitlab-agent-agentcfg-GitRefCF"></a>
+
+### GitRefCF
+GitRef in the GitOps repository to fetch manifests from.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tag | [string](#string) |  | A Git tag name, without `refs/tags/` |
+| branch | [string](#string) |  | A Git branch name, without `refs/heads/` |
+| commit | [string](#string) |  | A Git commit SHA |
+
+
+
+
+
+
 <a name="gitlab-agent-agentcfg-GitopsCF"></a>
 
 ### GitopsCF
@@ -317,6 +336,7 @@ Project with Kubernetes object manifests.
 | prune_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Prune timeout defines whether we should wait for all resources to be fully deleted after pruning, and if so, how long we should wait. |
 | prune_propagation_policy | [string](#string) |  | Prune propagation policy defines the deletion propagation policy that should be used for pruning. https://github.com/kubernetes/apimachinery/blob/44113beed5d39f1b261a12ec398a356e02358307/pkg/apis/meta/v1/types.go#L456-L470 |
 | inventory_policy | [string](#string) |  | InventoryPolicy defines if an inventory object can take over objects that belong to another inventory object or don&#39;t belong to any inventory object. This is done by determining if the apply/prune operation can go through for a resource based on the comparison the inventory-id value in the package and the owning-inventory annotation in the live object. https://github.com/kubernetes-sigs/cli-utils/blob/d6968048dcd80b1c7b55d9e4f31fc25f71c9b490/pkg/inventory/policy.go#L12-L66 |
+| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the GitOps repository to fetch manifests from. |
 
 
 

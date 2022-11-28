@@ -252,7 +252,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -300,7 +300,7 @@ func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, projInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				return &gitaly.PollInfo{
 					EmptyRepository: true,
@@ -310,6 +310,89 @@ func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		CommitId:  revision,
+	}, server)
+	require.NoError(t, err)
+}
+
+func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
+	s.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
+
+	objs := objectsYAML(t)
+	projInfo := projectInfo()
+	gomock.InOrder(
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+					Header: &rpc.ObjectsToSynchronizeResponse_Header{
+						CommitId:  manifestRevision,
+						ProjectId: projInfo.ProjectId,
+					},
+				},
+			})),
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
+						Source: "manifest.yaml",
+						Data:   objs[:1],
+					},
+				},
+			})),
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
+						Source: "manifest.yaml",
+						Data:   objs[1:],
+					},
+				},
+			})),
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
+				},
+			})),
+	)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
+	p.EXPECT().Poll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			Return(pf, nil),
+		pf.EXPECT().
+			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(manifestRevision), []byte("."), true, gomock.Any()).
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
+				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
+					Path:      []byte("manifest.yaml"),
+					Type:      gitalypb.TreeEntry_BLOB,
+					CommitOid: manifestRevision,
+				})
+				require.NoError(t, err)
+				assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
+				assert.True(t, download)
+
+				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objs[:1])
+				require.NoError(t, err)
+				assert.False(t, done)
+				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objs[1:])
+				require.NoError(t, err)
+				assert.False(t, done)
+			}),
+	)
+	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		CommitId:  revision,
+		Ref: &agentcfg.GitRefCF{
+			Ref: &agentcfg.GitRefCF_Commit{Commit: manifestRevision},
+		},
+		Paths: []*agentcfg.PathCF{
+			{
+				Glob: defaultGitOpsManifestPathGlob,
+			},
+		},
 	}, server)
 	require.NoError(t, err)
 }
@@ -353,7 +436,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
 			Return(&gitaly.PollInfo{
 				CommitId:        revision,
 				UpdateAvailable: true,
@@ -398,7 +481,7 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, projInfo.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				return &gitaly.PollInfo{
 					CommitId:        revision,
@@ -467,7 +550,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &projInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", projInfo.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
 					Return(&gitaly.PollInfo{
 						CommitId:        revision,
 						UpdateAvailable: true,

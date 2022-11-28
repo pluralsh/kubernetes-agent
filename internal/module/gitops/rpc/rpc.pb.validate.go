@@ -68,6 +68,35 @@ func (m *ObjectsToSynchronizeRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	if all {
+		switch v := interface{}(m.GetRef()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ObjectsToSynchronizeRequestValidationError{
+					field:  "Ref",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ObjectsToSynchronizeRequestValidationError{
+					field:  "Ref",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRef()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ObjectsToSynchronizeRequestValidationError{
+				field:  "Ref",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	// no validation rules for CommitId
 
 	if len(m.GetPaths()) < 1 {

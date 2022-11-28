@@ -10,7 +10,13 @@ import (
 )
 
 const (
-	DefaultBranch = ""
+	DefaultBranch = "HEAD"
+	// Same as Gitaly,
+	//see https://gitlab.com/gitlab-org/gitaly/blob/2cb0d9f0604daabe63edc2c8271e65ef36ff6483/internal/git/repository.go#L16-16
+	DefaultRef = "refs/heads/main"
+	// Same as Gitaly,
+	// see https://gitlab.com/gitlab-org/gitaly/blob/2cb0d9f0604daabe63edc2c8271e65ef36ff6483/internal/git/repository.go#L21-21
+	LegacyDefaultRef = "refs/heads/master"
 )
 
 // PollerInterface does the following:
@@ -39,47 +45,50 @@ type PollInfo struct {
 	EmptyRepository bool
 }
 
-func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
-	refNameTag := "refs/tags/" + refName
-	refNameBranch := "refs/heads/" + refName
-	isEmpty := true
-	var wanted, head, main, master *stats.Reference
+// Poll searched the given repository for the given fullRefName and returns a PollInfo containing a resolved Commit Object ID.
+// Valid fullRefNames are:
+// * `refs/heads/*` => for branches
+// * `refs/tags/*` => for tags
+// * `HEAD` => for the repository's default branch
+func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, fullRefName string) (*PollInfo, error) {
+	noRefs := true
+	var wanted, defaultRef, legacyDefaultRef *stats.Reference
 	err := p.fetchRefs(ctx, repo, func(ref stats.Reference) bool {
-		isEmpty = false
+		noRefs = false
+		// We implement a similar logic here to what Gitaly does in their `GetDefaultBranch` logic
+		// to find the default branch.
+		// see https://gitlab.com/gitlab-org/gitaly/blob/2cb0d9f0604daabe63edc2c8271e65ef36ff6483/internal/git/localrepo/refs.go#L345-345
 		switch string(ref.Name) {
-		case refNameTag, refNameBranch:
+		case fullRefName:
 			wanted = cloneReference(ref)
 			return true
-		case "HEAD":
-			head = cloneReference(ref)
-			return refName == DefaultBranch // done if wanted the default branch
-		case "refs/heads/main":
-			main = cloneReference(ref)
-		case "refs/heads/master":
-			master = cloneReference(ref)
+		case DefaultRef:
+			defaultRef = cloneReference(ref)
+		case LegacyDefaultRef:
+			legacyDefaultRef = cloneReference(ref)
 		}
 		return false
 	})
 	if err != nil {
 		return nil, err // don't wrap
 	}
-	if isEmpty {
+	if noRefs {
 		return &PollInfo{
 			EmptyRepository: true,
 		}, nil
 	}
+
 	if wanted == nil { // not found
-		if refName != DefaultBranch { // was looking for something specific, but didn't find it
-			return nil, NewNotFoundError("InfoRefsUploadPack", refName)
+		if fullRefName != DefaultBranch { // was looking for arbitrary branch, but didn't find it.
+			return nil, NewNotFoundError("InfoRefsUploadPack", fullRefName)
 		}
-		// was looking for the default branch
+
+		// we have been searching for the default branch
 		switch {
-		case head != nil:
-			wanted = head
-		case main != nil:
-			wanted = main
-		case master != nil:
-			wanted = master
+		case defaultRef != nil:
+			wanted = defaultRef
+		case legacyDefaultRef != nil:
+			wanted = legacyDefaultRef
 		default:
 			return nil, NewNotFoundError("InfoRefsUploadPack", "default branch")
 		}
