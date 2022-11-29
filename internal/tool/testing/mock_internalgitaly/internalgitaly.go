@@ -275,6 +275,20 @@ func (mr *MockPathFetcherInterfaceMockRecorder) Visit(arg0, arg1, arg2, arg3, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Visit", reflect.TypeOf((*MockPathFetcherInterface)(nil).Visit), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
+// VisitSingleFile mocks base method.
+func (m *MockPathFetcherInterface) VisitSingleFile(arg0 context.Context, arg1 *gitalypb.Repository, arg2, arg3 []byte, arg4 gitaly.FetchVisitor) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VisitSingleFile", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VisitSingleFile indicates an expected call of VisitSingleFile.
+func (mr *MockPathFetcherInterfaceMockRecorder) VisitSingleFile(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitSingleFile", reflect.TypeOf((*MockPathFetcherInterface)(nil).VisitSingleFile), arg0, arg1, arg2, arg3, arg4)
+}
+
 // MockPollerInterface is a mock of PollerInterface interface.
 type MockPollerInterface struct {
 	ctrl     *gomock.Controller
