@@ -202,7 +202,7 @@ func (s *server) sendObjectsToSynchronizeBody(
 	var delegate gitaly.FetchVisitor = v
 	delegate = gitaly.NewChunkingFetchVisitor(delegate, gitOpsManifestMaxChunkSize)
 	delegate = gitaly.NewTotalSizeLimitingFetchVisitor(delegate, s.maxTotalManifestFileSize)
-	delegate = gitaly.NewDuplicateFileDetectingVisitor(delegate)
+	delegate = gitaly.NewDuplicateFileDetectingVisitor(delegate, gitaly.DupError)
 	delegate = gitaly.NewHiddenDirFilteringFetchVisitor(delegate)
 	vGlob := gitaly.NewGlobFilteringFetchVisitor(delegate, "")
 	vCounting := gitaly.NewEntryCountLimitingFetchVisitor(vGlob, s.maxNumberOfFiles)

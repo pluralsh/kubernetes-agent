@@ -309,7 +309,7 @@ func TestGlobFilteringFetchVisitor(t *testing.T) {
 func TestDuplicatePathDetectingVisitor(t *testing.T) {
 	entry, fv := delegate(t)
 
-	v := gitaly.NewDuplicateFileDetectingVisitor(fv)
+	v := gitaly.NewDuplicateFileDetectingVisitor(fv, gitaly.DupError)
 	download, maxSize, err := v.Entry(entry)
 	require.NoError(t, err)
 	assert.EqualValues(t, 100, maxSize)
@@ -317,6 +317,12 @@ func TestDuplicatePathDetectingVisitor(t *testing.T) {
 
 	_, _, err = v.Entry(entry)
 	require.EqualError(t, err, "path visited more than once: manifest.yaml")
+
+	v.DupBehavior = gitaly.DupSkip
+
+	download, _, err = v.Entry(entry)
+	require.NoError(t, err)
+	assert.False(t, download)
 }
 
 func delegate(t *testing.T) (*gitalypb.TreeEntry, *mock_internalgitaly.MockFetchVisitor) {

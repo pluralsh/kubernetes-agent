@@ -11,6 +11,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type DupBehavior byte
+
+const (
+	// DupError means "return error on duplicate file".
+	DupError DupBehavior = 1
+	// DupSkip means "skip duplicate files".
+	DupSkip DupBehavior = 2
+)
+
 type ChunkingFetchVisitor struct {
 	FetchVisitor
 	maxChunkSize int
@@ -174,21 +183,30 @@ func (e *DuplicatePathFoundError) Error() string {
 
 type DuplicatePathDetectingVisitor struct {
 	FetchVisitor
-	visited map[string]struct{}
+	visited     map[string]struct{}
+	DupBehavior DupBehavior
 }
 
-func NewDuplicateFileDetectingVisitor(delegate FetchVisitor) DuplicatePathDetectingVisitor {
+func NewDuplicateFileDetectingVisitor(delegate FetchVisitor, dupBehavior DupBehavior) DuplicatePathDetectingVisitor {
 	return DuplicatePathDetectingVisitor{
 		FetchVisitor: delegate,
 		visited:      map[string]struct{}{},
+		DupBehavior:  dupBehavior,
 	}
 }
 
 func (v DuplicatePathDetectingVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
 	p := string(entry.Path)
 	if _, visited := v.visited[p]; visited {
-		return false, 0, &DuplicatePathFoundError{
-			Path: p,
+		switch v.DupBehavior {
+		case DupError:
+			return false, 0, &DuplicatePathFoundError{
+				Path: p,
+			}
+		case DupSkip:
+			return false, 0, nil
+		default:
+			panic(fmt.Errorf("unknown dup behavior: %d", v.DupBehavior))
 		}
 	}
 	v.visited[p] = struct{}{}
