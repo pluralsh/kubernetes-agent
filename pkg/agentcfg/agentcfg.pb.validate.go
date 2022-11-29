@@ -1965,6 +1965,22 @@ func (m *CiAccessProjectCF) validate(all bool) error {
 		}
 	}
 
+	for idx, item := range m.GetEnvironments() {
+		_, _ = idx, item
+
+		if len(item) < 1 {
+			err := CiAccessProjectCFValidationError{
+				field:  fmt.Sprintf("Environments[%v]", idx),
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
 	if len(errors) > 0 {
 		return CiAccessProjectCFMultiError(errors)
 	}
@@ -2107,6 +2123,22 @@ func (m *CiAccessGroupCF) validate(all bool) error {
 				cause:  err,
 			}
 		}
+	}
+
+	for idx, item := range m.GetEnvironments() {
+		_, _ = idx, item
+
+		if len(item) < 1 {
+			err := CiAccessGroupCFValidationError{
+				field:  fmt.Sprintf("Environments[%v]", idx),
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	}
 
 	if len(errors) > 0 {

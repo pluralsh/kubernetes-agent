@@ -20,6 +20,34 @@ func TestValidation_Valid(t *testing.T) {
 			},
 		},
 		{
+			Name: "empty environments CiAccessGroupCF.Environments",
+			Valid: &CiAccessGroupCF{
+				Id:           "abc",
+				Environments: []string{},
+			},
+		},
+		{
+			Name: "multiple environments CiAccessGroupCF.Environments",
+			Valid: &CiAccessGroupCF{
+				Id:           "abc",
+				Environments: []string{"a", "b"},
+			},
+		},
+		{
+			Name: "empty environments CiAccessProjectCF.Environments",
+			Valid: &CiAccessProjectCF{
+				Id:           "abc",
+				Environments: []string{},
+			},
+		},
+		{
+			Name: "multiple environments CiAccessProjectCF.Environments",
+			Valid: &CiAccessProjectCF{
+				Id:           "abc",
+				Environments: []string{"a", "b"},
+			},
+		},
+		{
 			Name:  "empty CiAccessAsAgentCF",
 			Valid: &CiAccessAsAgentCF{},
 		},
@@ -62,6 +90,20 @@ func TestValidation_Invalid(t *testing.T) {
 			ErrString: "invalid CiAccessGroupCF.Id: value length must be at least 1 bytes",
 			Invalid: &CiAccessGroupCF{
 				Id: "", // empty id is not ok
+			},
+		},
+		{
+			ErrString: "invalid CiAccessGroupCF.Environments[0]: value length must be at least 1 bytes",
+			Invalid: &CiAccessGroupCF{
+				Id:           "abc",
+				Environments: []string{""},
+			},
+		},
+		{
+			ErrString: "invalid CiAccessProjectCF.Environments[0]: value length must be at least 1 bytes",
+			Invalid: &CiAccessProjectCF{
+				Id:           "abc",
+				Environments: []string{""},
 			},
 		},
 		{

@@ -212,6 +212,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | id | [string](#string) |  |  |
 | default_namespace | [string](#string) |  |  |
 | access_as | [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF) |  |  |
+| environments | [string](#string) | repeated |  |
 
 
 
@@ -229,6 +230,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | id | [string](#string) |  |  |
 | default_namespace | [string](#string) |  |  |
 | access_as | [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF) |  |  |
+| environments | [string](#string) | repeated |  |
 
 
 
