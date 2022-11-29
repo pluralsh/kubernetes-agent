@@ -149,12 +149,14 @@ message CiAccessProjectCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2 [json_name = "default_namespace"];
   CiAccessAsCF access_as = 3  [json_name = "access_as"];
+  repeated string environments = 4 [json_name = "environments", (validate.rules).repeated.items.string.min_bytes = 1];
 }
 
 message CiAccessGroupCF {
   string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   string default_namespace = 2 [json_name = "default_namespace"];
   CiAccessAsCF access_as = 3  [json_name = "access_as"];
+  repeated string environments = 4 [json_name = "environments", (validate.rules).repeated.items.string.min_bytes = 1];
 }
 
 message CiAccessAsCF {
