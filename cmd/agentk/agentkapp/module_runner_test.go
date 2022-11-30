@@ -23,13 +23,17 @@ const (
 	revision2 = "rev12341234_2"
 )
 
+var (
+	projectId = "some/project"
+)
+
 func TestConfigurationIsApplied(t *testing.T) {
 	cfg1 := &agentcfg.AgentConfiguration{}
 	cfg2 := &agentcfg.AgentConfiguration{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: "bla",
+					Id: &projectId,
 				},
 			},
 		},
@@ -91,7 +95,10 @@ func TestConfigurationIsSquashed(t *testing.T) {
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: "bla",
+					Id: &projectId,
+				},
+				{
+					DefaultNamespace: "abc",
 				},
 			},
 		},

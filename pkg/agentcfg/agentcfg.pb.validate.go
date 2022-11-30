@@ -166,17 +166,6 @@ func (m *ManifestProjectCF) validate(all bool) error {
 
 	var errors []error
 
-	if len(m.GetId()) < 1 {
-		err := ManifestProjectCFValidationError{
-			field:  "Id",
-			reason: "value length must be at least 1 bytes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	// no validation rules for DefaultNamespace
 
 	for idx, item := range m.GetPaths() {
@@ -348,6 +337,21 @@ func (m *ManifestProjectCF) validate(all bool) error {
 		// no validation rules for Prune
 	default:
 		_ = v // ensures v is used
+	}
+
+	if m.Id != nil {
+
+		if len(m.GetId()) < 1 {
+			err := ManifestProjectCFValidationError{
+				field:  "Id",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	}
 
 	if len(errors) > 0 {
@@ -3763,6 +3767,8 @@ func (m *AgentConfiguration) validate(all bool) error {
 			}
 		}
 	}
+
+	// no validation rules for ProjectPath
 
 	if len(errors) > 0 {
 		return AgentConfigurationMultiError(errors)

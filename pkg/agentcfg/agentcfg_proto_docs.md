@@ -58,6 +58,7 @@ additional config for kas.
 | project_id | [int64](#int64) |  | Id of the configuration project. |
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
 | starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
+| project_path | [string](#string) |  | Path of the configuration project |
 
 
 
@@ -329,7 +330,7 @@ Project with Kubernetes object manifests.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  | Project id. e.g. gitlab-org/cluster-integration/gitlab-agent |
+| id | [string](#string) | optional | Project id. e.g. gitlab-org/cluster-integration/gitlab-agent |
 | default_namespace | [string](#string) |  | Namespace to use if not set explicitly in object manifest. |
 | paths | [PathCF](#gitlab-agent-agentcfg-PathCF) | repeated | A list of paths inside of the project to scan for .yaml/.yml/.json manifest files. |
 | reconcile_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Reconcile timeout defines whether the applier should wait until all applied resources have been reconciled, and if so, how long to wait. |

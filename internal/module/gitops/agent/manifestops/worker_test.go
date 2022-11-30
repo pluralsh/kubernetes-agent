@@ -33,12 +33,13 @@ import (
 )
 
 const (
-	projectId        = "bla123/bla-1"
 	revision         = "rev12341234"
 	defaultNamespace = "testing1"
 )
 
 var (
+	projectId = "bla123/bla-1"
+
 	_ modagent.LeaderModule                               = &module{}
 	_ modagent.Factory                                    = &Factory{}
 	_ modagent.Worker                                     = &worker{}
@@ -319,7 +320,7 @@ func setupWorker(t *testing.T) (*worker, *MockApplier, *mock_rpc.MockObjectsToSy
 	w := &worker{
 		log: zaptest.NewLogger(t),
 		project: &agentcfg.ManifestProjectCF{
-			Id:               projectId,
+			Id:               &projectId,
 			DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
 			Paths: []*agentcfg.PathCF{
 				{

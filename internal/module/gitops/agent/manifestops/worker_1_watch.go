@@ -8,7 +8,7 @@ import (
 
 func (w *worker) watch(ctx context.Context, desiredState chan<- rpc.ObjectsToSynchronizeData) {
 	req := &rpc.ObjectsToSynchronizeRequest{
-		ProjectId: w.project.Id,
+		ProjectId: *w.project.Id,
 		Ref:       w.project.Ref,
 		Paths:     w.project.Paths,
 	}

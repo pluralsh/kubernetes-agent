@@ -17,11 +17,12 @@ import (
 )
 
 func TestPostAgentConfiguration(t *testing.T) {
+	id := "bla"
 	config := &agentcfg.ConfigurationFile{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: "bla",
+					Id: &id,
 				},
 			},
 		},

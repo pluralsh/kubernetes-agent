@@ -35,7 +35,6 @@ import (
 )
 
 const (
-	projectId    = "some/project"
 	revision     = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 	branchPrefix = "refs/heads/"
 
@@ -43,6 +42,8 @@ const (
 )
 
 var (
+	projectId = "some/project"
+
 	_ modserver.Module             = (*module)(nil)
 	_ modserver.Factory            = (*Factory)(nil)
 	_ modserver.ApplyDefaults      = ApplyDefaults
@@ -139,12 +140,13 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 				Gitops: &agentcfg.GitopsCF{
 					ManifestProjects: []*agentcfg.ManifestProjectCF{
 						{
-							Id: projectId,
+							Id: &projectId,
 						},
 					},
 				},
-				AgentId:   agentInfo.Id,
-				ProjectId: agentInfo.ProjectId,
+				AgentId:     agentInfo.Id,
+				ProjectId:   agentInfo.ProjectId,
+				ProjectPath: agentInfo.Repository.GlProjectPath,
 			},
 			CommitId: revision,
 		}))
@@ -200,8 +202,9 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &rpc.ConfigurationResponse{
 			Configuration: &agentcfg.AgentConfiguration{
-				AgentId:   agentInfo.Id,
-				ProjectId: agentInfo.ProjectId,
+				AgentId:     agentInfo.Id,
+				ProjectId:   agentInfo.ProjectId,
+				ProjectPath: agentInfo.Repository.GlProjectPath,
 			},
 			CommitId: revision,
 		}))
@@ -390,7 +393,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: projectId,
+					Id: &projectId,
 				},
 			},
 		},
