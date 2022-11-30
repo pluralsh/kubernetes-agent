@@ -22,7 +22,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			ws := make([]WorkSource[proto.Message], 0, len(projects))
 			for _, project := range projects {
 				ws = append(ws, &mockWorkSource{
-					id:     project.Id,
+					id:     *project.Id,
 					config: project,
 				})
 			}
@@ -83,7 +83,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				ws := make([]WorkSource[proto.Message], 0, len(projects))
 				for _, project := range projects {
 					ws = append(ws, &mockWorkSource{
-						id:     project.Id,
+						id:     *project.Id,
 						config: project,
 					})
 				}
@@ -127,14 +127,14 @@ func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
 	projects := make(map[string]*agentcfg.ManifestProjectCF)
 	for _, config := range cfgs {
 		for _, proj := range config.GetGitops().GetManifestProjects() {
-			old, ok := projects[proj.Id]
+			old, ok := projects[*proj.Id]
 			if ok {
 				if !proto.Equal(old, proj) {
-					projects[proj.Id] = proj
+					projects[*proj.Id] = proj
 					num++
 				}
 			} else {
-				projects[proj.Id] = proj
+				projects[*proj.Id] = proj
 				num++
 			}
 		}
@@ -143,11 +143,9 @@ func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
 }
 
 func testConfigurations() []*agentcfg.AgentConfiguration {
-	const (
-		project1 = "bla1/project1"
-		project2 = "bla1/project2"
-		project3 = "bla3/project3"
-	)
+	project1 := "bla1/project1"
+	project2 := "bla1/project2"
+	project3 := "bla3/project3"
 	return []*agentcfg.AgentConfiguration{
 		{
 			AgentId: testhelpers.AgentId,
@@ -156,7 +154,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id: project1,
+						Id: &project1,
 					},
 				},
 			},
@@ -166,11 +164,11 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id:               project1,
+						Id:               &project1,
 						DefaultNamespace: "abc", // update config
 					},
 					{
-						Id: project2,
+						Id: &project2,
 					},
 				},
 			},
@@ -180,10 +178,10 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id: project3,
+						Id: &project3,
 					},
 					{
-						Id:               project2,
+						Id:               &project2,
 						DefaultNamespace: "abc", // update config
 					},
 				},

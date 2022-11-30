@@ -12,6 +12,7 @@ import (
 )
 
 func TestStructToJSONAndBack(t *testing.T) {
+	id := "gitlab-org/cluster-integration/gitlab-agent"
 	testCases := []*ConfigurationFile{
 		{}, // empty config
 		{
@@ -26,7 +27,7 @@ func TestStructToJSONAndBack(t *testing.T) {
 			Gitops: &GitopsCF{
 				ManifestProjects: []*ManifestProjectCF{
 					{
-						Id: "gitlab-org/cluster-integration/gitlab-agent",
+						Id: &id,
 					},
 				},
 			},

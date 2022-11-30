@@ -148,7 +148,7 @@ func (f *workerFactory) mapInventoryPolicy(policy string) inventory.Policy {
 type manifestSource agentcfg.ManifestProjectCF
 
 func (s *manifestSource) ID() string {
-	return s.Id
+	return *s.Id
 }
 
 func (s *manifestSource) Configuration() *agentcfg.ManifestProjectCF {

@@ -50,9 +50,13 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	prototool.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
+		// If the config doesn't specify a project, use the agent's configuration project.
+		if project.Id == nil {
+			project.Id = &config.ProjectPath
+		}
 		err := applyDefaultsToManifestProject(project)
 		if err != nil {
-			return fmt.Errorf("project %s: %w", project.Id, err)
+			return fmt.Errorf("project %s: %w", *project.Id, err)
 		}
 	}
 	return nil

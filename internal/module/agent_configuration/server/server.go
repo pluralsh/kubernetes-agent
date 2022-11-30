@@ -120,6 +120,7 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			Observability: configFile.Observability,
 			AgentId:       agentInfo.Id,
 			ProjectId:     agentInfo.ProjectId,
+			ProjectPath:   agentInfo.Repository.GlProjectPath,
 			CiAccess:      configFile.CiAccess,
 			Starboard:     s.fetchContainerScanningConfiguration(configFile),
 		},

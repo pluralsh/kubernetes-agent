@@ -27,7 +27,7 @@ message PathCF {
 message ManifestProjectCF {
   // Project id.
   // e.g. gitlab-org/cluster-integration/gitlab-agent
-  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+  optional string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
   reserved 2, 3;
   // Namespace to use if not set explicitly in object manifest.
   string default_namespace = 4 [json_name = "default_namespace"];
@@ -235,4 +235,6 @@ message AgentConfiguration {
   int64 project_id = 5;
   CiAccessCF ci_access = 6;
   StarboardCF starboard = 7;
+  // Path of the configuration project
+  string project_path = 8;
 }

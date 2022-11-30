@@ -23,6 +23,8 @@ const (
 )
 
 var (
+	projectId = "some/project"
+
 	_ rpc.ConfigurationWatcherInterface = &rpc.ConfigurationWatcher{}
 )
 
@@ -36,7 +38,7 @@ func TestConfigurationWatcher(t *testing.T) {
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: "bla",
+					Id: &projectId,
 				},
 			},
 		},
@@ -140,7 +142,7 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
-					Id: "bla",
+					Id: &projectId,
 				},
 			},
 		},

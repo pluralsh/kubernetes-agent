@@ -68,28 +68,33 @@ func TestValidation_Valid(t *testing.T) {
 				Groups:   []string{"g"},
 			},
 		},
+		{
+			Name:  "ManifestProjectCF with no Id",
+			Valid: &ManifestProjectCF{},
+		},
 	}
 	testhelpers.AssertValid(t, tests)
 }
 
 func TestValidation_Invalid(t *testing.T) {
+	emptyId := ""
 	tests := []testhelpers.InvalidTestcase{
 		{
 			ErrString: "invalid ManifestProjectCF.Id: value length must be at least 1 bytes",
 			Invalid: &ManifestProjectCF{
-				Id: "", // empty id is not ok
+				Id: &emptyId, // empty id is not ok
 			},
 		},
 		{
 			ErrString: "invalid PathCF.Glob: value length must be at least 1 bytes",
 			Invalid: &PathCF{
-				Glob: "",
+				Glob: emptyId,
 			},
 		},
 		{
 			ErrString: "invalid CiAccessGroupCF.Id: value length must be at least 1 bytes",
 			Invalid: &CiAccessGroupCF{
-				Id: "", // empty id is not ok
+				Id: emptyId, // empty id is not ok
 			},
 		},
 		{
