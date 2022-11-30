@@ -385,8 +385,8 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		CommitId:  revision,
-		Ref: &agentcfg.GitRefCF{
-			Ref: &agentcfg.GitRefCF_Commit{Commit: manifestRevision},
+		Ref: &rpc.GitRefCF{
+			Ref: &rpc.GitRefCF_Commit{Commit: manifestRevision},
 		},
 		Paths: []*agentcfg.PathCF{
 			{

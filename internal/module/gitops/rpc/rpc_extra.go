@@ -1,10 +1,27 @@
-package agentcfg
+package rpc
 
 import (
 	"fmt"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 )
+
+func NewRpcRef(configRef *agentcfg.GitRefCF) *GitRefCF {
+	switch ref := configRef.GetRef().(type) {
+	case *agentcfg.GitRefCF_Tag:
+		return &GitRefCF{Ref: &GitRefCF_Tag{Tag: ref.Tag}}
+	case *agentcfg.GitRefCF_Branch:
+		return &GitRefCF{Ref: &GitRefCF_Branch{Branch: ref.Branch}}
+	case *agentcfg.GitRefCF_Commit:
+		return &GitRefCF{Ref: &GitRefCF_Commit{Commit: ref.Commit}}
+	case nil:
+		return nil
+	default:
+		// Nah, this doesn't happen - UNLESS you forgot to add a `case` when changing the `agentcfg.GitRefCF` proto message ;)
+		panic(fmt.Sprintf("unexpected ref to resolve: %T", ref))
+	}
+}
 
 // GetResolvedRef resolved the `Ref` into a full unambiguous Git reference.
 func (x *GitRefCF) GetResolvedRef() string {
