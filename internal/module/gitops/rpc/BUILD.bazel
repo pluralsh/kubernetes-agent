@@ -18,11 +18,13 @@ go_library(
         "obj_to_sync_watcher.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
+        "rpc_extra.go",
         "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/gitaly",
         "//internal/tool/grpctool",
         "//internal/tool/grpctool/automata",
         "//internal/tool/logz",
@@ -41,15 +43,19 @@ go_library(
 
 go_custom_test(
     name = "rpc_test",
-    srcs = ["obj_to_sync_watcher_test.go"],
+    srcs = [
+        "obj_to_sync_watcher_test.go",
+        "rpc_extra_test.go",
+    ],
+    embed = [":rpc"],
     deps = [
-        ":rpc",
         "//internal/tool/retry",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//assert",
         "@org_uber_go_zap//zaptest",
     ],
 )

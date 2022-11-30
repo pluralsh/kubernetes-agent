@@ -276,7 +276,7 @@ ConfigurationFile represents user-facing configuration file.
 <a name="gitlab-agent-agentcfg-GitRefCF"></a>
 
 ### GitRefCF
-GitRef in the GitOps repository to fetch manifests from.
+GitRef in the repository to fetch manifests from.
 
 
 | Field | Type | Label | Description |

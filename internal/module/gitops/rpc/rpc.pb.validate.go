@@ -35,6 +35,193 @@ var (
 	_ = sort.Sort
 )
 
+// Validate checks the field values on GitRefCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GitRefCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GitRefCF with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GitRefCFMultiError, or nil
+// if none found.
+func (m *GitRefCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GitRefCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	oneofRefPresent := false
+	switch v := m.Ref.(type) {
+	case *GitRefCF_Tag:
+		if v == nil {
+			err := GitRefCFValidationError{
+				field:  "Ref",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRefPresent = true
+
+		if len(m.GetTag()) < 1 {
+			err := GitRefCFValidationError{
+				field:  "Tag",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	case *GitRefCF_Branch:
+		if v == nil {
+			err := GitRefCFValidationError{
+				field:  "Ref",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRefPresent = true
+
+		if len(m.GetBranch()) < 1 {
+			err := GitRefCFValidationError{
+				field:  "Branch",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	case *GitRefCF_Commit:
+		if v == nil {
+			err := GitRefCFValidationError{
+				field:  "Ref",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofRefPresent = true
+
+		if len(m.GetCommit()) < 1 {
+			err := GitRefCFValidationError{
+				field:  "Commit",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	default:
+		_ = v // ensures v is used
+	}
+	if !oneofRefPresent {
+		err := GitRefCFValidationError{
+			field:  "Ref",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GitRefCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// GitRefCFMultiError is an error wrapping multiple validation errors returned
+// by GitRefCF.ValidateAll() if the designated constraints aren't met.
+type GitRefCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitRefCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitRefCFMultiError) AllErrors() []error { return m }
+
+// GitRefCFValidationError is the validation error returned by
+// GitRefCF.Validate if the designated constraints aren't met.
+type GitRefCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GitRefCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GitRefCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GitRefCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GitRefCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GitRefCFValidationError) ErrorName() string { return "GitRefCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GitRefCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGitRefCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GitRefCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GitRefCFValidationError{}
+
 // Validate checks the field values on ObjectsToSynchronizeRequest with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.

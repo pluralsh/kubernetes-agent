@@ -69,7 +69,7 @@ message ManifestProjectCF {
   GitRefCF ref = 12 [json_name = "ref"];
 }
 
-// GitRef in the GitOps repository to fetch manifests from.
+// GitRef in the repository to fetch manifests from.
 message GitRefCF {
   oneof ref {
     option (validate.required) = true;

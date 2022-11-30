@@ -18,12 +18,10 @@ go_library(
     srcs = [
         "agentcfg.pb.go",
         "agentcfg.pb.validate.go",
-        "agentcfg_extra.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/gitaly",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
@@ -36,7 +34,6 @@ go_library(
 go_custom_test(
     name = "agentcfg_test",
     srcs = [
-        "agentcfg_extra_test.go",
         "roundtrip_test.go",
         "validation_test.go",
     ],
