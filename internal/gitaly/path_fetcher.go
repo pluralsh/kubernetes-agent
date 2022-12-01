@@ -11,16 +11,19 @@ import (
 
 type PathFetcherInterface interface {
 	// Visit returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-	// Visit returns *Error when a error occurs.
+	// Visit returns *Error when an error occurs.
 	Visit(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor FetchVisitor) error
+	// VisitSingleFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+	// VisitSingleFile returns *Error when an error occurs.
+	VisitSingleFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, visitor FetchVisitor) error
 	// StreamFile streams the specified revision of the file.
 	// The passed visitor is never called if file was not found.
 	// StreamFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-	// StreamFile returns *Error when a error occurs.
+	// StreamFile returns *Error when an error occurs.
 	StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error
 	// FetchFile fetches the specified revision of a file.
 	// FetchFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-	// FetchFile returns *Error when a error occurs.
+	// FetchFile returns *Error when an error occurs.
 	FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error)
 }
 
@@ -49,19 +52,33 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 		Features: f.Features,
 	}
 	return v.Visit(ctx, repo, revision, repoPath, recursive, fetcherPathEntryVisitor(func(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
-		if entry.Type != gitalypb.TreeEntry_BLOB {
-			return false, nil
-		}
-		shouldFetch, maxSize, err := visitor.Entry(entry)
-		if err != nil || !shouldFetch {
-			return false, err
-		}
-		err = f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
-			return visitor.StreamChunk(entry.Path, data)
-		}))
-		visitor.EntryDone(entry, err)
-		return false, err
+		return f.visitEntry(ctx, repo, entry, visitor)
 	}))
+}
+
+func (f *PathFetcher) VisitSingleFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, visitor FetchVisitor) error {
+	entry := &gitalypb.TreeEntry{
+		Path:      repoPath,
+		Type:      gitalypb.TreeEntry_BLOB,
+		CommitOid: string(revision),
+	}
+	_, err := f.visitEntry(ctx, repo, entry, visitor)
+	return err
+}
+
+func (f *PathFetcher) visitEntry(ctx context.Context, repo *gitalypb.Repository, entry *gitalypb.TreeEntry, visitor FetchVisitor) (bool /* done? */, error) {
+	if entry.Type != gitalypb.TreeEntry_BLOB {
+		return false, nil
+	}
+	shouldFetch, maxSize, err := visitor.Entry(entry)
+	if err != nil || !shouldFetch {
+		return false, err
+	}
+	err = f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
+		return visitor.StreamChunk(entry.Path, data)
+	}))
+	visitor.EntryDone(entry, err)
+	return false, err
 }
 
 func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error {

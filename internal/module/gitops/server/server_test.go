@@ -27,7 +27,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 	"go.opentelemetry.io/otel/trace"
@@ -282,9 +281,11 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths: []*agentcfg.PathCF{
+		Paths: []*rpc.PathCF{
 			{
-				Glob: defaultGitOpsManifestPathGlob,
+				Path: &rpc.PathCF_Glob{
+					Glob: defaultGitOpsManifestPathGlob,
+				},
 			},
 		},
 	}, server)
@@ -388,9 +389,11 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 		Ref: &rpc.GitRefCF{
 			Ref: &rpc.GitRefCF_Commit{Commit: manifestRevision},
 		},
-		Paths: []*agentcfg.PathCF{
+		Paths: []*rpc.PathCF{
 			{
-				Glob: defaultGitOpsManifestPathGlob,
+				Path: &rpc.PathCF_Glob{
+					Glob: defaultGitOpsManifestPathGlob,
+				},
 			},
 		},
 	}, server)
@@ -463,9 +466,11 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 	)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths: []*agentcfg.PathCF{
+		Paths: []*rpc.PathCF{
 			{
-				Glob: "/path/*.yaml",
+				Path: &rpc.PathCF_Glob{
+					Glob: "/path/*.yaml",
+				},
 			},
 		},
 	}, server)
@@ -564,9 +569,11 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 			)
 			err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
-				Paths: []*agentcfg.PathCF{
+				Paths: []*rpc.PathCF{
 					{
-						Glob: defaultGitOpsManifestPathGlob,
+						Path: &rpc.PathCF_Glob{
+							Glob: defaultGitOpsManifestPathGlob,
+						},
 					},
 				},
 			}, server)

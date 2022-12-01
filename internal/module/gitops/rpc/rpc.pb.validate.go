@@ -222,6 +222,168 @@ var _ interface {
 	ErrorName() string
 } = GitRefCFValidationError{}
 
+// Validate checks the field values on PathCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *PathCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on PathCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in PathCFMultiError, or nil if none found.
+func (m *PathCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *PathCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	oneofPathPresent := false
+	switch v := m.Path.(type) {
+	case *PathCF_Glob:
+		if v == nil {
+			err := PathCFValidationError{
+				field:  "Path",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofPathPresent = true
+
+		if len(m.GetGlob()) < 1 {
+			err := PathCFValidationError{
+				field:  "Glob",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	case *PathCF_File:
+		if v == nil {
+			err := PathCFValidationError{
+				field:  "Path",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofPathPresent = true
+
+		if len(m.GetFile()) < 1 {
+			err := PathCFValidationError{
+				field:  "File",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	default:
+		_ = v // ensures v is used
+	}
+	if !oneofPathPresent {
+		err := PathCFValidationError{
+			field:  "Path",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return PathCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// PathCFMultiError is an error wrapping multiple validation errors returned by
+// PathCF.ValidateAll() if the designated constraints aren't met.
+type PathCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m PathCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m PathCFMultiError) AllErrors() []error { return m }
+
+// PathCFValidationError is the validation error returned by PathCF.Validate if
+// the designated constraints aren't met.
+type PathCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e PathCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e PathCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e PathCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e PathCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e PathCFValidationError) ErrorName() string { return "PathCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e PathCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sPathCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = PathCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = PathCFValidationError{}
+
 // Validate checks the field values on ObjectsToSynchronizeRequest with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.

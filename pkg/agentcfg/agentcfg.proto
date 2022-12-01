@@ -110,11 +110,22 @@ message ChartCF {
   optional int32 max_history = 5 [json_name = "max_history", (validate.rules).int32.gt = 0];
 }
 
+message ChartValuesFileCF {
+  // Project id. Can only be omitted if chart is coming from a GitLab project. In that case file is fetched from
+  // that project.
+  // e.g. gitlab-org/cluster-integration/gitlab-agent
+  optional string project_id = 1 [json_name = "project_id", (validate.rules).string.min_bytes = 1];
+  // Ref in the repository to fetch manifests from.
+  GitRefCF ref = 2 [json_name = "ref"];
+  string file = 3 [json_name = "file", (validate.rules).string.min_bytes = 1];
+}
+
 message ChartValuesCF {
-  oneof as {
+  oneof from {
     option (validate.required) = true;
 
     google.protobuf.Struct inline = 1 [json_name = "inline", (validate.rules).message.required = true];
+    ChartValuesFileCF file = 2 [json_name = "file", (validate.rules).message.required = true];
   }
 }
 

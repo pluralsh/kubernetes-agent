@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -202,32 +203,54 @@ func (s *server) sendObjectsToSynchronizeBody(
 	var delegate gitaly.FetchVisitor = v
 	delegate = gitaly.NewChunkingFetchVisitor(delegate, gitOpsManifestMaxChunkSize)
 	delegate = gitaly.NewTotalSizeLimitingFetchVisitor(delegate, s.maxTotalManifestFileSize)
-	delegate = gitaly.NewDuplicateFileDetectingVisitor(delegate)
-	delegate = gitaly.NewHiddenDirFilteringFetchVisitor(delegate)
-	vGlob := gitaly.NewGlobFilteringFetchVisitor(delegate, "")
+	vDupDetector := gitaly.NewDuplicateFileDetectingVisitor(delegate, gitaly.DupError)
+	vHiddenDir := gitaly.NewHiddenDirFilteringFetchVisitor(vDupDetector)
+	vGlob := gitaly.NewGlobFilteringFetchVisitor(vHiddenDir, "")
 	vCounting := gitaly.NewEntryCountLimitingFetchVisitor(vGlob, s.maxNumberOfFiles)
+	handleErr := func(err error) (uint32 /* files visited */, uint32 /* files sent */, error) {
+		switch {
+		case v.sendFailed:
+			return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleIoError(log, "GitOps: failed to send objects to synchronize", err)
+		case isUserError(err):
+			err = errz.NewUserErrorWithCause(err, "manifest file")
+			rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
+			// return the error to the client because it's a user error
+			return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
+		case grpctool.RequestCanceled(err):
+			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Canceled, "GitOps: failed to get objects to synchronize")
+		case grpctool.RequestTimedOut(err):
+			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.DeadlineExceeded, "GitOps: failed to get objects to synchronize")
+		default:
+			rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
+			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
+		}
+	}
+	commitIdBytes := []byte(commitId)
+	var files []string
+	// 1. Handle globs
 	for _, p := range req.Paths {
-		globNoSlash := strings.TrimPrefix(p.Glob, "/") // original glob without the leading slash
-		repoPath, recursive := globToGitaly(globNoSlash)
-		vGlob.Glob = globNoSlash // set new glob for each path
-		err = pf.Visit(ctx, projectInfo.Repository, []byte(commitId), repoPath, recursive, vCounting)
+		switch path := p.Path.(type) {
+		case *rpc.PathCF_Glob:
+			globNoSlash := strings.TrimPrefix(path.Glob, "/") // original glob without the leading slash
+			repoPath, recursive := globToGitaly(globNoSlash)
+			vGlob.Glob = globNoSlash // set new glob for each path
+			err = pf.Visit(ctx, projectInfo.Repository, commitIdBytes, repoPath, recursive, vCounting)
+		case *rpc.PathCF_File:
+			files = append(files, path.File)
+		default:
+			err = fmt.Errorf("unknown path type: %T", p.Path) // should never happen
+		}
 		if err != nil {
-			switch {
-			case v.sendFailed:
-				return vCounting.FilesVisited, vCounting.FilesSent, rpcApi.HandleIoError(log, "GitOps: failed to send objects to synchronize", err)
-			case isUserError(err):
-				err = errz.NewUserErrorWithCause(err, "manifest file")
-				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
-				// return the error to the client because it's a user error
-				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
-			case grpctool.RequestCanceled(err):
-				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.Canceled, "GitOps: failed to get objects to synchronize")
-			case grpctool.RequestTimedOut(err):
-				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.DeadlineExceeded, "GitOps: failed to get objects to synchronize")
-			default:
-				rpcApi.HandleProcessingError(log, agentId, "GitOps: failed to get objects to synchronize", err)
-				return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
-			}
+			return handleErr(err)
+		}
+	}
+	// 2. Handle files. Must be last because duplicates are skipped here as they've been sent already.
+	vDupDetector.DupBehavior = gitaly.DupSkip // if a file was fetched as part of globbing, don't error, just skip it.
+	vCounting.FetchVisitor = vHiddenDir       // vCounting delegates directly to vHiddenDir, skipping vGlob. We don't need it anymore.
+	for _, file := range files {
+		err = pf.VisitSingleFile(ctx, projectInfo.Repository, commitIdBytes, []byte(file), vCounting)
+		if err != nil {
+			return handleErr(err)
 		}
 	}
 	return vCounting.FilesVisited, vCounting.FilesSent, nil

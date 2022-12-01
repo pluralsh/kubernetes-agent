@@ -11,32 +11,23 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type delegatingFetchVisitor struct {
-	delegate FetchVisitor
-}
+type DupBehavior byte
 
-func (v delegatingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
-	return v.delegate.Entry(entry)
-}
-
-func (v delegatingFetchVisitor) StreamChunk(path []byte, data []byte) (bool /* done? */, error) {
-	return v.delegate.StreamChunk(path, data)
-}
-
-func (v delegatingFetchVisitor) EntryDone(entry *gitalypb.TreeEntry, err error) {
-	v.delegate.EntryDone(entry, err)
-}
+const (
+	// DupError means "return error on duplicate file".
+	DupError DupBehavior = 1
+	// DupSkip means "skip duplicate files".
+	DupSkip DupBehavior = 2
+)
 
 type ChunkingFetchVisitor struct {
-	delegatingFetchVisitor
+	FetchVisitor
 	maxChunkSize int
 }
 
 func NewChunkingFetchVisitor(delegate FetchVisitor, maxChunkSize int) *ChunkingFetchVisitor {
 	return &ChunkingFetchVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
+		FetchVisitor: delegate,
 		maxChunkSize: maxChunkSize,
 	}
 }
@@ -44,7 +35,7 @@ func NewChunkingFetchVisitor(delegate FetchVisitor, maxChunkSize int) *ChunkingF
 func (v ChunkingFetchVisitor) StreamChunk(path []byte, data []byte) (bool /* done? */, error) {
 	for {
 		bytesToSend := minInt(len(data), v.maxChunkSize)
-		done, err := v.delegate.StreamChunk(path, data[:bytesToSend])
+		done, err := v.FetchVisitor.StreamChunk(path, data[:bytesToSend])
 		if err != nil || done {
 			return done, err
 		}
@@ -65,7 +56,7 @@ func (e *MaxNumberOfFilesError) Error() string {
 }
 
 type EntryCountLimitingFetchVisitor struct {
-	delegatingFetchVisitor
+	FetchVisitor
 	maxNumberOfFiles uint32
 	FilesVisited     uint32
 	FilesSent        uint32
@@ -73,9 +64,7 @@ type EntryCountLimitingFetchVisitor struct {
 
 func NewEntryCountLimitingFetchVisitor(delegate FetchVisitor, maxNumberOfFiles uint32) *EntryCountLimitingFetchVisitor {
 	return &EntryCountLimitingFetchVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
+		FetchVisitor:     delegate,
 		maxNumberOfFiles: maxNumberOfFiles,
 	}
 }
@@ -87,11 +76,11 @@ func (v *EntryCountLimitingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool 
 		}
 	}
 	v.FilesVisited++
-	return v.delegate.Entry(entry)
+	return v.FetchVisitor.Entry(entry)
 }
 
 func (v *EntryCountLimitingFetchVisitor) EntryDone(entry *gitalypb.TreeEntry, err error) {
-	v.delegate.EntryDone(entry, err)
+	v.FetchVisitor.EntryDone(entry, err)
 	if err != nil {
 		return
 	}
@@ -99,21 +88,19 @@ func (v *EntryCountLimitingFetchVisitor) EntryDone(entry *gitalypb.TreeEntry, er
 }
 
 type TotalSizeLimitingFetchVisitor struct {
-	delegatingFetchVisitor
+	FetchVisitor
 	RemainingTotalFileSize int64
 }
 
 func NewTotalSizeLimitingFetchVisitor(delegate FetchVisitor, maxTotalFileSize int64) *TotalSizeLimitingFetchVisitor {
 	return &TotalSizeLimitingFetchVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
+		FetchVisitor:           delegate,
 		RemainingTotalFileSize: maxTotalFileSize,
 	}
 }
 
 func (v *TotalSizeLimitingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
-	shouldDownload, maxSize, err := v.delegate.Entry(entry)
+	shouldDownload, maxSize, err := v.FetchVisitor.Entry(entry)
 	if err != nil || !shouldDownload {
 		return false, 0, err
 	}
@@ -127,18 +114,16 @@ func (v *TotalSizeLimitingFetchVisitor) StreamChunk(path []byte, data []byte) (b
 		// i.e. we should have gotten an error from Gitaly if file is bigger than the limit.
 		return false, status.Error(codes.Internal, "unexpected negative remaining total file size")
 	}
-	return v.delegate.StreamChunk(path, data)
+	return v.FetchVisitor.StreamChunk(path, data)
 }
 
 type HiddenDirFilteringFetchVisitor struct {
-	delegatingFetchVisitor
+	FetchVisitor
 }
 
 func NewHiddenDirFilteringFetchVisitor(delegate FetchVisitor) *HiddenDirFilteringFetchVisitor {
 	return &HiddenDirFilteringFetchVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
+		FetchVisitor: delegate,
 	}
 }
 
@@ -146,7 +131,7 @@ func (v HiddenDirFilteringFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /
 	if isHiddenDir(string(entry.Path)) {
 		return false, 0, nil
 	}
-	return v.delegate.Entry(entry)
+	return v.FetchVisitor.Entry(entry)
 }
 
 type GlobMatchFailedError struct {
@@ -163,16 +148,14 @@ func (e *GlobMatchFailedError) Unwrap() error {
 }
 
 type GlobFilteringFetchVisitor struct {
-	delegatingFetchVisitor
+	FetchVisitor
 	Glob string
 }
 
 func NewGlobFilteringFetchVisitor(delegate FetchVisitor, glob string) *GlobFilteringFetchVisitor {
 	return &GlobFilteringFetchVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
-		Glob: glob,
+		FetchVisitor: delegate,
+		Glob:         glob,
 	}
 }
 
@@ -187,7 +170,7 @@ func (v GlobFilteringFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* dow
 	if !shouldDownload {
 		return false, 0, nil
 	}
-	return v.delegate.Entry(entry)
+	return v.FetchVisitor.Entry(entry)
 }
 
 type DuplicatePathFoundError struct {
@@ -199,28 +182,35 @@ func (e *DuplicatePathFoundError) Error() string {
 }
 
 type DuplicatePathDetectingVisitor struct {
-	delegatingFetchVisitor
-	visited map[string]struct{}
+	FetchVisitor
+	visited     map[string]struct{}
+	DupBehavior DupBehavior
 }
 
-func NewDuplicateFileDetectingVisitor(delegate FetchVisitor) DuplicatePathDetectingVisitor {
+func NewDuplicateFileDetectingVisitor(delegate FetchVisitor, dupBehavior DupBehavior) DuplicatePathDetectingVisitor {
 	return DuplicatePathDetectingVisitor{
-		delegatingFetchVisitor: delegatingFetchVisitor{
-			delegate: delegate,
-		},
-		visited: map[string]struct{}{},
+		FetchVisitor: delegate,
+		visited:      map[string]struct{}{},
+		DupBehavior:  dupBehavior,
 	}
 }
 
 func (v DuplicatePathDetectingVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
 	p := string(entry.Path)
 	if _, visited := v.visited[p]; visited {
-		return false, 0, &DuplicatePathFoundError{
-			Path: p,
+		switch v.DupBehavior {
+		case DupError:
+			return false, 0, &DuplicatePathFoundError{
+				Path: p,
+			}
+		case DupSkip:
+			return false, 0, nil
+		default:
+			panic(fmt.Errorf("unknown dup behavior: %d", v.DupBehavior))
 		}
 	}
 	v.visited[p] = struct{}{}
-	return v.delegate.Entry(entry)
+	return v.FetchVisitor.Entry(entry)
 }
 
 // isHiddenDir checks if a file is in a directory, which name starts with a dot.

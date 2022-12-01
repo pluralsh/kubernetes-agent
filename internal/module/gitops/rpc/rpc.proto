@@ -6,7 +6,6 @@ package gitlab.agent.gitops.rpc;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc";
 
-import "pkg/agentcfg/agentcfg.proto";
 import "internal/tool/grpctool/automata/automata.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
@@ -25,6 +24,21 @@ message GitRefCF {
   }
 }
 
+message PathCF {
+  oneof path {
+    option (validate.required) = true;
+
+    // Glob to use to scan for files in the repository.
+    // Directories with names starting with a dot are ignored.
+    // See https://github.com/bmatcuk/doublestar#about and
+    // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for
+    // globbing rules.
+    string glob = 1 [json_name = "glob", (validate.rules).string.min_bytes = 1];
+    // A single file to fetch.
+    string file = 2 [json_name = "file", (validate.rules).string.min_bytes = 1];
+  }
+}
+
 message ObjectsToSynchronizeRequest {
   // Project to fetch Kubernetes object manifests from.
   // e.g. gitlab-org/cluster-integration/gitlab-agent
@@ -38,7 +52,7 @@ message ObjectsToSynchronizeRequest {
   string commit_id = 2;
   // A list of paths inside of the project to scan
   // for .yaml/.yml/.json manifest files.
-  repeated agentcfg.PathCF paths = 3 [(validate.rules).repeated.min_items = 1];
+  repeated PathCF paths = 3 [(validate.rules).repeated.min_items = 1];
 }
 
 message ObjectsToSynchronizeResponse {

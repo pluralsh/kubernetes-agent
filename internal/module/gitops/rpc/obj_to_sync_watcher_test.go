@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -26,9 +25,11 @@ const (
 )
 
 func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
-	pathsCfg := []*agentcfg.PathCF{
+	pathsCfg := []*rpc.PathCF{
 		{
-			Glob: "*.yaml",
+			Path: &rpc.PathCF_Glob{
+				Glob: "*.yaml",
+			},
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -160,9 +161,11 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			stream1 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(ctrl)
 			req := &rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
-				Paths: []*agentcfg.PathCF{
+				Paths: []*rpc.PathCF{
 					{
-						Glob: "*.yaml",
+						Path: &rpc.PathCF_Glob{
+							Glob: "*.yaml",
+						},
 					},
 				},
 			}

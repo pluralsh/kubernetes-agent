@@ -51,25 +51,27 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		log: config.Log,
 		workerFactory: &workerFactory{
 			log: config.Log,
-			actionCfg: func(log *zap.Logger, chartCfg *agentcfg.ChartCF) *action.Configuration {
+			helm: func(log *zap.Logger, chartCfg *agentcfg.ChartCF) Helm {
 				infof := log.Sugar().Infof
 				d := driver.NewSecrets(coreV1client.Secrets(*chartCfg.Namespace))
 				d.Log = infof
-				return &action.Configuration{
-					RESTClientGetter: config.K8sUtilFactory,
-					Releases: &storage.Storage{
-						Driver:     d,
-						MaxHistory: int(*chartCfg.MaxHistory),
-						Log:        infof,
+				return &HelmActions{
+					ActionCfg: &action.Configuration{
+						RESTClientGetter: config.K8sUtilFactory,
+						Releases: &storage.Storage{
+							Driver:     d,
+							MaxHistory: int(*chartCfg.MaxHistory),
+							Log:        infof,
+						},
+						KubeClient: &kube.Client{
+							Factory:   config.K8sUtilFactory,
+							Log:       infof,
+							Namespace: *chartCfg.Namespace,
+						},
+						RegistryClient: registryClient,
+						Capabilities:   nil, // Empty to re-discover supported APIs.
+						Log:            infof,
 					},
-					KubeClient: &kube.Client{
-						Factory:   config.K8sUtilFactory,
-						Log:       infof,
-						Namespace: *chartCfg.Namespace,
-					},
-					RegistryClient: registryClient,
-					Capabilities:   nil, // Empty to re-discover supported APIs.
-					Log:            infof,
 				}
 			},
 			gitopsClient: rpc.NewGitopsClient(config.KasConn),

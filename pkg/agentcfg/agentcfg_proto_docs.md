@@ -9,6 +9,7 @@
     - [ChartProjectSourceCF](#gitlab-agent-agentcfg-ChartProjectSourceCF)
     - [ChartSourceCF](#gitlab-agent-agentcfg-ChartSourceCF)
     - [ChartValuesCF](#gitlab-agent-agentcfg-ChartValuesCF)
+    - [ChartValuesFileCF](#gitlab-agent-agentcfg-ChartValuesFileCF)
     - [CiAccessAsAgentCF](#gitlab-agent-agentcfg-CiAccessAsAgentCF)
     - [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF)
     - [CiAccessAsCiJobCF](#gitlab-agent-agentcfg-CiAccessAsCiJobCF)
@@ -125,6 +126,24 @@ additional config for kas.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | inline | [google.protobuf.Struct](#google-protobuf-Struct) |  |  |
+| file | [ChartValuesFileCF](#gitlab-agent-agentcfg-ChartValuesFileCF) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-ChartValuesFileCF"></a>
+
+### ChartValuesFileCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| project_id | [string](#string) | optional | Project id. Can only be omitted if chart is coming from a GitLab project. In that case file is fetched from that project. e.g. gitlab-org/cluster-integration/gitlab-agent |
+| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the repository to fetch manifests from. |
+| file | [string](#string) |  |  |
 
 
 

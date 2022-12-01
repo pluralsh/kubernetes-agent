@@ -2,6 +2,7 @@ package chartops
 
 import (
 	"context"
+	"fmt"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
@@ -15,14 +16,6 @@ import (
 const (
 	defaultChartNamespace  = metav1.NamespaceDefault
 	defaultChartMaxHistory = 1 // no history for now as it's not very useful.
-)
-
-var (
-	_ modagent.LeaderModule                     = &module{}
-	_ modagent.Factory                          = &Factory{}
-	_ modagent.Worker                           = &worker{}
-	_ modagent.WorkerFactory[*agentcfg.ChartCF] = &workerFactory{}
-	_ modagent.WorkSource[*agentcfg.ChartCF]    = &manifestSource{}
 )
 
 type module struct {
@@ -52,6 +45,22 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 	for _, chart := range config.Gitops.Charts {
 		prototool.StringPtr(&chart.Namespace, defaultChartNamespace)
 		prototool.Int32Ptr(&chart.MaxHistory, defaultChartMaxHistory)
+		proj := chart.Source.GetProject() // may be nil
+		for _, val := range chart.Values {
+			fromFile := val.GetFile()
+			if fromFile != nil {
+				if fromFile.ProjectId == nil { // values from file without project ID
+					if proj == nil { // we are not fetching chart from a project
+						return fmt.Errorf("from_file %q values must have project id specified when not fetching chart from a project", fromFile.File)
+					}
+					fromFile.ProjectId = &proj.Id
+				}
+				if fromFile.Ref == nil && proj != nil {
+					// ref was not specified, but we are fetching from a project, so use its ref. It may be nil.
+					fromFile.Ref = proj.Ref
+				}
+			}
+		}
 	}
 	return nil
 }

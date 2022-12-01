@@ -53,7 +53,7 @@ func TestRun_HappyPath_NoObjects(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	gomock.InOrder(
 		watcher.EXPECT().
@@ -82,7 +82,7 @@ func TestRun_HappyPath_NoInventoryTemplate(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	objs := object.UnstructuredSet{
 		kube_testing.ToUnstructured(t, testMap1()),
@@ -128,7 +128,7 @@ func TestRun_HappyPath_InventoryTemplate(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	inv := invObject("some_id", "some_ns")
 	objs := object.UnstructuredSet{kube_testing.ToUnstructured(t, testMap1())}
@@ -168,7 +168,7 @@ func TestRun_SyncCancellation(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	objs := object.UnstructuredSet{
 		kube_testing.ToUnstructured(t, testMap1()),
@@ -234,7 +234,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	watcher.EXPECT().
 		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
@@ -277,7 +277,7 @@ func TestRun_PeriodicApply(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.project.Paths,
+		Paths:     configPathsToRpcPaths(w.project.Paths),
 	}
 	watcher.EXPECT().
 		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
