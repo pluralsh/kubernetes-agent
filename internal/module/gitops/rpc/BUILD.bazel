@@ -7,7 +7,6 @@ go_grpc_generate(
     workspace_relative_target_directory = "internal/module/gitops/rpc",
     deps = [
         "//internal/tool/grpctool/automata:proto",
-        "//pkg/agentcfg:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )

@@ -149,7 +149,7 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid:   &ExtraKeyValCF{},
 		},
 		{
-			ErrString: "invalid ChartValuesCF.As: value is required",
+			ErrString: "invalid ChartValuesCF.From: value is required",
 			Invalid:   &ChartValuesCF{},
 		},
 	}

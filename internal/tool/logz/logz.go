@@ -150,3 +150,7 @@ func NumberOfTunnels(n int) zap.Field {
 func NumberOfTunnelFindRequests(n int) zap.Field {
 	return zap.Int("num_find_requests", n)
 }
+
+func Filename(filename string) zap.Field {
+	return zap.String("filename", filename)
+}

@@ -7,12 +7,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
-	"helm.sh/helm/v3/pkg/action"
 )
 
 type workerFactory struct {
 	log               *zap.Logger
-	actionCfg         func(log *zap.Logger, chartCfg *agentcfg.ChartCF) *action.Configuration
+	helm              func(log *zap.Logger, chartCfg *agentcfg.ChartCF) Helm
 	gitopsClient      rpc.GitopsClient
 	installPollConfig retry.PollConfigFactory
 	watchPollConfig   retry.PollConfigFactory
@@ -25,7 +24,7 @@ func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.
 		log:               l,
 		chartCfg:          chartCfg,
 		installPollConfig: f.installPollConfig(),
-		actionCfg:         f.actionCfg(l, chartCfg),
+		helm:              f.helm(l, chartCfg),
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
 			GitopsClient: f.gitopsClient,

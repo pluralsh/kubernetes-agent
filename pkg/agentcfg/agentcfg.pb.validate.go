@@ -1168,6 +1168,163 @@ var _ interface {
 	ErrorName() string
 } = ChartCFValidationError{}
 
+// Validate checks the field values on ChartValuesFileCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ChartValuesFileCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChartValuesFileCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ChartValuesFileCFMultiError, or nil if none found.
+func (m *ChartValuesFileCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChartValuesFileCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetRef()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ChartValuesFileCFValidationError{
+					field:  "Ref",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ChartValuesFileCFValidationError{
+					field:  "Ref",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRef()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ChartValuesFileCFValidationError{
+				field:  "Ref",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(m.GetFile()) < 1 {
+		err := ChartValuesFileCFValidationError{
+			field:  "File",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.ProjectId != nil {
+
+		if len(m.GetProjectId()) < 1 {
+			err := ChartValuesFileCFValidationError{
+				field:  "ProjectId",
+				reason: "value length must be at least 1 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ChartValuesFileCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChartValuesFileCFMultiError is an error wrapping multiple validation errors
+// returned by ChartValuesFileCF.ValidateAll() if the designated constraints
+// aren't met.
+type ChartValuesFileCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChartValuesFileCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChartValuesFileCFMultiError) AllErrors() []error { return m }
+
+// ChartValuesFileCFValidationError is the validation error returned by
+// ChartValuesFileCF.Validate if the designated constraints aren't met.
+type ChartValuesFileCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChartValuesFileCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChartValuesFileCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChartValuesFileCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChartValuesFileCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChartValuesFileCFValidationError) ErrorName() string {
+	return "ChartValuesFileCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ChartValuesFileCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChartValuesFileCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChartValuesFileCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChartValuesFileCFValidationError{}
+
 // Validate checks the field values on ChartValuesCF with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -1190,12 +1347,12 @@ func (m *ChartValuesCF) validate(all bool) error {
 
 	var errors []error
 
-	oneofAsPresent := false
-	switch v := m.As.(type) {
+	oneofFromPresent := false
+	switch v := m.From.(type) {
 	case *ChartValuesCF_Inline:
 		if v == nil {
 			err := ChartValuesCFValidationError{
-				field:  "As",
+				field:  "From",
 				reason: "oneof value cannot be a typed-nil",
 			}
 			if !all {
@@ -1203,7 +1360,7 @@ func (m *ChartValuesCF) validate(all bool) error {
 			}
 			errors = append(errors, err)
 		}
-		oneofAsPresent = true
+		oneofFromPresent = true
 
 		if m.GetInline() == nil {
 			err := ChartValuesCFValidationError{
@@ -1245,12 +1402,65 @@ func (m *ChartValuesCF) validate(all bool) error {
 			}
 		}
 
+	case *ChartValuesCF_File:
+		if v == nil {
+			err := ChartValuesCFValidationError{
+				field:  "From",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofFromPresent = true
+
+		if m.GetFile() == nil {
+			err := ChartValuesCFValidationError{
+				field:  "File",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetFile()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ChartValuesCFValidationError{
+						field:  "File",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ChartValuesCFValidationError{
+						field:  "File",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetFile()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ChartValuesCFValidationError{
+					field:  "File",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	default:
 		_ = v // ensures v is used
 	}
-	if !oneofAsPresent {
+	if !oneofFromPresent {
 		err := ChartValuesCFValidationError{
-			field:  "As",
+			field:  "From",
 			reason: "value is required",
 		}
 		if !all {

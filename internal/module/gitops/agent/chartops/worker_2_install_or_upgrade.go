@@ -7,17 +7,16 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
-	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
 type job struct {
-	ctx   context.Context
-	log   *zap.Logger
-	chart *chart.Chart
-	vals  map[string]interface{}
+	ctx    context.Context
+	log    *zap.Logger
+	chart  *chart.Chart
+	values ChartValues
 }
 
 func (w *worker) installOrUpgrade(jobs <-chan job) {
@@ -46,24 +45,22 @@ func (w *worker) doJob(ctx context.Context, job job) error {
 	}
 	var rel *release.Release
 	if isInstalled {
-		upgrade := action.NewUpgrade(w.actionCfg)
-		upgrade.Namespace = *w.chartCfg.Namespace
-		upgrade.MaxHistory = int(*w.chartCfg.MaxHistory)
-		rel, err = upgrade.RunWithContext(ctx, w.chartCfg.ReleaseName, job.chart, job.vals)
+		rel, err = w.helm.Upgrade(ctx, w.chartCfg.ReleaseName, job.chart, job.values, UpgradeConfig{
+			Namespace:  *w.chartCfg.Namespace,
+			MaxHistory: int(*w.chartCfg.MaxHistory),
+		})
 	} else {
-		install := action.NewInstall(w.actionCfg)
-		install.Namespace = *w.chartCfg.Namespace
-		install.ReleaseName = w.chartCfg.ReleaseName
-		rel, err = install.RunWithContext(ctx, job.chart, job.vals)
-
+		rel, err = w.helm.Install(ctx, job.chart, job.values, InstallConfig{
+			Namespace:   *w.chartCfg.Namespace,
+			ReleaseName: w.chartCfg.ReleaseName,
+		})
 	}
 	_ = rel // TODO anything we want to do with the release?
 	return err
 }
 
 func (w *worker) isInstalled() (bool, error) {
-	histClient := action.NewHistory(w.actionCfg)
-	_, err := histClient.Run(w.chartCfg.ReleaseName)
+	_, err := w.helm.History(w.chartCfg.ReleaseName)
 	switch err { // nolint: errorlint
 	case driver.ErrReleaseNotFound:
 		return false, nil
