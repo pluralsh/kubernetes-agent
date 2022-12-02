@@ -53,3 +53,9 @@ func Uint32(d *uint32, defaultValue uint32) {
 		*d = defaultValue
 	}
 }
+
+func Uint32Ptr(d **uint32, defaultValue uint32) {
+	if *d == nil {
+		*d = &defaultValue
+	}
+}

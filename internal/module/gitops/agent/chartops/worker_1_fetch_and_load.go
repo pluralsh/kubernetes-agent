@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"io"
+	"net/http"
 	"reflect"
 	"sort"
 	"strings"
@@ -13,6 +15,8 @@ import (
 	"github.com/imdario/mergo"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -80,6 +84,8 @@ func (w *worker) fetch(ctx context.Context, jobs chan<- job) {
 	// 0. Boilerplate.
 	var wg wait.Group
 	defer wg.Wait()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	project2watch := make(map[projectIdRef]*watchInfo) // project id+ref -> watchInfo
 	valuesFromSources := make([]valuesHolder, len(w.chartCfg.Values))
 	fetched := make(chan fetchedFromSource)
@@ -111,17 +117,17 @@ func (w *worker) fetch(ctx context.Context, jobs chan<- job) {
 
 	// 2. Setup values fetching.
 	for pos, valsFrom := range w.chartCfg.Values {
-		switch v := valsFrom.From.(type) {
+		switch src := valsFrom.From.(type) {
 		case *agentcfg.ChartValuesCF_Inline:
-			valuesFromSources[pos] = valuesHolder{values: v.Inline.AsMap(), hasValues: true}
+			valuesFromSources[pos] = valuesHolder{values: src.Inline.AsMap(), hasValues: true}
 		case *agentcfg.ChartValuesCF_File:
-			key := projectIdRefFromRef(*v.File.ProjectId, v.File.Ref)
+			key := projectIdRefFromRef(*src.File.ProjectId, src.File.Ref)
 			wi := project2watch[key]
 			if wi == nil {
 				wi = &watchInfo{
 					req: &rpc.ObjectsToSynchronizeRequest{
-						ProjectId: *v.File.ProjectId,
-						Ref:       rpc.NewRpcRef(v.File.Ref),
+						ProjectId: *src.File.ProjectId,
+						Ref:       rpc.NewRpcRef(src.File.Ref),
 					},
 					valuesFileNames: map[string]int{},
 				}
@@ -129,10 +135,12 @@ func (w *worker) fetch(ctx context.Context, jobs chan<- job) {
 			}
 			wi.req.Paths = append(wi.req.Paths, &rpc.PathCF{
 				Path: &rpc.PathCF_File{
-					File: v.File.File,
+					File: src.File.File,
 				},
 			})
-			wi.valuesFileNames[v.File.File] = pos
+			wi.valuesFileNames[src.File.File] = pos
+		case *agentcfg.ChartValuesCF_Url:
+			wg.StartWithContext(ctx, w.watchValuesUrlSource(src.Url, pos, fetched))
 		default:
 			panic(fmt.Errorf("unexpected values type: %T", valsFrom.From))
 		}
@@ -163,7 +171,8 @@ handlingFetchedData:
 		case f := <-fetched:
 			jobChanged := false
 			for _, v := range f.values {
-				jobChanged = jobChanged || !reflect.DeepEqual(valuesFromSources[v.sourcePos].values, v.values)
+				oldVals := valuesFromSources[v.sourcePos]
+				jobChanged = jobChanged || !oldVals.hasValues || !reflect.DeepEqual(oldVals.values, v.values)
 				valuesFromSources[v.sourcePos] = valuesHolder{values: v.values, hasValues: true}
 			}
 			if f.chart != nil {
@@ -199,6 +208,77 @@ handlingFetchedData:
 			nilableJobs = nil // disable this case
 		}
 	}
+}
+
+func (w *worker) watchValuesUrlSource(src *agentcfg.ChartValuesUrlCF, pos int, fetched chan<- fetchedFromSource) func(context.Context) {
+	return func(ctx context.Context) {
+		_ = wait.PollImmediateInfiniteWithContext(ctx, src.PollPeriod.AsDuration(), func(ctx context.Context) (bool /* done */, error) {
+			values, err := w.pollValuesUrlSource(ctx, src)
+			if err != nil {
+				w.log.Error("Failed to fetch values from URL", append(w.logForSource(pos), logz.Error(err))...)
+				return false, nil
+			}
+			f := fetchedFromSource{
+				values: []valueFromASource{
+					{
+						sourcePos: pos,
+						values:    values,
+					},
+				},
+			}
+			select {
+			case <-ctx.Done():
+			case fetched <- f:
+			}
+			return false, nil
+		})
+	}
+}
+
+func (w *worker) pollValuesUrlSource(ctx context.Context, src *agentcfg.ChartValuesUrlCF) (retVal ChartValues, retErr error) {
+	// 1. Setup request.
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, src.Url, nil)
+	if err != nil {
+		return nil, err
+	}
+	r.Header[httpz.AcceptHeader] = []string{"application/yaml, application/json"}
+
+	// 2. Make request.
+	resp, err := w.httpClient.RoundTrip(r) // nolint: bodyclose
+	if err != nil {
+		return nil, err
+	}
+	defer errz.SafeClose(resp.Body, &retErr)
+	// 3. Check HTTP status code of the response.
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// handled below
+	case http.StatusNoContent:
+		return nil, nil // don't event look at response body
+	default:
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+	}
+	// 4. Check response content type.
+	contentType := resp.Header.Get(httpz.ContentTypeHeader)
+	if !httpz.IsContentType(contentType, "application/json", "application/yaml") {
+		return nil, fmt.Errorf("unexpected %s in response: %q", httpz.ContentTypeHeader, contentType)
+	}
+	// 5. Read response body.
+	maxSize := *src.MaxFileSize
+	body, err := io.ReadAll(io.LimitReader(resp.Body, int64(maxSize)))
+	if err != nil {
+		return nil, err
+	}
+	if uint32(len(body)) == maxSize { // don't want to parse truncated file.
+		return nil, fmt.Errorf("max file size reached: %d bytes", maxSize)
+	}
+	// 6. Parse response body.
+	var values ChartValues
+	err = yaml.Unmarshal(body, &values)
+	if err != nil {
+		return nil, fmt.Errorf("parsing error: %w", err)
+	}
+	return values, nil
 }
 
 func (w *worker) watchProjectSource(wi *watchInfo, fetched chan<- fetchedFromSource) func(context.Context) {
@@ -249,6 +329,8 @@ func (w *worker) logForSource(pos int) []zap.Field {
 			logz.GitRef(resolvedRef(ref.GetBranch(), ref.GetTag(), ref.GetCommit())),
 			logz.Filename(v.File.File),
 		}
+	case *agentcfg.ChartValuesCF_Url:
+		return []zap.Field{logz.Url(v.Url.Url)}
 	default:
 		// Shouldn't happen
 		panic(fmt.Errorf("unknown type: %T", from))

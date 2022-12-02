@@ -120,12 +120,22 @@ message ChartValuesFileCF {
   string file = 3 [json_name = "file", (validate.rules).string.min_bytes = 1];
 }
 
+message ChartValuesUrlCF {
+  // URL with values to fetch. Server must reply with application/yaml or application/json media type.
+  string url = 1 [json_name = "url", (validate.rules).string.uri = true];
+  // How often to poll URL for changes.
+  google.protobuf.Duration poll_period = 2 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
+  // Maximum file size.
+  optional uint32 max_file_size = 3 [json_name = "max_file_size", (validate.rules).uint32.gt = 0];
+}
+
 message ChartValuesCF {
   oneof from {
     option (validate.required) = true;
 
     google.protobuf.Struct inline = 1 [json_name = "inline", (validate.rules).message.required = true];
     ChartValuesFileCF file = 2 [json_name = "file", (validate.rules).message.required = true];
+    ChartValuesUrlCF url = 3 [json_name = "url", (validate.rules).message.required = true];
   }
 }
 

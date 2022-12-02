@@ -57,7 +57,6 @@ type transportConfig struct {
 	MaxConnsPerHost       int
 	IdleConnTimeout       time.Duration
 	ResponseHeaderTimeout time.Duration
-	ExpectContinueTimeout time.Duration
 	ForceAttemptHTTP2     bool
 }
 
@@ -95,7 +94,6 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 			MaxConnsPerHost:       50,
 			IdleConnTimeout:       90 * time.Second,
 			ResponseHeaderTimeout: 20 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
 			ForceAttemptHTTP2:     true,
 		},
 		tracePropagator: otel.GetTextMapPropagator(),

@@ -1,12 +1,15 @@
 package chartops
 
 import (
+	"net"
+	"net/http"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap"
 	"helm.sh/helm/v3/pkg/action"
@@ -73,6 +76,19 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 						Log:            infof,
 					},
 				}
+			},
+			httpClient: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+				DialContext: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+				TLSClientConfig:       tlstool.DefaultClientTLSConfig(),
+				MaxIdleConns:          10,
+				IdleConnTimeout:       90 * time.Second,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 20 * time.Second,
+				ForceAttemptHTTP2:     true,
 			},
 			gitopsClient: rpc.NewGitopsClient(config.KasConn),
 			installPollConfig: retry.NewPollConfigFactory(defaultReinstallInterval, retry.NewExponentialBackoffFactory(

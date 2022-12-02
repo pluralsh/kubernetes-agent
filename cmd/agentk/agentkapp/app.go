@@ -318,7 +318,6 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 					IdleConnTimeout:       90 * time.Second,
 					TLSHandshakeTimeout:   10 * time.Second,
 					ResponseHeaderTimeout: 20 * time.Second,
-					ExpectContinueTimeout: 20 * time.Second,
 				},
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse

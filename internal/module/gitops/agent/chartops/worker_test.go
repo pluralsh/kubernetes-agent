@@ -2,6 +2,8 @@ package chartops
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -10,11 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/storage/driver"
@@ -26,9 +30,10 @@ const (
 )
 
 var (
-	defaultNamespace       = defaultChartNamespace
-	maxHistory       int32 = defaultChartMaxHistory
-	projectPath            = "proj1"
+	defaultNamespace        = defaultChartNamespace
+	maxHistory       int32  = defaultChartMaxHistory
+	projectPath             = "proj1"
+	maxFileSize      uint32 = defaultUrlValueMaxFileSize
 )
 
 var (
@@ -424,6 +429,113 @@ c: x`),
 	w.Run(ctx)
 }
 
+func TestRun_HappyPath_ValuesFromUrl(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "application/yaml, application/json", r.Header.Get(httpz.AcceptHeader))
+		switch r.URL.Path {
+		case "/file.json":
+			w.Header().Set(httpz.ContentTypeHeader, "application/json")
+			_, err := w.Write([]byte(`{"json":"value"}`))
+			assert.NoError(t, err)
+		case "/file.yaml":
+			w.Header().Set(httpz.ContentTypeHeader, "application/yaml")
+			_, err := w.Write([]byte(`yaml: val`))
+			assert.NoError(t, err)
+		case "/empty":
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer s.Close()
+	w, helm, watcher := setupWorker(t, &agentcfg.ChartCF{
+		ReleaseName: releaseName,
+		Source: &agentcfg.ChartSourceCF{
+			Source: &agentcfg.ChartSourceCF_Project{
+				Project: &agentcfg.ChartProjectSourceCF{
+					Id: projectPath,
+				},
+			},
+		},
+		Values: []*agentcfg.ChartValuesCF{
+			{
+				From: &agentcfg.ChartValuesCF_Url{
+					Url: &agentcfg.ChartValuesUrlCF{
+						Url:         s.URL + "/file.yaml",
+						PollPeriod:  durationpb.New(defaultUrlValuePollPeriod),
+						MaxFileSize: &maxFileSize,
+					},
+				},
+			},
+			{
+				From: &agentcfg.ChartValuesCF_Url{
+					Url: &agentcfg.ChartValuesUrlCF{
+						Url:         s.URL + "/file.json",
+						PollPeriod:  durationpb.New(defaultUrlValuePollPeriod),
+						MaxFileSize: &maxFileSize,
+					},
+				},
+			},
+			{
+				From: &agentcfg.ChartValuesCF_Url{
+					Url: &agentcfg.ChartValuesUrlCF{
+						Url:         s.URL + "/empty",
+						PollPeriod:  durationpb.New(defaultUrlValuePollPeriod),
+						MaxFileSize: &maxFileSize,
+					},
+				},
+			},
+		},
+		Namespace:  &defaultNamespace,
+		MaxHistory: &maxHistory,
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectPath,
+		Paths: []*rpc.PathCF{
+			{
+				Path: &rpc.PathCF_Glob{
+					Glob: "/**",
+				},
+			},
+		},
+	}
+	gomock.InOrder(
+		watcher.EXPECT().
+			Watch(gomock.Any(), matcher.ProtoEq(nil, req), gomock.Any()).
+			Do(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+				callback(ctx, rpc.ObjectsToSynchronizeData{
+					CommitId:  revision,
+					ProjectId: testhelpers.ProjectId,
+					Sources: []rpc.ObjectSource{
+						{
+							Name: "Chart.yaml",
+							Data: []byte(`apiVersion: v2
+name: test1
+version: 1`),
+						},
+					},
+				})
+				<-ctx.Done()
+			}),
+		helm.EXPECT().
+			History(releaseName).
+			Return(nil, driver.ErrReleaseNotFound),
+		helm.EXPECT().
+			Install(gomock.Any(), gomock.Any(), gomock.Any(), InstallConfig{
+				Namespace:   defaultNamespace,
+				ReleaseName: releaseName,
+			}).
+			Do(func(ctx context.Context, chart *chart.Chart, vals ChartValues, cfg InstallConfig) {
+				assert.Equal(t, ChartValues{
+					"yaml": "val",   // from file.yaml
+					"json": "value", // from file.json
+				}, vals)
+				cancel()
+			}),
+	)
+	w.Run(ctx)
+}
+
 func TestRun_MissingValueFile(t *testing.T) {
 	w, _, watcher := setupWorker(t, &agentcfg.ChartCF{
 		ReleaseName: releaseName,
@@ -571,6 +683,7 @@ func setupWorker(t *testing.T, chartCfg *agentcfg.ChartCF) (*worker, *MockHelm, 
 		chartCfg:          chartCfg,
 		installPollConfig: testhelpers.NewPollConfig(time.Minute)(),
 		helm:              helm,
+		httpClient:        http.DefaultTransport,
 		objWatcher:        watcher,
 	}
 	return w, helm, watcher

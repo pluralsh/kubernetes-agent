@@ -413,10 +413,8 @@ func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*se
 				IdleConnTimeout:       90 * time.Second,
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 20 * time.Second,
-				ExpectContinueTimeout: 20 * time.Second,
 				ForceAttemptHTTP2:     true,
-			},
-			otelhttp.WithPropagators(p),
+			}, otelhttp.WithPropagators(p),
 		),
 	})
 	if err != nil {

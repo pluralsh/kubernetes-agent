@@ -72,6 +72,12 @@ func TestValidation_Valid(t *testing.T) {
 			Name:  "ManifestProjectCF with no Id",
 			Valid: &ManifestProjectCF{},
 		},
+		{
+			Name: "minimal ChartValuesUrlCF",
+			Valid: &ChartValuesUrlCF{
+				Url: "https://example.com",
+			},
+		},
 	}
 	testhelpers.AssertValid(t, tests)
 }
@@ -151,6 +157,10 @@ func TestValidation_Invalid(t *testing.T) {
 		{
 			ErrString: "invalid ChartValuesCF.From: value is required",
 			Invalid:   &ChartValuesCF{},
+		},
+		{
+			ErrString: "invalid ChartValuesUrlCF.Url: value must be absolute",
+			Invalid:   &ChartValuesUrlCF{},
 		},
 	}
 	testhelpers.AssertInvalid(t, tests)

@@ -115,6 +115,10 @@ func UrlPathPrefix(urlPrefix string) zap.Field {
 	return zap.String("url_path_prefix", urlPrefix)
 }
 
+func Url(url string) zap.Field {
+	return zap.String("url", url)
+}
+
 func UrlPath(url string) zap.Field {
 	return zap.String("url_path", url)
 }

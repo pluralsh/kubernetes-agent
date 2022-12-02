@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
@@ -46,8 +45,9 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 			defer errz.SafeClose(resp.Body, &retErr)
 			switch resp.StatusCode {
 			case http.StatusOK:
-				if !isApplicationJSON(resp) {
-					return fmt.Errorf("unexpected %s in response: %q", httpz.ContentTypeHeader, resp.Header.Get(httpz.ContentTypeHeader))
+				contentType := resp.Header.Get(httpz.ContentTypeHeader)
+				if !httpz.IsContentType(contentType, "application/json") {
+					return fmt.Errorf("unexpected %s in response: %q", httpz.ContentTypeHeader, contentType)
 				}
 				data, err := io.ReadAll(resp.Body)
 				if err != nil {
@@ -99,14 +99,4 @@ func NoContentResponseHandler() ResponseHandler {
 			}
 		},
 	}
-}
-
-func isContentType(expected, actual string) bool {
-	parsed, _, err := mime.ParseMediaType(actual)
-	return err == nil && parsed == expected
-}
-
-func isApplicationJSON(r *http.Response) bool {
-	contentType := r.Header.Get(httpz.ContentTypeHeader)
-	return isContentType("application/json", contentType)
 }

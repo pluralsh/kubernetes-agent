@@ -2,6 +2,7 @@ package chartops
 
 import (
 	"context"
+	"net/http"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
@@ -15,6 +16,7 @@ type worker struct {
 	chartCfg          *agentcfg.ChartCF
 	installPollConfig retry.PollConfig
 	helm              Helm
+	httpClient        http.RoundTripper
 	objWatcher        rpc.ObjectsToSynchronizeWatcherInterface
 }
 
