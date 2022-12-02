@@ -229,6 +229,92 @@ c: x`),
 	w.Run(ctx)
 }
 
+func TestRun_HappyPath_NoChartOrValueChanges(t *testing.T) {
+	w, helm, watcher := setupWorker(t, &agentcfg.ChartCF{
+		ReleaseName: releaseName,
+		Source: &agentcfg.ChartSourceCF{
+			Source: &agentcfg.ChartSourceCF_Project{
+				Project: &agentcfg.ChartProjectSourceCF{
+					Id: projectPath,
+				},
+			},
+		},
+		Values: []*agentcfg.ChartValuesCF{
+			{
+				From: &agentcfg.ChartValuesCF_File{
+					File: &agentcfg.ChartValuesFileCF{
+						ProjectId: &projectPath,
+						File:      "prod.yaml",
+					},
+				},
+			},
+		},
+		Namespace:  &defaultNamespace,
+		MaxHistory: &maxHistory,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectPath,
+		Paths: []*rpc.PathCF{
+			{
+				Path: &rpc.PathCF_Glob{
+					Glob: "/**",
+				},
+			},
+			{
+				Path: &rpc.PathCF_File{
+					File: "prod.yaml",
+				},
+			},
+		},
+	}
+	installed := make(chan struct{})
+	gomock.InOrder(
+		watcher.EXPECT().
+			Watch(gomock.Any(), matcher.ProtoEq(nil, req), gomock.Any()).
+			Do(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+				data := rpc.ObjectsToSynchronizeData{
+					CommitId:  revision,
+					ProjectId: testhelpers.ProjectId,
+					Sources: []rpc.ObjectSource{
+						{
+							Name: "Chart.yaml",
+							Data: []byte(`apiVersion: v2
+name: test1
+version: 1`),
+						},
+						{
+							Name: "prod.yaml",
+							Data: []byte(`a: b
+c: x`),
+						},
+					},
+				}
+				callback(ctx, data)
+				<-installed
+				callback(ctx, data) // same things
+				<-ctx.Done()
+			}),
+		helm.EXPECT().
+			History(releaseName).
+			Return(nil, driver.ErrReleaseNotFound),
+		helm.EXPECT().
+			Install(gomock.Any(), gomock.Any(), gomock.Any(), InstallConfig{
+				Namespace:   defaultNamespace,
+				ReleaseName: releaseName,
+			}).
+			Do(func(ctx context.Context, chart *chart.Chart, vals ChartValues, cfg InstallConfig) {
+				assert.Equal(t, ChartValues{
+					"a": "b", // from prod.yaml
+					"c": "x", // from prod.yaml
+				}, vals)
+				close(installed)
+			}),
+	)
+	w.Run(ctx)
+}
+
 func TestRun_HappyPath_ValuesFromAnotherProject(t *testing.T) {
 	project2Path := "proj2"
 	w, helm, watcher := setupWorker(t, &agentcfg.ChartCF{
