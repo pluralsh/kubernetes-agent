@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,26 +42,21 @@ func NewProbeRegistry() *ProbeRegistry {
 }
 
 type ProbeRegistry struct {
-	mu        sync.Mutex
+	mu        sync.RWMutex
 	liveness  map[string]Probe
 	readiness map[string]Probe
 }
 
 type toggleValue struct {
-	mu    sync.Mutex
-	value bool
+	value int32
 }
 
 func (t *toggleValue) SetTrue() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.value = true
+	atomic.StoreInt32(&t.value, 1)
 }
 
 func (t *toggleValue) True() bool {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.value
+	return atomic.LoadInt32(&t.value) == 1
 }
 
 func (p *ProbeRegistry) RegisterLivenessProbe(key string, probe Probe) {
@@ -76,14 +72,14 @@ func (p *ProbeRegistry) RegisterReadinessProbe(key string, probe Probe) {
 }
 
 func (p *ProbeRegistry) Liveness(ctx context.Context) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return execProbeMap(ctx, p.liveness)
 }
 
 func (p *ProbeRegistry) Readiness(ctx context.Context) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return execProbeMap(ctx, p.readiness)
 }
 
@@ -99,12 +95,10 @@ func (p *ProbeRegistry) RegisterReadinessToggle(key string) func() {
 }
 
 func execProbeMap(ctx context.Context, probes map[string]Probe) error {
-	var err error
 	for key, probe := range probes {
-		err = probe(ctx)
+		err := probe(ctx)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", key, err)
-			return err
+			return fmt.Errorf("%s: %w", key, err)
 		}
 	}
 	return nil
