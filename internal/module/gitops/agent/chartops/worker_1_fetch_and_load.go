@@ -1,9 +1,13 @@
 package chartops
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/imdario/mergo"
@@ -157,15 +161,21 @@ handlingFetchedData:
 		case <-done:
 			return // nolint: govet
 		case f := <-fetched:
+			jobChanged := false
 			for _, v := range f.values {
+				jobChanged = jobChanged || !reflect.DeepEqual(valuesFromSources[v.sourcePos].values, v.values)
 				valuesFromSources[v.sourcePos] = valuesHolder{values: v.values, hasValues: true}
 			}
 			if f.chart != nil {
 				newJob.log = f.log
 				newJob.chart = f.chart
+				jobChanged = true
 			}
 			if newJob.chart == nil {
 				continue // haven't fetched the chart yet.
+			}
+			if !jobChanged {
+				continue // nothing to do as neither values nor chart have changed.
 			}
 			var mergedValues ChartValues
 			for pos, vals := range valuesFromSources {
@@ -193,15 +203,21 @@ handlingFetchedData:
 
 func (w *worker) watchProjectSource(wi *watchInfo, fetched chan<- fetchedFromSource) func(context.Context) {
 	return func(ctx context.Context) {
+		var chartHash []byte
 		w.objWatcher.Watch(ctx, wi.req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 			var f fetchedFromSource
 			var err error
 			f.log = w.log.With(logz.CommitId(data.CommitId))
 			if wi.isChart {
-				f.chart, err = loadChartFromSources(wi.chartPathWithSlashAtEnd, data.Sources)
-				if err != nil {
-					f.log.Error("Failed to load chart", logz.Error(err))
-					return
+				files, newHash := loadChartFromSources(wi.chartPathWithSlashAtEnd, data.Sources)
+				if !bytes.Equal(newHash, chartHash) {
+					// Data has changed, reload chart.
+					f.chart, err = loader.LoadFiles(files)
+					if err != nil {
+						f.log.Error("Failed to load chart", logz.Error(err))
+						return
+					}
+					chartHash = newHash
 				}
 			}
 			var errPos int
@@ -239,7 +255,7 @@ func (w *worker) logForSource(pos int) []zap.Field {
 	}
 }
 
-func loadChartFromSources(chartPathWithSlashAtEnd string, sources []rpc.ObjectSource) (*chart.Chart, error) {
+func loadChartFromSources(chartPathWithSlashAtEnd string, sources []rpc.ObjectSource) ([]*loader.BufferedFile, []byte) {
 	files := make([]*loader.BufferedFile, 0, len(sources))
 	for _, source := range sources {
 		if !strings.HasPrefix(source.Name, chartPathWithSlashAtEnd) {
@@ -251,7 +267,17 @@ func loadChartFromSources(chartPathWithSlashAtEnd string, sources []rpc.ObjectSo
 			Data: source.Data,
 		})
 	}
-	return loader.LoadFiles(files)
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name < files[j].Name
+	})
+	h := fnv.New128()
+	for _, file := range files {
+		_, _ = h.Write([]byte(file.Name))
+		_, _ = h.Write([]byte{11}) // delimiter
+		_, _ = h.Write(file.Data)
+		_, _ = h.Write([]byte{11}) // delimiter
+	}
+	return files, h.Sum(nil)
 }
 
 func loadValuesFromSources(valuesFileNames map[string]int, sources []rpc.ObjectSource) ([]valueFromASource, int /* error pos */, error) {
