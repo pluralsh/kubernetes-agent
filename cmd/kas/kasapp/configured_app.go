@@ -51,6 +51,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/v15/client"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
@@ -128,7 +129,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Sentry
-	sentryHub, err := a.constructSentryHub()
+	sentryHub, err := a.constructSentryHub(p)
 	if err != nil {
 		return fmt.Errorf("error tracker: %w", err)
 	}
@@ -392,7 +393,7 @@ func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient
 	)
 }
 
-func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
+func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
@@ -403,17 +404,20 @@ func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 		SampleRate:  1,     // no sampling
 		Release:     fmt.Sprintf("%s/%s", cmd.Version, cmd.Commit),
 		Environment: s.Environment,
-		HTTPTransport: &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
-			DialContext:           dialer.DialContext,
-			TLSClientConfig:       tlstool.DefaultClientTLSConfig(),
-			MaxIdleConns:          10,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 20 * time.Second,
-			ExpectContinueTimeout: 20 * time.Second,
-			ForceAttemptHTTP2:     true,
-		},
+		HTTPTransport: otelhttp.NewTransport(
+			&http.Transport{
+				Proxy:                 http.ProxyFromEnvironment,
+				DialContext:           dialer.DialContext,
+				TLSClientConfig:       tlstool.DefaultClientTLSConfig(),
+				MaxIdleConns:          10,
+				IdleConnTimeout:       90 * time.Second,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 20 * time.Second,
+				ExpectContinueTimeout: 20 * time.Second,
+				ForceAttemptHTTP2:     true,
+			},
+			otelhttp.WithPropagators(p),
+		),
 	})
 	if err != nil {
 		return nil, err
