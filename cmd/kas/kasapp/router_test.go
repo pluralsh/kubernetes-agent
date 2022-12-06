@@ -238,7 +238,7 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 func TestRouter_FindTunnelTimeout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	log := zaptest.NewLogger(t)
-	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
+	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
@@ -246,10 +246,9 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	defer privateApiServerListener.Close()
 
 	querier.EXPECT().
-		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.KasUrlsByAgentIdCallback) error {
+		PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+		Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
 			<-ctx.Done()
-			return nil
 		})
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
@@ -385,7 +384,7 @@ func mdContains(t *testing.T, expectedMd metadata.MD, actualMd metadata.MD) {
 func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelForwardStream *gomock.Call, runTest func(client test.TestingClient)) {
 	ctrl := gomock.NewController(t)
 	log := zaptest.NewLogger(t)
-	querier := mock_reverse_tunnel_tracker.NewMockQuerier(ctrl)
+	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
@@ -394,11 +393,11 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 
 	gomock.InOrder(
 		querier.EXPECT().
-			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, agentId int64, cb tracker.KasUrlsByAgentIdCallback) error {
-				done, err := cb(kasUrlPipe)
+			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+				done := cb(true, kasUrlPipe)
 				assert.False(t, done)
-				return err
+				<-ctx.Done()
 			}),
 		finder.EXPECT().
 			FindTunnel(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).

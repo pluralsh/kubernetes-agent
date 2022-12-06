@@ -37,6 +37,7 @@ go_library(
         "//internal/module/reverse_tunnel/agent:__subpackages__",
         "//internal/module/reverse_tunnel/server:__subpackages__",
         "//internal/module/reverse_tunnel/test:__subpackages__",
+        "//internal/module/reverse_tunnel/tracker:__subpackages__",
         "//internal/module/starboard_vulnerability:__subpackages__",
         "//internal/module/usage_metrics/server:__subpackages__",
         "//internal/tool/testing/mock_modagent:__subpackages__",

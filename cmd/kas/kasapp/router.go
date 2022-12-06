@@ -24,7 +24,7 @@ type kasRouter interface {
 // routing kas -> gateway kas -> agentk
 type router struct {
 	kasPool          grpctool.PoolInterface
-	tunnelQuerier    tracker.Querier
+	tunnelQuerier    tracker.PollingQuerier
 	tunnelFinder     reverse_tunnel.TunnelFinder
 	ownPrivateApiUrl string
 	pollConfig       retry.PollConfigFactory

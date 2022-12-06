@@ -46,7 +46,7 @@ func (t readyTunnel) Done() {
 type tunnelFinder struct {
 	log              *zap.Logger
 	kasPool          grpctool.PoolInterface
-	tunnelQuerier    tracker.Querier
+	tunnelQuerier    tracker.PollingQuerier
 	rpcApi           modserver.RpcApi
 	fullMethod       string // /service/method
 	ownPrivateApiUrl string
@@ -67,24 +67,19 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 	defer pollCancel()
 
 	// Unconditionally connect to self.
-	f.tryKas(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
+	f.tryKasInternal(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
 
-	// err can only be retry.ErrWaitTimeout
-	_ = retry.PollWithBackoff(pollCtx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		newKasConnections := 0
-		err := f.tunnelQuerier.KasUrlsByAgentId(ctx, f.agentId, func(kasUrl string) (bool /* done */, error) {
+	newKasConnections := 0
+	f.tunnelQuerier.PollKasUrlsByAgentId(pollCtx, f.agentId, func(newCycle bool, kasUrl string) bool {
+		if newCycle {
+			newKasConnections = 0
+		}
+		if newKasConnections < speculationFactor {
 			if f.tryKas(kasUrl, pollCancel) {
 				newKasConnections++
-				// stop iterating tunnels if connected to enough new kas instances during this poll.
-				return newKasConnections == speculationFactor, nil
 			}
-			return false, nil
-		})
-		if err != nil {
-			f.rpcApi.HandleProcessingError(f.log, f.agentId, "KasUrlsByAgentId()", err)
-			return nil, retry.Backoff
 		}
-		return nil, retry.Continue
+		return false
 	})
 }
 
@@ -97,6 +92,11 @@ func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool
 	if _, ok := f.connections[kasUrl]; ok {
 		return false // skip tunnel via kas that we have connected to already
 	}
+	f.tryKasInternal(kasUrl, pollCancel)
+	return true
+}
+
+func (f *tunnelFinder) tryKasInternal(kasUrl string, pollCancel context.CancelFunc) {
 	connCtx, connCancel := context.WithCancel(f.outgoingCtx)
 	f.connections[kasUrl] = kasConnAttempt{
 		cancel: connCancel,
@@ -104,7 +104,6 @@ func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool
 	f.wg.Start(func() {
 		f.tryKasAsync(connCtx, connCancel, pollCancel, kasUrl)
 	})
-	return true
 }
 
 func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, kasUrl string) {
