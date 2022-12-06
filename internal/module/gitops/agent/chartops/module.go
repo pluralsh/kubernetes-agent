@@ -3,6 +3,7 @@ package chartops
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
@@ -14,8 +15,10 @@ import (
 )
 
 const (
-	defaultChartNamespace  = metav1.NamespaceDefault
-	defaultChartMaxHistory = 1 // no history for now as it's not very useful.
+	defaultChartNamespace      = metav1.NamespaceDefault
+	defaultChartMaxHistory     = 1 // no history for now as it's not very useful.
+	defaultUrlValueMaxFileSize = 1024 * 1024
+	defaultUrlValuePollPeriod  = time.Minute
 )
 
 type module struct {
@@ -47,18 +50,22 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 		prototool.Int32Ptr(&chart.MaxHistory, defaultChartMaxHistory)
 		proj := chart.Source.GetProject() // may be nil
 		for _, val := range chart.Values {
-			fromFile := val.GetFile()
-			if fromFile != nil {
-				if fromFile.ProjectId == nil { // values from file without project ID
+			switch src := val.From.(type) {
+			case *agentcfg.ChartValuesCF_File:
+				file := src.File
+				if file.ProjectId == nil { // values from file without project ID
 					if proj == nil { // we are not fetching chart from a project
-						return fmt.Errorf("from_file %q values must have project id specified when not fetching chart from a project", fromFile.File)
+						return fmt.Errorf("from_file %q values must have project id specified when not fetching chart from a project", file.File)
 					}
-					fromFile.ProjectId = &proj.Id
+					file.ProjectId = &proj.Id
 				}
-				if fromFile.Ref == nil && proj != nil {
+				if file.Ref == nil && proj != nil {
 					// ref was not specified, but we are fetching from a project, so use its ref. It may be nil.
-					fromFile.Ref = proj.Ref
+					file.Ref = proj.Ref
 				}
+			case *agentcfg.ChartValuesCF_Url:
+				prototool.Duration(&src.Url.PollPeriod, defaultUrlValuePollPeriod)
+				prototool.Uint32Ptr(&src.Url.MaxFileSize, defaultUrlValueMaxFileSize)
 			}
 		}
 	}

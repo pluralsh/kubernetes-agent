@@ -1325,6 +1325,172 @@ var _ interface {
 	ErrorName() string
 } = ChartValuesFileCFValidationError{}
 
+// Validate checks the field values on ChartValuesUrlCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ChartValuesUrlCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChartValuesUrlCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ChartValuesUrlCFMultiError, or nil if none found.
+func (m *ChartValuesUrlCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChartValuesUrlCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if uri, err := url.Parse(m.GetUrl()); err != nil {
+		err = ChartValuesUrlCFValidationError{
+			field:  "Url",
+			reason: "value must be a valid URI",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	} else if !uri.IsAbs() {
+		err := ChartValuesUrlCFValidationError{
+			field:  "Url",
+			reason: "value must be absolute",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if d := m.GetPollPeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ChartValuesUrlCFValidationError{
+				field:  "PollPeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ChartValuesUrlCFValidationError{
+					field:  "PollPeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
+
+	if m.MaxFileSize != nil {
+
+		if m.GetMaxFileSize() <= 0 {
+			err := ChartValuesUrlCFValidationError{
+				field:  "MaxFileSize",
+				reason: "value must be greater than 0",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ChartValuesUrlCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChartValuesUrlCFMultiError is an error wrapping multiple validation errors
+// returned by ChartValuesUrlCF.ValidateAll() if the designated constraints
+// aren't met.
+type ChartValuesUrlCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChartValuesUrlCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChartValuesUrlCFMultiError) AllErrors() []error { return m }
+
+// ChartValuesUrlCFValidationError is the validation error returned by
+// ChartValuesUrlCF.Validate if the designated constraints aren't met.
+type ChartValuesUrlCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChartValuesUrlCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChartValuesUrlCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChartValuesUrlCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChartValuesUrlCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChartValuesUrlCFValidationError) ErrorName() string { return "ChartValuesUrlCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ChartValuesUrlCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChartValuesUrlCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChartValuesUrlCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChartValuesUrlCFValidationError{}
+
 // Validate checks the field values on ChartValuesCF with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -1449,6 +1615,59 @@ func (m *ChartValuesCF) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return ChartValuesCFValidationError{
 					field:  "File",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *ChartValuesCF_Url:
+		if v == nil {
+			err := ChartValuesCFValidationError{
+				field:  "From",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofFromPresent = true
+
+		if m.GetUrl() == nil {
+			err := ChartValuesCFValidationError{
+				field:  "Url",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetUrl()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ChartValuesCFValidationError{
+						field:  "Url",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ChartValuesCFValidationError{
+						field:  "Url",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetUrl()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ChartValuesCFValidationError{
+					field:  "Url",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

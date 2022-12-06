@@ -41,13 +41,12 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 		Proxy:                 o.transportConfig.Proxy,
 		DialContext:           o.transportConfig.DialContext,
 		TLSClientConfig:       o.transportConfig.TLSClientConfig,
-		TLSHandshakeTimeout:   o.transportConfig.ExpectContinueTimeout,
+		TLSHandshakeTimeout:   o.transportConfig.TLSHandshakeTimeout,
 		MaxIdleConns:          o.transportConfig.MaxIdleConns,
 		MaxIdleConnsPerHost:   o.transportConfig.MaxIdleConnsPerHost,
 		MaxConnsPerHost:       o.transportConfig.MaxConnsPerHost,
 		IdleConnTimeout:       o.transportConfig.IdleConnTimeout,
 		ResponseHeaderTimeout: o.transportConfig.ResponseHeaderTimeout,
-		ExpectContinueTimeout: o.transportConfig.ExpectContinueTimeout,
 		ForceAttemptHTTP2:     o.transportConfig.ForceAttemptHTTP2,
 	}
 	if o.limiter != nil {

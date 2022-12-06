@@ -1,6 +1,8 @@
 package chartops
 
 import (
+	"net/http"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
@@ -12,6 +14,7 @@ import (
 type workerFactory struct {
 	log               *zap.Logger
 	helm              func(log *zap.Logger, chartCfg *agentcfg.ChartCF) Helm
+	httpClient        http.RoundTripper
 	gitopsClient      rpc.GitopsClient
 	installPollConfig retry.PollConfigFactory
 	watchPollConfig   retry.PollConfigFactory
@@ -25,6 +28,7 @@ func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.
 		chartCfg:          chartCfg,
 		installPollConfig: f.installPollConfig(),
 		helm:              f.helm(l, chartCfg),
+		httpClient:        f.httpClient,
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
 			GitopsClient: f.gitopsClient,
