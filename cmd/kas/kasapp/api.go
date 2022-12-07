@@ -26,10 +26,14 @@ type serverApi struct {
 }
 
 func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
-	handleProcessingError(ctx, a.Hub, log, agentId, msg, err)
+	handleProcessingError(ctx, a.hub, log, agentId, msg, err)
 }
 
-func handleProcessingError(ctx context.Context, hub SentryHub, log *zap.Logger, agentId int64, msg string, err error) {
+func (a *serverApi) hub() SentryHub {
+	return a.Hub
+}
+
+func handleProcessingError(ctx context.Context, hub func() SentryHub, log *zap.Logger, agentId int64, msg string, err error) {
 	if grpctool.RequestCanceledOrTimedOut(err) {
 		// An error caused by context signalling done
 		return
@@ -41,7 +45,7 @@ func handleProcessingError(ctx context.Context, hub SentryHub, log *zap.Logger, 
 		// Log at Info for now.
 		log.Info(msg, logz.Error(err))
 	} else {
-		logAndCapture(ctx, hub, log, agentId, msg, err)
+		logAndCapture(ctx, hub(), log, agentId, msg, err)
 	}
 }
 
