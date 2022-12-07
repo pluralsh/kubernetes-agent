@@ -179,6 +179,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	defer tunnelRegistry.Stop() // nolint: contextcheck
 
+	srvApi := &serverApi{
+		Hub: sentryHub,
+	}
+
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
 		tunnelTracker,
@@ -187,6 +191,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		internalSrv.server,
 		privateApiSrv.server,
 		privateApiSrv.kasPool,
+		srvApi,
 		registerer)
 	if err != nil {
 		return err
@@ -227,9 +232,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Construct modules
-	serverApi := &serverApi{
-		Hub: sentryHub,
-	}
 	poolWrapper := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
 	}
@@ -239,7 +241,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// and that can only be done before Serve() is called on the server.
 		module, err := factory.New(&modserver.Config{
 			Log:              a.Log.With(logz.ModuleName(factory.Name())),
-			Api:              serverApi,
+			Api:              srvApi,
 			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
 			Registerer:       registerer,
@@ -337,7 +339,7 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 
 func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder,
 	ownPrivateApiUrl string, internalServer, privateApiServer grpc.ServiceRegistrar, kasPool grpctool.PoolInterface,
-	registerer prometheus.Registerer) (kasRouter, error) {
+	api modshared.Api, registerer prometheus.Registerer) (kasRouter, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
@@ -347,18 +349,19 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 	if err != nil {
 		return nil, err
 	}
+	pollConfig := retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
+		routingInitBackoff,
+		routingMaxBackoff,
+		routingResetDuration,
+		routingBackoffFactor,
+		routingJitter,
+	))
 	return &router{
-		kasPool:          kasPool,
-		tunnelQuerier:    tunnelQuerier,
-		tunnelFinder:     tunnelFinder,
-		ownPrivateApiUrl: ownPrivateApiUrl,
-		pollConfig: retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
-			routingInitBackoff,
-			routingMaxBackoff,
-			routingResetDuration,
-			routingBackoffFactor,
-			routingJitter,
-		)),
+		kasPool:                   kasPool,
+		tunnelQuerier:             tracker.NewAggregatingQuerier(a.Log, tunnelQuerier, api, pollConfig),
+		tunnelFinder:              tunnelFinder,
+		ownPrivateApiUrl:          ownPrivateApiUrl,
+		pollConfig:                pollConfig,
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
