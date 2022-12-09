@@ -134,6 +134,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return fmt.Errorf("error tracker: %w", err)
 	}
 
+	srvApi := &serverApi{Hub: sentryHub}
+	errRep := modshared.ApiToErrReporter(srvApi)
+
 	// Redis
 	redisClient, err := a.constructRedisClient()
 	if err != nil {
@@ -142,7 +145,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
 
 	// RPC API factory
-	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(sentryHub, gitLabClient, redisClient)
+	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
 	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
@@ -157,7 +160,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -170,18 +173,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
 	// Reverse gRPC tunnel tracker
-	tunnelTracker := a.constructTunnelTracker(redisClient)
+	tunnelTracker := a.constructTunnelTracker(srvApi, redisClient)
 
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker, a.OwnPrivateApiUrl)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, tunnelTracker, a.OwnPrivateApiUrl)
 	if err != nil {
 		return err
 	}
 	defer tunnelRegistry.Stop() // nolint: contextcheck
-
-	srvApi := &serverApi{
-		Hub: sentryHub,
-	}
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
@@ -198,7 +197,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Agent tracker
-	agentTracker := a.constructAgentTracker(redisClient)
+	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
 	// Usage tracker
 	usageTracker := usage_metrics.NewUsageTracker()
@@ -310,8 +309,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface,
-	redisClient redis.UniversalClient) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient redis.UniversalClient) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
@@ -325,6 +323,7 @@ func (a *ConfiguredApp) constructRpcApiFactory(sentryHub *sentry.Hub, gitLabClie
 			aCfg.InfoCacheErrorTtl.AsDuration(),
 			&redistool.ErrCacher[api.AgentToken]{
 				Log:          a.Log,
+				ErrRep:       errRep,
 				Client:       redisClient,
 				ErrMarshaler: prototool.ProtoErrMarshaler{},
 				KeyToRedisKey: func(key api.AgentToken) string {
@@ -371,10 +370,11 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 	}, nil
 }
 
-func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient) agent_tracker.Tracker {
+func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient redis.UniversalClient) agent_tracker.Tracker {
 	cfg := a.Configuration
 	return agent_tracker.NewRedisTracker(
 		a.Log,
+		errRep,
 		redisClient,
 		cfg.Redis.KeyPrefix+":agent_tracker2",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
@@ -383,10 +383,11 @@ func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient)
 	)
 }
 
-func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient) tracker.Tracker {
+func (a *ConfiguredApp) constructTunnelTracker(api modshared.Api, redisClient redis.UniversalClient) tracker.Tracker {
 	cfg := a.Configuration
 	return tracker.NewRedisTracker(
 		a.Log,
+		api,
 		redisClient,
 		cfg.Redis.KeyPrefix+":tunnel_tracker2",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),

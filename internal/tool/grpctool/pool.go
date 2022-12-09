@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -34,34 +35,17 @@ type PoolInterface interface {
 type Pool struct {
 	mu       sync.Mutex
 	log      *zap.Logger
+	errRep   errz.ErrReporter
 	tlsCreds credentials.TransportCredentials
 	dialOpts []grpc.DialOption
 	conns    map[string]*connHolder // target -> conn
 	clk      clock.PassiveClock
 }
 
-func (p *Pool) Close() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	for targetUrl, conn := range p.conns {
-		delete(p.conns, targetUrl)
-		log := p.log.With(logz.PoolConnectionUrl(targetUrl))
-		if conn.numUsers > 0 {
-			log.Sugar().Warnf("Closing pool connection that is being used by %d callers", conn.numUsers)
-		}
-		err := conn.Close()
-		if err != nil {
-			log.Error("Error closing pool connection", logz.Error(err))
-		} else {
-			log.Debug("Closed pool connection")
-		}
-	}
-	return nil
-}
-
-func NewPool(log *zap.Logger, tlsCreds credentials.TransportCredentials, dialOpts ...grpc.DialOption) *Pool {
+func NewPool(log *zap.Logger, errRep errz.ErrReporter, tlsCreds credentials.TransportCredentials, dialOpts ...grpc.DialOption) *Pool {
 	return &Pool{
 		log:      log,
+		errRep:   errRep,
 		tlsCreds: tlsCreds,
 		dialOpts: dialOpts,
 		conns:    map[string]*connHolder{},
@@ -109,6 +93,25 @@ func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
 	}, nil
 }
 
+func (p *Pool) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for targetUrl, conn := range p.conns {
+		delete(p.conns, targetUrl)
+		log := p.log.With(logz.PoolConnectionUrl(targetUrl))
+		if conn.numUsers > 0 {
+			log.Sugar().Warnf("Closing pool connection that is being used by %d callers", conn.numUsers)
+		}
+		err := conn.Close()
+		if err != nil {
+			p.errRep.HandleProcessingError(context.Background(), log, "Error closing pool connection", err)
+		} else {
+			log.Debug("Closed pool connection")
+		}
+	}
+	return nil
+}
+
 func (p *Pool) connDone(conn *connHolder) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -124,7 +127,7 @@ func (p *Pool) runGcLocked() {
 			delete(p.conns, targetUrl)
 			err := conn.Close()
 			if err != nil {
-				p.log.Error("Error closing idle pool connection", logz.Error(err), logz.PoolConnectionUrl(targetUrl))
+				p.errRep.HandleProcessingError(context.Background(), p.log.With(logz.PoolConnectionUrl(targetUrl)), "Error closing idle pool connection", err)
 			} else {
 				p.log.Debug("Closed idle pool connection", logz.PoolConnectionUrl(targetUrl))
 			}

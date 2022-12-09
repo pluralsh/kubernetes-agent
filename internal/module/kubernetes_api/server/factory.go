@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
@@ -65,6 +66,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 				k8sApi.AllowedAgentCacheErrorTtl.AsDuration(),
 				&redistool.ErrCacher[string]{
 					Log:          config.Log,
+					ErrRep:       modshared.ApiToErrReporter(config.Api),
 					Client:       config.RedisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
 					KeyToRedisKey: func(jobToken string) string {

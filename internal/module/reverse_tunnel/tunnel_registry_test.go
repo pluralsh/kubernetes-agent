@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -44,6 +45,7 @@ var (
 func TestStopUnregistersAllConnections(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	gomock.InOrder(
@@ -59,7 +61,7 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -82,6 +84,7 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	reg := make(chan struct{})
@@ -110,7 +113,7 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 						UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
 	agentInfo := testhelpers.AgentInfoObj()
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -133,6 +136,7 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 func TestTunnelDoneDonePanics(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	reg := make(chan struct{})
@@ -157,7 +161,7 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		UnregisterTunnel(gomock.Any(), gomock.Any()).
 		Times(2)
 	agentInfo := testhelpers.AgentInfoObj()
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -183,6 +187,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 	defer cancelConn()
 
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	gomock.InOrder(
@@ -198,7 +203,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(ctxConn, testhelpers.AgentInfoObj(), connectServer)
 	assert.NoError(t, err)
@@ -213,6 +218,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
@@ -241,7 +247,7 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	tunnelRegisterer.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any()).
 		Times(2)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -280,12 +286,13 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 
 func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
 		Return(nil, status.Error(codes.DataLoss, "expected err"))
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = DataLoss desc = expected err")
@@ -293,6 +300,7 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 
 func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
@@ -302,7 +310,7 @@ func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 			},
 		}, nil)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
@@ -333,6 +341,7 @@ func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
@@ -348,7 +357,7 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
@@ -392,6 +401,7 @@ func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
@@ -407,7 +417,7 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
@@ -430,8 +440,9 @@ func TestFindTunnelIsUnblockedByContext(t *testing.T) {
 	defer cancelConn()
 
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	_, err = r.FindTunnel(ctxConn, testhelpers.AgentId, serviceName, methodName)
 	assert.Equal(t, context.DeadlineExceeded, err)
@@ -442,6 +453,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	cb := NewMockTunnelDataCallback(ctrl)
 
@@ -558,7 +570,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 			Return(io.EOF),
 	)
 
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	return incomingStream, rpcApi, cb, connectServer, r
 }

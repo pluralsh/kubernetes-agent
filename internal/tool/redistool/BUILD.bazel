@@ -19,6 +19,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/tool/errz",
         "//internal/tool/logz",
         "@com_github_go_redis_redis_v8//:redis",
         "@org_golang_google_protobuf//proto",
@@ -40,6 +41,8 @@ go_custom_test(
     embed = [":redistool"],
     deps = [
         "//internal/api",
+        "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_tool",
         "//internal/tool/testing/testhelpers",
         "@com_github_go_redis_redis_v8//:redis",
         "@com_github_go_redis_redismock_v8//:redismock",

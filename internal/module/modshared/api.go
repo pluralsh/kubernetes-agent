@@ -3,6 +3,7 @@ package modshared
 import (
 	"context"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
 )
@@ -39,4 +40,18 @@ type RpcApi interface {
 	// - stream's context is cancelled or max connection age has been reached. nil is returned in this case.
 	// - f returns Done. error from f is returned in this case.
 	PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBackoffFunc) error
+}
+
+func ApiToErrReporter(api Api) errz.ErrReporter {
+	return &errReporter{
+		Api: api,
+	}
+}
+
+type errReporter struct {
+	Api Api
+}
+
+func (r *errReporter) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
+	r.Api.HandleProcessingError(ctx, log, NoAgentId, msg, err)
 }

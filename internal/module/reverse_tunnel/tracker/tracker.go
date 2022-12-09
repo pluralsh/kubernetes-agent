@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
@@ -35,6 +36,7 @@ type Tracker interface {
 
 type RedisTracker struct {
 	log              *zap.Logger
+	api              modshared.Api
 	refreshPeriod    time.Duration
 	gcPeriod         time.Duration
 	ownPrivateApiUrl string
@@ -45,10 +47,11 @@ type RedisTracker struct {
 	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
 }
 
-func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod,
-	gcPeriod time.Duration, ownPrivateApiUrl string) *RedisTracker {
+func NewRedisTracker(log *zap.Logger, api modshared.Api, client redis.UniversalClient, agentKeyPrefix string,
+	ttl, refreshPeriod, gcPeriod time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
 		log:                   log,
+		api:                   api,
 		refreshPeriod:         refreshPeriod,
 		gcPeriod:              gcPeriod,
 		ownPrivateApiUrl:      ownPrivateApiUrl,
@@ -70,12 +73,12 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case <-refreshTicker.C:
 			err := t.refreshRegistrations(ctx, time.Now().Add(t.refreshPeriod-refreshOverlap))
 			if err != nil {
-				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
+				t.api.HandleProcessingError(ctx, t.log, modshared.NoAgentId, "Failed to refresh data in Redis", err)
 			}
 		case <-gcTicker.C:
 			deletedKeys, err := t.runGC(ctx)
 			if err != nil {
-				t.log.Error("Failed to GC data in Redis", logz.Error(err))
+				t.api.HandleProcessingError(ctx, t.log, modshared.NoAgentId, "Failed to GC data in Redis", err)
 				// fallthrough
 			}
 			if deletedKeys > 0 {
@@ -118,7 +121,7 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) erro
 func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
 	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
-			t.log.Error("Redis hash scan", logz.Error(err))
+			t.api.HandleProcessingError(ctx, t.log.With(logz.AgentId(agentId)), agentId, "Redis hash scan", err)
 			return false, nil
 		}
 		return cb(rawHashKey)

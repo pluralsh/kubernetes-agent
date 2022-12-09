@@ -45,6 +45,7 @@ type Tracker interface {
 
 type RedisTracker struct {
 	log           *zap.Logger
+	errRep        errz.ErrReporter
 	refreshPeriod time.Duration
 	gcPeriod      time.Duration
 
@@ -59,9 +60,10 @@ type RedisTracker struct {
 	connectedAgents        redistool.ExpiringHashInterface[int64, int64] // hash name -> agentId -> ""
 }
 
-func NewRedisTracker(log *zap.Logger, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
+func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
 	return &RedisTracker{
 		log:                    log,
+		errRep:                 errRep,
 		refreshPeriod:          refreshPeriod,
 		gcPeriod:               gcPeriod,
 		refreshMu:              syncz.NewRWMutex(),
@@ -122,11 +124,11 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 }
 
 func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error {
-	return getConnectionsByKey(ctx, t.log, t.connectionsByAgentId, agentId, cb)
+	return t.getConnectionsByKey(ctx, t.connectionsByAgentId, agentId, cb)
 }
 
 func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error {
-	return getConnectionsByKey(ctx, t.log, t.connectionsByProjectId, projectId, cb)
+	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId, cb)
 }
 
 func (t *RedisTracker) GetConnectedAgentsCount(ctx context.Context) (int64, error) {
@@ -154,7 +156,7 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 				t.log.Debug("Redis hash data refresh interrupted", logz.Error(err))
 				break
 			}
-			t.log.Error("Failed to refresh hash data in Redis", logz.Error(err))
+			t.errRep.HandleProcessingError(ctx, t.log, "Failed to refresh hash data in Redis", err)
 			// continue anyway
 		}
 	}
@@ -178,7 +180,7 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 				t.log.Debug("Redis GC interrupted", logz.Error(err))
 				break
 			}
-			t.log.Error("Failed to GC data in Redis", logz.Error(err))
+			t.errRep.HandleProcessingError(ctx, t.log, "Failed to GC data in Redis", err)
 			// continue anyway
 		}
 		keysDeleted += deleted
@@ -198,16 +200,16 @@ func (t *RedisTracker) runIOFuncs(ctx context.Context, f func() []redistool.IOFu
 	return g.Wait()
 }
 
-func getConnectionsByKey[K1 any, K2 any](ctx context.Context, log *zap.Logger, hash redistool.ExpiringHashInterface[K1, K2], key K1, cb ConnectedAgentInfoCallback) error {
+func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface[int64, int64], key int64, cb ConnectedAgentInfoCallback) error {
 	_, err := hash.Scan(ctx, key, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
-			log.Error("Redis hash scan", logz.Error(err))
+			t.errRep.HandleProcessingError(ctx, t.log, "Redis hash scan", err)
 			return false, nil
 		}
 		var info ConnectedAgentInfo
 		err = proto.Unmarshal(value, &info)
 		if err != nil {
-			log.Error("Redis proto.Unmarshal(ConnectedAgentInfo)", logz.Error(err))
+			t.errRep.HandleProcessingError(ctx, t.log, "Redis proto.Unmarshal(ConnectedAgentInfo)", err)
 			return false, nil
 		}
 		return cb(&info)

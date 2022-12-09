@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
@@ -28,7 +30,7 @@ const (
 func TestRegisterConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
 		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
@@ -47,7 +49,7 @@ func TestRegisterConnection(t *testing.T) {
 func TestRegisterConnection_TwoConnections(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
 		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
@@ -68,7 +70,7 @@ func TestRegisterConnection_TwoConnections(t *testing.T) {
 func TestUnregisterConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	gomock.InOrder(
 		hash.EXPECT().
@@ -93,7 +95,7 @@ func TestUnregisterConnection(t *testing.T) {
 func TestUnregisterConnection_TwoConnections(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	gomock.InOrder(
 		hash.EXPECT().
@@ -122,7 +124,7 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
 		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
@@ -139,7 +141,7 @@ func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
 }
 
 func TestGC(t *testing.T) {
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	wasCalled := false
 
@@ -157,7 +159,7 @@ func TestGC(t *testing.T) {
 }
 
 func TestRefreshRegistrations(t *testing.T) {
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
 		Refresh(gomock.Any()).
@@ -166,7 +168,7 @@ func TestRefreshRegistrations(t *testing.T) {
 }
 
 func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
-	r, hash := setupTracker(t)
+	r, hash, _ := setupTracker(t)
 	hash.EXPECT().
 		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
@@ -188,7 +190,7 @@ func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
 }
 
 func TestKasUrlsByAgentId_ScanError(t *testing.T) {
-	r, hash := setupTracker(t)
+	r, hash, api := setupTracker(t)
 	hash.EXPECT().
 		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
@@ -197,6 +199,8 @@ func TestKasUrlsByAgentId_ScanError(t *testing.T) {
 			assert.False(t, done)
 			return 0, nil
 		})
+	api.EXPECT().
+		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "Redis hash scan", matcher.ErrorEq("intended error"))
 	err := r.KasUrlsByAgentId(context.Background(), testhelpers.AgentId, func(kasUrl string) (bool, error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
@@ -204,17 +208,19 @@ func TestKasUrlsByAgentId_ScanError(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, string]) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, string], *mock_modshared.MockApi) {
 	ctrl := gomock.NewController(t)
+	api := mock_modshared.NewMockApi(ctrl)
 	hash := mock_redis.NewMockExpiringHashInterface[int64, string](ctrl)
 	return &RedisTracker{
 		log:                   zaptest.NewLogger(t),
+		api:                   api,
 		refreshPeriod:         time.Minute,
 		gcPeriod:              time.Minute,
 		ownPrivateApiUrl:      selfUrl,
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      hash,
-	}, hash
+	}, hash, api
 }
 
 func nopIOFunc(ctx context.Context) error {
