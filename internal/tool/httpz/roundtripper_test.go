@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,11 @@ const (
 )
 
 func TestUpgradeRoundTripper_HappyPath(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Wait()
+	wg.Add(1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer wg.Done()
 		t.Log("SRV: Reading request")
 		reqBody, err := io.ReadAll(r.Body)
 		if !assert.NoError(t, err) {
