@@ -26,7 +26,7 @@ type serverRpcApi struct {
 }
 
 func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error) {
-	handleProcessingError(a.StreamCtx, a.hub(), log, agentId, msg, err)
+	handleProcessingError(a.StreamCtx, a.hub, log, agentId, msg, err)
 }
 
 func (a *serverRpcApi) HandleIoError(log *zap.Logger, msg string, err error) error {

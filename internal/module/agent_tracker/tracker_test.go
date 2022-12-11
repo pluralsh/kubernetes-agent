@@ -13,7 +13,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -30,7 +32,7 @@ var (
 func TestRegisterConnection_HappyPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, info := setupTracker(t)
 
 	byProjectId.EXPECT().
 		Set(info.ProjectId, info.ConnectionId, gomock.Any()).
@@ -55,7 +57,7 @@ func TestRegisterConnection_HappyPath(t *testing.T) {
 func TestRegisterConnection_AllCalledOnError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, info := setupTracker(t)
 
 	err1 := errors.New("err1")
 	err2 := errors.New("err2")
@@ -86,7 +88,7 @@ func TestRegisterConnection_AllCalledOnError(t *testing.T) {
 func TestUnregisterConnection_HappyPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, info := setupTracker(t)
 
 	gomock.InOrder(
 		byProjectId.EXPECT().
@@ -125,7 +127,7 @@ func TestUnregisterConnection_HappyPath(t *testing.T) {
 func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, connectedAgents, byAgentId, byProjectId, info := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, info := setupTracker(t)
 
 	err1 := errors.New("err1")
 	err2 := errors.New("err2")
@@ -169,7 +171,7 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 }
 
 func TestGC_HappyPath(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, _ := setupTracker(t)
 
 	wasCalled1 := false
 	wasCalled2 := false
@@ -203,32 +205,44 @@ func TestGC_HappyPath(t *testing.T) {
 }
 
 func TestGC_AllCalledOnError(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, rep, _ := setupTracker(t)
 
 	wasCalled1 := false
 	wasCalled2 := false
 	wasCalled3 := false
 
-	connectedAgents.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled3 = true
-			return 3, errors.New("err3")
-		})
+	gomock.InOrder(
+		connectedAgents.EXPECT().
+			GC().
+			Return(func(_ context.Context) (int, error) {
+				wasCalled3 = true
+				return 3, errors.New("err3")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err3")),
+	)
 
-	byAgentId.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled2 = true
-			return 2, errors.New("err2")
-		})
+	gomock.InOrder(
+		byAgentId.EXPECT().
+			GC().
+			Return(func(_ context.Context) (int, error) {
+				wasCalled2 = true
+				return 2, errors.New("err2")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err2")),
+	)
 
-	byProjectId.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled1 = true
-			return 1, errors.New("err1")
-		})
+	gomock.InOrder(
+		byProjectId.EXPECT().
+			GC().
+			Return(func(_ context.Context) (int, error) {
+				wasCalled1 = true
+				return 1, errors.New("err1")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err1")),
+	)
 
 	assert.EqualValues(t, 6, r.runGC(context.Background()))
 	assert.True(t, wasCalled1)
@@ -237,7 +251,7 @@ func TestGC_AllCalledOnError(t *testing.T) {
 }
 
 func TestRefresh_HappyPath(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, _, _ := setupTracker(t)
 
 	wasCalled1 := false
 	wasCalled2 := false
@@ -268,30 +282,42 @@ func TestRefresh_HappyPath(t *testing.T) {
 }
 
 func TestRefresh_AllCalledOnError(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, _ := setupTracker(t)
+	r, connectedAgents, byAgentId, byProjectId, rep, _ := setupTracker(t)
 
 	wasCalled1 := false
 	wasCalled2 := false
 	wasCalled3 := false
 
-	connectedAgents.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled1 = true
-			return errors.New("err3")
-		})
-	byAgentId.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled2 = true
-			return errors.New("err1")
-		})
-	byProjectId.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled3 = true
-			return errors.New("err2")
-		})
+	gomock.InOrder(
+		connectedAgents.EXPECT().
+			Refresh(gomock.Any()).
+			Return(func(ctx context.Context) error {
+				wasCalled1 = true
+				return errors.New("err3")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err3")),
+	)
+	gomock.InOrder(
+		byAgentId.EXPECT().
+			Refresh(gomock.Any()).
+			Return(func(ctx context.Context) error {
+				wasCalled2 = true
+				return errors.New("err1")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err1")),
+	)
+	gomock.InOrder(
+		byProjectId.EXPECT().
+			Refresh(gomock.Any()).
+			Return(func(ctx context.Context) error {
+				wasCalled3 = true
+				return errors.New("err2")
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err2")),
+	)
 	r.refreshRegistrations(context.Background(), time.Now())
 	assert.True(t, wasCalled1)
 	assert.True(t, wasCalled2)
@@ -299,7 +325,7 @@ func TestRefresh_AllCalledOnError(t *testing.T) {
 }
 
 func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
-	r, _, _, byProjectId, info := setupTracker(t)
+	r, _, _, byProjectId, _, info := setupTracker(t)
 	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byProjectId.EXPECT().
@@ -323,15 +349,19 @@ func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
 }
 
 func TestGetConnectionsByProjectId_ScanError(t *testing.T) {
-	r, _, _, byProjectId, info := setupTracker(t)
-	byProjectId.EXPECT().
-		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb("", nil, errors.New("intended error"))
-			require.NoError(t, err)
-			assert.False(t, done)
-			return 0, nil
-		})
+	r, _, _, byProjectId, rep, info := setupTracker(t)
+	gomock.InOrder(
+		byProjectId.EXPECT().
+			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
+			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+				done, err := cb("", nil, errors.New("intended error"))
+				require.NoError(t, err)
+				assert.False(t, done)
+				return 0, nil
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis hash scan", matcher.ErrorEq("intended error")),
+	)
 	err := r.GetConnectionsByProjectId(context.Background(), info.ProjectId, func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
@@ -340,15 +370,19 @@ func TestGetConnectionsByProjectId_ScanError(t *testing.T) {
 }
 
 func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
-	r, _, _, byProjectId, info := setupTracker(t)
-	byProjectId.EXPECT().
-		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
-			require.NoError(t, err)                     // ignores error to keep going
-			assert.False(t, done)
-			return 0, nil
-		})
+	r, _, _, byProjectId, rep, info := setupTracker(t)
+	gomock.InOrder(
+		byProjectId.EXPECT().
+			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
+			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+				done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
+				require.NoError(t, err)                     // ignores error to keep going
+				assert.False(t, done)
+				return 0, nil
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis proto.Unmarshal(ConnectedAgentInfo)", matcher.ErrorIs(proto.Error)),
+	)
 	err := r.GetConnectionsByProjectId(context.Background(), info.ProjectId, func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
@@ -357,7 +391,7 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 }
 
 func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
-	r, _, byAgentId, _, info := setupTracker(t)
+	r, _, byAgentId, _, _, info := setupTracker(t)
 	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byAgentId.EXPECT().
@@ -381,15 +415,19 @@ func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
 }
 
 func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
-	r, _, byAgentId, _, info := setupTracker(t)
-	byAgentId.EXPECT().
-		Scan(gomock.Any(), info.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb("", nil, errors.New("intended error"))
-			require.NoError(t, err)
-			assert.False(t, done)
-			return 0, nil
-		})
+	r, _, byAgentId, _, rep, info := setupTracker(t)
+	gomock.InOrder(
+		byAgentId.EXPECT().
+			Scan(gomock.Any(), info.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+				done, err := cb("", nil, errors.New("intended error"))
+				require.NoError(t, err)
+				assert.False(t, done)
+				return 0, nil
+			}),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis hash scan", matcher.ErrorEq("intended error")),
+	)
 	err := r.GetConnectionsByAgentId(context.Background(), info.AgentId, func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
@@ -398,7 +436,7 @@ func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
 }
 
 func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
-	r, _, byAgentId, _, info := setupTracker(t)
+	r, _, byAgentId, _, rep, info := setupTracker(t)
 	byAgentId.EXPECT().
 		Scan(gomock.Any(), info.AgentId, gomock.Any()).
 		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
@@ -407,6 +445,8 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 			assert.False(t, done)
 			return 0, nil
 		})
+	rep.EXPECT().
+		HandleProcessingError(gomock.Any(), gomock.Any(), "Redis proto.Unmarshal(ConnectedAgentInfo)", matcher.ErrorIs(proto.Error))
 	err := r.GetConnectionsByAgentId(context.Background(), info.AgentId, func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
@@ -415,7 +455,7 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 }
 
 func TestGetConnectedAgentsCount_HappyPath(t *testing.T) {
-	r, connectedAgents, _, _, _ := setupTracker(t)
+	r, connectedAgents, _, _, _, _ := setupTracker(t)
 	connectedAgents.EXPECT().
 		Len(gomock.Any(), connectedAgentsKey).
 		Return(int64(1), nil)
@@ -425,7 +465,7 @@ func TestGetConnectedAgentsCount_HappyPath(t *testing.T) {
 }
 
 func TestGetConnectedAgentsCount_LenError(t *testing.T) {
-	r, connectedAgents, _, _, _ := setupTracker(t)
+	r, connectedAgents, _, _, _, _ := setupTracker(t)
 	connectedAgents.EXPECT().
 		Len(gomock.Any(), connectedAgentsKey).
 		Return(int64(0), errors.New("intended error"))
@@ -438,13 +478,15 @@ func nopIOFunc(ctx context.Context) error {
 	return nil
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *ConnectedAgentInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_tool.MockErrReporter, *ConnectedAgentInfo) {
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	connectedAgents := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
 	byAgentId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
 	byProjectId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
 	tr := &RedisTracker{
 		log:                    zaptest.NewLogger(t),
+		errRep:                 rep,
 		refreshPeriod:          time.Minute,
 		gcPeriod:               time.Minute,
 		refreshMu:              syncz.NewRWMutex(),
@@ -452,7 +494,7 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		connectionsByProjectId: byProjectId,
 		connectedAgents:        connectedAgents,
 	}
-	return tr, connectedAgents, byAgentId, byProjectId, connInfo()
+	return tr, connectedAgents, byAgentId, byProjectId, rep, connInfo()
 }
 
 func connInfo() *ConnectedAgentInfo {

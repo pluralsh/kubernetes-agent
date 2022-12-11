@@ -2,6 +2,7 @@ package matcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 var (
 	_ gomock.Matcher = &cmpMatcher{}
-	_ gomock.Matcher = &errorMatcher{}
+	_ gomock.Matcher = &errorEqMatcher{}
 	_ gomock.Matcher = &grpcOutgoingCtx{}
 )
 
@@ -30,7 +31,13 @@ func ProtoEq(t *testing.T, msg interface{}, opts ...cmp.Option) gomock.Matcher {
 }
 
 func ErrorEq(expectedError string) gomock.Matcher {
-	return &errorMatcher{
+	return &errorEqMatcher{
+		expectedError: expectedError,
+	}
+}
+
+func ErrorIs(expectedError error) gomock.Matcher {
+	return &errorIsMatcher{
 		expectedError: expectedError,
 	}
 }
@@ -67,19 +74,34 @@ func (e cmpMatcher) String() string {
 	return fmt.Sprintf("equals %s with %d option(s)", e.expected, len(e.options))
 }
 
-type errorMatcher struct {
+type errorEqMatcher struct {
 	expectedError string
 }
 
-func (e *errorMatcher) Matches(x interface{}) bool {
+func (e *errorEqMatcher) Matches(x interface{}) bool {
 	if err, ok := x.(error); ok {
 		return err.Error() == e.expectedError
 	}
 	return false
 }
 
-func (e *errorMatcher) String() string {
+func (e *errorEqMatcher) String() string {
 	return fmt.Sprintf("error with message %q", e.expectedError)
+}
+
+type errorIsMatcher struct {
+	expectedError error
+}
+
+func (e *errorIsMatcher) Matches(x interface{}) bool {
+	if err, ok := x.(error); ok {
+		return errors.Is(err, e.expectedError)
+	}
+	return false
+}
+
+func (e *errorIsMatcher) String() string {
+	return fmt.Sprintf("error Is(%v)", e.expectedError)
 }
 
 type grpcOutgoingCtx struct {

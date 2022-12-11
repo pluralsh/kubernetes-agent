@@ -47,7 +47,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
-	defer s.maybeUnregisterAgent(log, connectedAgentInfo)
+	defer s.maybeUnregisterAgent(log, rpcApi, connectedAgentInfo)
 	lastProcessedCommitId := req.CommitId
 	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
@@ -62,7 +62,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		}
 		// re-define log to avoid accidentally using the old one
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
-		s.maybeRegisterAgent(ctx, log, connectedAgentInfo, agentInfo)
+		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo)
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
 			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
@@ -167,7 +167,8 @@ func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	return configFile, nil
 }
 
-func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo) {
+func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, rpcApi modserver.AgentRpcApi,
+	connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo) {
 	if connectedAgentInfo.AgentId != 0 {
 		return
 	}
@@ -175,17 +176,17 @@ func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, connec
 	connectedAgentInfo.ProjectId = agentInfo.ProjectId
 	err := s.agentRegisterer.RegisterConnection(ctx, connectedAgentInfo)
 	if err != nil {
-		log.Error("Failed to register agent", logz.Error(err))
+		rpcApi.HandleProcessingError(log, agentInfo.Id, "Failed to register agent", err)
 	}
 }
 
-func (s *server) maybeUnregisterAgent(log *zap.Logger, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
+func (s *server) maybeUnregisterAgent(log *zap.Logger, rpcApi modserver.AgentRpcApi, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
 	if connectedAgentInfo.AgentId == 0 {
 		return
 	}
 	err := s.agentRegisterer.UnregisterConnection(context.Background(), connectedAgentInfo)
 	if err != nil {
-		log.Error("Failed to unregister agent", logz.Error(err))
+		rpcApi.HandleProcessingError(log, connectedAgentInfo.AgentId, "Failed to unregister agent", err)
 	}
 }
 

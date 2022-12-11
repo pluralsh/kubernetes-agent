@@ -29,7 +29,9 @@ go_custom_test(
     embed = [":tracker"],
     deps = [
         "//internal/tool/redistool",
+        "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_modserver",
+        "//internal/tool/testing/mock_modshared",
         "//internal/tool/testing/mock_redis",
         "//internal/tool/testing/mock_reverse_tunnel_tracker",
         "//internal/tool/testing/testhelpers",

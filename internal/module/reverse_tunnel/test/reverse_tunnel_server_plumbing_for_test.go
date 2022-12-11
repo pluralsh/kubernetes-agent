@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
 	"go.uber.org/zap"
@@ -32,6 +33,7 @@ import (
 func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAgentRpcApi, *mock_reverse_tunnel_tracker.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	serverRpcApi := mock_modserver.NewMockAgentRpcApi(ctrl)
 	serverRpcApi.EXPECT().
 		Log().
@@ -53,7 +55,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer, "grpc://127.0.0.1:123")
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)

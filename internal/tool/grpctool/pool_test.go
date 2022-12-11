@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -29,7 +31,9 @@ var (
 )
 
 func TestKasPool_DialConnDifferentPort(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
+	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
+	p := NewPool(zaptest.NewLogger(t), rep, credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -41,7 +45,9 @@ func TestKasPool_DialConnDifferentPort(t *testing.T) {
 }
 
 func TestKasPool_DialConnSequentialReuse(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
+	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
+	p := NewPool(zaptest.NewLogger(t), rep, credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -53,7 +59,9 @@ func TestKasPool_DialConnSequentialReuse(t *testing.T) {
 }
 
 func TestKasPool_DialConnConcurrentReuse(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
+	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
+	p := NewPool(zaptest.NewLogger(t), rep, credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	defer clz(t, p)
 	c1, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
@@ -65,7 +73,9 @@ func TestKasPool_DialConnConcurrentReuse(t *testing.T) {
 }
 
 func TestKasPool_CloseClosesAllConnections(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
+	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
+	p := NewPool(zaptest.NewLogger(t), rep, credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	c, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)
 	c.Done()
@@ -74,7 +84,9 @@ func TestKasPool_CloseClosesAllConnections(t *testing.T) {
 }
 
 func TestKasPool_DonePanicsOnMultipleInvocations(t *testing.T) {
-	p := NewPool(zaptest.NewLogger(t), credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
+	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
+	p := NewPool(zaptest.NewLogger(t), rep, credentials.NewTLS(tlstool.DefaultClientTLSConfig()))
 	defer clz(t, p)
 	c, err := p.Dial(context.Background(), t1)
 	require.NoError(t, err)

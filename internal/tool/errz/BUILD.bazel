@@ -9,6 +9,7 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz",
     visibility = ["//:__subpackages__"],
+    deps = ["@org_uber_go_zap//:zap"],
 )
 
 go_custom_test(

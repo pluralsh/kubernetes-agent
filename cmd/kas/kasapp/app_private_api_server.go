@@ -11,6 +11,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
@@ -36,7 +37,7 @@ type privateApiServer struct {
 	ready         func()
 }
 
-func newPrivateApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
+func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, factory modserver.RpcApiFactory,
 	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry) (*privateApiServer, error) {
 	listenCfg := cfg.PrivateApi.Listen
@@ -49,7 +50,7 @@ func newPrivateApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trac
 	listener := grpctool.NewDialListener()
 
 	// Client pool
-	kasPool, err := newKasPool(log, tp, p, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost, listenCfg.CaCertificateFile, listener.DialContext)
+	kasPool, err := newKasPool(log, errRep, tp, p, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost, listenCfg.CaCertificateFile, listener.DialContext)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
 	}
@@ -136,7 +137,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	)...), nil
 }
 
-func newKasPool(log *zap.Logger, tp trace.TracerProvider, p propagation.TextMapPropagator, jwtSecret []byte,
+func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator, jwtSecret []byte,
 	ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string, dialer func(context.Context, string) (net.Conn, error)) (grpctool.PoolInterface, error) {
 
 	sharedPoolOpts := []grpc.DialOption{
@@ -178,6 +179,6 @@ func newKasPool(log *zap.Logger, tp trace.TracerProvider, p propagation.TextMapP
 		return nil, err
 	}
 	tlsCreds.ServerName = ownPrivateApiHost
-	kasPool := grpctool.NewPool(log, credentials.NewTLS(tlsCreds), sharedPoolOpts...)
+	kasPool := grpctool.NewPool(log, errRep, credentials.NewTLS(tlsCreds), sharedPoolOpts...)
 	return grpctool.NewPoolSelf(kasPool, ownPrivateApiUrl, inMemConn), nil
 }

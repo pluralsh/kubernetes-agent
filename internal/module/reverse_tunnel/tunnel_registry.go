@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"go.uber.org/zap"
@@ -46,6 +47,7 @@ type findTunnelRequest struct {
 
 type TunnelRegistry struct {
 	log                 *zap.Logger
+	errRep              errz.ErrReporter
 	tunnelRegisterer    tracker.Registerer
 	ownPrivateApiUrl    string
 	tunnelStreamVisitor *grpctool.StreamVisitor
@@ -56,13 +58,14 @@ type TunnelRegistry struct {
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer, ownPrivateApiUrl string) (*TunnelRegistry, error) {
+func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer tracker.Registerer, ownPrivateApiUrl string) (*TunnelRegistry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return &TunnelRegistry{
 		log:                   log,
+		errRep:                errRep,
 		tunnelRegisterer:      tunnelRegisterer,
 		ownPrivateApiUrl:      ownPrivateApiUrl,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
@@ -337,18 +340,18 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 
 func (r *TunnelRegistry) registerTunnelIO(agentId int64) IOFunc {
 	return func() {
-		err := r.tunnelRegisterer.RegisterTunnel(context.Background(), agentId)
+		err := r.tunnelRegisterer.RegisterTunnel(context.Background(), agentId) // don't pass context to always register
 		if err != nil {
-			r.log.Error("Failed to register tunnel", logz.AgentId(agentId), logz.Error(err))
+			r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to register tunnel", err)
 		}
 	}
 }
 
 func (r *TunnelRegistry) unregisterTunnelIO(agentId int64) IOFunc {
 	return func() {
-		err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), agentId)
+		err := r.tunnelRegisterer.UnregisterTunnel(context.Background(), agentId) // don't pass context to always unregister
 		if err != nil {
-			r.log.Error("Failed to unregister tunnel", logz.AgentId(agentId), logz.Error(err))
+			r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to unregister tunnel", err)
 		}
 	}
 }

@@ -23,6 +23,7 @@ go_custom_test(
         "//internal/tool/testing/mock_modagent",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel_tracker",
+        "//internal/tool/testing/mock_tool",
         "//internal/tool/testing/testhelpers",
         "//pkg/kascfg",
         "@com_github_ash2k_stager//:stager",

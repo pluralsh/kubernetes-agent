@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
@@ -60,6 +61,7 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 				gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 				&redistool.ErrCacher[projectInfoCacheKey]{
 					Log:          config.Log,
+					ErrRep:       modshared.ApiToErrReporter(config.Api),
 					Client:       redisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
 					KeyToRedisKey: func(cacheKey projectInfoCacheKey) string {

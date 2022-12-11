@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"go.uber.org/zap"
@@ -237,6 +238,7 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 
 func TestRouter_FindTunnelTimeout(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	log := zaptest.NewLogger(t)
 	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
@@ -283,7 +285,7 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
 	r := &router{
-		kasPool: grpctool.NewPool(log,
+		kasPool: grpctool.NewPool(log, rep,
 			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
 			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 				if addr == "self" {
@@ -383,6 +385,7 @@ func mdContains(t *testing.T, expectedMd metadata.MD, actualMd metadata.MD) {
 // router_agent handler --> tunnel finder --> tunnel.ForwardStream()
 func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelForwardStream *gomock.Call, runTest func(client test.TestingClient)) {
 	ctrl := gomock.NewController(t)
+	rep := mock_tool.NewMockErrReporter(ctrl)
 	log := zaptest.NewLogger(t)
 	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
@@ -438,7 +441,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
 	r := &router{
-		kasPool: grpctool.NewPool(log,
+		kasPool: grpctool.NewPool(log, rep,
 			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
 			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 				if addr == "self" {

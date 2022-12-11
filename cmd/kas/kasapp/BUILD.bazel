@@ -148,6 +148,7 @@ go_custom_test(
         "//internal/tool/testing/mock_reverse_tunnel",
         "//internal/tool/testing/mock_reverse_tunnel_tracker",
         "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/mock_tool",
         "//internal/tool/testing/testhelpers",
         "//internal/tool/tlstool",
         "@com_github_getsentry_sentry_go//:sentry-go",
