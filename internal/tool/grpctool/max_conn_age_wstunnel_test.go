@@ -33,6 +33,14 @@ var (
 // These tests verify our understanding of how MaxConnectionAge and MaxConnectionAgeGrace work in gRPC
 // and that our WebSocket tunneling works fine with it.
 
+// TestMaxConnectionAgeValues just prints the values for debugging purposes.
+func TestMaxConnectionAgeValues(t *testing.T) {
+	grpcKeepalive, _ := maxConnectionAge2GrpcKeepalive(context.Background(), 30*time.Minute)
+	t.Logf("30 minute MaxConnectionAge: %v, MaxConnectionAgeGrace: %v", grpcKeepalive.MaxConnectionAge, grpcKeepalive.MaxConnectionAgeGrace)
+	grpcKeepalive, _ = maxConnectionAge2GrpcKeepalive(context.Background(), 2*time.Hour)
+	t.Logf("2 hour MaxConnectionAge: %v, MaxConnectionAgeGrace: %v", grpcKeepalive.MaxConnectionAge, grpcKeepalive.MaxConnectionAgeGrace)
+}
+
 func TestMaxConnectionAge(t *testing.T) {
 	t.Parallel()
 	const maxAge = 3 * time.Second
