@@ -181,7 +181,7 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.ReadLimit != 0 {
 		conn.SetReadLimit(h.ReadLimit)
 	}
-	netConn := websocket.NetConn(context.Background(), conn, websocket.MessageBinary)
+	netConn := websocket.NetConn(context.Background(), conn, websocket.MessageBinary) // nolint: contextcheck
 
 	select {
 	case <-h.Ctx.Done():

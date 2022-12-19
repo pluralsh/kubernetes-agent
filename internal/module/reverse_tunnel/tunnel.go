@@ -19,8 +19,8 @@ import (
 type stateType int
 
 const (
-	// invalid - zero value is invalid to catch initialization bugs.
-	invalid stateType = iota
+	// zero value is invalid to catch initialization bugs.
+	_ stateType = iota
 	// stateReady - tunnel is owned by the registry and is ready to be found and used for forwarding.
 	stateReady
 	// stateFound - tunnel is not owned by registry, was found and about to be used for forwarding.
@@ -186,7 +186,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 	case <-incomingCtx.Done():
 		// incoming stream finished sending all data (i.e. io.EOF was read from it) but
 		// now it signals that it's closing. We need to abort the potentially stuck t.tunnel.RecvMsg().
-		err := status.FromContextError(incomingCtx.Err()).Err()
+		err := grpctool.StatusErrorFromContext(incomingCtx, "Incoming stream closed")
 		pair = errPair{
 			forTunnel:         err,
 			forIncomingStream: err,

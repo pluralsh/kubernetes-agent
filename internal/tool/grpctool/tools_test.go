@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
@@ -116,6 +117,35 @@ func TestHandleIoError(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			actual := grpctool.HandleIoError("msg", tc.in)
 			assert.Equal(t, tc.expected.Error(), actual.Error())
+		})
+	}
+}
+
+func TestStatusErrorFromContext(t *testing.T) {
+	canceled, cancel1 := context.WithCancel(context.Background())
+	cancel1()
+	expired, _ := context.WithDeadline(context.Background(), time.Now().Add(-time.Minute)) // nolint: govet
+	tests := []struct {
+		ctx         context.Context
+		expectedMsg string
+	}{
+		{
+			ctx:         context.Background(),
+			expectedMsg: "rpc error: code = Unknown desc = 123: <nil>",
+		},
+		{
+			ctx:         canceled,
+			expectedMsg: "rpc error: code = Canceled desc = 123: context canceled",
+		},
+		{
+			ctx:         expired,
+			expectedMsg: "rpc error: code = DeadlineExceeded desc = 123: context deadline exceeded",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.expectedMsg, func(t *testing.T) {
+			err := grpctool.StatusErrorFromContext(tc.ctx, "123")
+			assert.EqualError(t, err, tc.expectedMsg)
 		})
 	}
 }

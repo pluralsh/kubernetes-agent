@@ -6,7 +6,6 @@ import (
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
@@ -14,7 +13,6 @@ import (
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerStream) error {
@@ -35,7 +33,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 	stream = wrappedStream
 	tunnel, err := r.tunnelFinder.FindTunnel(wrappedStream.WrappedContext, agentId, service, method)
 	if err != nil {
-		return status.FromContextError(err).Err()
+		return grpctool.StatusErrorFromContext(wrappedStream.WrappedContext, "FindTunnel request aborted")
 	}
 	defer tunnel.Done()
 	rpcApi := modserver.RpcApiFromContext(ctx)
@@ -69,10 +67,6 @@ func removeHopMeta(md metadata.MD) metadata.MD {
 	}
 	return md
 }
-
-var (
-	_ reverse_tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
-)
 
 type wrappingCallback struct {
 	log    *zap.Logger

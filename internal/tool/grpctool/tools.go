@@ -119,3 +119,19 @@ func SplitGrpcMethod(fullMethodName string) (string /* service */, string /* met
 	method := fullMethodName[pos+1:]
 	return service, method
 }
+
+// StatusErrorFromContext is a version of status.FromContextError(ctx.Err()).Err() that allows to augment the
+// error message.
+func StatusErrorFromContext(ctx context.Context, msg string) error {
+	err := ctx.Err()
+	var code codes.Code
+	switch err { // nolint: errorlint
+	case context.Canceled:
+		code = codes.Canceled
+	case context.DeadlineExceeded:
+		code = codes.DeadlineExceeded
+	default:
+		code = codes.Unknown
+	}
+	return status.Errorf(code, "%s: %v", msg, err)
+}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -64,7 +65,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 	go tf.Run(ctx)
 	select {
 	case <-ctx.Done():
-		return readyTunnel{}, status.FromContextError(ctx.Err()).Err()
+		return readyTunnel{}, grpctool.StatusErrorFromContext(ctx, "RouteToKasStreamHandler request aborted")
 	case <-t.C:
 		// No need to cancel ctx explicitly here.
 		// ctx will be cancelled when we return from the RPC handler and tf.Run() will stop.

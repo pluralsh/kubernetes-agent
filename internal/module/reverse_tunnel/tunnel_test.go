@@ -137,8 +137,8 @@ func TestTunnel_ForwardStream_IsUnblockedWhenIncomingStreamContextIsCancelledAft
 		onDone: func(t *tunnel) {},
 	}
 	err = c.ForwardStream(nil, nil, incomingStream, cb)
-	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = context deadline exceeded")
+	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = Incoming stream closed: context deadline exceeded")
 	err = <-tunnelRetErr
-	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = context deadline exceeded")
+	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = Incoming stream closed: context deadline exceeded")
 	close(recvChan) // unblock recv
 }
