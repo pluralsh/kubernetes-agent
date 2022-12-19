@@ -177,7 +177,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	p.pipeStreams(log, agentId, w, r, mkClient, impConfig)
+	p.pipeStreams(log, agentId, w, r, mkClient, impConfig) // nolint: contextcheck
 	return log, agentId, nil
 }
 
