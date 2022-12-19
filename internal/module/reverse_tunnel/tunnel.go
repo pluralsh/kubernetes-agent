@@ -186,7 +186,7 @@ func (t *tunnel) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream gr
 	case <-incomingCtx.Done():
 		// incoming stream finished sending all data (i.e. io.EOF was read from it) but
 		// now it signals that it's closing. We need to abort the potentially stuck t.tunnel.RecvMsg().
-		err := status.FromContextError(incomingCtx.Err()).Err()
+		err := grpctool.StatusErrorFromContext(incomingCtx, "Incoming stream closed")
 		pair = errPair{
 			forTunnel:         err,
 			forIncomingStream: err,

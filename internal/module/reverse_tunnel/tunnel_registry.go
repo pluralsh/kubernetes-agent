@@ -253,7 +253,7 @@ func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
 	case stateDone:
 		return status.Error(codes.Internal, "ForwardStream() called after Done()")
 	case stateContextDone:
-		return context.Canceled
+		return status.Error(codes.Canceled, "ForwardStream() called on done stream")
 	default:
 		return status.Errorf(codes.Internal, "unreachable: invalid state: %d", tun.state)
 	}

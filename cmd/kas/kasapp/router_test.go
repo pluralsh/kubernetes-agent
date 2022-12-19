@@ -38,9 +38,10 @@ import (
 )
 
 var (
-	_ kasRouter          = (*router)(nil)
-	_ grpc.StreamHandler = (*router)(nil).RouteToKasStreamHandler
-	_ grpc.StreamHandler = (*router)(nil).RouteToAgentStreamHandler
+	_ kasRouter                         = (*router)(nil)
+	_ grpc.StreamHandler                = (*router)(nil).RouteToKasStreamHandler
+	_ grpc.StreamHandler                = (*router)(nil).RouteToAgentStreamHandler
+	_ reverse_tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
 )
 
 const (
