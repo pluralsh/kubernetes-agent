@@ -570,6 +570,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
 }
+
 func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
 	otlpEndpoint := a.Configuration.Observability.Tracing.OtlpEndpoint
 	if otlpEndpoint == nil {
