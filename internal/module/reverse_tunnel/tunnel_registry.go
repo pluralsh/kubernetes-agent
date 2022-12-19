@@ -191,8 +191,6 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 			// Cannot happen twice.
 			r.mu.Unlock()
 			panic(errors.New("unreachable"))
-		case invalid:
-			fallthrough // satisfy 'exhaustive' linter
 		default:
 			// Should never happen
 			r.mu.Unlock()
@@ -256,8 +254,6 @@ func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
 		return status.Error(codes.Internal, "ForwardStream() called after Done()")
 	case stateContextDone:
 		return context.Canceled
-	case invalid:
-		fallthrough // satisfy 'exhaustive' linter
 	default:
 		return status.Errorf(codes.Internal, "unreachable: invalid state: %d", tun.state)
 	}
@@ -286,8 +282,6 @@ func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) IOFunc {
 		panic(errors.New("Done() called more than once"))
 	case stateContextDone:
 	// Done() called after cancelled context in HandleTunnel(). Nothing to do.
-	case invalid:
-		fallthrough // satisfy 'exhaustive' linter
 	default:
 		// Should never happen
 		panic(fmt.Errorf("invalid state: %d", tun.state))

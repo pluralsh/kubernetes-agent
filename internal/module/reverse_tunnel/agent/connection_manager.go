@@ -14,7 +14,8 @@ import (
 type state int8
 
 const (
-	invalid state = iota // nolint: deadcode,varcheck
+	// zero value is invalid to catch initialization bugs.
+	_ state = iota
 	idle
 	active
 	timedOut
