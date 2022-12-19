@@ -382,7 +382,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInboundUpgraded(outboundClient
 			// there is likely a connection problem so the client will likely not receive this
 			return fmt.Errorf("failed to write upgraded HTTP response: %w", err)
 		}
-		return fmt.Errorf("failed to read gRPC response: %w", err)
+		return fmt.Errorf("failed to read upgraded gRPC response: %w", err)
 	}
 	return nil
 }
