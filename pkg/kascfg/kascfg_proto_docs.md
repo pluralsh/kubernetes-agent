@@ -528,7 +528,9 @@ See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| otlp_endpoint | [string](#string) | optional | URL to send traces to. Supported protocols are: http, https. Traces are protobuf encoded. Example: http://localhost:4317 |
+| otlp_endpoint | [string](#string) | optional | URL to send traces to. Supported protocols are: http, https. Traces are protobuf encoded. Example: https://localhost:4317/traces/foo/bar |
+| otlp_token_secret_file | [string](#string) | optional | API token to set for authentication. |
+| otlp_ca_certificate_file | [string](#string) | optional | Custom CA certificate to use in order to verify the connection to OTLP collector |
 
 
 

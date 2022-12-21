@@ -1,8 +1,10 @@
 package kasapp
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -571,11 +573,71 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 }
 
+func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
+	tracingConfig := a.Configuration.GetObservability().GetTracing()
+	otlpEndpoint := tracingConfig.GetOtlpEndpoint()
+	otlpTokenPath := tracingConfig.GetOtlpTokenSecretFile()
+	otlpCAPath := tracingConfig.GetOtlpCaCertificateFile()
+
+	if otlpEndpoint == "" {
+		return nil, nil
+	}
+
+	u, err := url.Parse(otlpEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("parsing tracing url %s failed: %w", otlpEndpoint, err)
+	}
+
+	var otlpOptions []otlptracehttp.Option
+
+	switch u.Scheme {
+	case "https":
+	case "http":
+		otlpOptions = append(otlpOptions, otlptracehttp.WithInsecure())
+	default:
+		return nil, fmt.Errorf("unsupported schema of tracing url %q, only `http` and `https` are permitted", u.Scheme)
+	}
+
+	otlpOptions = append(otlpOptions, otlptracehttp.WithEndpoint(u.Host))
+	otlpOptions = append(otlpOptions, otlptracehttp.WithURLPath(u.Path))
+
+	if otlpTokenPath == "" {
+		return nil, errors.New("OTLP Token path must be specified")
+	}
+	token, err := os.ReadFile(otlpTokenPath) // nolint: gosec
+	if err != nil {
+		return nil, fmt.Errorf("unable to read OTLP token from %q: %w", otlpTokenPath, err)
+	}
+
+	headers := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", bytes.TrimSpace(token)),
+	}
+	otlpOptions = append(otlpOptions, otlptracehttp.WithHeaders(headers))
+
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(otlpCAPath)
+	if err != nil {
+		return nil, err
+	}
+	otlpOptions = append(otlpOptions, otlptracehttp.WithTLSClientConfig(tlsConfig))
+
+	return otlpOptions, nil
+}
+
 func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
-	otlpEndpoint := a.Configuration.Observability.Tracing.OtlpEndpoint
-	if otlpEndpoint == nil {
+	otlpOptions, err := a.fetchOtlpOptions()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	if len(otlpOptions) == 0 {
 		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
 	}
+
+	exporter, err := otlptracehttp.New(ctx, otlpOptions...)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -587,12 +649,7 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	exporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(*otlpEndpoint),
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+
 	tp := tracesdk.NewTracerProvider(
 		tracesdk.WithResource(r),
 		tracesdk.WithBatcher(exporter),
