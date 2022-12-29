@@ -27,10 +27,15 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+var (
+	_ grpc.ServiceRegistrar = (*privateApiServer)(nil)
+)
+
 type privateApiServer struct {
 	log           *zap.Logger
 	listenCfg     *kascfg.ListenPrivateApiCF
 	server        *grpc.Server
+	inMemServer   *grpc.Server
 	inMemListener net.Listener
 	kasPool       grpctool.PoolInterface
 	auxCancel     context.CancelFunc
@@ -57,7 +62,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, jwtSecret, factory, ownPrivateApiHost)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, jwtSecret, factory, ownPrivateApiHost)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
@@ -65,6 +70,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 		log:           log,
 		listenCfg:     listenCfg,
 		server:        server,
+		inMemServer:   inMemServer,
 		inMemListener: listener,
 		kasPool:       kasPool,
 		auxCancel:     auxCancel,
@@ -73,9 +79,11 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 }
 
 func (s *privateApiServer) Start(stage stager.Stage) {
-	stage.Go(func(ctx context.Context) error {
-		// Server is terminated by grpctool.StartServer() below.
-		return s.server.Serve(s.inMemListener)
+	stopInMem := make(chan struct{})
+	grpctool.StartServer(stage, s.inMemServer, func() (net.Listener, error) {
+		return s.inMemListener, nil
+	}, func() {
+		<-stopInMem
 	})
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
 		lis, err := net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
@@ -91,19 +99,26 @@ func (s *privateApiServer) Start(stage stager.Stage) {
 		return lis, nil
 	}, func() {
 		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		close(stopInMem)
 		s.auxCancel()
 	})
 }
 
+// RegisterService should be used rather than directly registering on the field servers.
+func (s *privateApiServer) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
+	s.server.RegisterService(desc, impl)
+	s.inMemServer.RegisterService(desc, impl)
+}
+
 func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, jwtSecret []byte, factory modserver.RpcApiFactory, ownPrivateApiHost string) (*grpc.Server, error) {
+	p propagation.TextMapPropagator, jwtSecret []byte, factory modserver.RpcApiFactory, ownPrivateApiHost string) (*grpc.Server, *grpc.Server, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if ownPrivateApiHost == "" && len(credsOpt) > 0 {
-		return nil, fmt.Errorf("%s environment variable is not set. Set it to the kas' host name if you want to use TLS for kas->kas communication", envVarOwnPrivateApiHost)
+		return nil, nil, fmt.Errorf("%s environment variable is not set. Set it to the kas' host name if you want to use TLS for kas->kas communication", envVarOwnPrivateApiHost)
 	}
 
 	jwtAuther := grpctool.NewJWTAuther(jwtSecret, kasName, kasName, func(ctx context.Context) *zap.Logger {
@@ -111,8 +126,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	})
 
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
-	return grpc.NewServer(append(
-		credsOpt,
+	sharedOpts := []grpc.ServerOption{
 		keepaliveOpt,
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
@@ -134,7 +148,10 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 			PermitWithoutStream: true,
 		}),
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
-	)...), nil
+	}
+	server := grpc.NewServer(append(credsOpt, sharedOpts...)...)
+	inMemServer := grpc.NewServer(sharedOpts...)
+	return server, inMemServer, nil
 }
 
 func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator, jwtSecret []byte,

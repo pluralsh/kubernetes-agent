@@ -190,7 +190,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		tunnelRegistry,
 		a.OwnPrivateApiUrl,
 		internalSrv.server,
-		privateApiSrv.server,
+		privateApiSrv,
 		privateApiSrv.kasPool,
 		srvApi,
 		registerer)
