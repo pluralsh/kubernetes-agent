@@ -68,3 +68,33 @@ func setupApi(t *testing.T) (context.Context, *zap.Logger, *MockSentryHub, *serv
 	}
 	return ctx, log, hub, apiObj, traceId
 }
+
+func TestRemoveRandomPort(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "",
+			expected: "",
+		},
+		{
+			input:    "bla",
+			expected: "bla",
+		},
+		{
+			input:    "read tcp 10.222.67.20:40272->10.216.1.45:11443: read: connection reset by peer",
+			expected: "read tcp 10.222.67.20:x->10.216.1.45:11443: read: connection reset by peer",
+		},
+		{
+			input:    "some error with ip and port 10.222.67.20:40272: bla",
+			expected: "some error with ip and port 10.222.67.20:40272: bla",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			actual := removeRandomPort(tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
