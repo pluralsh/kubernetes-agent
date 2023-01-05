@@ -53,6 +53,7 @@ You can run `kas` and `agentk` locally to test the Agent yourself.
    # Set --kas-address correctly, depending on how kas is setup.
    # Set --context to a kubectl context to use. Can be omitted to use the current context, but that is risky
    # as the behavior is not deterministic in that case.
+   # Get the list of contexts with kubectl config get-contexts
    bazel run //cmd/agentk -- --kas-address=grpc://127.0.0.1:8150 --token-file="$(pwd)/token.txt" --context=minikube
    ```
 
