@@ -141,13 +141,13 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	})
 
 	// Construct agent modules
-	modules, internalModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr)
+	beforeServersModules, afterServersModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr)
 	if err != nil {
 		return err
 	}
 	runner := a.newModuleRunner(kasConn)
-	modulesRun := runner.RegisterModules(modules)
-	internalModulesRun := runner.RegisterModules(internalModules)
+	beforeServersModulesRun := runner.RegisterModules(beforeServersModules)
+	afterServersModulesRun := runner.RegisterModules(afterServersModules)
 
 	// Start events processing pipeline.
 	loggingWatch := eventBroadcaster.StartStructuredLogging(0)
@@ -166,7 +166,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		},
 		func(stage stager.Stage) {
 			// Start modules.
-			stage.Go(modulesRun)
+			stage.Go(beforeServersModulesRun)
 		},
 		func(stage stager.Stage) {
 			// Start internal gRPC server. It is used by internal modules, so it is shut down after them.
@@ -174,7 +174,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		},
 		func(stage stager.Stage) {
 			// Start modules that use internal server.
-			stage.Go(internalModulesRun)
+			stage.Go(afterServersModulesRun)
 		},
 		func(stage stager.Stage) {
 			// Start configuration refresh.
@@ -223,8 +223,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		},
 		&kubernetes_api_agent.Factory{},
 	}
-	var modules []modagent.Module
-	var internalModules []modagent.Module
+	var beforeServersModules, afterServersModules []modagent.Module
 	for _, f := range factories {
 		moduleName := f.Name()
 		module, err := f.New(&modagent.Config{
@@ -245,13 +244,17 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			return nil, nil, err
 		}
 		module = lr.MaybeWrapModule(module)
-		if f.UsesInternalServer() {
-			internalModules = append(internalModules, module)
-		} else {
-			modules = append(modules, module)
+		phase := f.StartStopPhase()
+		switch phase {
+		case modshared.ModuleStartBeforeServers:
+			beforeServersModules = append(beforeServersModules, module)
+		case modshared.ModuleStartAfterServers:
+			afterServersModules = append(afterServersModules, module)
+		default:
+			return nil, nil, fmt.Errorf("invalid StartStopPhase from factory %s: %d", moduleName, phase)
 		}
 	}
-	return modules, internalModules, nil
+	return beforeServersModules, afterServersModules, nil
 }
 
 func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator) (*grpc.ClientConn, error) {

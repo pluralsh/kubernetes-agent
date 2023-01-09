@@ -60,12 +60,9 @@ type RpcApi interface {
 }
 
 type Factory interface {
+	modshared.Factory
 	// New creates a new instance of a Module.
 	New(*Config) (Module, error)
-	// Name returns module's name.
-	Name() string
-	// UsesInternalServer returns true if the module makes requests to the internal API server.
-	UsesInternalServer() bool
 }
 
 type Module interface {

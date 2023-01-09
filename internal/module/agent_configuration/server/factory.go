@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 )
 
@@ -42,4 +43,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 
 func (f *Factory) Name() string {
 	return agent_configuration.ModuleName
+}
+
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartBeforeServers
 }

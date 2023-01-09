@@ -236,12 +236,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	poolWrapper := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
 	}
-	modules := make([]modserver.Module, 0, len(factories))
+	meterProvider := global.MeterProvider() // TODO
+	var beforeServersModules, afterServersModules []modserver.Module
 	for _, factory := range factories {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
+		moduleName := factory.Name()
 		module, err := factory.New(&modserver.Config{
-			Log:              a.Log.With(logz.ModuleName(factory.Name())),
+			Log:              a.Log.With(logz.ModuleName(moduleName)),
 			Api:              srvApi,
 			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
@@ -254,7 +256,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
-			MeterProvider:    global.MeterProvider(), // TODO
+			MeterProvider:    meterProvider,
 			RedisClient:      redisClient,
 			KasName:          kasName,
 			Version:          cmd.Version,
@@ -262,9 +264,17 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			ProbeRegistry:    probeRegistry,
 		})
 		if err != nil {
-			return fmt.Errorf("%s: %w", factory.Name(), err)
+			return fmt.Errorf("%s: %w", moduleName, err)
 		}
-		modules = append(modules, module)
+		phase := factory.StartStopPhase()
+		switch phase {
+		case modshared.ModuleStartBeforeServers:
+			beforeServersModules = append(beforeServersModules, module)
+		case modshared.ModuleStartAfterServers:
+			afterServersModules = append(afterServersModules, module)
+		default:
+			return fmt.Errorf("invalid StartStopPhase from factory %s: %d", moduleName, phase)
+		}
 	}
 
 	// Start things up. Stages are shut down in reverse order.
@@ -285,16 +295,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		// Start modules.
 		func(stage stager.Stage) {
-			for _, module := range modules {
-				module := module // closure captures the right variable
-				stage.Go(func(ctx context.Context) error {
-					err := module.Run(ctx)
-					if err != nil {
-						return fmt.Errorf("%s: %w", module.Name(), err)
-					}
-					return nil
-				})
-			}
+			startModules(stage, beforeServersModules)
 		},
 		// Start internal gRPC server. This one must be shut down after all other servers have stopped to ensure
 		// it's impossible for them to make a request to the internal server and get a failure because
@@ -307,6 +308,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			agentSrv.Start(stage)
 			apiSrv.Start(stage)
 			privateApiSrv.Start(stage)
+		},
+		// Start modules.
+		func(stage stager.Stage) {
+			startModules(stage, afterServersModules)
 		},
 	)
 }
@@ -661,6 +666,19 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 		return tp.Shutdown(ctx)
 	}
 	return tp, p, tpStop, nil
+}
+
+func startModules(stage stager.Stage, modules []modserver.Module) {
+	for _, module := range modules {
+		module := module // closure captures the right variable
+		stage.Go(func(ctx context.Context) error {
+			err := module.Run(ctx)
+			if err != nil {
+				return fmt.Errorf("%s: %w", module.Name(), err)
+			}
+			return nil
+		})
+	}
 }
 
 func constructKasRoutingDurationHistogram() *prometheus.HistogramVec {

@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/agent_tracker/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 )
 
@@ -30,6 +31,10 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 
 func (f *Factory) Name() string {
 	return agent_tracker.ModuleName
+}
+
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartBeforeServers
 }
 
 func (f *Factory) constructConnectedAgentsCountGaugeFunc() prometheus.GaugeFunc {

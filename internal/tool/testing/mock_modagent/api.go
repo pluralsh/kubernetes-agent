@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
+	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	zap "go.uber.org/zap"
 )
@@ -151,18 +152,18 @@ func (mr *MockFactoryMockRecorder) New(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockFactory)(nil).New), arg0)
 }
 
-// UsesInternalServer mocks base method.
-func (m *MockFactory) UsesInternalServer() bool {
+// StartStopPhase mocks base method.
+func (m *MockFactory) StartStopPhase() modshared.ModuleStartStopPhase {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UsesInternalServer")
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "StartStopPhase")
+	ret0, _ := ret[0].(modshared.ModuleStartStopPhase)
 	return ret0
 }
 
-// UsesInternalServer indicates an expected call of UsesInternalServer.
-func (mr *MockFactoryMockRecorder) UsesInternalServer() *gomock.Call {
+// StartStopPhase indicates an expected call of StartStopPhase.
+func (mr *MockFactoryMockRecorder) StartStopPhase() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsesInternalServer", reflect.TypeOf((*MockFactory)(nil).UsesInternalServer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartStopPhase", reflect.TypeOf((*MockFactory)(nil).StartStopPhase))
 }
 
 // MockModule is a mock of Module interface.

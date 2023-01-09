@@ -45,6 +45,10 @@ func (f *Factory) Name() string {
 	return gitops.ModuleName
 }
 
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartBeforeServers
+}
+
 func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient) (*server, error) {
 	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
 	err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)

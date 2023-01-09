@@ -63,6 +63,7 @@ type Config struct {
 	RegisterAgentApi func(*grpc.ServiceDesc)
 	// AgentConn is a gRPC connection that can be used to send requests to an agentk instance.
 	// Agent Id must be specified in the request metadata in RoutingAgentIdMetadataKey field.
+	// Make sure factory returns modshared.ModuleStartAfterServers if module uses this connection.
 	AgentConn       grpc.ClientConnInterface
 	Gitaly          gitaly.PoolInterface
 	TraceProvider   trace.TracerProvider
@@ -85,10 +86,9 @@ type Api interface {
 }
 
 type Factory interface {
+	modshared.Factory
 	// New creates a new instance of a Module.
 	New(*Config) (Module, error)
-	// Name returns module's name.
-	Name() string
 }
 
 type Module interface {

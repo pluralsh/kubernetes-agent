@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
@@ -37,9 +38,9 @@ func (f *Factory) Name() string {
 	return kubernetes_api.ModuleName
 }
 
-func (f *Factory) UsesInternalServer() bool {
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	// This module exposes an API endpoint on the internal server, but it does not make requests to it.
-	return false
+	return modshared.ModuleStartBeforeServers
 }
 
 // This is a copy from k8s.io/client-go/rest/url_utils.go

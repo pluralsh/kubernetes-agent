@@ -20,6 +20,7 @@ go_library(
         "//internal/module/agent_configuration/rpc",
         "//internal/module/agent_tracker",
         "//internal/module/modserver",
+        "//internal/module/modshared",
         "//internal/tool/errz",
         "//internal/tool/logz",
         "//internal/tool/mathz",

@@ -13,6 +13,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modagent",
+        "//internal/module/modshared",
         "//internal/module/reverse_tunnel",
         "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
