@@ -7,6 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 )
@@ -46,4 +47,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 
 func (f *Factory) Name() string {
 	return observability.ModuleName
+}
+
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartBeforeServers
 }

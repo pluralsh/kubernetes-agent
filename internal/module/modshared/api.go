@@ -8,9 +8,24 @@ import (
 	"go.uber.org/zap"
 )
 
+type ModuleStartStopPhase byte
+
+const (
+	_ ModuleStartStopPhase = iota
+	ModuleStartBeforeServers
+	ModuleStartAfterServers
+)
+
 const (
 	NoAgentId int64 = 0
 )
+
+type Factory interface {
+	// Name returns module's name.
+	Name() string
+	// StartStopPhase defines when to start and stop module during the program lifecycle.
+	StartStopPhase() ModuleStartStopPhase
+}
 
 // Api provides the API for the module to use.
 type Api interface {

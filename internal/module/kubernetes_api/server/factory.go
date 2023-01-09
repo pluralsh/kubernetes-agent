@@ -100,3 +100,9 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 func (f *Factory) Name() string {
 	return kubernetes_api.ModuleName
 }
+
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	// Start after servers because proxy uses agent connection (config.AgentConn), which works by accessing
+	// in-memory private API server. So proxy needs to start after and stop before that server.
+	return modshared.ModuleStartAfterServers
+}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
@@ -68,6 +69,6 @@ func (f *Factory) Name() string {
 	return reverse_tunnel.ModuleName
 }
 
-func (f *Factory) UsesInternalServer() bool {
-	return true
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartAfterServers
 }

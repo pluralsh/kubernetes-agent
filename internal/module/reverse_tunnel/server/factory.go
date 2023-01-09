@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
@@ -37,4 +38,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 
 func (f *Factory) Name() string {
 	return reverse_tunnel.ModuleName
+}
+
+func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
+	return modshared.ModuleStartBeforeServers
 }
