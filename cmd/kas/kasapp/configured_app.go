@@ -256,7 +256,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
-			MeterProvider:    meterProvider,
+			MeterProvider:    meterProvider, // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 			RedisClient:      redisClient,
 			KasName:          kasName,
 			Version:          cmd.Version,
