@@ -65,8 +65,13 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo)
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
-			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
-			return nil, retry.Backoff
+			switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+			case gitaly.NotFound: // ref not found
+				return status.Errorf(codes.NotFound, "Config: repository poll failed: %v", err), retry.Done
+			default:
+				rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: repository poll failed", err)
+				return nil, retry.Backoff
+			}
 		}
 		if info.EmptyRepository {
 			log.Debug("Config: empty repository")

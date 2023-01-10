@@ -96,8 +96,13 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 			fullRefName := req.GetRef().GetResolvedRef()
 			info, err := s.poll(ctx, projectInfo, req.CommitId, fullRefName) // nolint:govet
 			if err != nil {
-				rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
-				return nil, retry.Backoff
+				switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+				case gitaly.NotFound: // ref not found
+					return status.Errorf(codes.NotFound, "GitOps: repository poll failed: %v", err), retry.Done
+				default:
+					rpcApi.HandleProcessingError(log, agentInfo.Id, "GitOps: repository poll failed", err)
+					return nil, retry.Backoff
+				}
 			}
 			commitToSynchronize = info.CommitId
 			log = log.With(logz.CommitId(commitToSynchronize), logz.GitRef(fullRefName))
