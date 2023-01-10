@@ -122,7 +122,7 @@ func TestPathFetcher_StreamFile_NotFound(t *testing.T) {
 		Client: commitClient,
 	}
 	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
-	require.EqualError(t, err, "FileNotFound: TreeEntry.Recv: file/directory/ref not found: dir")
+	require.EqualError(t, err, "NotFound: TreeEntry.Recv: file/directory/ref not found: dir")
 }
 
 func TestPathFetcher_StreamFile_TooBig(t *testing.T) {

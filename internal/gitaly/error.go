@@ -27,7 +27,7 @@ func (e ErrorCode) String() string {
 	case UnknownError:
 		return "UnknownErr"
 	case NotFound:
-		return "FileNotFound"
+		return "NotFound"
 	case FileTooBig:
 		return "FileTooBig"
 	case RpcError:

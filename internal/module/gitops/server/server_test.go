@@ -507,7 +507,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 		err    error
 	}{
 		{
-			errMsg: "manifest file: FileNotFound: Bla: file/directory/ref not found: some/file",
+			errMsg: "manifest file: NotFound: Bla: file/directory/ref not found: some/file",
 			err:    gitaly.NewNotFoundError("Bla", "some/file"),
 		},
 		{
