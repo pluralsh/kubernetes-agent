@@ -507,7 +507,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 		err    error
 	}{
 		{
-			errMsg: "manifest file: FileNotFound: Bla: file/directory/ref not found: some/file",
+			errMsg: "manifest file: NotFound: Bla: file/directory/ref not found: some/file",
 			err:    gitaly.NewNotFoundError("Bla", "some/file"),
 		},
 		{
@@ -580,6 +580,31 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: %s", tc.errMsg))
 		})
 	}
+}
+
+func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
+	server, s, ctrl, gitalyPool, _ := setupServer(t)
+	projInfo := projectInfo()
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
+			Return(nil, gitaly.NewNotFoundError("Bla", "some/ref")),
+	)
+	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths: []*rpc.PathCF{
+			{
+				Path: &rpc.PathCF_Glob{
+					Glob: defaultGitOpsManifestPathGlob,
+				},
+			},
+		},
+	}, server)
+	require.EqualError(t, err, "rpc error: code = NotFound desc = GitOps: repository poll failed: NotFound: Bla: file/directory/ref not found: some/ref")
 }
 
 func projectInfoRest() *gapi.ProjectInfoResponse {

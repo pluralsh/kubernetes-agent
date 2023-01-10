@@ -197,6 +197,23 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetConfiguration_RefNotFound(t *testing.T) {
+	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
+			Return(nil, gitaly.NewNotFoundError("Bla", "some/ref")),
+	)
+	err := s.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
+	require.EqualError(t, err, "rpc error: code = NotFound desc = Config: repository poll failed: NotFound: Bla: file/directory/ref not found: some/ref")
+}
+
 func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 	s, agentInfo, ctrl, gitalyPool, resp, _ := setupServer(t)
 	resp.EXPECT().

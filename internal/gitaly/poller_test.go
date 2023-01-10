@@ -192,7 +192,7 @@ func TestPoller_Errors(t *testing.T) {
 			Client: httpClient,
 		}
 		_, err := p.Poll(context.Background(), r, "", "some_branch")
-		require.EqualError(t, err, "FileNotFound: InfoRefsUploadPack: file/directory/ref not found: some_branch")
+		require.EqualError(t, err, "NotFound: InfoRefsUploadPack: file/directory/ref not found: some_branch")
 	})
 	t.Run("no HEAD", func(t *testing.T) {
 		noHEAD := `001e# service=git-upload-pack
@@ -226,7 +226,7 @@ func TestPoller_Errors(t *testing.T) {
 			Client: httpClient,
 		}
 		_, err := p.Poll(context.Background(), r, "", DefaultBranch)
-		require.EqualError(t, err, "FileNotFound: InfoRefsUploadPack: file/directory/ref not found: default branch")
+		require.EqualError(t, err, "NotFound: InfoRefsUploadPack: file/directory/ref not found: default branch")
 	})
 }
 
