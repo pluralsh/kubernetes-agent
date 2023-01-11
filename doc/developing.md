@@ -1,5 +1,7 @@
 # Development guide
 
+[[_TOC_]]
+
 ## Repository overview
 
 Most up-to-date video describing how this repository is
@@ -49,7 +51,7 @@ You can run `kas` and `agentk` locally to test the Agent yourself.
    export POD_NAMESPACE=ns
    export POD_NAME=agent1
    kubectl create ns "$POD_NAMESPACE"
-   
+
    # Set --kas-address correctly, depending on how kas is setup.
    # Set --context to a kubectl context to use. Can be omitted to use the current context, but that is risky
    # as the behavior is not deterministic in that case.
@@ -102,6 +104,82 @@ bazel test //internal/module/gitops/server:server_test
 - [The Bazel query](https://docs.bazel.build/versions/master/query.html)
 - [Bazel query how to](https://docs.bazel.build/versions/master/query-how-to.html)
 
+
+## Debugging locally
+
+For local debugging we don't use Bazel and instead build agent "from source".
+
+### dlv
+
+Debug `agentk` with the following command:
+
+```sh
+export POD_NAMESPACE=default
+export POD_NAME=agentk
+
+dlv cmd/agentk/main.go -- \
+    --kas-address "${kas_address}" \
+    --token-file "${token_file}"
+```
+
+Debug `kas` with the following command:
+
+```sh
+export OWN_PRIVATE_API_URL="$(gdk config get gitlab_k8s_agent.__private_api_url)"
+dlv cmd/kas/main.go -- --configuration-file "$(gdk config get gitlab_k8s_agent.__config_file)"
+```
+
+### VS Code
+
+To debug in VS Code, use the following [Launch Configuration](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `<path-to-your-gdk>` with the full path to your GDK (you can find that with `gdk config get gitlab_k8s_agent.__config_file`).
+
+```json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch agentk",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/agentk/",
+            "args": ["--kas-address","grpc://172.16.123.1:8150", "--token-file", "${workspaceFolder}/token.txt"],
+            "env": {
+                "POD_NAMESPACE": "default",
+                "POD_NAME": "agentk"
+            }
+        },
+        {
+            "name": "Launch kas",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/kas/",
+            "args": ["--configuration-file", "<path-to-your-gdk>/gitlab-k8s-agent-config.yml"],
+            "env": {
+                "OWN_PRIVATE_API_URL": "grpc://172.16.123.1:8155",
+            }
+        }
+    ]
+}
+```
+
+### JetBrains GoLand
+
+Add the following run/debug configurations:
+
+For `kas`:
+
+![kas run configuration](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/uploads/12c3ad3f7c92a6d5ce2b5380ef4be5a2/Screen_Shot_2023-01-10_at_9.19.36_AM.png)
+
+For `agentk`:
+
+![agentk run configuration](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/uploads/5aadad03c98c4136f94bfa7c702c4725/Screen_Shot_2023-01-10_at_9.19.46_AM.png)
+
+It's optional, but consider also specifying `--context=<desired context>` command line argument to not depend on the currently selected context.
 ## kas QA tests
 
 This section describes how to run kas tests against different GitLab environments based on the
