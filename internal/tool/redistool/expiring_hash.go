@@ -39,6 +39,8 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
 	GC() func(context.Context) (int /* keysDeleted */, error)
+	// Clear clears all data in this hash and deletes it from the backing store.
+	Clear(context.Context) (int, error)
 	Refresh(nextRefresh time.Time) IOFunc
 }
 
@@ -186,6 +188,29 @@ func (h *ExpiringHash[K1, K2]) gcHash(ctx context.Context, key K1) (int, error) 
 		return deleted, err
 	}
 	return deleted, firstErr
+}
+
+func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
+	var toDel []string
+	keysDeleted := 0
+	_, err := h.client.Pipelined(ctx, func(p redis.Pipeliner) error {
+		// consider sending commands to Redis in batches to avoid accumulating too much in RAM.
+		for k1, m := range h.data {
+			toDel = toDel[:0] // reuse backing array, but reset length
+			for k2 := range m {
+				toDel = append(toDel, h.key2ToRedisKey(k2))
+			}
+			redisKey := h.key1ToRedisKey(k1)
+			err := p.HDel(ctx, redisKey, toDel...).Err()
+			if err != nil {
+				return err
+			}
+			delete(h.data, k1)
+			keysDeleted += len(toDel)
+		}
+		return nil
+	})
+	return keysDeleted, err
 }
 
 func (h *ExpiringHash[K1, K2]) Refresh(nextRefresh time.Time) IOFunc {

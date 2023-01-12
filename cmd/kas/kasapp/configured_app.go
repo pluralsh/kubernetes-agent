@@ -279,18 +279,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Start things up. Stages are shut down in reverse order.
 	return stager.RunStages(ctx,
-		// tunnelTracker is used by tunnelRegistry, so it must be stopped last.
-		func(stage stager.Stage) {
-			stage.Go(tunnelTracker.Run)
-		},
 		// Start things that modules use.
 		func(stage stager.Stage) {
-			stage.Go(func(ctx context.Context) error {
-				<-ctx.Done()
-				// Stop tunnelRegistry before stopping tunnelTracker.
-				tunnelRegistry.Stop() // nolint: contextcheck
-				return nil
-			})
 			stage.Go(agentTracker.Run)
 		},
 		// Start modules.
@@ -311,6 +301,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		// Start modules.
 		func(stage stager.Stage) {
+			// Tunnel tracker should be stopped ASAP to unregister this kas replica from Redis
+			// to avoid getting more requests on the private API server.
+			stage.Go(tunnelTracker.Run)
 			startModules(stage, afterServersModules)
 		},
 	)
