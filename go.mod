@@ -38,7 +38,7 @@ require (
 	golang.org/x/time v0.3.0
 	golang.org/x/tools v0.3.0
 	google.golang.org/api v0.107.0
-	google.golang.org/genproto v0.0.0-20230112194545-e10362b5ecf9
+	google.golang.org/genproto v0.0.0-20230113154510-dbe35b8444a5
 	google.golang.org/grpc v1.52.0
 	google.golang.org/protobuf v1.28.1
 	helm.sh/helm/v3 v3.10.3
