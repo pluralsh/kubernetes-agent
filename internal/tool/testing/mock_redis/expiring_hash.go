@@ -36,6 +36,21 @@ func (m *MockExpiringHashInterface[K1, K2]) EXPECT() *MockExpiringHashInterfaceM
 	return m.recorder
 }
 
+// Clear mocks base method.
+func (m *MockExpiringHashInterface[K1, K2]) Clear(arg0 context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Clear indicates an expected call of Clear.
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Clear(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Clear), arg0)
+}
+
 // Forget mocks base method.
 func (m *MockExpiringHashInterface[K1, K2]) Forget(key K1, hashKey K2) {
 	m.ctrl.T.Helper()

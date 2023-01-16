@@ -13,7 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const refreshOverlap = 5 * time.Second
+const (
+	refreshOverlap = 5 * time.Second
+	clearTimeout   = 10 * time.Second
+)
 
 type KasUrlsByAgentIdCallback func(kasUrl string) (bool /* done */, error)
 
@@ -45,6 +48,7 @@ type RedisTracker struct {
 	mu                    sync.Mutex
 	tunnelsByAgentIdCount map[int64]uint16
 	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
+	done                  bool
 }
 
 func NewRedisTracker(log *zap.Logger, api modshared.Api, client redis.UniversalClient, agentKeyPrefix string,
@@ -61,6 +65,7 @@ func NewRedisTracker(log *zap.Logger, api modshared.Api, client redis.UniversalC
 }
 
 func (t *RedisTracker) Run(ctx context.Context) error {
+	defer t.stop() // nolint: contextcheck
 	refreshTicker := time.NewTicker(t.refreshPeriod)
 	defer refreshTicker.Stop()
 	gcTicker := time.NewTicker(t.gcPeriod)
@@ -90,6 +95,9 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 
 func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
 	register := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
+		if t.done {
+			return noopIO
+		}
 		cnt := t.tunnelsByAgentIdCount[agentId]
 		cnt++
 		t.tunnelsByAgentIdCount[agentId] = cnt
@@ -105,6 +113,9 @@ func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error 
 
 func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
 	unregister := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
+		if t.done {
+			return noopIO
+		}
 		cnt := t.tunnelsByAgentIdCount[agentId]
 		cnt--
 		if cnt == 0 {
@@ -127,6 +138,18 @@ func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb K
 		return cb(rawHashKey)
 	})
 	return err
+}
+
+func (t *RedisTracker) stop() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.done = true
+	ctx, cancel := context.WithTimeout(context.Background(), clearTimeout)
+	defer cancel()
+	_, err := t.tunnelsByAgentId.Clear(ctx)
+	if err != nil {
+		t.api.HandleProcessingError(context.Background(), t.log, modshared.NoAgentId, "Failed to remove tunnel registrations", err)
+	}
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {

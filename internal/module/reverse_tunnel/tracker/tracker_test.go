@@ -32,12 +32,16 @@ func TestRegisterConnection(t *testing.T) {
 	defer cancel()
 	r, hash, _ := setupTracker(t)
 
-	hash.EXPECT().
-		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-		Return(func(ctx context.Context) error {
-			cancel()
-			return nil
-		})
+	gomock.InOrder(
+		hash.EXPECT().
+			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+			Return(func(ctx context.Context) error {
+				cancel()
+				return nil
+			}),
+		hash.EXPECT().
+			Clear(gomock.Any()),
+	)
 
 	go func() {
 		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
@@ -51,12 +55,16 @@ func TestRegisterConnection_TwoConnections(t *testing.T) {
 	defer cancel()
 	r, hash, _ := setupTracker(t)
 
-	hash.EXPECT().
-		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-		Return(func(ctx context.Context) error {
-			cancel()
-			return nil
-		})
+	gomock.InOrder(
+		hash.EXPECT().
+			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+			Return(func(ctx context.Context) error {
+				cancel()
+				return nil
+			}),
+		hash.EXPECT().
+			Clear(gomock.Any()),
+	)
 
 	go func() {
 		// Two registrations result in a single Set() call
@@ -82,6 +90,8 @@ func TestUnregisterConnection(t *testing.T) {
 				cancel()
 				return nil
 			}),
+		hash.EXPECT().
+			Clear(gomock.Any()),
 	)
 
 	go func() {
@@ -107,6 +117,8 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 				cancel()
 				return nil
 			}),
+		hash.EXPECT().
+			Clear(gomock.Any()),
 	)
 
 	go func() {
@@ -126,9 +138,13 @@ func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
 	defer cancel()
 	r, hash, _ := setupTracker(t)
 
-	hash.EXPECT().
-		Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-		Return(nopIOFunc)
+	gomock.InOrder(
+		hash.EXPECT().
+			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
+			Return(nopIOFunc),
+		hash.EXPECT().
+			Clear(gomock.Any()),
+	)
 
 	go func() {
 		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
@@ -191,16 +207,18 @@ func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
 
 func TestKasUrlsByAgentId_ScanError(t *testing.T) {
 	r, hash, api := setupTracker(t)
-	hash.EXPECT().
-		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
-			done, err := cb("", nil, errors.New("intended error"))
-			require.NoError(t, err)
-			assert.False(t, done)
-			return 0, nil
-		})
-	api.EXPECT().
-		HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "Redis hash scan", matcher.ErrorEq("intended error"))
+	gomock.InOrder(
+		hash.EXPECT().
+			Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+				done, err := cb("", nil, errors.New("intended error"))
+				require.NoError(t, err)
+				assert.False(t, done)
+				return 0, nil
+			}),
+		api.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, "Redis hash scan", matcher.ErrorEq("intended error")),
+	)
 	err := r.KasUrlsByAgentId(context.Background(), testhelpers.AgentId, func(kasUrl string) (bool, error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil

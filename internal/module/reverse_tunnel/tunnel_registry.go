@@ -314,7 +314,7 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 	if tl == 0 && fl == 0 {
 		return 0, 0 // Avoid logging a warning
 	}
-	r.log.Warn("Stopping tunnels and find requests", logz.NumberOfTunnels(len(r.tuns)), logz.NumberOfTunnelFindRequests(len(r.findRequestsByAgentId)))
+	r.log.Warn("Stopping tunnels and find requests", logz.NumberOfTunnels(tl), logz.NumberOfTunnelFindRequests(fl))
 	for tun := range r.tuns {
 		tun.state = stateDone
 		tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries

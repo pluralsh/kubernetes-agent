@@ -167,6 +167,21 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 	assert.True(t, cbCalled)
 }
 
+func TestExpiringHash_Clear(t *testing.T) {
+	client, hash, key, value := setupHash(t)
+	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
+	require.NoError(t, hash.Set(key+"123", 321, value)(context.Background()))
+	size, err := hash.Clear(context.Background())
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, size)
+	assert.Empty(t, hash.data)
+	h := getHash(t, client, key)
+	assert.Empty(t, h)
+	size, err = hash.Clear(context.Background())
+	require.NoError(t, err)
+	assert.Zero(t, size)
+}
+
 func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	d, err := proto.Marshal(&ExpiringValue{
 		ExpiresAt: 123123123,
