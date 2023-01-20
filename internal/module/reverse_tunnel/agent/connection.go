@@ -32,7 +32,7 @@ var (
 )
 
 type connectionInterface interface {
-	Run(context.Context)
+	Run(attemptCtx, pollCtx context.Context)
 }
 
 type connection struct {
@@ -46,9 +46,9 @@ type connection struct {
 	onIdle             func(connectionInterface)
 }
 
-func (c *connection) Run(ctx context.Context) {
-	_ = retry.PollWithBackoff(ctx, c.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		err := c.attempt(ctx)
+func (c *connection) Run(attemptCtx, pollCtx context.Context) {
+	_ = retry.PollWithBackoff(pollCtx, c.pollConfig(), func(_ context.Context) (error, retry.AttemptResult) {
+		err := c.attempt(attemptCtx)
 		if err != nil {
 			if grpctool.RequestCanceledOrTimedOut(err) {
 				c.log.Debug("Canceled connection", logz.Error(err))
@@ -60,6 +60,7 @@ func (c *connection) Run(ctx context.Context) {
 		c.log.Debug("Handled a connection successfully")
 		return nil, retry.ContinueImmediately // successfully handled a connection, re-establish it immediately
 	})
+	c.log.Debug("Connection done")
 }
 
 func (c *connection) attempt(ctx context.Context) (retErr error) {

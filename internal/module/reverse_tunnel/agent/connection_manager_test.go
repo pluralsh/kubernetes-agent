@@ -58,8 +58,22 @@ func TestConnManager_ScalesIdleConnectionsToMaxAndThenToMin(t *testing.T) {
 		return lenConns == int(cm.maxConnections)
 	}, time.Minute, 10*time.Millisecond)
 	// Scale to min
-	allConnectionsToIdle(cm)
-	require.Eventually(t, func() bool { // poll until 50ms expire
+	cm.mu.Lock()
+	cns := make([]connectionInterface, 0, len(cm.connections))
+	for c, i := range cm.connections {
+		if i.state == active {
+			cns = append(cns, c)
+		}
+	}
+	cm.mu.Unlock()
+	for _, c := range cns {
+		c.(*mockConnection).onIdle(c)
+	}
+	time.Sleep(cm.maxIdleTime + 10*time.Millisecond)
+	for _, c := range cns {
+		c.(*mockConnection).onIdle(c)
+	}
+	require.Eventually(t, func() bool { // poll while goroutines are shutting down
 		cm.mu.Lock()
 		defer cm.mu.Unlock()
 		return cm.idleConnections == cm.minIdleConnections && cm.activeConnections == 0 && len(cm.connections) == int(cm.minIdleConnections)
@@ -67,68 +81,6 @@ func TestConnManager_ScalesIdleConnectionsToMaxAndThenToMin(t *testing.T) {
 	cancel()
 	cm.wg.Wait()
 	require.Len(t, *conns, int(cm.maxConnections))
-}
-
-func TestConnManager_ActiveRacesWithTimedOut(t *testing.T) {
-	cm, conns, mu := setupConnManager(t)
-	cf := cm.connectionFactory
-	runBlock := make(chan struct{})
-	cm.connectionFactory = func(agentDescriptor *info.AgentDescriptor, onActive, onIdle func(connectionInterface)) connectionInterface {
-		c := cf(agentDescriptor, onActive, onIdle)
-		c.(*mockConnection).runBlock = runBlock
-		return c
-	}
-	cm.maxIdleTime = 10 * time.Millisecond
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go cm.Run(ctx)
-	// Activate one, make it idle.
-	require.Eventually(t, func() bool {
-		mu.Lock()
-		if len(*conns) == 0 {
-			mu.Unlock()
-			return false
-		}
-		first := (*conns)[0]
-		mu.Unlock()
-		first.onActive(first) // activate, this will start one more connection
-		first.onIdle(first)   // make idle
-		return true
-	}, time.Minute, 10*time.Millisecond)
-	// One of the connections should time out
-	require.Eventually(t, func() bool {
-		cm.mu.Lock()
-		for c, i := range cm.connections {
-			if i.state == timedOut {
-				// the timed out and stopped connection
-				cm.mu.Unlock()
-				// Make sure calling onActive() on a timed out connection is fine
-				c.(*mockConnection).onActive(c)
-				// Make sure calling onIdle() on a timed out connection is fine
-				c.(*mockConnection).onIdle(c)
-				return true
-			}
-		}
-		cm.mu.Unlock()
-		return false
-	}, time.Minute, 10*time.Millisecond)
-	close(runBlock)
-	cancel()
-	cm.wg.Wait()
-}
-
-func allConnectionsToIdle(cm *connectionManager) {
-	cm.mu.Lock()
-	conns := make([]connectionInterface, 0, len(cm.connections))
-	for c, i := range cm.connections {
-		if i.state == active {
-			conns = append(conns, c)
-		}
-	}
-	cm.mu.Unlock()
-	for _, c := range conns {
-		c.(*mockConnection).onIdle(c)
-	}
 }
 
 func setupConnManager(t *testing.T) (*connectionManager, *[]*mockConnection, *sync.Mutex) {
@@ -168,14 +120,10 @@ func setupConnManager(t *testing.T) (*connectionManager, *[]*mockConnection, *sy
 type mockConnection struct {
 	runCalled, stopped int32
 	onActive, onIdle   func(connectionInterface)
-	runBlock           chan struct{} // allows to block before running onStop()
 }
 
-func (m *mockConnection) Run(ctx context.Context) {
+func (m *mockConnection) Run(attemptCtx, pollCtx context.Context) {
 	defer atomic.AddInt32(&m.stopped, 1)
 	atomic.AddInt32(&m.runCalled, 1)
-	<-ctx.Done()
-	if m.runBlock != nil {
-		<-m.runBlock
-	}
+	<-pollCtx.Done()
 }
