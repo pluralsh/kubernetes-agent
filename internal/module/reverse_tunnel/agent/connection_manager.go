@@ -18,13 +18,13 @@ const (
 	_ state = iota
 	idle
 	active
-	timedOut
+	stopped
 )
 
 type connectionInfo struct {
-	cancel    context.CancelFunc
-	idleTimer *time.Timer
-	state     state
+	pollCancel context.CancelFunc
+	lastActive time.Time
+	state      state
 }
 
 // connectionManager manages a pool of connections and their lifecycles.
@@ -65,17 +65,14 @@ func (m *connectionManager) startConnectionLocked(rootCtx context.Context) {
 			m.onActive(rootCtx, c)
 		},
 		m.onIdle)
-	ctx, cancel := context.WithCancel(rootCtx)
+	pollCtx, pollCancel := context.WithCancel(rootCtx)
 	m.connections[c] = connectionInfo{
-		cancel: cancel,
-		idleTimer: time.AfterFunc(m.maxIdleTime, func() {
-			m.onIdleTimeout(c)
-		}),
-		state: idle,
+		pollCancel: pollCancel,
+		state:      idle,
 	}
-	m.wg.StartWithContext(ctx, func(ctx context.Context) {
+	m.wg.StartWithContext(rootCtx, func(rootCtx context.Context) {
 		defer m.onStop(c)
-		c.Run(ctx)
+		c.Run(rootCtx, pollCtx)
 	})
 }
 
@@ -86,7 +83,6 @@ func (m *connectionManager) onActive(rootCtx context.Context, c connectionInterf
 	switch i.state { // nolint: exhaustive
 	case idle: // idle -> active transition
 		i.state = active
-		i.idleTimer.Stop()
 		m.connections[c] = i
 		m.idleConnections--
 		m.activeConnections++
@@ -103,12 +99,10 @@ func (m *connectionManager) onActive(rootCtx context.Context, c connectionInterf
 				m.startConnectionLocked(rootCtx)
 			}
 		}
-	case timedOut:
-	// The connection has timed out already, nothing to do here.
-	// Timeout handler cancels the context so the connection will quickly stop.
-	// It'll be removed from the map soon.
 	case active:
 		panic(errors.New("connection is already active"))
+	case stopped:
+		panic(errors.New("invalid state: stopped"))
 	default:
 		panic(fmt.Errorf("unknown state: %d", i.state))
 	}
@@ -120,45 +114,25 @@ func (m *connectionManager) onIdle(c connectionInterface) {
 	i := m.connections[c]
 	switch i.state { // nolint: exhaustive
 	case idle:
-		// nothing to do, already in the idle state
+		// Already in the idle state. This can happen if a gRPC connection was established, but never
+		// transitioned into the active state.
+		if m.idleConnections > m.minIdleConnections && time.Since(i.lastActive) > m.maxIdleTime {
+			// Too many idle connections, can stop this one.
+			i.pollCancel()
+			// this counter must be decremented right when the connection is stopped so that other connections
+			// don't stop too while it is off by one. i.e. cannot do this in onStop().
+			m.idleConnections--
+			i.state = stopped
+			m.connections[c] = i
+		}
 	case active: // active -> idle transition
 		i.state = idle
-		i.idleTimer.Reset(m.maxIdleTime)
+		i.lastActive = time.Now()
 		m.connections[c] = i
 		m.idleConnections++
 		m.activeConnections--
-	case timedOut:
-		// The connection has timed out already, nothing to do here. It'll be removed from the map soon.
-	default:
-		panic(fmt.Errorf("unknown state: %d", i.state))
-	}
-}
-
-func (m *connectionManager) onIdleTimeout(c connectionInterface) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	i, ok := m.connections[c]
-	if !ok {
-		// The connection has been removed from the set before this method acquired the lock and got here.
-		return
-	}
-	switch i.state { // nolint: exhaustive
-	case idle: // idle -> timed out transition
-		if m.idleConnections > m.minIdleConnections {
-			// Enough idle connections, can close this one since it timed out
-			i.state = timedOut
-			i.cancel()
-			m.connections[c] = i
-			m.idleConnections--
-		} else {
-			// We are at the minimum of idle connections. Keep this connection by resetting its timeout timer.
-			i.idleTimer.Reset(m.maxIdleTime)
-		}
-	case active:
-		// Timer fired concurrently with connection transitioning from idle to active.
-		// The connection is active now and there is nothing to do, just ignore this invocation.
-	case timedOut:
-		// Timer fired multiple times (high system load? clock skew?), ignore.
+	case stopped:
+		panic(errors.New("invalid state: stopped"))
 	default:
 		panic(fmt.Errorf("unknown state: %d", i.state))
 	}
@@ -168,10 +142,9 @@ func (m *connectionManager) onStop(c connectionInterface) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	i := m.connections[c]
-	i.idleTimer.Stop()
 	delete(m.connections, c)
-	if i.state != timedOut {
-		// onIdleTimeout() decrements this field on timeout.
+	if i.state != stopped {
+		// onIdle() decrements this field if maxIdleTime has been reached.
 		// It's decremented here too to handle context done situation.
 		m.idleConnections--
 	}
