@@ -138,6 +138,8 @@ message ListenKubernetesApiCF {
   string key_file = 4 [json_name = "key_file"];
   // How much time to wait before stopping accepting new connections on shutdown.
   google.protobuf.Duration listen_grace_period = 5 [json_name = "listen_grace_period", (validate.rules).duration = {gt: {}}];
+  // How much time to wait before closing connections with in-flight requests.
+  google.protobuf.Duration shutdown_grace_period = 6 [json_name = "shutdown_grace_period", (validate.rules).duration = {gt: {}}];
 }
 
 message KubernetesApiCF {

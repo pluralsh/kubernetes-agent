@@ -36,6 +36,7 @@ agent:
       # certificate_file: /server-cert.pem
       # key_file: /server-key.pem
       listen_grace_period: "5s"
+      shutdown_grace_period: "3600s"
     url_path_prefix: /
     allowed_agent_cache_ttl: "60s"
     allowed_agent_cache_error_ttl: "10s"

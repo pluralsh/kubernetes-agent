@@ -82,7 +82,7 @@ type kubernetesApiProxy struct {
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix       string
 	listenerGracePeriod time.Duration
-	shutdownTimeout     time.Duration
+	shutdownGracePeriod time.Duration
 }
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
@@ -99,7 +99,7 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 		ReadHeaderTimeout: readHeaderTimeout,
 		IdleTimeout:       idleTimeout,
 	}
-	return httpz.RunServer(ctx, srv, listener, p.listenerGracePeriod, p.shutdownTimeout)
+	return httpz.RunServer(ctx, srv, listener, p.listenerGracePeriod, p.shutdownGracePeriod)
 }
 
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
