@@ -1,0 +1,14 @@
+load("//build:build.bzl", "go_custom_test")
+
+go_custom_test(
+    name = "test_test",
+    srcs = ["load_test.go"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/util/wait",
+        "@io_k8s_client_go//kubernetes",
+        "@io_k8s_client_go//rest",
+    ],
+)

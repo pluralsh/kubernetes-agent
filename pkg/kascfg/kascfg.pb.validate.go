@@ -1264,6 +1264,36 @@ func (m *ListenKubernetesApiCF) validate(all bool) error {
 		}
 	}
 
+	if d := m.GetShutdownGracePeriod(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			err = ListenKubernetesApiCFValidationError{
+				field:  "ShutdownGracePeriod",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenKubernetesApiCFValidationError{
+					field:  "ShutdownGracePeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
+	}
+
 	if m.Network != nil {
 
 		if _, ok := _ListenKubernetesApiCF_Network_InLookup[m.GetNetwork()]; !ok {

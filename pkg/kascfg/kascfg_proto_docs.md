@@ -267,6 +267,7 @@ ConfigurationFile represents kas configuration file.
 | certificate_file | [string](#string) |  | X.509 certificate for TLS in PEM format. TLS is enabled iff both certificate_file and key_file are provided. |
 | key_file | [string](#string) |  | X.509 key file for TLS in PEM format. TLS is enabled iff both certificate_file and key_file are provided. |
 | listen_grace_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How much time to wait before stopping accepting new connections on shutdown. |
+| shutdown_grace_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How much time to wait before closing connections with in-flight requests. |
 
 
 

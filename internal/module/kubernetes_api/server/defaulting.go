@@ -14,6 +14,7 @@ const (
 	defaultListenGracePeriod             = 5 * time.Second
 	defaultAllowedAgentInfoCacheTTL      = 1 * time.Minute
 	defaultAllowedAgentInfoCacheErrorTTL = 10 * time.Second
+	defaultShutdownGracePeriod           = 1 * time.Hour
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
@@ -27,6 +28,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.StringPtr(&o.Listen.Network, defaultKubernetesApiListenNetwork)
 	prototool.String(&o.Listen.Address, defaultKubernetesApiListenAddress)
 	prototool.Duration(&o.Listen.ListenGracePeriod, defaultListenGracePeriod)
+	prototool.Duration(&o.Listen.ShutdownGracePeriod, defaultShutdownGracePeriod)
 	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
 		o.UrlPathPrefix = o.UrlPathPrefix + "/"
 	}
