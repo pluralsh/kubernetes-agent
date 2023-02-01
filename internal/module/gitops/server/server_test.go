@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-redis/redismock/v8"
+	"github.com/go-redis/redismock/v9"
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"

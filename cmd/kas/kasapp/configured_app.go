@@ -15,9 +15,9 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
-	"github.com/go-redis/redis/v8"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
@@ -532,16 +532,16 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			tlsConfig.ServerName = strings.Split(v.Server.Address, ":")[0]
 		}
 		return redis.NewClient(&redis.Options{
-			Addr:         v.Server.Address,
-			PoolSize:     poolSize,
-			DialTimeout:  dialTimeout,
-			ReadTimeout:  readTimeout,
-			WriteTimeout: writeTimeout,
-			IdleTimeout:  idleTimeout,
-			Username:     cfg.Username,
-			Password:     password,
-			Network:      cfg.Network,
-			TLSConfig:    tlsConfig,
+			Addr:            v.Server.Address,
+			PoolSize:        poolSize,
+			DialTimeout:     dialTimeout,
+			ReadTimeout:     readTimeout,
+			WriteTimeout:    writeTimeout,
+			Username:        cfg.Username,
+			Password:        password,
+			Network:         cfg.Network,
+			ConnMaxIdleTime: idleTimeout,
+			TLSConfig:       tlsConfig,
 		}), nil
 	case *kascfg.RedisCF_Sentinel:
 		var sentinelPassword string
@@ -559,10 +559,10 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			ReadTimeout:      readTimeout,
 			WriteTimeout:     writeTimeout,
 			PoolSize:         poolSize,
-			IdleTimeout:      idleTimeout,
 			Username:         cfg.Username,
 			Password:         password,
 			SentinelPassword: sentinelPassword,
+			ConnMaxIdleTime:  idleTimeout,
 			TLSConfig:        tlsConfig,
 		}), nil
 	default:

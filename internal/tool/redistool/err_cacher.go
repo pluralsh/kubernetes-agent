@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"go.uber.org/zap"
 )

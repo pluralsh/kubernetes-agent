@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
