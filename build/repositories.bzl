@@ -571,6 +571,21 @@ def go_repositories():
         version = "v1.0.0",
     )
     go_repository(
+        name = "com_github_bsm_ginkgo_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/bsm/ginkgo/v2",
+        sum = "h1:aOAnND1T40wEdAtkGSkvSICWeQ8L3UASX7YVCqQx+eQ=",
+        version = "v2.5.0",
+    )
+    go_repository(
+        name = "com_github_bsm_gomega",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/bsm/gomega",
+        sum = "h1:JhAwLmtRzXFTx2AkALSLa8ijZafntmhSoU63Ok18Uq8=",
+        version = "v1.20.0",
+    )
+
+    go_repository(
         name = "com_github_buger_jsonparser",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/buger/jsonparser",
@@ -669,8 +684,8 @@ def go_repositories():
         name = "com_github_cespare_xxhash_v2",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/cespare/xxhash/v2",
-        sum = "h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=",
-        version = "v2.1.2",
+        sum = "h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=",
+        version = "v2.2.0",
     )
     go_repository(
         name = "com_github_chai2010_gettext_go",
@@ -1704,21 +1719,14 @@ def go_repositories():
         sum = "h1:BKZuG6mCnRj5AOaWJXoCgf6rqTYnYJLe4en2hxT7r9o=",
         version = "v6.15.8+incompatible",
     )
+    go_repository(
+        name = "com_github_go_redis_redismock_v9",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/go-redis/redismock/v9",
+        sum = "h1:1X51FovN18M9GXBdbi5xWiXoFPXAijdLdvA7VrYjoVA=",
+        version = "v9.0.2",
+    )
 
-    go_repository(
-        name = "com_github_go_redis_redis_v8",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/go-redis/redis/v8",
-        sum = "h1:AcZZR7igkdvfVmQTPnu9WE37LRrO/YrBH5zWyjDC0oI=",
-        version = "v8.11.5",
-    )
-    go_repository(
-        name = "com_github_go_redis_redismock_v8",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/go-redis/redismock/v8",
-        sum = "h1:RJFIiua58hrBrSpXhnGX3on79AU3S271H4ZhRI1wyVo=",
-        version = "v8.11.5",
-    )
     go_repository(
         name = "com_github_go_sql_driver_mysql",
         build_file_proto_mode = "disable_global",
@@ -3669,8 +3677,8 @@ def go_repositories():
         name = "com_github_onsi_gomega",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/onsi/gomega",
-        sum = "h1:8uQq0zMgLEfa0vRrrBgaJF2gyW9Da9BmfGV+OyUzfkY=",
-        version = "v1.20.2",
+        sum = "h1:Vw7br2PCDYijJHSfBOWhov+8cAnUf8MfMaIOV323l6Y=",
+        version = "v1.25.0",
     )
 
     go_repository(
@@ -4021,6 +4029,14 @@ def go_repositories():
         sum = "h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=",
         version = "v0.0.0-20201227073835-cf1acfcdf475",
     )
+    go_repository(
+        name = "com_github_redis_go_redis_v9",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/redis/go-redis/v9",
+        sum = "h1:BA426Zqe/7r56kCcvxYLWe1mkaz71LKF77GwgFzSxfE=",
+        version = "v9.0.2",
+    )
+
     go_repository(
         name = "com_github_robfig_cron_v3",
         build_file_proto_mode = "disable_global",
