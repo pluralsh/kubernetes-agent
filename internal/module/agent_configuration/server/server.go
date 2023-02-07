@@ -96,7 +96,13 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		defer wg.Wait()
 		wg.Start(func() {
 			err := gapi.PostAgentConfiguration(ctx, s.gitLabClient, agentInfo.Id, configFile) // nolint:govet
-			if err != nil {
+			switch {
+			case err == nil:
+			case gitlab.IsNotFound(err):
+				// Agent has been deleted from DB, but it's still running in the cluster. Don't need to send this error
+				// to Sentry.
+				log.Debug("Failed to notify GitLab of new agent configuration. Deleted agent?", logz.Error(err))
+			default:
 				rpcApi.HandleProcessingError(log, agentInfo.Id, "Failed to notify GitLab of new agent configuration", err)
 			}
 		})
