@@ -29,6 +29,7 @@ type GetConnectedAgentsRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Request:
+	//
 	//	*GetConnectedAgentsRequest_ProjectId
 	//	*GetConnectedAgentsRequest_AgentId
 	Request isGetConnectedAgentsRequest_Request `protobuf_oneof:"request"`

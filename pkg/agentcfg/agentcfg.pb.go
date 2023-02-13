@@ -134,6 +134,7 @@ type ManifestProjectCF struct {
 	ReconcileTimeout *durationpb.Duration `protobuf:"bytes,6,opt,name=reconcile_timeout,proto3" json:"reconcile_timeout,omitempty"`
 	DryRunStrategy   string               `protobuf:"bytes,7,opt,name=dry_run_strategy,proto3" json:"dry_run_strategy,omitempty"`
 	// Types that are assignable to PruneOneof:
+	//
 	//	*ManifestProjectCF_Prune
 	PruneOneof             isManifestProjectCF_PruneOneof `protobuf_oneof:"prune_oneof"`
 	PruneTimeout           *durationpb.Duration           `protobuf:"bytes,9,opt,name=prune_timeout,proto3" json:"prune_timeout,omitempty"`
@@ -267,6 +268,7 @@ type GitRefCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Ref:
+	//
 	//	*GitRefCF_Tag
 	//	*GitRefCF_Branch
 	//	*GitRefCF_Commit
@@ -424,6 +426,7 @@ type ChartSourceCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Source:
+	//
 	//	*ChartSourceCF_Project
 	Source isChartSourceCF_Source `protobuf_oneof:"source"`
 }
@@ -695,6 +698,7 @@ type ChartValuesCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to From:
+	//
 	//	*ChartValuesCF_Inline
 	//	*ChartValuesCF_File
 	//	*ChartValuesCF_Url
@@ -1143,6 +1147,7 @@ type CiAccessAsCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to As:
+	//
 	//	*CiAccessAsCF_Agent
 	//	*CiAccessAsCF_Impersonate
 	//	*CiAccessAsCF_CiJob

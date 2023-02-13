@@ -29,6 +29,7 @@ type GitRefCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Ref:
+	//
 	//	*GitRefCF_Tag
 	//	*GitRefCF_Branch
 	//	*GitRefCF_Commit
@@ -123,6 +124,7 @@ type PathCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Path:
+	//
 	//	*PathCF_Glob
 	//	*PathCF_File
 	Path isPathCF_Path `protobuf_oneof:"path"`
@@ -274,6 +276,7 @@ type ObjectsToSynchronizeResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message:
+	//
 	//	*ObjectsToSynchronizeResponse_Header_
 	//	*ObjectsToSynchronizeResponse_Object_
 	//	*ObjectsToSynchronizeResponse_Trailer_

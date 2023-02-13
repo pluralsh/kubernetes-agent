@@ -31,6 +31,7 @@ type HttpRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message:
+	//
 	//	*HttpRequest_Header_
 	//	*HttpRequest_Data_
 	//	*HttpRequest_Trailer_
@@ -139,6 +140,7 @@ type HttpResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message:
+	//
 	//	*HttpResponse_Header_
 	//	*HttpResponse_Data_
 	//	*HttpResponse_Trailer_

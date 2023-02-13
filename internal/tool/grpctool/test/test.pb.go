@@ -122,6 +122,7 @@ type Response struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message:
+	//
 	//	*Response_Scalar
 	//	*Response_X1
 	//	*Response_Data_
@@ -268,10 +269,12 @@ type TwoOneofs struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message1:
+	//
 	//	*TwoOneofs_M11
 	//	*TwoOneofs_M12
 	Message1 isTwoOneofs_Message1 `protobuf_oneof:"message1"`
 	// Types that are assignable to Message2:
+	//
 	//	*TwoOneofs_M21
 	//	*TwoOneofs_M22
 	Message2 isTwoOneofs_Message2 `protobuf_oneof:"message2"`
@@ -389,10 +392,12 @@ type TwoValidOneofs struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message1:
+	//
 	//	*TwoValidOneofs_M11
 	//	*TwoValidOneofs_M12
 	Message1 isTwoValidOneofs_Message1 `protobuf_oneof:"message1"`
 	// Types that are assignable to Message2:
+	//
 	//	*TwoValidOneofs_M21
 	//	*TwoValidOneofs_M22
 	Message2 isTwoValidOneofs_Message2 `protobuf_oneof:"message2"`
@@ -511,6 +516,7 @@ type OutOfOneof struct {
 
 	X int32 `protobuf:"varint,1,opt,name=x,proto3" json:"x,omitempty"`
 	// Types that are assignable to Message:
+	//
 	//	*OutOfOneof_M1
 	//	*OutOfOneof_M2
 	Message isOutOfOneof_Message `protobuf_oneof:"message"`
@@ -598,6 +604,7 @@ type NotAllReachable struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Message:
+	//
 	//	*NotAllReachable_M1
 	//	*NotAllReachable_M2
 	//	*NotAllReachable_M3
