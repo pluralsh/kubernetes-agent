@@ -69,6 +69,7 @@ type GatewayKasResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Msg:
+	//
 	//	*GatewayKasResponse_TunnelReady_
 	//	*GatewayKasResponse_Header_
 	//	*GatewayKasResponse_Message_

@@ -1351,6 +1351,7 @@ type RedisCF struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to RedisConfig:
+	//
 	//	*RedisCF_Server
 	//	*RedisCF_Sentinel
 	RedisConfig  isRedisCF_RedisConfig `protobuf_oneof:"redis_config"`

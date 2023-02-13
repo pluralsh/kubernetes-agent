@@ -267,6 +267,7 @@ type ConnectRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Msg:
+	//
 	//	*ConnectRequest_Descriptor_
 	//	*ConnectRequest_Header
 	//	*ConnectRequest_Message
@@ -482,6 +483,7 @@ type ConnectResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Msg:
+	//
 	//	*ConnectResponse_RequestInfo
 	//	*ConnectResponse_Message
 	//	*ConnectResponse_CloseSend
