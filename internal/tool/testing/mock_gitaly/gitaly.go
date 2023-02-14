@@ -703,26 +703,6 @@ func (mr *MockSmartHTTPServiceClientMockRecorder) PostReceivePack(arg0 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostReceivePack", reflect.TypeOf((*MockSmartHTTPServiceClient)(nil).PostReceivePack), varargs...)
 }
 
-// PostUploadPack mocks base method.
-func (m *MockSmartHTTPServiceClient) PostUploadPack(arg0 context.Context, arg1 ...grpc.CallOption) (gitalypb.SmartHTTPService_PostUploadPackClient, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "PostUploadPack", varargs...)
-	ret0, _ := ret[0].(gitalypb.SmartHTTPService_PostUploadPackClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostUploadPack indicates an expected call of PostUploadPack.
-func (mr *MockSmartHTTPServiceClientMockRecorder) PostUploadPack(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUploadPack", reflect.TypeOf((*MockSmartHTTPServiceClient)(nil).PostUploadPack), varargs...)
-}
-
 // PostUploadPackWithSidechannel mocks base method.
 func (m *MockSmartHTTPServiceClient) PostUploadPackWithSidechannel(arg0 context.Context, arg1 *gitalypb.PostUploadPackWithSidechannelRequest, arg2 ...grpc.CallOption) (*gitalypb.PostUploadPackWithSidechannelResponse, error) {
 	m.ctrl.T.Helper()
