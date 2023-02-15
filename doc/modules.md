@@ -20,6 +20,7 @@ API for module's server part is defined in the [`internal/module/modserver`](/in
 
 - Validates and applies defaults to the corresponding part of the `gitlab-kas` configuration.
 - Optionally registers gRPC services on the gRPC server that `agentk` talks to.
+- Optionally registers gRPC services on the gRPC server that Rails talks to.
 - Implements the required functionality.
 
 ## Agent module
