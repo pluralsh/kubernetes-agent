@@ -8,10 +8,10 @@
       - Update `appVersion` to be the exactly the same as the version tag in `cluster-integrations/gitlab-agent`
       - Bump `version` according to semantic versioning. For a GitLab milestone release, this will generally be the minor version.
    - Push a tag `vX.Y.Z` where `X.Y.Z` is the `version` in `Chart.yaml`
-1. The [`GITLAB_KAS_VERSION`](https://gitlab.com/gitlab-org/gitlab/-/blob/master/GITLAB_KAS_VERSION) file in
+1. (Automated) The [`GITLAB_KAS_VERSION`](https://gitlab.com/gitlab-org/gitlab/-/blob/master/GITLAB_KAS_VERSION) file in
    the GitLab rails monolith is updated to that new tag in a new MR.
    This MR should be accepted by the maintainer with no questions asked, typically.
-   [Example MR](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/74462).
+   [Example MR](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/111845). [List of bot-created MRs](https://gitlab.com/gitlab-org/gitlab/-/merge_requests?scope=all&state=all&label_name[]=group%3A%3Aconfigure&author_username=gitlab-dependency-update-bot). [Bot configuration](https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/blob/main/renovate/gitlab/version-files.config.js).
 1. Wait for the MR to get deployed to a .com environment (can be pre, gstg, gprd etc; this is shown in the MR widget).
 1. Find the latest image built of KAS in the [dev.gitlab.org registry]( https://dev.gitlab.org/gitlab/charts/components/images/container_registry/426?orderBy=NAME&sort=asc):
    - Go to [`#releases` in Slack](https://gitlab.slack.com/archives/C0XM5UU6B) (internal link)
