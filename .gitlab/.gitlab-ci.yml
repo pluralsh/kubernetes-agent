@@ -16,10 +16,8 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3710174876
-  BUILD_IMAGE_SHA: "149b2c0dd95d2e3badcee16532fb83918a8203e7ccb441045e125348c752d17d"
-  # This SHA was produced in https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent-ci-image/-/jobs/3710174879
-  FIPS_BUILD_IMAGE_SHA: "5124c76a08e21c2cfecc012ed5fd24421362adba0a5545f9ff93281e6f85e6e3"
+  BUILD_IMAGE_SHA: "latest@sha256:149b2c0dd95d2e3badcee16532fb83918a8203e7ccb441045e125348c752d17d"
+  FIPS_BUILD_IMAGE_SHA: "latest-fips@sha256:5124c76a08e21c2cfecc012ed5fd24421362adba0a5545f9ff93281e6f85e6e3"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
   DOCKER_VERSION: 20.10.23 # https://hub.docker.com/_/docker
@@ -33,7 +31,7 @@ stages:
 
 .bazel_build:
   image:
-    name: "$BUILD_IMAGE_NAME@sha256:$BUILD_IMAGE_SHA"
+    name: "$BUILD_IMAGE_NAME:$BUILD_IMAGE_SHA"
     entrypoint: [""]
   before_script:
     - echo "build --verbose_failures" >> .bazelrc
@@ -99,7 +97,7 @@ test-fips:
     - "${RUNNER_TAG}"
   script:
     - export REDIS_URL=redis://redis:6379
-    - docker run --rm --platform "linux/${ARCH}" --entrypoint /bin/sh -v "$(pwd):/src" -w /src "${BUILD_IMAGE_NAME}@sha256:${FIPS_BUILD_IMAGE_SHA}" -c 'make test-ci-fips'
+    - docker run --rm --platform "linux/${ARCH}" --entrypoint /bin/sh -v "$(pwd):/src" -w /src "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}" -c 'make test-ci-fips'
 
 verify:
   stage: test
@@ -151,7 +149,7 @@ push_image_tag:
 push_image_tag_fips:
   stage: push_image
   image:
-    name: "${BUILD_IMAGE_NAME}@sha256:${FIPS_BUILD_IMAGE_SHA}"
+    name: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
     entrypoint: [ "" ]
   services:
     - "docker:${DOCKER_VERSION}-dind"
@@ -164,7 +162,7 @@ push_image_tag_fips:
   tags:
     - "${RUNNER_TAG}"
   variables:
-    BUILDER_IMAGE: "${BUILD_IMAGE_NAME}@sha256:${FIPS_BUILD_IMAGE_SHA}"
+    BUILDER_IMAGE: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
     # Docker vars are documented here https://docs.docker.com/engine/reference/commandline/cli/
     # Vars below mimic logic from https://github.com/docker-library/docker/blob/master/20.10/cli/docker-entrypoint.sh
     # Daemon logic: https://github.com/docker-library/docker/blob/master/20.10/dind/dockerd-entrypoint.sh
@@ -188,12 +186,12 @@ push_image_tag_fips:
 push_image_tag_fips_manifest:
   stage: push_image
   image:
-    name: "${BUILD_IMAGE_NAME}@sha256:${FIPS_BUILD_IMAGE_SHA}"
+    name: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
     entrypoint: [ "" ]
   services:
     - "docker:${DOCKER_VERSION}-dind"
   variables:
-    BUILDER_IMAGE: "${BUILD_IMAGE_NAME}@sha256:${FIPS_BUILD_IMAGE_SHA}"
+    BUILDER_IMAGE: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
     # Docker vars are documented here https://docs.docker.com/engine/reference/commandline/cli/
     # Vars below mimic logic from https://github.com/docker-library/docker/blob/master/20.10/cli/docker-entrypoint.sh
     # Daemon logic: https://github.com/docker-library/docker/blob/master/20.10/dind/dockerd-entrypoint.sh
