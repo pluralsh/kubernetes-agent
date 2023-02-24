@@ -59,7 +59,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -645,14 +645,7 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 		return nil, nil, nil, err
 	}
 
-	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(kasName),
-			semconv.ServiceVersionKey.String(cmd.Version),
-		),
-	)
+	r, err := constructResource()
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -700,6 +693,17 @@ func constructRedisReadinessProbe(redisClient redis.UniversalClient) observabili
 		}
 		return nil
 	}
+}
+
+func constructResource() (*resource.Resource, error) {
+	return resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(kasName),
+			semconv.ServiceVersionKey.String(cmd.Version),
+		),
+	)
 }
 
 func gitlabBuildInfoGauge() prometheus.Gauge {
