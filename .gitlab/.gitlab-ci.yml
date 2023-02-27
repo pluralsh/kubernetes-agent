@@ -6,6 +6,9 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml
   - template: Security/License-Scanning.gitlab-ci.yml
   - template: Security/Container-Scanning.gitlab-ci.yml
+  - project: "gitlab-org/quality/pipeline-common"
+    file:
+      - "/ci/danger-review.yml"
 
 default:
   tags:
@@ -24,10 +27,18 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
+  - lint
   - test
   - scan
   - push_image
   - create_release
+
+danger-review:
+  stage: lint
+  needs: []
+  allow_failure: true
+  variables:
+    GITLAB_DANGERFILES_VERSION: "3.7.0"
 
 .bazel_build:
   image:
@@ -150,7 +161,7 @@ push_image_tag_fips:
   stage: push_image
   image:
     name: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
-    entrypoint: [ "" ]
+    entrypoint: [""]
   services:
     - "docker:${DOCKER_VERSION}-dind"
   parallel:
@@ -187,7 +198,7 @@ push_image_tag_fips_manifest:
   stage: push_image
   image:
     name: "${BUILD_IMAGE_NAME}:${FIPS_BUILD_IMAGE_SHA}"
-    entrypoint: [ "" ]
+    entrypoint: [""]
   services:
     - "docker:${DOCKER_VERSION}-dind"
   variables:
@@ -198,7 +209,7 @@ push_image_tag_fips_manifest:
     DOCKER_HOST: "tcp://docker:2376"
     DOCKER_TLS_VERIFY: "1"
     DOCKER_CERT_PATH: "${DOCKER_TLS_CERTDIR}/client"
-  needs: [ "push_image_tag_fips" ]
+  needs: ["push_image_tag_fips"]
   rules:
     # Run this job when the default branch changes and a tag is created manually.
     - if: $CI_COMMIT_TAG
@@ -232,10 +243,10 @@ create_release:
   script:
     - echo 'release job'
   release:
-    name: '$CI_COMMIT_TAG'
-    tag_name: '$CI_COMMIT_TAG'
-    ref: '$CI_COMMIT_TAG'
-    description: 'Release for tag $CI_COMMIT_TAG'
+    name: "$CI_COMMIT_TAG"
+    tag_name: "$CI_COMMIT_TAG"
+    ref: "$CI_COMMIT_TAG"
+    description: "Release for tag $CI_COMMIT_TAG"
 
 # Broken, disable for now https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/jobs/2308411911
 ## see https://docs.gitlab.com/ee/user/project/code_intelligence.html#configuration
