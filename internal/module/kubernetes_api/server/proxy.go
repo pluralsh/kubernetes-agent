@@ -3,9 +3,11 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +39,7 @@ const (
 	readHeaderTimeout = 10 * time.Second
 	idleTimeout       = 1 * time.Minute
 
+	gitLabKasCookieName             = "_gitlab_kas"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
@@ -65,20 +68,27 @@ var (
 	}
 )
 
+type proxyUserCacheKey struct {
+	accessType string
+	accessKey  string
+}
+
 type kubernetesApiProxy struct {
-	log                  *zap.Logger
-	api                  modserver.Api
-	kubernetesApiClient  rpc.KubernetesApiClient
-	gitLabClient         gitlab.ClientInterface
-	allowedAgentsCache   *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
-	requestCounter       usage_metrics.Counter
-	ciTunnelUsersCounter usage_metrics.UniqueCounter
-	responseSerializer   runtime.NegotiatedSerializer
-	traceProvider        trace.TracerProvider
-	tracePropagator      propagation.TextMapPropagator
-	meterProvider        metric.MeterProvider
-	serverName           string
-	serverVia            string
+	log                     *zap.Logger
+	api                     modserver.Api
+	kubernetesApiClient     rpc.KubernetesApiClient
+	gitLabClient            gitlab.ClientInterface
+	allowedOriginUrls       []string
+	allowedAgentsCache      *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
+	authorizeProxyUserCache *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]
+	requestCounter          usage_metrics.Counter
+	ciTunnelUsersCounter    usage_metrics.UniqueCounter
+	responseSerializer      runtime.NegotiatedSerializer
+	traceProvider           trace.TracerProvider
+	tracePropagator         propagation.TextMapPropagator
+	meterProvider           metric.MeterProvider
+	serverName              string
+	serverVia               string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix       string
 	listenerGracePeriod time.Duration
@@ -102,44 +112,65 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 	return httpz.RunServer(ctx, srv, listener, p.listenerGracePeriod, p.shutdownGracePeriod)
 }
 
+// proxy Kubernetes API calls via agentk to the cluster Kube API.
+//
+// This method also takes care of CORS preflight requests as documented [here](https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request).
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
-	log, agentId, eResp := p.proxyInternal(w, r)
-	if eResp != nil {
-		p.writeErrorResponse(log, agentId)(w, r, eResp)
+	// for preflight and normal requests we want to allow some configured allowed origins and
+	// support exposing the response to the client when credentials (e.g. cookies) are included in the request
+	header := w.Header()
+
+	requestedOrigin := r.Header.Get(httpz.OriginHeader)
+	if requestedOrigin != "" {
+		// If the Origin header is set, it needs to match the configured allowed origin urls.
+		if !p.isOriginAllowed(requestedOrigin) {
+			// Reject the request because origin is not allowed
+			p.log.Sugar().Debugf("Received Origin %q is not in configured allowed origins", requestedOrigin)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		header[httpz.AccessControlAllowOriginHeader] = []string{requestedOrigin}
+		header[httpz.AccessControlAllowCredentialsHeader] = []string{"true"}
+		header[httpz.VaryHeader] = []string{httpz.OriginHeader}
+	}
+	header[httpz.ServerHeader] = []string{p.serverName} // It will be removed just before responding with actual headers from upstream
+
+	if r.Method == http.MethodOptions {
+		// we have a preflight request
+		header[httpz.AccessControlAllowHeadersHeader] = r.Header[httpz.AccessControlRequestHeadersHeader]
+		// all allowed HTTP methods:
+		// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+		header[httpz.AccessControlAllowMethodsHeader] = []string{"GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH"}
+		header[httpz.AccessControlMaxAgeHeader] = []string{"86400"}
+		w.WriteHeader(http.StatusOK)
+	} else {
+		log, agentId, eResp := p.proxyInternal(w, r)
+		if eResp != nil {
+			p.writeErrorResponse(log, agentId)(w, r, eResp)
+		}
 	}
 }
 
+func (p *kubernetesApiProxy) isOriginAllowed(origin string) bool {
+	for _, v := range p.allowedOriginUrls {
+		if v == origin {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Request) (*zap.Logger, int64 /* agentId */, *grpctool.ErrResp) {
-	ctx := r.Context()
-	log := p.log.With(logz.TraceIdFromContext(ctx))
-	w.Header()[httpz.ServerHeader] = []string{p.serverName} // It will be removed just before responding with actual headers from upstream
-
-	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
-	if err != nil {
-		msg := "Unauthorized"
-		log.Debug(msg, logz.Error(err))
-		return log, modshared.NoAgentId, &grpctool.ErrResp{
-			StatusCode: http.StatusUnauthorized,
-			Msg:        msg,
-			Err:        err,
-		}
-	}
-	log = log.With(logz.AgentId(agentId))
-
-	allowedForJob, eResp := p.getAllowedAgentsForJob(ctx, log, agentId, jobToken)
-
+	log, agentId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(r)
 	if eResp != nil {
-		return log, agentId, eResp
-	}
-
-	aa := findAllowedAgent(agentId, allowedForJob)
-	if aa == nil {
-		msg := "Forbidden: agentId is not allowed"
-		log.Debug(msg)
-		return log, agentId, &grpctool.ErrResp{
-			StatusCode: http.StatusForbidden,
-			Msg:        msg,
+		// If GitLab doesn't authorize the proxy user to make the call,
+		// we send an extra header to indicate that, so that the client
+		// can differentiate from an *unauthorized* response from GitLab
+		// and from an *authorized* response from the proxied K8s cluster.
+		if eResp.StatusCode == http.StatusUnauthorized {
+			w.Header()[httpz.GitlabUnauthorizedHeader] = []string{"true"}
 		}
+		return log, agentId, eResp
 	}
 
 	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
@@ -152,19 +183,9 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 	}
 
 	p.requestCounter.Inc() // Count only authenticated and authorized requests
-	p.ciTunnelUsersCounter.Add(allowedForJob.User.Id)
+	p.ciTunnelUsersCounter.Add(userId)
 
-	impConfig, err := constructImpersonationConfig(allowedForJob, aa)
-	if err != nil {
-		msg := "Failed to construct impersonation config"
-		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-		return log, agentId, &grpctool.ErrResp{
-			StatusCode: http.StatusInternalServerError,
-			Msg:        msg,
-			Err:        err,
-		}
-	}
-
+	ctx := r.Context()
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
 	if err != nil {
@@ -179,6 +200,82 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 
 	p.pipeStreams(log, agentId, w, r, mkClient, impConfig) // nolint: contextcheck
 	return log, agentId, nil
+}
+
+func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(r *http.Request) (*zap.Logger, int64 /* agentId */, int64 /* userId */, *rpc.ImpersonationConfig, *grpctool.ErrResp) {
+	ctx := r.Context()
+	log := p.log.With(logz.TraceIdFromContext(ctx))
+
+	agentId, creds, err := getAuthorizationInfoFromRequest(r)
+	if err != nil {
+		msg := "Unauthorized"
+		log.Debug(msg, logz.Error(err))
+		return log, modshared.NoAgentId, 0, nil, &grpctool.ErrResp{
+			StatusCode: http.StatusUnauthorized,
+			Msg:        msg,
+			Err:        err,
+		}
+	}
+	log = log.With(logz.AgentId(agentId))
+
+	var (
+		userId    int64
+		impConfig *rpc.ImpersonationConfig
+	)
+
+	switch c := creds.(type) {
+	case ciJobTokenAuthn:
+		allowedForJob, eResp := p.getAllowedAgentsForJob(ctx, log, agentId, c.jobToken)
+		if eResp != nil {
+			return log, agentId, 0, nil, eResp
+		}
+		userId = allowedForJob.User.Id
+
+		aa := findAllowedAgent(agentId, allowedForJob)
+		if aa == nil {
+			msg := "Forbidden: agentId is not allowed"
+			log.Debug(msg)
+			return log, agentId, userId, nil, &grpctool.ErrResp{
+				StatusCode: http.StatusForbidden,
+				Msg:        msg,
+			}
+		}
+
+		impConfig, err = constructJobImpersonationConfig(allowedForJob, aa)
+		if err != nil {
+			msg := "Failed to construct impersonation config"
+			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+			return log, agentId, userId, nil, &grpctool.ErrResp{
+				StatusCode: http.StatusInternalServerError,
+				Msg:        msg,
+				Err:        err,
+			}
+		}
+	case sessionCookieAuthn:
+		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "session_cookie", c.encryptedPublicSessionId, c.csrfToken)
+		if eResp != nil {
+			return log, agentId, 0, nil, eResp
+		}
+		userId = auth.User.Id
+		impConfig, err = constructUserImpersonationConfig(auth, "session_cookie")
+		if err != nil {
+			msg := "Failed to construct user impersonation config"
+			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+			return log, agentId, userId, nil, &grpctool.ErrResp{
+				StatusCode: http.StatusInternalServerError,
+				Msg:        msg,
+				Err:        err,
+			}
+		}
+	default: // This should never happen
+		msg := "Invalid authorization type"
+		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+		return log, agentId, userId, nil, &grpctool.ErrResp{
+			StatusCode: http.StatusInternalServerError,
+			Msg:        msg,
+		}
+	}
+	return log, agentId, userId, impConfig, nil
 }
 
 func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *zap.Logger, agentId int64, jobToken string) (*gapi.AllowedAgentsForJob, *grpctool.ErrResp) {
@@ -215,13 +312,48 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *za
 	return allowedForJob, nil
 }
 
+func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Logger, agentId int64, accessType, accessKey, csrfToken string) (*gapi.AuthorizeProxyUserResponse, *grpctool.ErrResp) {
+	key := proxyUserCacheKey{
+		accessType: accessType,
+		accessKey:  accessKey,
+	}
+	auth, err := p.authorizeProxyUserCache.GetItem(ctx, key, func() (*gapi.AuthorizeProxyUserResponse, error) {
+		return gapi.AuthorizeProxyUser(ctx, p.gitLabClient, agentId, accessType, accessKey, csrfToken)
+	})
+	if err != nil {
+		switch {
+		case gitlab.IsUnauthorized(err), gitlab.IsForbidden(err), gitlab.IsNotFound(err):
+			log.Debug("Authorize proxy user error", logz.Error(err))
+			return nil, &grpctool.ErrResp{
+				StatusCode: http.StatusUnauthorized,
+				Msg:        "Unauthorized",
+			}
+		default:
+			msg := "Failed to authorize user session"
+			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+			return nil, &grpctool.ErrResp{
+				StatusCode: http.StatusInternalServerError,
+				Msg:        msg,
+			}
+		}
+
+	}
+	return auth, nil
+}
+
 func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request,
 	client rpc.KubernetesApi_MakeRequestClient, impConfig *rpc.ImpersonationConfig) {
 
 	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
-	delete(r.Header, httpz.AuthorizationHeader) // Remove Authorization header - we got the CI job token in it
+
+	// remove GitLab authorization headers (job token, session cookie etc)
+	delete(r.Header, httpz.AuthorizationHeader)
+	delete(r.Header, httpz.CookieHeader)
+	delete(r.Header, httpz.GitlabAgentIdHeader)
+	delete(r.Header, httpz.CsrfTokenHeader)
+
 	r.Header[httpz.ViaHeader] = append(r.Header[httpz.ViaHeader], p.serverVia)
 
 	http2grpc := grpctool.InboundHttpToOutboundGrpc{
@@ -230,17 +362,34 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 			p.api.HandleProcessingError(r.Context(), log, agentId, msg, err)
 		},
 		WriteErrorResponse: p.writeErrorResponse(log, agentId),
-		MergeHeaders: func(outboundResponse, inboundResponse http.Header) {
-			delete(inboundResponse, httpz.ServerHeader) // remove the header we've added above. We use Via instead.
-			for k, vals := range outboundResponse {
-				inboundResponse[k] = vals
-			}
-			inboundResponse[httpz.ViaHeader] = append(inboundResponse[httpz.ViaHeader], p.serverVia)
-		},
+		MergeHeaders:       p.mergeProxiedResponseHeaders,
 	}
 	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
 		ImpConfig: impConfig,
 	})
+}
+
+func (p *kubernetesApiProxy) mergeProxiedResponseHeaders(outbound, inbound http.Header) {
+	delete(inbound, httpz.ServerHeader) // remove the header we've added above. We use Via instead.
+	// remove all potential CORS headers from the proxied response
+	delete(outbound, httpz.AccessControlAllowOriginHeader)
+	delete(outbound, httpz.AccessControlAllowHeadersHeader)
+	delete(outbound, httpz.AccessControlAllowCredentialsHeader)
+	delete(outbound, httpz.AccessControlAllowMethodsHeader)
+	delete(outbound, httpz.AccessControlMaxAgeHeader)
+
+	// set headers from proxied response without overwriting the ones already set (e.g. CORS headers)
+	for k, vals := range outbound {
+		if len(inbound[k]) == 0 {
+			inbound[k] = vals
+		}
+	}
+	// explicitly merge Vary header with the headers from proxies requests.
+	// We always set the Vary header to `Origin` for CORS
+	if v := append(inbound[httpz.VaryHeader], outbound[httpz.VaryHeader]...); len(v) > 0 {
+		inbound[httpz.VaryHeader] = v
+	}
+	inbound[httpz.ViaHeader] = append(inbound[httpz.ViaHeader], p.serverVia)
 }
 
 func (p *kubernetesApiProxy) writeErrorResponse(log *zap.Logger, agentId int64) grpctool.WriteErrorResponse {
@@ -306,15 +455,66 @@ func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *ga
 	return nil
 }
 
-func getAgentIdAndJobTokenFromRequest(r *http.Request) (int64, string, error) {
-	h := r.Header[httpz.AuthorizationHeader]
-	if len(h) == 0 {
-		return 0, "", fmt.Errorf("%s header: expecting token", httpz.AuthorizationHeader)
+type ciJobTokenAuthn struct {
+	jobToken string
+}
+
+type sessionCookieAuthn struct {
+	encryptedPublicSessionId string
+	csrfToken                string
+}
+
+func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any, error) {
+	if authzHeader := r.Header[httpz.AuthorizationHeader]; len(authzHeader) >= 1 {
+		if len(authzHeader) > 1 {
+			return 0, nil, fmt.Errorf("%s header: expecting a single header, got %d", httpz.AuthorizationHeader, len(authzHeader))
+		}
+		agentId, jobToken, err := getAgentIdAndJobTokenFromHeader(authzHeader[0])
+		if err != nil {
+			return 0, nil, err
+		}
+		return agentId, ciJobTokenAuthn{
+			jobToken: jobToken,
+		}, nil
 	}
-	if len(h) > 1 {
-		return 0, "", fmt.Errorf("%s header: expecting a single header, got %d", httpz.AuthorizationHeader, len(h))
+	if cookie, err := r.Cookie(gitLabKasCookieName); err == nil {
+		agentId, encryptedPublicSessionId, csrfToken, err := getSessionCookieParams(cookie, r.Header)
+		if err != nil {
+			return 0, nil, err
+		}
+		return agentId, sessionCookieAuthn{
+			encryptedPublicSessionId: encryptedPublicSessionId,
+			csrfToken:                csrfToken,
+		}, nil
 	}
-	return getAgentIdAndJobTokenFromHeader(h[0])
+	return 0, nil, errors.New("no valid credentials provided")
+}
+
+func getSessionCookieParams(cookie *http.Cookie, headers http.Header) (int64, string, string, error) {
+	if len(cookie.Value) == 0 {
+		return 0, "", "", fmt.Errorf("%s cookie value must not be empty", gitLabKasCookieName)
+	}
+	// NOTE: GitLab Rails uses `rack` as the generic web server framework, which escapes the cookie values.
+	// See https://github.com/rack/rack/blob/0b26518acc4c946ca96dfe3d9e68a05ca84439f7/lib/rack/utils.rb#L300
+	encryptedPublicSessionId, err := url.QueryUnescape(cookie.Value)
+	if err != nil {
+		return 0, "", "", fmt.Errorf("%s invalid cookie value", gitLabKasCookieName)
+	}
+	agentIdHeader := headers[httpz.GitlabAgentIdHeader]
+	if len(agentIdHeader) != 1 {
+		return 0, "", "", fmt.Errorf("%s header must have exactly one value", httpz.GitlabAgentIdHeader)
+	}
+	agentIdStr := agentIdHeader[0]
+	agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
+	if err != nil {
+		return 0, "", "", fmt.Errorf("%s header: invalid value: %q", httpz.GitlabAgentIdHeader, agentIdStr)
+	}
+	csrfTokenHeader := headers[httpz.CsrfTokenHeader]
+	if len(csrfTokenHeader) != 1 {
+		return 0, "", "", fmt.Errorf("%s header must have exactly one value", httpz.CsrfTokenHeader)
+	}
+	csrfToken := csrfTokenHeader[0]
+	return agentId, encryptedPublicSessionId, csrfToken, nil
 }
 
 func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
@@ -347,7 +547,7 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 	return agentId, token, nil
 }
 
-func constructImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
+func constructJobImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
 	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
 	if as == nil {
 		as = &agentcfg.CiAccessAsCF_Agent{} // default value
@@ -371,7 +571,23 @@ func constructImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *g
 		}, nil
 	default:
 		// Normally this should never happen
-		return nil, fmt.Errorf("unexpected impersonation mode: %T", imp)
+		return nil, fmt.Errorf("unexpected job impersonation mode: %T", imp)
+	}
+}
+
+func constructUserImpersonationConfig(auth *gapi.AuthorizeProxyUserResponse, accessType string) (*rpc.ImpersonationConfig, error) {
+	switch imp := auth.GetAccessAs().AccessAs.(type) {
+	case *gapi.AccessAsProxyAuthorization_Agent:
+		return nil, nil
+	case *gapi.AccessAsProxyAuthorization_User:
+		return &rpc.ImpersonationConfig{
+			Username: fmt.Sprintf("gitlab:user:%s", auth.User.Username),
+			Groups:   impUserGroups(auth),
+			Extra:    impUserExtra(auth, accessType),
+		}, nil
+	default:
+		// Normally this should never happen
+		return nil, fmt.Errorf("unexpected user impersonation mode: %T", imp)
 	}
 }
 
@@ -449,6 +665,43 @@ func impCiJobExtra(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgen
 				Val: []string{allowedForJob.Environment.Tier}, // tier of the environment, if set
 			},
 		)
+	}
+	return extra
+}
+
+func impUserGroups(auth *gapi.AuthorizeProxyUserResponse) []string {
+	groups := []string{"gitlab:user"}
+	for _, accessCF := range auth.AccessAs.GetUser().Projects {
+		for _, role := range accessCF.Roles {
+			groups = append(groups, fmt.Sprintf("gitlab:project_role:%d:%s", accessCF.Id, role))
+		}
+	}
+	for _, accessCF := range auth.AccessAs.GetUser().Groups {
+		for _, role := range accessCF.Roles {
+			groups = append(groups, fmt.Sprintf("gitlab:group_role:%d:%s", accessCF.Id, role))
+		}
+	}
+	return groups
+}
+
+func impUserExtra(auth *gapi.AuthorizeProxyUserResponse, accessType string) []*rpc.ExtraKeyVal {
+	extra := []*rpc.ExtraKeyVal{
+		{
+			Key: "agent.gitlab.com/id",
+			Val: []string{strconv.FormatInt(auth.Agent.Id, 10)},
+		},
+		{
+			Key: "agent.gitlab.com/username",
+			Val: []string{auth.User.Username},
+		},
+		{
+			Key: "agent.gitlab.com/access_type",
+			Val: []string{accessType},
+		},
+		{
+			Key: "agent.gitlab.com/config_project_id",
+			Val: []string{strconv.FormatInt(auth.Agent.ConfigProject.Id, 10)},
+		},
 	}
 	return extra
 }

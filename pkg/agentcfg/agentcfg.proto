@@ -213,6 +213,36 @@ message ExtraKeyValCF {
   repeated string val = 2 [json_name = "val", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_bytes = 1];
 }
 
+// https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_user_access.md
+message UserAccessCF {
+  UserAccessAsCF access_as = 1  [json_name = "access_as"];
+  repeated UserAccessProjectCF projects = 2 [json_name = "projects"];
+  repeated UserAccessGroupCF groups = 3 [json_name = "groups"];
+}
+
+message UserAccessProjectCF {
+  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+}
+
+message UserAccessGroupCF {
+  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
+}
+
+message UserAccessAsCF {
+  oneof as {
+    option (validate.required) = true;
+
+    UserAccessAsAgentCF agent = 1 [json_name = "agent", (validate.rules).message.required = true];
+    UserAccessAsUserCF user = 3 [json_name = "user", (validate.rules).message.required = true];
+  }
+}
+
+message UserAccessAsAgentCF {
+}
+
+message UserAccessAsUserCF {
+}
+
 message StarboardCF {
   VulnerabilityReport vulnerability_report = 1 [json_name = "vulnerability_report"];
   string cadence = 2 [json_name = "cadence", (validate.rules).string.min_bytes = 1];
@@ -240,6 +270,7 @@ message ConfigurationFile {
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
   StarboardCF starboard = 5 [json_name = "starboard"];
   StarboardCF container_scanning = 6 [json_name = "container_scanning"];
+  UserAccessCF user_access = 7 [json_name = "user_access"];
 }
 
 // AgentConfiguration represents configuration for agentk.

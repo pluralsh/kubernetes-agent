@@ -84,7 +84,11 @@ message LoggingCF {
 }
 
 message GitLabCF {
+  // Address for calling GitLab APIs
   string address = 1 [json_name = "address", (validate.rules).string.min_bytes = 1, (validate.rules).string.uri = true];
+  // External URL of GitLab in the format of `<scheme>://<domain>:<port>`. It is used to enable CORS (via Access-Control-Allow-Origin) for the Kubernetes API proxy.
+  // This value can be omitted if KAS is hosted on the same domain than GitLab (frontend access)
+  optional string external_url = 5 [json_name = "external_url", (validate.rules).string.min_bytes = 1, (validate.rules).string.uri = true];
   // Secret to generate JWT tokens to authenticate with GitLab.
   string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_bytes = 1];
   // Optional X.509 CA certificate for TLS in PEM format.

@@ -3433,6 +3433,854 @@ var _ interface {
 	ErrorName() string
 } = ExtraKeyValCFValidationError{}
 
+// Validate checks the field values on UserAccessCF with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *UserAccessCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in UserAccessCFMultiError, or
+// nil if none found.
+func (m *UserAccessCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetAccessAs()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserAccessCFValidationError{
+					field:  "AccessAs",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserAccessCFValidationError{
+					field:  "AccessAs",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetAccessAs()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserAccessCFValidationError{
+				field:  "AccessAs",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	for idx, item := range m.GetProjects() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UserAccessCFValidationError{
+						field:  fmt.Sprintf("Projects[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UserAccessCFValidationError{
+						field:  fmt.Sprintf("Projects[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UserAccessCFValidationError{
+					field:  fmt.Sprintf("Projects[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetGroups() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UserAccessCFValidationError{
+						field:  fmt.Sprintf("Groups[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UserAccessCFValidationError{
+						field:  fmt.Sprintf("Groups[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UserAccessCFValidationError{
+					field:  fmt.Sprintf("Groups[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return UserAccessCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessCFMultiError is an error wrapping multiple validation errors
+// returned by UserAccessCF.ValidateAll() if the designated constraints aren't met.
+type UserAccessCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessCFMultiError) AllErrors() []error { return m }
+
+// UserAccessCFValidationError is the validation error returned by
+// UserAccessCF.Validate if the designated constraints aren't met.
+type UserAccessCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessCFValidationError) ErrorName() string { return "UserAccessCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e UserAccessCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessCFValidationError{}
+
+// Validate checks the field values on UserAccessProjectCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserAccessProjectCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessProjectCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserAccessProjectCFMultiError, or nil if none found.
+func (m *UserAccessProjectCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessProjectCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetId()) < 1 {
+		err := UserAccessProjectCFValidationError{
+			field:  "Id",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return UserAccessProjectCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessProjectCFMultiError is an error wrapping multiple validation
+// errors returned by UserAccessProjectCF.ValidateAll() if the designated
+// constraints aren't met.
+type UserAccessProjectCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessProjectCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessProjectCFMultiError) AllErrors() []error { return m }
+
+// UserAccessProjectCFValidationError is the validation error returned by
+// UserAccessProjectCF.Validate if the designated constraints aren't met.
+type UserAccessProjectCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessProjectCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessProjectCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessProjectCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessProjectCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessProjectCFValidationError) ErrorName() string {
+	return "UserAccessProjectCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserAccessProjectCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessProjectCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessProjectCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessProjectCFValidationError{}
+
+// Validate checks the field values on UserAccessGroupCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *UserAccessGroupCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessGroupCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserAccessGroupCFMultiError, or nil if none found.
+func (m *UserAccessGroupCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessGroupCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetId()) < 1 {
+		err := UserAccessGroupCFValidationError{
+			field:  "Id",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return UserAccessGroupCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessGroupCFMultiError is an error wrapping multiple validation errors
+// returned by UserAccessGroupCF.ValidateAll() if the designated constraints
+// aren't met.
+type UserAccessGroupCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessGroupCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessGroupCFMultiError) AllErrors() []error { return m }
+
+// UserAccessGroupCFValidationError is the validation error returned by
+// UserAccessGroupCF.Validate if the designated constraints aren't met.
+type UserAccessGroupCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessGroupCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessGroupCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessGroupCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessGroupCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessGroupCFValidationError) ErrorName() string {
+	return "UserAccessGroupCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserAccessGroupCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessGroupCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessGroupCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessGroupCFValidationError{}
+
+// Validate checks the field values on UserAccessAsCF with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *UserAccessAsCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessAsCF with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in UserAccessAsCFMultiError,
+// or nil if none found.
+func (m *UserAccessAsCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessAsCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	oneofAsPresent := false
+	switch v := m.As.(type) {
+	case *UserAccessAsCF_Agent:
+		if v == nil {
+			err := UserAccessAsCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
+
+		if m.GetAgent() == nil {
+			err := UserAccessAsCFValidationError{
+				field:  "Agent",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetAgent()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UserAccessAsCFValidationError{
+						field:  "Agent",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UserAccessAsCFValidationError{
+						field:  "Agent",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetAgent()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UserAccessAsCFValidationError{
+					field:  "Agent",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *UserAccessAsCF_User:
+		if v == nil {
+			err := UserAccessAsCFValidationError{
+				field:  "As",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		oneofAsPresent = true
+
+		if m.GetUser() == nil {
+			err := UserAccessAsCFValidationError{
+				field:  "User",
+				reason: "value is required",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetUser()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, UserAccessAsCFValidationError{
+						field:  "User",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, UserAccessAsCFValidationError{
+						field:  "User",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetUser()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return UserAccessAsCFValidationError{
+					field:  "User",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	default:
+		_ = v // ensures v is used
+	}
+	if !oneofAsPresent {
+		err := UserAccessAsCFValidationError{
+			field:  "As",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return UserAccessAsCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessAsCFMultiError is an error wrapping multiple validation errors
+// returned by UserAccessAsCF.ValidateAll() if the designated constraints
+// aren't met.
+type UserAccessAsCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessAsCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessAsCFMultiError) AllErrors() []error { return m }
+
+// UserAccessAsCFValidationError is the validation error returned by
+// UserAccessAsCF.Validate if the designated constraints aren't met.
+type UserAccessAsCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessAsCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessAsCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessAsCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessAsCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessAsCFValidationError) ErrorName() string { return "UserAccessAsCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e UserAccessAsCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessAsCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessAsCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessAsCFValidationError{}
+
+// Validate checks the field values on UserAccessAsAgentCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserAccessAsAgentCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessAsAgentCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserAccessAsAgentCFMultiError, or nil if none found.
+func (m *UserAccessAsAgentCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessAsAgentCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return UserAccessAsAgentCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessAsAgentCFMultiError is an error wrapping multiple validation
+// errors returned by UserAccessAsAgentCF.ValidateAll() if the designated
+// constraints aren't met.
+type UserAccessAsAgentCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessAsAgentCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessAsAgentCFMultiError) AllErrors() []error { return m }
+
+// UserAccessAsAgentCFValidationError is the validation error returned by
+// UserAccessAsAgentCF.Validate if the designated constraints aren't met.
+type UserAccessAsAgentCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessAsAgentCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessAsAgentCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessAsAgentCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessAsAgentCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessAsAgentCFValidationError) ErrorName() string {
+	return "UserAccessAsAgentCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserAccessAsAgentCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessAsAgentCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessAsAgentCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessAsAgentCFValidationError{}
+
+// Validate checks the field values on UserAccessAsUserCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserAccessAsUserCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserAccessAsUserCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserAccessAsUserCFMultiError, or nil if none found.
+func (m *UserAccessAsUserCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserAccessAsUserCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return UserAccessAsUserCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserAccessAsUserCFMultiError is an error wrapping multiple validation errors
+// returned by UserAccessAsUserCF.ValidateAll() if the designated constraints
+// aren't met.
+type UserAccessAsUserCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserAccessAsUserCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserAccessAsUserCFMultiError) AllErrors() []error { return m }
+
+// UserAccessAsUserCFValidationError is the validation error returned by
+// UserAccessAsUserCF.Validate if the designated constraints aren't met.
+type UserAccessAsUserCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserAccessAsUserCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserAccessAsUserCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserAccessAsUserCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserAccessAsUserCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserAccessAsUserCFValidationError) ErrorName() string {
+	return "UserAccessAsUserCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserAccessAsUserCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserAccessAsUserCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserAccessAsUserCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserAccessAsUserCFValidationError{}
+
 // Validate checks the field values on StarboardCF with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -3969,6 +4817,35 @@ func (m *ConfigurationFile) validate(all bool) error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "ContainerScanning",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetUserAccess()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ConfigurationFileValidationError{
+					field:  "UserAccess",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ConfigurationFileValidationError{
+					field:  "UserAccess",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetUserAccess()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "UserAccess",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

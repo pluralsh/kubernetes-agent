@@ -128,7 +128,8 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| address | [string](#string) |  |  |
+| address | [string](#string) |  | Address for calling GitLab APIs |
+| external_url | [string](#string) | optional | External URL of GitLab in the format of `&lt;scheme&gt;://&lt;domain&gt;:&lt;port&gt;`. It is used to enable CORS (via Access-Control-Allow-Origin) for the Kubernetes API proxy. This value can be omitted if KAS is hosted on the same domain than GitLab (frontend access) |
 | authentication_secret_file | [string](#string) |  | Secret to generate JWT tokens to authenticate with GitLab. |
 | ca_certificate_file | [string](#string) |  | Optional X.509 CA certificate for TLS in PEM format. Should be set for self-signed certificates. |
 | api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limiting configuration for talking to the GitLab API. |

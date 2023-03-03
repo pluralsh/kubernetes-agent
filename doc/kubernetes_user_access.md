@@ -2,7 +2,7 @@
 
 ## Problem to solve
 
-Issue: https://gitlab.com/gitlab-org/gitlab/-/issues/331431
+Issue: <https://gitlab.com/gitlab-org/gitlab/-/issues/331431>
 
 - As a user of a Kubernetes cluster that is connected to GitLab using the GitLab
   agent, I would like to interact directly with the cluster using the Kubernetes
@@ -23,7 +23,7 @@ Issue: https://gitlab.com/gitlab-org/gitlab/-/issues/331431
 - An agent administrator can grant GitLab users access to a Kubernetes cluster
   that is connected via the GitLab agent. The agent administrator can then:
   - Manage the _level_ of access using [Kubernetes
-  RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+    RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
   - Have an overview of active [sessions](#authentication).
   - Unilaterally revoke individual sessions.
 - A user with access can connect to a cluster using their GitLab identity.
@@ -181,24 +181,24 @@ curl "https://kas.gitlab.example.com/k8s-proxy/version" \
 apiVersion: v1
 kind: Config
 clusters:
-- name: gitlab
-  cluster:
-    server: "https://kas.gitlab.example.com/k8s-proxy/"
+  - name: gitlab
+    cluster:
+      server: "https://kas.gitlab.example.com/k8s-proxy/"
 users:
-- name: agent:<agent ID>
-  user:
-    auth-provider:
-      name: oidc
-      config:
-        idp-issuer-url: "https://gitlab.example.com/"
-        client-id: <OpenID application client ID>
-        refresh-token: <OIDC refresh token>
-        id-token: <OIDC ID token JWT>
+  - name: agent:<agent ID>
+    user:
+      auth-provider:
+        name: oidc
+        config:
+          idp-issuer-url: "https://gitlab.example.com/"
+          client-id: <OpenID application client ID>
+          refresh-token: <OIDC refresh token>
+          id-token: <OIDC ID token JWT>
 contexts:
-- name: example-user
-  context:
-    cluster: gitlab
-    user: agent:<agent ID>
+  - name: example-user
+    context:
+      cluster: gitlab
+      user: agent:<agent ID>
 ```
 
 ###### OIDC as an alternative to PATs
@@ -225,20 +225,35 @@ experience](#authorized-user-side) should remain the same.**
 
 #### Browser cookie on GitLab frontend
 
-A cookie `_kas_session` similar to the `_gitlab_session` cookie, but
+A cookie `_gitlab_kas` similar to the `_gitlab_session` cookie, but
 specific to KAS and available on the KAS subdomain.
 
 - The agent, in this case, is selected using a header `Gitlab-Agent-Id`
   containing the numeric agent ID.
-- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a header `X-CSRF-Token` that KAS forwards along with the `_kas_session` to the GitLab backend.
+- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a header `X-CSRF-Token` that KAS forwards along with the `_gitlab_kas` to the GitLab backend.
 
 **Example request:**
 
 ```shell
 curl "https://kas.gitlab.example.com/k8s-proxy/version" \
-    --cookie "_kas_session=<cookie value>"  \
+    --cookie "_gitlab_kas=<cookie value>"  \
     --header "Gitlab-Agent-Id: <agent id>" \
-    --header "X-CSRF-Token: <csrf token>"
+    --header "X-Csrf-Token: <csrf token>"
+```
+
+Or from within a browser console (make sure to use the correct `Gitlab-Agent-Id`):
+
+```js
+fetch("https://kas.gitlab.example.com/k8s-proxy/version", {
+  credentials: "include",
+  headers: {
+    "X-Csrf-Token": document.head.querySelector('meta[name="csrf-token"]')
+      .content,
+    "Gitlab-Agent-Id": "1",
+  },
+})
+  .then((response) => response.json())
+  .then((data) => console.log(data));
 ```
 
 ### Authorization
@@ -254,7 +269,7 @@ provided user credentials and agent ID:
     "agent_id": <agent_id>, // in case of OIDC, extracted from the ID token JWT
     "access_type": "personal_access_token" | "oidc_id_token" | "session_cookie",
     "access_key": "<the token or cookie>"
-    "csrf_token": "<from the X-CSRF-Token header>" // for verification
+    "csrf_token": "<from the X-Csrf-Token header>" // for verification
 }
 ```
 
@@ -267,12 +282,13 @@ When responding to the request:
 1. Resolve the user. If the access key is invalid, return `401 Unauthorized`
    with a body `Invalid user access key` (the body helps KAS differentiate
    between that and invalid KAS <-> GitLab secret). KAS should return `401
-   Unauthorized` to the user.
+Unauthorized` to the user.
 1. Loop through `user_access.projects` and `user_access.groups`. If the user is
    not at least a **developer** in at least one group or project, return `403
-   Forbidden`. KAS should return `401 Unauthorized` to the user, identical to
+Forbidden`. KAS should return `401 Unauthorized` to the user, identical to
    the one above to prevent database enumeration of agent IDs.
 1. Then, when
+
    - `access_as.agent`: No further processing is required. Return `200 Success`.
    - `access_as.user`: The `authorize_proxy_user` endpoint **must** only return
      information about `projects` and `groups` where the user is at least a
@@ -296,29 +312,39 @@ in the agent's configuration file:
 // HTTP/1.1 200 OK
 // Content-Type: application/json
 {
-    "agent_id": 9999,
+    "agent": {
+        "id": 9999,
+        "config_project": {
+          "id": 1234
+        }
+    },
     "user": { // the user requesting access
         "id": 1234,
         "username": "the-user"
     },
-    "authorizations": {
+    "access_as": {
         "agent": {}
     }
 }
 ```
 
-
 `access_as.user` response:
+
 ```javascript
 // HTTP/1.1 200 OK
 // Content-Type: application/json
 {
-    "agent_id": 9999,
+    "agent": {
+        "id": 9999,
+        "config_project": {
+            "id": 1234
+        }
+    },
     "user": { // the user requesting access
         "id": 1234,
         "username": "the-user"
     },
-    "authorizations": {
+    "access_as": {
         "user": {
             // **ONLY** projects where the user is a developer or above
             "projects": [
@@ -340,16 +366,26 @@ in the agent's configuration file:
 ```
 
 Simplified protobuf schema for response:
+
 ```protobuf
 message AuthorizeProxyUserResponse {
-  int64 agent_id = 1;
+  Agent agent = 1;
   User user = 2;
-  Authorization authorizations = 3;
+  AccessAs access_as = 3;
+}
+
+message Agent {
+  int64 id = 1;
+  ConfigProject config_project = 2;
 }
 
 message User {
   int64 id = 1;
   string username = 2;
+}
+
+message ConfigProject {
+  int64 id = 1;
 }
 
 message ProxyAuthorization {
@@ -372,7 +408,6 @@ message AccessCF {
 }
 ```
 
-
 #### Plain access
 
 When `user_access.access_as` has the value `{ agent: {...} }`, requests is
@@ -382,7 +417,7 @@ forwarded to the API server using the agent's service account.
 
 When `user_access.access_as` is `{ user: {...} }`, the request should be
 transformed into an impersonation request for the authenticated user, where
-agentk impersonates _all_ of the `authorizations` present, as follows:
+agentk impersonates _all_ of the `access_as` present, as follows:
 
 - `UserName` is set to `gitlab:user:<username>`
 - `Groups` is set to:
@@ -390,11 +425,11 @@ agentk impersonates _all_ of the `authorizations` present, as follows:
   - `gitlab:project_role:<project_id>:<role>` for each role in each authorized project.
   - `gitlab:group_role:<group_id>:<role>` for each role in each authorized group.
 - `Extra` carries extra information about the request:
-     - `agent.gitlab.com/id`: The agent id.
-     - `agent.gitlab.com/username`: The username of the GitLab user.
-     - `agent.gitlab.com/config_project_id`: The agent configuration project id.
-     - `agent.gitlab.com/access_type`: One of `personal_access_token`,
-       `oidc_id_token`, `session_cookie`
+  - `agent.gitlab.com/id`: The agent id.
+  - `agent.gitlab.com/username`: The username of the GitLab user.
+  - `agent.gitlab.com/config_project_id`: The agent configuration project id.
+  - `agent.gitlab.com/access_type`: One of `personal_access_token`,
+    `oidc_id_token`, `session_cookie`
 
 **Important:** Only projects and groups directly listed in the under
 `user_access` in the configuration file get impersonated. For example,
@@ -408,8 +443,8 @@ user_access:
     - id: group-1/project-1 # group_id=1, project_id=1
     - id: group-2/project-2 # group_id=2, project_id=2
   groups:
-    - id: group-2           # group_id=2
-    - id: group-3/subgroup  # group_id=3, group_id=4
+    - id: group-2 # group_id=2
+    - id: group-3/subgroup # group_id=3, group_id=4
 ```
 
 Then:
@@ -420,6 +455,39 @@ Then:
   Kubernetes RBAC groups:
   - `gitlab:project_role:2:<role>`,
   - `gitlab:group_role:2:<role>`.
+
+#### Full Proxy Flow from Frontend to Cluster using the KAS Cookie
+
+The following sequence diagram depicts a Kube API proxy call initiated
+by the _Frontend_ via KAS and agentk authorized by Rails using the GitLab
+user information.
+
+This involves:
+
+- [Browser cookie on GitLab frontend](#browser-cookie-on-gitlab-frontend)
+- [Authorization via `POST /api/v4/internal/kubernetes/authorize_proxy_user`](#post-apiv4internalkubernetesauthorize_proxy_user)
+
+```mermaid
+sequenceDiagram
+
+note over Frontend: can be any kind of client
+Frontend->>+Rails AgentClusterController: browse /:project/-/cluster_agents/:cluster
+note over Frontend,Rails AgentClusterController: the cookie is bound to the `/k8s-proxy`<br/>path and the KAS domain and is `httponly`.
+Rails AgentClusterController-->>-Frontend: set `_gitlab_kas` cookie, respond CSRF token
+note over Frontend,KAS: The Frontend makes a pre-flight request to KAS to get the CORS headers<br/>This is necessary if KAS is on GitLab subdomain (SOP).
+Frontend->>+KAS: Kube API call to /k8s-proxy
+note over Frontend,KAS: pass `_gitlab_kas` cookie, `X-Csrf-Token` and `Gitlab-Agent-Id` headers
+KAS->>+Rails Internal Kubernetes API: call to internal/kubernetes/authorize_proxy_user API
+note over KAS,Rails Internal Kubernetes API: forward `_gitlab_kas` cookie, CSRF Token and Agent Id
+Rails Internal Kubernetes API-->>-KAS: user access information
+note over KAS,Rails Internal Kubernetes API: information if the user was authorized or not
+alt is authorized
+    KAS->>+Kubernetes Cluster (via agentk): impersonated Kube API call
+    note over KAS,Kubernetes Cluster (via agentk): the actual Kube API call from the Frontend
+    Kubernetes Cluster (via agentk)-->>-KAS: Kube API response
+end
+KAS-->>-Frontend: Kube API response or unauthorized error
+```
 
 ### Default configuration
 
@@ -474,18 +542,18 @@ issue](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/2
 - [OAuth provider](https://docs.gitlab.com/ee/integration/oauth_provider.html)
 - [OIDC provider](https://docs.gitlab.com/ee/integration/openid_connect_provider.html)
 - [OAuth 2.0 API](https://docs.gitlab.com/ee/api/oauth2.html)
-   - [PKCE](https://docs.gitlab.com/ee/api/oauth2.html#authorization-code-with-proof-key-for-code-exchange-pkce)
+  - [PKCE](https://docs.gitlab.com/ee/api/oauth2.html#authorization-code-with-proof-key-for-code-exchange-pkce)
 - [Credentials inventory](https://docs.gitlab.com/ee/user/admin_area/credentials_inventory.html#credentials-inventory) -- similar concept to agent token listing.
 
 #### Issues & Epics
 
 - Role / resource scoped access tokens have been a long-standing request:
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/31619
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/22114
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/22115
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/19090
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/297536
-  - https://gitlab.com/gitlab-org/gitlab/-/issues/297537
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/31619>
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/22114>
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/22115>
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/19090>
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/297536>
+  - <https://gitlab.com/gitlab-org/gitlab/-/issues/297537>
 - [RBAC pilot epic](https://gitlab.com/groups/gitlab-org/-/epics/7420)
 - [Doorkeeper pull request](https://github.com/doorkeeper-gem/doorkeeper/pull/1559) to add resource scopes. Doorkeeper is what GitLab uses for OAuth 2.0 and OIDC.
 
@@ -495,5 +563,5 @@ issue](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/2
 - [Resource indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707)
 - [JWT RFC](https://datatracker.ietf.org/doc/html/rfc7519)
 - [OAuth 2.0 Rich Authorization Requests - Draft RFC](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar)
-   - Most useful when combined with [Pushed Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9126), which seems overkill for our purposes.
+  - Most useful when combined with [Pushed Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9126), which seems overkill for our purposes.
 - [OAuth 2.1 - draft RFC](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-05)

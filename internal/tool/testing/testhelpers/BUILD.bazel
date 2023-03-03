@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/tool/httpz",
+        "//internal/tool/prototool",
         "//internal/tool/retry",
         "@com_github_golang_jwt_jwt_v4//:jwt",
         "@com_github_stretchr_testify//assert",
