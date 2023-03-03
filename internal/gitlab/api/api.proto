@@ -62,3 +62,39 @@ message AllowedAgentsForJob {
   User user = 5 [json_name = "user", (validate.rules).message.required = true];
   Environment environment = 6 [json_name = "environment"]; // optional
 }
+
+message AuthorizeProxyUserResponse {
+  AuthorizedAgentForUser agent = 1 [json_name = "agent", (validate.rules).message.required = true];
+  User user = 2 [json_name = "user", (validate.rules).message.required = true];
+  AccessAsProxyAuthorization access_as = 3 [json_name = "access_as", (validate.rules).message.required = true];
+}
+
+message AuthorizedAgentForUser {
+  int64 id = 1 [json_name = "id"];
+  ConfigProject config_project = 2 [json_name = "config_project", (validate.rules).message.required = true];
+}
+
+message AccessAsProxyAuthorization {
+  oneof access_as {
+    option (validate.required) = true;
+    AccessAsAgentAuthorization agent = 1 [json_name = "agent", (validate.rules).message.required = true];
+    AccessAsUserAuthorization user = 2 [json_name = "user", (validate.rules).message.required = true];
+  }
+}
+
+message AccessAsAgentAuthorization {}
+
+message AccessAsUserAuthorization {
+  repeated ProjectAccessCF projects = 1 [json_name = "projects"];
+  repeated GroupAccessCF groups = 2 [json_name = "groups"];
+}
+
+message ProjectAccessCF {
+  int64 id = 1 [json_name = "id"];
+  repeated string roles = 2 [json_name = "roles"];
+}
+
+message GroupAccessCF {
+  int64 id = 1 [json_name = "id"];
+  repeated string roles = 2 [json_name = "roles"];
+}

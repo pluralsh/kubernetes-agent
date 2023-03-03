@@ -28,6 +28,12 @@
     - [PathCF](#gitlab-agent-agentcfg-PathCF)
     - [StarboardCF](#gitlab-agent-agentcfg-StarboardCF)
     - [StarboardFilter](#gitlab-agent-agentcfg-StarboardFilter)
+    - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
+    - [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF)
+    - [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF)
+    - [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF)
+    - [UserAccessGroupCF](#gitlab-agent-agentcfg-UserAccessGroupCF)
+    - [UserAccessProjectCF](#gitlab-agent-agentcfg-UserAccessProjectCF)
     - [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport)
   
     - [log_level_enum](#gitlab-agent-agentcfg-log_level_enum)
@@ -289,6 +295,7 @@ ConfigurationFile represents user-facing configuration file.
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
 | starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
 | container_scanning | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
+| user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
 
 
 
@@ -442,6 +449,89 @@ Project with Kubernetes object manifests.
 | resources | [string](#string) | repeated |  |
 | containers | [string](#string) | repeated |  |
 | kinds | [string](#string) | repeated |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessAsAgentCF"></a>
+
+### UserAccessAsAgentCF
+
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessAsCF"></a>
+
+### UserAccessAsCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| agent | [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF) |  |  |
+| user | [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessAsUserCF"></a>
+
+### UserAccessAsUserCF
+
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessCF"></a>
+
+### UserAccessCF
+https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_user_access.md
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| access_as | [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF) |  |  |
+| projects | [UserAccessProjectCF](#gitlab-agent-agentcfg-UserAccessProjectCF) | repeated |  |
+| groups | [UserAccessGroupCF](#gitlab-agent-agentcfg-UserAccessGroupCF) | repeated |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessGroupCF"></a>
+
+### UserAccessGroupCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-UserAccessProjectCF"></a>
+
+### UserAccessProjectCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
 
 
 

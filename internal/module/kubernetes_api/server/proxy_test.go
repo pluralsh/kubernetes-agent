@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -57,45 +58,137 @@ const (
 	queryParamName  = "q with a space"
 )
 
-func TestProxy_JobTokenErrors(t *testing.T) {
+func strptr(s string) *string {
+	return &s
+}
+
+func TestProxy_CORSPreflight(t *testing.T) {
+	_, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+		t.Fail() // unexpected invocation
+	})
+
+	req.Method = http.MethodOptions
+
+	// set CORS headers
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	req.Header.Set("Access-Control-Request-Headers", "Content-Type, Cookie, X-Csrf-Token, Gitlab-Agent-Id")
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
+
+	assertCorsHeaders(t, resp.Header)
+	assertCorsPreflightHeaders(t, resp.Header)
+}
+
+func TestProxy_OriginIsNotAllowed(t *testing.T) {
+	_, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+		t.Fail() // unexpected invocation
+	})
+
+	req.Method = http.MethodOptions
+	req.Header.Set("Origin", "https://not-allowed.example.com")
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
+}
+
+func assertCorsHeaders(t *testing.T, header http.Header) {
+	// Assert headers used for CORS preflight and normal requests
+	assert.Equal(t, header.Values("Access-Control-Allow-Origin"), []string{"kas.gitlab.example.com"})
+	assert.Equal(t, header.Values("Access-Control-Allow-Credentials"), []string{"true"})
+	assert.Equal(t, header.Values("Vary"), []string{"Origin"})
+}
+
+func assertCorsPreflightHeaders(t *testing.T, header http.Header) {
+	// Assert CORS preflight response headers
+	assert.Equal(t, header.Values("Access-Control-Allow-Headers"), []string{"Content-Type, Cookie, X-Csrf-Token, Gitlab-Agent-Id"})
+	assert.Equal(t, header.Values("Access-Control-Allow-Methods"), []string{"GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH"})
+	assert.Equal(t, header.Values("Access-Control-Max-Age"), []string{"86400"})
+}
+
+func TestProxy_AuthorizationErrors(t *testing.T) {
 	tests := []struct {
-		name    string
-		auth    []string
-		message string
+		name            string
+		auth            []string
+		cookie          *string
+		agentIdHeader   []string
+		csrfTokenHeader []string
+		message         string
 	}{
 		{
-			name:    "missing header",
-			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting token",
+			name:    "missing credentials",
+			message: "GitLab Agent Server: Unauthorized: no valid credentials provided",
 		},
 		{
-			name:    "multiple headers",
+			name:    "job token: multiple headers",
 			auth:    []string{"a", "b"},
 			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting a single header, got 2",
 		},
 		{
-			name:    "invalid format1",
+			name:    "job token: invalid format1",
 			auth:    []string{"Token asdfadsf"},
 			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting Bearer token",
 		},
 		{
-			name:    "invalid format2",
+			name:    "job token: invalid format2",
 			auth:    []string{"Bearer asdfadsf"},
 			message: "GitLab Agent Server: Unauthorized: Authorization header: invalid value",
 		},
 		{
-			name:    "invalid agent id",
+			name:    "job token: invalid agent id",
 			auth:    []string{"Bearer ci:asdf:as"},
 			message: `GitLab Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
 		},
 		{
-			name:    "empty token",
+			name:    "job token: empty token",
 			auth:    []string{"Bearer ci:1:"},
 			message: "GitLab Agent Server: Unauthorized: Authorization header: empty token",
 		},
 		{
-			name:    "unknown token type",
+			name:    "job token: unknown token type",
 			auth:    []string{"Bearer blabla:1:asd"},
 			message: "GitLab Agent Server: Unauthorized: Authorization header: unknown token type",
+		},
+		{
+			name:    "cookie: empty string",
+			cookie:  new(string),
+			message: "GitLab Agent Server: Unauthorized: _gitlab_kas cookie value must not be empty",
+		},
+		{
+			name:    "cookie: missing agent ID header",
+			cookie:  strptr("the cookie"),
+			message: "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header must have exactly one value",
+		},
+		{
+			name:          "cookie: multiple agent ID header values",
+			cookie:        strptr("the cookie"),
+			agentIdHeader: []string{"a", "b"},
+			message:       "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header must have exactly one value",
+		},
+		{
+			name:          "cookie: invalid agent ID value",
+			cookie:        strptr("the cookie"),
+			agentIdHeader: []string{"abcd"},
+			message:       "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header: invalid value: \"abcd\"",
+		},
+		{
+			name:          "cookie: missing CSRF token header",
+			cookie:        strptr("the cookie"),
+			agentIdHeader: []string{"1234"},
+			message:       "GitLab Agent Server: Unauthorized: X-Csrf-Token header must have exactly one value",
+		},
+		{
+			name:            "cookie: multiple CSRF token header values",
+			cookie:          strptr("the cookie"),
+			agentIdHeader:   []string{"1234"},
+			csrfTokenHeader: []string{"x", "y"},
+			message:         "GitLab Agent Server: Unauthorized: X-Csrf-Token header must have exactly one value",
 		},
 	}
 	for _, tc := range tests {
@@ -103,9 +196,17 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 			_, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 				t.Fail() // unexpected invocation
 			})
-			delete(req.Header, httpz.AuthorizationHeader)
 			if len(tc.auth) > 0 {
 				req.Header[httpz.AuthorizationHeader] = tc.auth
+			}
+			if tc.cookie != nil {
+				req.AddCookie(&http.Cookie{Name: gitLabKasCookieName, Value: *tc.cookie})
+			}
+			if len(tc.agentIdHeader) > 0 {
+				req.Header[httpz.GitlabAgentIdHeader] = tc.agentIdHeader
+			}
+			if len(tc.csrfTokenHeader) > 0 {
+				req.Header[httpz.CsrfTokenHeader] = tc.csrfTokenHeader
 			}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
@@ -167,6 +268,7 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
 						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/job/allowed_agents", tc.allowedAgentsHttpStatus)))
 			}
+			req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
@@ -187,9 +289,71 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 	}
 }
 
+func TestProxy_AuthorizeProxyUserError(t *testing.T) {
+	tests := []struct {
+		authorizeProxyUserHttpStatus int
+		expectedHttpStatus           int
+		message                      string
+		captureErr                   bool
+	}{
+		{
+			authorizeProxyUserHttpStatus: http.StatusUnauthorized, // invalid credentials
+			expectedHttpStatus:           http.StatusUnauthorized,
+			message:                      "GitLab Agent Server: Unauthorized",
+		},
+		{
+			authorizeProxyUserHttpStatus: http.StatusForbidden, // user has no access to agent
+			expectedHttpStatus:           http.StatusUnauthorized,
+			message:                      "GitLab Agent Server: Unauthorized",
+		},
+		{
+			authorizeProxyUserHttpStatus: http.StatusNotFound, // user or agent not found
+			expectedHttpStatus:           http.StatusUnauthorized,
+			message:                      "GitLab Agent Server: Unauthorized",
+		},
+		{
+			authorizeProxyUserHttpStatus: http.StatusBadGateway, // some weird error
+			expectedHttpStatus:           http.StatusInternalServerError,
+			message:                      "GitLab Agent Server: Failed to authorize user session",
+			captureErr:                   true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(strconv.Itoa(tc.authorizeProxyUserHttpStatus), func(t *testing.T) {
+			api, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.authorizeProxyUserHttpStatus)
+			})
+			if tc.captureErr {
+				api.EXPECT().
+					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
+						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/internal/kubernetes/authorize_proxy_user", tc.authorizeProxyUserHttpStatus)))
+			}
+			setExpectedSessionCookieParams(req)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.EqualValues(t, tc.expectedHttpStatus, resp.StatusCode)
+			expected := metav1.Status{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Status",
+					APIVersion: "v1",
+				},
+				Status: metav1.StatusFailure,
+				Reason: code2reason[int32(tc.expectedHttpStatus)],
+				Code:   int32(tc.expectedHttpStatus),
+			}
+			assertCorsHeaders(t, resp.Header)
+			actualStatus := readStatus(t, resp)
+			assert.True(t, strings.HasPrefix(actualStatus.Message, tc.message+". Trace ID: "))
+			assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
+		})
+	}
+}
+
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req, _, _ := setupProxyWithHandler(t, "/bla/", configGitLabHandler(t, nil, nil))
+	_, _, client, req, _, _ := setupProxyWithHandler(t, "/bla/", configCiAccessGitLabHandler(t, nil, nil))
 	req.URL.Path = requestPath
+	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -230,7 +394,7 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 	assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 }
 
-func TestProxy_HappyPath(t *testing.T) {
+func TestProxy_CiAccessHappyPath(t *testing.T) {
 	tests := []struct {
 		name          string
 		urlPathPrefix string
@@ -401,13 +565,140 @@ func TestProxy_HappyPath(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testProxyHappyPath(t, tc.urlPathPrefix, tc.expectedExtra, configGitLabHandler(t, tc.config, tc.env))
+			testProxyHappyPath(t, setExpectedJobToken, tc.urlPathPrefix, tc.expectedExtra, configCiAccessGitLabHandler(t, tc.config, tc.env))
 		})
 	}
 }
 
-func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.HeaderExtra, handler func(http.ResponseWriter, *http.Request)) {
+func setExpectedJobToken(req *http.Request) {
+	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
+}
+
+func TestProxy_PreferAuthorizationHeaderOverSessionCookie(t *testing.T) {
+	expectedExtra := &rpc.HeaderExtra{
+		ImpConfig: &rpc.ImpersonationConfig{},
+	}
+	setJobTokenAndCookie := func(req *http.Request) {
+		setExpectedJobToken(req)
+		setExpectedSessionCookieParams(req)
+	}
+	testProxyHappyPath(t, setJobTokenAndCookie, "/", expectedExtra, configCiAccessGitLabHandler(t, nil, nil))
+}
+
+func TestProxy_UserAccessHappyPath(t *testing.T) {
+	tests := []struct {
+		name          string
+		urlPathPrefix string
+		auth          *gapi.AuthorizeProxyUserResponse
+		expectedExtra *rpc.HeaderExtra
+	}{
+		{
+			name:          "impersonate agent",
+			urlPathPrefix: "/",
+			auth: &gapi.AuthorizeProxyUserResponse{
+				AccessAs: &gapi.AccessAsProxyAuthorization{
+					AccessAs: &gapi.AccessAsProxyAuthorization_Agent{
+						Agent: &gapi.AccessAsAgentAuthorization{},
+					},
+				},
+			},
+		},
+		{
+			name:          "impersonate user",
+			urlPathPrefix: "/",
+			auth: &gapi.AuthorizeProxyUserResponse{
+				AccessAs: &gapi.AccessAsProxyAuthorization{
+					AccessAs: &gapi.AccessAsProxyAuthorization_User{
+						User: &gapi.AccessAsUserAuthorization{
+							Projects: []*gapi.ProjectAccessCF{
+								{
+									Id:    1234,
+									Roles: []string{"guest", "developer"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedExtra: &rpc.HeaderExtra{
+				ImpConfig: &rpc.ImpersonationConfig{
+					Username: "gitlab:user:testuser",
+					Groups: []string{
+						"gitlab:user",
+						"gitlab:project_role:1234:guest",
+						"gitlab:project_role:1234:developer",
+					},
+					Extra: []*rpc.ExtraKeyVal{
+						{
+							Key: "agent.gitlab.com/id",
+							Val: []string{"123"},
+						},
+						{
+							Key: "agent.gitlab.com/username",
+							Val: []string{"testuser"},
+						},
+						{
+							Key: "agent.gitlab.com/access_type",
+							Val: []string{"session_cookie"},
+						},
+						{
+							Key: "agent.gitlab.com/config_project_id",
+							Val: []string{"5"},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.auth.Agent = &gapi.AuthorizedAgentForUser{
+				Id:            testhelpers.AgentId,
+				ConfigProject: &gapi.ConfigProject{Id: 5},
+			}
+			tc.auth.User = &gapi.User{
+				Id:       testhelpers.AgentId,
+				Username: "testuser",
+			}
+			testProxyHappyPath(t, setExpectedSessionCookieParams, tc.urlPathPrefix, tc.expectedExtra, configUserAccessGitLabHandler(t, tc.auth))
+		})
+	}
+}
+
+func configUserAccessGitLabHandler(t *testing.T, auth *gapi.AuthorizeProxyUserResponse) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if !assertUserAccessCredentials(t, req) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		testhelpers.RespondWithJSON(t, w, &prototool.JsonBox{Message: auth})
+	}
+}
+
+func assertUserAccessCredentials(t *testing.T, req *http.Request) bool {
+	auth := gapi.AuthorizeProxyUserRequest{}
+	err := json.NewDecoder(req.Body).Decode(&auth)
+	return assert.NoError(t, err) &&
+		assert.Equal(t, auth.AgentId, testhelpers.AgentId) &&
+		assert.Equal(t, auth.AccessType, "session_cookie") &&
+		assert.Equal(t, auth.AccessKey, "encrypted-session-cookie") &&
+		assert.Equal(t, auth.CsrfToken, "the-csrf-token")
+}
+
+func setExpectedSessionCookieParams(req *http.Request) {
+	req.AddCookie(
+		&http.Cookie{
+			Name:  gitLabKasCookieName,
+			Value: "encrypted-session-cookie",
+		},
+	)
+	req.Header[httpz.GitlabAgentIdHeader] = []string{strconv.FormatInt(testhelpers.AgentId, 10)}
+	req.Header[httpz.CsrfTokenHeader] = []string{"the-csrf-token"}
+}
+
+func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), urlPathPrefix string, expectedExtra *rpc.HeaderExtra, handler func(http.ResponseWriter, *http.Request)) {
 	_, k8sClient, client, req, requestCount, ciTunnelUsageSet := setupProxyWithHandler(t, urlPathPrefix, handler)
+	prepareRequest(req)
 	requestCount.EXPECT().Inc()
 	ciTunnelUsageSet.EXPECT().Add(testhelpers.AgentId)
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
@@ -440,6 +731,9 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 							},
 							httpz.ViaHeader: {
 								Value: []string{"gRPC/1.0 sv1"},
+							},
+							httpz.OriginHeader: {
+								Value: []string{"kas.gitlab.example.com"},
 							},
 						},
 						UrlPath: requestPath,
@@ -483,6 +777,10 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 							"Date": {
 								Value: []string{"NOW!"},
 							},
+							// These headers are CORS headers and are being removed by the proxy
+							httpz.AccessControlMaxAgeHeader: {
+								Value: []string{"42"},
+							},
 						},
 					},
 				},
@@ -508,6 +806,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 
 	req.Header.Set("Req-Header", "x1")
 	req.Header.Add("Req-Header", "x2")
+	req.Header.Set(httpz.OriginHeader, "kas.gitlab.example.com")
 	req.Header.Set(httpz.UserAgentHeader, "test-agent") // added manually to override what is added by the Go client
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -518,9 +817,12 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string, expectedExtra *rpc.H
 	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
 	delete(resp.Header, "Date")
 	assert.Empty(t, cmp.Diff(map[string][]string{
-		"Resp-Header":  {"a1", "a2"},
-		"Content-Type": {"application/octet-stream"},
-		"Via":          {"gRPC/1.0 sv1"},
+		"Resp-Header":                      {"a1", "a2"},
+		"Content-Type":                     {"application/octet-stream"},
+		"Via":                              {"gRPC/1.0 sv1"},
+		"Access-Control-Allow-Credentials": {"true"},
+		"Access-Control-Allow-Origin":      {"kas.gitlab.example.com"},
+		"Vary":                             {"Origin"},
 	}, (map[string][]string)(resp.Header)))
 }
 
@@ -577,10 +879,10 @@ func assertToken(t *testing.T, r *http.Request) bool {
 }
 
 func setupProxy(t *testing.T) (*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter, *mock_usage_metrics.MockUniqueCounter) {
-	return setupProxyWithHandler(t, "/", configGitLabHandler(t, nil, nil))
+	return setupProxyWithHandler(t, "/", configCiAccessGitLabHandler(t, nil, nil))
 }
 
-func configGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Environment) func(w http.ResponseWriter, r *http.Request) {
+func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Environment) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !assertToken(t, r) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -626,21 +928,24 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	requestCount := mock_usage_metrics.NewMockCounter(ctrl)
 	ciTunnelUsageSet := mock_usage_metrics.NewMockUniqueCounter(ctrl)
 	errCache := mock_cache.NewMockErrCacher[string](ctrl)
+	proxyErrCache := mock_cache.NewMockErrCacher[proxyUserCacheKey](ctrl)
 
 	p := kubernetesApiProxy{
-		log:                  zaptest.NewLogger(t),
-		api:                  mockApi,
-		kubernetesApiClient:  k8sClient,
-		gitLabClient:         mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
-		allowedAgentsCache:   cache.NewWithError[string, *gapi.AllowedAgentsForJob](0, 0, errCache, func(err error) bool { return false }),
-		requestCounter:       requestCount,
-		ciTunnelUsersCounter: ciTunnelUsageSet,
-		responseSerializer:   serializer.NewCodecFactory(runtime.NewScheme()),
-		traceProvider:        trace.NewTracerProvider(trace.WithSpanProcessor(tracetest.NewSpanRecorder())),
-		tracePropagator:      propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
-		serverName:           "sv1",
-		serverVia:            "gRPC/1.0 sv1",
-		urlPathPrefix:        urlPathPrefix,
+		log:                     zaptest.NewLogger(t),
+		api:                     mockApi,
+		kubernetesApiClient:     k8sClient,
+		gitLabClient:            mock_gitlab.SetupClient(t, "/", handler),
+		allowedOriginUrls:       []string{"kas.gitlab.example.com"},
+		allowedAgentsCache:      cache.NewWithError[string, *gapi.AllowedAgentsForJob](0, 0, errCache, func(err error) bool { return false }),
+		authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse](0, 0, proxyErrCache, func(err error) bool { return false }),
+		requestCounter:          requestCount,
+		ciTunnelUsersCounter:    ciTunnelUsageSet,
+		responseSerializer:      serializer.NewCodecFactory(runtime.NewScheme()),
+		traceProvider:           trace.NewTracerProvider(trace.WithSpanProcessor(tracetest.NewSpanRecorder())),
+		tracePropagator:         propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+		serverName:              "sv1",
+		serverVia:               "gRPC/1.0 sv1",
+		urlPathPrefix:           urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group
@@ -666,8 +971,8 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		"http://any_host_will_do.local"+path.Join(urlPathPrefix, requestPath)+"?"+url.QueryEscape(queryParamName)+"="+url.QueryEscape(queryParamValue),
 		strings.NewReader(requestPayload),
 	)
+	req.Header.Set(httpz.OriginHeader, "kas.gitlab.example.com")
 	require.NoError(t, err)
-	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 	return mockApi, k8sClient, client, req, requestCount, ciTunnelUsageSet
 }
 
@@ -712,4 +1017,95 @@ func readStatus(t *testing.T, resp *http.Response) metav1.Status {
 	obj, _, err := decoder.Decode(data, nil, &s)
 	require.NoError(t, err)
 	return *obj.(*metav1.Status)
+}
+
+func Test_MergeProxiedResponseHeaders(t *testing.T) {
+	tests := []struct {
+		name                   string
+		outboundHeaders        http.Header
+		inboundHeaders         http.Header
+		expectedInboundHeaders http.Header
+	}{
+		{
+			name:            "no outbound, no inbound headers -> expect default headers",
+			outboundHeaders: http.Header{},
+			inboundHeaders:  http.Header{},
+			expectedInboundHeaders: http.Header{
+				"Via": []string{"test-via"},
+			},
+		},
+		{
+			name: "passthrough random outbound header",
+			outboundHeaders: http.Header{
+				"x-kubernetes-pf-flowschema-uid": []string{"c6536774-bf9c-4a73-8d90-39503e311cd3"},
+			},
+			inboundHeaders: http.Header{},
+			expectedInboundHeaders: http.Header{
+				"Via":                            []string{"test-via"},
+				"x-kubernetes-pf-flowschema-uid": []string{"c6536774-bf9c-4a73-8d90-39503e311cd3"},
+			},
+		},
+		{
+			name: "remove CORS headers from outbound headers",
+			outboundHeaders: http.Header{
+				"Access-Control-Allow-Origin":      []string{"any"},
+				"Access-Control-Allow-Methods":     []string{"any"},
+				"Access-Control-Allow-Headers":     []string{"any"},
+				"Access-Control-Allow-Credentials": []string{"any"},
+				"Access-Control-Max-Age":           []string{"any"},
+			},
+			inboundHeaders: http.Header{},
+			expectedInboundHeaders: http.Header{
+				"Via": []string{"test-via"},
+			},
+		},
+		{
+			name: "don't overwrite inbound with outbound headers",
+			outboundHeaders: http.Header{
+				"Any-Header": []string{"overwrite"},
+			},
+			inboundHeaders: http.Header{
+				"Any-Header": []string{"expected-to-see-this"},
+			},
+			expectedInboundHeaders: http.Header{
+				"Via":        []string{"test-via"},
+				"Any-Header": []string{"expected-to-see-this"},
+			},
+		},
+		{
+			name: "proxy Via header is appended to the outbound Via headers",
+			outboundHeaders: http.Header{
+				"Via": []string{"any-via"},
+			},
+			inboundHeaders: http.Header{},
+			expectedInboundHeaders: http.Header{
+				"Via": []string{"any-via", "test-via"},
+			},
+		},
+		{
+			name: "Append outbound Vary headers from inbound",
+			outboundHeaders: http.Header{
+				"Vary": []string{"any-vary"},
+			},
+			inboundHeaders: http.Header{
+				"Vary": []string{"Origin"},
+			},
+			expectedInboundHeaders: http.Header{
+				"Via":  []string{"test-via"},
+				"Vary": []string{"Origin", "any-vary"},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := kubernetesApiProxy{
+				// NOTE: p.serverVia is the only field accessed by the function under test
+				serverVia: "test-via",
+			}
+
+			p.mergeProxiedResponseHeaders(tc.outboundHeaders, tc.inboundHeaders)
+
+			assert.Equal(t, tc.expectedInboundHeaders, tc.inboundHeaders)
+		})
+	}
 }

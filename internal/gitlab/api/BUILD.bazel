@@ -16,6 +16,7 @@ go_library(
     srcs = [
         "api.pb.go",
         "api.pb.validate.go",
+        "authorize_proxy_user.go",
         "get_agent_info.go",
         "get_allowed_agents.go",
         "get_project_info.go",
@@ -41,6 +42,7 @@ go_library(
 go_custom_test(
     name = "api_test",
     srcs = [
+        "authorize_proxy_user_test.go",
         "get_agent_info_test.go",
         "get_project_info_test.go",
         "post_agent_configuration_test.go",

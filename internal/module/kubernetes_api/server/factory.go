@@ -51,6 +51,12 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		}
 	}
 	serverName := fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId)
+	var allowedOriginUrls []string
+	if u := config.Config.Gitlab.GetExternalUrl(); u != "" {
+		allowedOriginUrls = append(allowedOriginUrls, u)
+	}
+	allowedAgentCacheTtl := k8sApi.AllowedAgentCacheTtl.AsDuration()
+	allowedAgentCacheErrorTtl := k8sApi.AllowedAgentCacheErrorTtl.AsDuration()
 	m := &module{
 		log: config.Log,
 		proxy: kubernetesApiProxy{
@@ -58,9 +64,10 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			api:                 config.Api,
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:        config.GitLabClient,
+			allowedOriginUrls:   allowedOriginUrls,
 			allowedAgentsCache: cache.NewWithError[string, *gapi.AllowedAgentsForJob](
-				k8sApi.AllowedAgentCacheTtl.AsDuration(),
-				k8sApi.AllowedAgentCacheErrorTtl.AsDuration(),
+				allowedAgentCacheTtl,
+				allowedAgentCacheErrorTtl,
 				&redistool.ErrCacher[string]{
 					Log:          config.Log,
 					ErrRep:       modshared.ApiToErrReporter(config.Api),
@@ -72,6 +79,27 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 						n := len(jobToken) / 2
 						tokenHash := sha256.Sum256([]byte(jobToken[:n]))
 						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(tokenHash[:])
+					},
+				},
+				gapi.IsCacheableError,
+			),
+			authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse](
+				allowedAgentCacheTtl,
+				allowedAgentCacheErrorTtl,
+				&redistool.ErrCacher[proxyUserCacheKey]{
+					Log:          config.Log,
+					ErrRep:       modshared.ApiToErrReporter(config.Api),
+					Client:       config.RedisClient,
+					ErrMarshaler: prototool.ProtoErrMarshaler{},
+					KeyToRedisKey: func(key proxyUserCacheKey) string {
+						// Hash half of the token. Even if that hash leaks, it's not a big deal.
+						// We do the same in api.AgentToken2key().
+						n := len(key.accessKey) / 2
+						h := sha256.New()
+						h.Write([]byte(key.accessType))
+						h.Write([]byte(key.accessKey[:n]))
+						tokenHash := h.Sum(nil)
+						return config.Config.Redis.KeyPrefix + ":auth_proxy_user_errs:" + string(tokenHash)
 					},
 				},
 				gapi.IsCacheableError,

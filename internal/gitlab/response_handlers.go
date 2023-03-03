@@ -44,7 +44,7 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 			}
 			defer errz.SafeClose(resp.Body, &retErr)
 			switch resp.StatusCode {
-			case http.StatusOK:
+			case http.StatusOK, http.StatusCreated:
 				contentType := resp.Header.Get(httpz.ContentTypeHeader)
 				if !httpz.IsContentType(contentType, "application/json") {
 					return fmt.Errorf("unexpected %s in response: %q", httpz.ContentTypeHeader, contentType)

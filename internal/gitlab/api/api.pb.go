@@ -581,6 +581,408 @@ func (x *AllowedAgentsForJob) GetEnvironment() *Environment {
 	return nil
 }
 
+type AuthorizeProxyUserResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Agent    *AuthorizedAgentForUser     `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
+	User     *User                       `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	AccessAs *AccessAsProxyAuthorization `protobuf:"bytes,3,opt,name=access_as,proto3" json:"access_as,omitempty"`
+}
+
+func (x *AuthorizeProxyUserResponse) Reset() {
+	*x = AuthorizeProxyUserResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AuthorizeProxyUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeProxyUserResponse) ProtoMessage() {}
+
+func (x *AuthorizeProxyUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizeProxyUserResponse.ProtoReflect.Descriptor instead.
+func (*AuthorizeProxyUserResponse) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AuthorizeProxyUserResponse) GetAgent() *AuthorizedAgentForUser {
+	if x != nil {
+		return x.Agent
+	}
+	return nil
+}
+
+func (x *AuthorizeProxyUserResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *AuthorizeProxyUserResponse) GetAccessAs() *AccessAsProxyAuthorization {
+	if x != nil {
+		return x.AccessAs
+	}
+	return nil
+}
+
+type AuthorizedAgentForUser struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id            int64          `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ConfigProject *ConfigProject `protobuf:"bytes,2,opt,name=config_project,proto3" json:"config_project,omitempty"`
+}
+
+func (x *AuthorizedAgentForUser) Reset() {
+	*x = AuthorizedAgentForUser{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AuthorizedAgentForUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizedAgentForUser) ProtoMessage() {}
+
+func (x *AuthorizedAgentForUser) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizedAgentForUser.ProtoReflect.Descriptor instead.
+func (*AuthorizedAgentForUser) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AuthorizedAgentForUser) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *AuthorizedAgentForUser) GetConfigProject() *ConfigProject {
+	if x != nil {
+		return x.ConfigProject
+	}
+	return nil
+}
+
+type AccessAsProxyAuthorization struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to AccessAs:
+	//
+	//	*AccessAsProxyAuthorization_Agent
+	//	*AccessAsProxyAuthorization_User
+	AccessAs isAccessAsProxyAuthorization_AccessAs `protobuf_oneof:"access_as"`
+}
+
+func (x *AccessAsProxyAuthorization) Reset() {
+	*x = AccessAsProxyAuthorization{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AccessAsProxyAuthorization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessAsProxyAuthorization) ProtoMessage() {}
+
+func (x *AccessAsProxyAuthorization) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessAsProxyAuthorization.ProtoReflect.Descriptor instead.
+func (*AccessAsProxyAuthorization) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{12}
+}
+
+func (m *AccessAsProxyAuthorization) GetAccessAs() isAccessAsProxyAuthorization_AccessAs {
+	if m != nil {
+		return m.AccessAs
+	}
+	return nil
+}
+
+func (x *AccessAsProxyAuthorization) GetAgent() *AccessAsAgentAuthorization {
+	if x, ok := x.GetAccessAs().(*AccessAsProxyAuthorization_Agent); ok {
+		return x.Agent
+	}
+	return nil
+}
+
+func (x *AccessAsProxyAuthorization) GetUser() *AccessAsUserAuthorization {
+	if x, ok := x.GetAccessAs().(*AccessAsProxyAuthorization_User); ok {
+		return x.User
+	}
+	return nil
+}
+
+type isAccessAsProxyAuthorization_AccessAs interface {
+	isAccessAsProxyAuthorization_AccessAs()
+}
+
+type AccessAsProxyAuthorization_Agent struct {
+	Agent *AccessAsAgentAuthorization `protobuf:"bytes,1,opt,name=agent,proto3,oneof"`
+}
+
+type AccessAsProxyAuthorization_User struct {
+	User *AccessAsUserAuthorization `protobuf:"bytes,2,opt,name=user,proto3,oneof"`
+}
+
+func (*AccessAsProxyAuthorization_Agent) isAccessAsProxyAuthorization_AccessAs() {}
+
+func (*AccessAsProxyAuthorization_User) isAccessAsProxyAuthorization_AccessAs() {}
+
+type AccessAsAgentAuthorization struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *AccessAsAgentAuthorization) Reset() {
+	*x = AccessAsAgentAuthorization{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AccessAsAgentAuthorization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessAsAgentAuthorization) ProtoMessage() {}
+
+func (x *AccessAsAgentAuthorization) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessAsAgentAuthorization.ProtoReflect.Descriptor instead.
+func (*AccessAsAgentAuthorization) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{13}
+}
+
+type AccessAsUserAuthorization struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Projects []*ProjectAccessCF `protobuf:"bytes,1,rep,name=projects,proto3" json:"projects,omitempty"`
+	Groups   []*GroupAccessCF   `protobuf:"bytes,2,rep,name=groups,proto3" json:"groups,omitempty"`
+}
+
+func (x *AccessAsUserAuthorization) Reset() {
+	*x = AccessAsUserAuthorization{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AccessAsUserAuthorization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessAsUserAuthorization) ProtoMessage() {}
+
+func (x *AccessAsUserAuthorization) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessAsUserAuthorization.ProtoReflect.Descriptor instead.
+func (*AccessAsUserAuthorization) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AccessAsUserAuthorization) GetProjects() []*ProjectAccessCF {
+	if x != nil {
+		return x.Projects
+	}
+	return nil
+}
+
+func (x *AccessAsUserAuthorization) GetGroups() []*GroupAccessCF {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+type ProjectAccessCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    int64    `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Roles []string `protobuf:"bytes,2,rep,name=roles,proto3" json:"roles,omitempty"`
+}
+
+func (x *ProjectAccessCF) Reset() {
+	*x = ProjectAccessCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProjectAccessCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectAccessCF) ProtoMessage() {}
+
+func (x *ProjectAccessCF) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectAccessCF.ProtoReflect.Descriptor instead.
+func (*ProjectAccessCF) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ProjectAccessCF) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ProjectAccessCF) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+type GroupAccessCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    int64    `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Roles []string `protobuf:"bytes,2,rep,name=roles,proto3" json:"roles,omitempty"`
+}
+
+func (x *GroupAccessCF) Reset() {
+	*x = GroupAccessCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_gitlab_api_api_proto_msgTypes[16]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GroupAccessCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GroupAccessCF) ProtoMessage() {}
+
+func (x *GroupAccessCF) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_gitlab_api_api_proto_msgTypes[16]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GroupAccessCF.ProtoReflect.Descriptor instead.
+func (*GroupAccessCF) Descriptor() ([]byte, []int) {
+	return file_internal_gitlab_api_api_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GroupAccessCF) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *GroupAccessCF) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
 var File_internal_gitlab_api_api_proto protoreflect.FileDescriptor
 
 var file_internal_gitlab_api_api_proto_rawDesc = []byte{
@@ -659,12 +1061,70 @@ var file_internal_gitlab_api_api_proto_rawDesc = []byte{
 	0x28, 0x0b, 0x32, 0x24, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e,
 	0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x45, 0x6e, 0x76,
 	0x69, 0x72, 0x6f, 0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0b, 0x65, 0x6e, 0x76, 0x69, 0x72, 0x6f,
-	0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x42, 0x50, 0x5a, 0x4e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63,
-	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f,
-	0x76, 0x31, 0x35, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x69, 0x74,
-	0x6c, 0x61, 0x62, 0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x22, 0x87, 0x02, 0x0a, 0x1a, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x69, 0x7a, 0x65, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65,
+	0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x64, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x46, 0x6f, 0x72,
+	0x55, 0x73, 0x65, 0x72, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x05,
+	0x61, 0x67, 0x65, 0x6e, 0x74, 0x12, 0x3b, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65,
+	0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x55, 0x73,
+	0x65, 0x72, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x04, 0x75, 0x73,
+	0x65, 0x72, 0x12, 0x5b, 0x0a, 0x09, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x61, 0x73, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61,
+	0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e,
+	0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x41, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a,
+	0x01, 0x02, 0x10, 0x01, 0x52, 0x09, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x61, 0x73, 0x22,
+	0x82, 0x01, 0x0a, 0x16, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x64, 0x41, 0x67,
+	0x65, 0x6e, 0x74, 0x46, 0x6f, 0x72, 0x55, 0x73, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x58, 0x0a, 0x0e, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x5f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x26, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e,
+	0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a,
+	0x01, 0x02, 0x10, 0x01, 0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x70, 0x72, 0x6f,
+	0x6a, 0x65, 0x63, 0x74, 0x22, 0xd9, 0x01, 0x0a, 0x1a, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41,
+	0x73, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x12, 0x55, 0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x33, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e,
+	0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x63, 0x63,
+	0x65, 0x73, 0x73, 0x41, 0x73, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10,
+	0x01, 0x48, 0x00, 0x52, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x12, 0x52, 0x0a, 0x04, 0x75, 0x73,
+	0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61,
+	0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61,
+	0x70, 0x69, 0x2e, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x55, 0x73, 0x65, 0x72, 0x41,
+	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42,
+	0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x48, 0x00, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x42, 0x10,
+	0x0a, 0x09, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x61, 0x73, 0x12, 0x03, 0xf8, 0x42, 0x01,
+	0x22, 0x1c, 0x0a, 0x1a, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x41, 0x67, 0x65, 0x6e,
+	0x74, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xa1,
+	0x01, 0x0a, 0x19, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x55, 0x73, 0x65, 0x72, 0x41,
+	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x44, 0x0a, 0x08,
+	0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x28,
+	0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
+	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
+	0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x43, 0x46, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63,
+	0x74, 0x73, 0x12, 0x3e, 0x0a, 0x06, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x26, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e,
+	0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x47, 0x72, 0x6f,
+	0x75, 0x70, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x43, 0x46, 0x52, 0x06, 0x67, 0x72, 0x6f, 0x75,
+	0x70, 0x73, 0x22, 0x37, 0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x41, 0x63, 0x63,
+	0x65, 0x73, 0x73, 0x43, 0x46, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x72, 0x6f, 0x6c, 0x65, 0x73, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x72, 0x6f, 0x6c, 0x65, 0x73, 0x22, 0x35, 0x0a, 0x0d, 0x47,
+	0x72, 0x6f, 0x75, 0x70, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x43, 0x46, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05,
+	0x72, 0x6f, 0x6c, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x72, 0x6f, 0x6c,
+	0x65, 0x73, 0x42, 0x50, 0x5a, 0x4e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
+	0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73,
+	0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f,
+	0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x76, 0x31, 0x35,
+	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
+	0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -679,22 +1139,29 @@ func file_internal_gitlab_api_api_proto_rawDescGZIP() []byte {
 	return file_internal_gitlab_api_api_proto_rawDescData
 }
 
-var file_internal_gitlab_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_internal_gitlab_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_internal_gitlab_api_api_proto_goTypes = []interface{}{
-	(*Configuration)(nil),         // 0: gitlab.agent.gitlab.api.Configuration
-	(*AllowedAgent)(nil),          // 1: gitlab.agent.gitlab.api.AllowedAgent
-	(*ConfigProject)(nil),         // 2: gitlab.agent.gitlab.api.ConfigProject
-	(*Pipeline)(nil),              // 3: gitlab.agent.gitlab.api.Pipeline
-	(*Project)(nil),               // 4: gitlab.agent.gitlab.api.Project
-	(*Group)(nil),                 // 5: gitlab.agent.gitlab.api.Group
-	(*Job)(nil),                   // 6: gitlab.agent.gitlab.api.Job
-	(*User)(nil),                  // 7: gitlab.agent.gitlab.api.User
-	(*Environment)(nil),           // 8: gitlab.agent.gitlab.api.Environment
-	(*AllowedAgentsForJob)(nil),   // 9: gitlab.agent.gitlab.api.AllowedAgentsForJob
-	(*agentcfg.CiAccessAsCF)(nil), // 10: gitlab.agent.agentcfg.CiAccessAsCF
+	(*Configuration)(nil),              // 0: gitlab.agent.gitlab.api.Configuration
+	(*AllowedAgent)(nil),               // 1: gitlab.agent.gitlab.api.AllowedAgent
+	(*ConfigProject)(nil),              // 2: gitlab.agent.gitlab.api.ConfigProject
+	(*Pipeline)(nil),                   // 3: gitlab.agent.gitlab.api.Pipeline
+	(*Project)(nil),                    // 4: gitlab.agent.gitlab.api.Project
+	(*Group)(nil),                      // 5: gitlab.agent.gitlab.api.Group
+	(*Job)(nil),                        // 6: gitlab.agent.gitlab.api.Job
+	(*User)(nil),                       // 7: gitlab.agent.gitlab.api.User
+	(*Environment)(nil),                // 8: gitlab.agent.gitlab.api.Environment
+	(*AllowedAgentsForJob)(nil),        // 9: gitlab.agent.gitlab.api.AllowedAgentsForJob
+	(*AuthorizeProxyUserResponse)(nil), // 10: gitlab.agent.gitlab.api.AuthorizeProxyUserResponse
+	(*AuthorizedAgentForUser)(nil),     // 11: gitlab.agent.gitlab.api.AuthorizedAgentForUser
+	(*AccessAsProxyAuthorization)(nil), // 12: gitlab.agent.gitlab.api.AccessAsProxyAuthorization
+	(*AccessAsAgentAuthorization)(nil), // 13: gitlab.agent.gitlab.api.AccessAsAgentAuthorization
+	(*AccessAsUserAuthorization)(nil),  // 14: gitlab.agent.gitlab.api.AccessAsUserAuthorization
+	(*ProjectAccessCF)(nil),            // 15: gitlab.agent.gitlab.api.ProjectAccessCF
+	(*GroupAccessCF)(nil),              // 16: gitlab.agent.gitlab.api.GroupAccessCF
+	(*agentcfg.CiAccessAsCF)(nil),      // 17: gitlab.agent.agentcfg.CiAccessAsCF
 }
 var file_internal_gitlab_api_api_proto_depIdxs = []int32{
-	10, // 0: gitlab.agent.gitlab.api.Configuration.access_as:type_name -> gitlab.agent.agentcfg.CiAccessAsCF
+	17, // 0: gitlab.agent.gitlab.api.Configuration.access_as:type_name -> gitlab.agent.agentcfg.CiAccessAsCF
 	2,  // 1: gitlab.agent.gitlab.api.AllowedAgent.config_project:type_name -> gitlab.agent.gitlab.api.ConfigProject
 	0,  // 2: gitlab.agent.gitlab.api.AllowedAgent.configuration:type_name -> gitlab.agent.gitlab.api.Configuration
 	5,  // 3: gitlab.agent.gitlab.api.Project.groups:type_name -> gitlab.agent.gitlab.api.Group
@@ -704,11 +1171,19 @@ var file_internal_gitlab_api_api_proto_depIdxs = []int32{
 	4,  // 7: gitlab.agent.gitlab.api.AllowedAgentsForJob.project:type_name -> gitlab.agent.gitlab.api.Project
 	7,  // 8: gitlab.agent.gitlab.api.AllowedAgentsForJob.user:type_name -> gitlab.agent.gitlab.api.User
 	8,  // 9: gitlab.agent.gitlab.api.AllowedAgentsForJob.environment:type_name -> gitlab.agent.gitlab.api.Environment
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	11, // 10: gitlab.agent.gitlab.api.AuthorizeProxyUserResponse.agent:type_name -> gitlab.agent.gitlab.api.AuthorizedAgentForUser
+	7,  // 11: gitlab.agent.gitlab.api.AuthorizeProxyUserResponse.user:type_name -> gitlab.agent.gitlab.api.User
+	12, // 12: gitlab.agent.gitlab.api.AuthorizeProxyUserResponse.access_as:type_name -> gitlab.agent.gitlab.api.AccessAsProxyAuthorization
+	2,  // 13: gitlab.agent.gitlab.api.AuthorizedAgentForUser.config_project:type_name -> gitlab.agent.gitlab.api.ConfigProject
+	13, // 14: gitlab.agent.gitlab.api.AccessAsProxyAuthorization.agent:type_name -> gitlab.agent.gitlab.api.AccessAsAgentAuthorization
+	14, // 15: gitlab.agent.gitlab.api.AccessAsProxyAuthorization.user:type_name -> gitlab.agent.gitlab.api.AccessAsUserAuthorization
+	15, // 16: gitlab.agent.gitlab.api.AccessAsUserAuthorization.projects:type_name -> gitlab.agent.gitlab.api.ProjectAccessCF
+	16, // 17: gitlab.agent.gitlab.api.AccessAsUserAuthorization.groups:type_name -> gitlab.agent.gitlab.api.GroupAccessCF
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_internal_gitlab_api_api_proto_init() }
@@ -837,6 +1312,94 @@ func file_internal_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
+		file_internal_gitlab_api_api_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AuthorizeProxyUserResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AuthorizedAgentForUser); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AccessAsProxyAuthorization); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AccessAsAgentAuthorization); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AccessAsUserAuthorization); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProjectAccessCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_gitlab_api_api_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GroupAccessCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+	}
+	file_internal_gitlab_api_api_proto_msgTypes[12].OneofWrappers = []interface{}{
+		(*AccessAsProxyAuthorization_Agent)(nil),
+		(*AccessAsProxyAuthorization_User)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -844,7 +1407,7 @@ func file_internal_gitlab_api_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_internal_gitlab_api_api_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
