@@ -188,7 +188,7 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:d87c5efbf1f3877caf425dd63992fa43c6cacbf990925e07591b8eb8bf0b1dd7",
+    digest = "sha256:96cc7cc4e9cf999c74620522b9f25f91bdc6e1d076b16cbef20b404ad40aa86e",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
