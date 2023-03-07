@@ -196,7 +196,7 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 container_pull(
     name = "go_image_static",
-    digest = "sha256:31b8a624208dea1baac3047a18fa24304d129f9ae60b5889fc6ea1d0e8b658b6",
+    digest = "sha256:4d3b062c10d30dc8a401587609a8f2e30e5afd3ba7988cfaa7a8a2d028c24c03",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
