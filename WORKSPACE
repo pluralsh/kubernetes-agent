@@ -183,7 +183,8 @@ gazelle_dependencies()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-# Latest images as of 2022-11-07
+# Images are managed by https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/tree/main/renovate/projects/gitlab-agent.config.js
+# DO NOT EDIT ================ START
 
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
@@ -236,6 +237,8 @@ container_pull(
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
+
+# DO NOT EDIT ================ END
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_ash2k_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
