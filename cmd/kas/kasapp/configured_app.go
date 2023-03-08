@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -581,14 +580,13 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 }
 
 func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
-	tracingConfig := a.Configuration.GetObservability().GetTracing()
-	otlpEndpoint := tracingConfig.GetOtlpEndpoint()
-	otlpTokenPath := tracingConfig.GetOtlpTokenSecretFile()
-	otlpCAPath := tracingConfig.GetOtlpCaCertificateFile()
-
-	if otlpEndpoint == "" {
+	tracingConfig := a.Configuration.Observability.Tracing
+	if tracingConfig == nil {
 		return nil, nil
 	}
+	otlpEndpoint := tracingConfig.OtlpEndpoint
+	otlpTokenSecretFile := tracingConfig.OtlpTokenSecretFile
+	otlpCaCertificateFile := tracingConfig.GetOtlpCaCertificateFile()
 
 	u, err := url.Parse(otlpEndpoint)
 	if err != nil {
@@ -608,12 +606,9 @@ func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
 	otlpOptions = append(otlpOptions, otlptracehttp.WithEndpoint(u.Host))
 	otlpOptions = append(otlpOptions, otlptracehttp.WithURLPath(u.Path))
 
-	if otlpTokenPath == "" {
-		return nil, errors.New("OTLP Token path must be specified")
-	}
-	token, err := os.ReadFile(otlpTokenPath) // nolint: gosec
+	token, err := os.ReadFile(otlpTokenSecretFile) // nolint: gosec
 	if err != nil {
-		return nil, fmt.Errorf("unable to read OTLP token from %q: %w", otlpTokenPath, err)
+		return nil, fmt.Errorf("unable to read OTLP token from %q: %w", otlpTokenSecretFile, err)
 	}
 
 	headers := map[string]string{
@@ -621,7 +616,7 @@ func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
 	}
 	otlpOptions = append(otlpOptions, otlptracehttp.WithHeaders(headers))
 
-	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(otlpCAPath)
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(otlpCaCertificateFile)
 	if err != nil {
 		return nil, err
 	}

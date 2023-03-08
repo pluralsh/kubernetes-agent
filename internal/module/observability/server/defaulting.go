@@ -26,8 +26,6 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&o.Prometheus)
 	prototool.String(&o.Prometheus.UrlPath, defaultObservabilityPrometheusUrlPath)
 
-	prototool.NotNil(&o.Tracing)
-
 	prototool.NotNil(&o.Sentry)
 
 	prototool.NotNil(&o.Logging)

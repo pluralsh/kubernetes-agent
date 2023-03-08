@@ -62,10 +62,10 @@ message TracingCF {
   // URL to send traces to.
   // Supported protocols are: http, https. Traces are protobuf encoded.
   // Example: https://localhost:4317/traces/foo/bar
-  optional string otlp_endpoint = 2 [json_name = "otlp_endpoint", (validate.rules).string.min_bytes = 1];
+  string otlp_endpoint = 2 [json_name = "otlp_endpoint", (validate.rules).string.min_bytes = 1];
 
   // API token to set for authentication.
-  optional string otlp_token_secret_file = 3 [json_name = "otlp_token_secret_file", (validate.rules).string.min_bytes = 1];
+  string otlp_token_secret_file = 3 [json_name = "otlp_token_secret_file", (validate.rules).string.min_bytes = 1];
 
   // Custom CA certificate to use in order to verify the connection to OTLP collector
   optional string otlp_ca_certificate_file = 4 [json_name = "otlp_ca_certificate_file", (validate.rules).string.min_bytes = 1];
