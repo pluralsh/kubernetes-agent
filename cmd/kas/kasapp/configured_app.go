@@ -579,11 +579,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 }
 
-func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
-	tracingConfig := a.Configuration.Observability.Tracing
-	if tracingConfig == nil {
-		return nil, nil
-	}
+func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.TracingCF) (tracesdk.SpanExporter, error) {
 	otlpEndpoint := tracingConfig.OtlpEndpoint
 	otlpTokenSecretFile := tracingConfig.OtlpTokenSecretFile
 	otlpCaCertificateFile := tracingConfig.GetOtlpCaCertificateFile()
@@ -622,25 +618,23 @@ func (a *ConfiguredApp) fetchOtlpOptions() ([]otlptracehttp.Option, error) {
 	}
 	otlpOptions = append(otlpOptions, otlptracehttp.WithTLSClientConfig(tlsConfig))
 
-	return otlpOptions, nil
+	return otlptracehttp.New(ctx, otlpOptions...)
 }
 
 func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
-	otlpOptions, err := a.fetchOtlpOptions()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	if len(otlpOptions) == 0 {
+	tracingConfig := a.Configuration.Observability.Tracing
+	if tracingConfig == nil {
 		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
 	}
 
-	exporter, err := otlptracehttp.New(ctx, otlpOptions...)
+	r, err := constructResource()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	r, err := constructResource()
+	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,
+	// which TracerProvider does in its Shutdown() method.
+	exporter, err := constructTracingExporter(ctx, tracingConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}
