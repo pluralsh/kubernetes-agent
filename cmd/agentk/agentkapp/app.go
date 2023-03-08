@@ -61,8 +61,10 @@ const (
 	defaultLogLevel     agentcfg.LogLevelEnum = 0 // whatever is 0 is the default value
 	defaultGrpcLogLevel                       = agentcfg.LogLevelEnum_error
 
-	defaultMaxMessageSize = 10 * 1024 * 1024
-	agentName             = "gitlab-agent"
+	defaultObservabilityListenNetwork = "tcp"
+	defaultObservabilityListenAddress = ":8080"
+	defaultMaxMessageSize             = 10 * 1024 * 1024
+	agentName                         = "gitlab-agent"
 
 	envVarPodNamespace       = "POD_NAMESPACE"
 	envVarPodName            = "POD_NAME"
@@ -82,14 +84,16 @@ type App struct {
 	AgentMeta    *modshared.AgentMeta
 	AgentId      *AgentIdHolder
 	// KasAddress specifies the address of kas.
-	KasAddress            string
-	KasCACertFile         string
-	KasHeaders            []string
-	ServiceAccountName    string
-	ObservabilityCertFile string
-	ObservabilityKeyFile  string
-	TokenFile             string
-	K8sClientGetter       genericclioptions.RESTClientGetter
+	KasAddress                 string
+	KasCACertFile              string
+	KasHeaders                 []string
+	ServiceAccountName         string
+	ObservabilityListenNetwork string
+	ObservabilityListenAddress string
+	ObservabilityCertFile      string
+	ObservabilityKeyFile       string
+	TokenFile                  string
+	K8sClientGetter            genericclioptions.RESTClientGetter
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -211,6 +215,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&observability_agent.Factory{
 			LogLevel:            a.LogLevel,
 			GrpcLogLevel:        a.GrpcLogLevel,
+			ListenNetwork:       a.ObservabilityListenNetwork,
+			ListenAddress:       a.ObservabilityListenAddress,
 			CertFile:            a.ObservabilityCertFile,
 			KeyFile:             a.ObservabilityKeyFile,
 			DefaultGrpcLogLevel: defaultGrpcLogLevel,
@@ -408,6 +414,8 @@ func NewCommand() *cobra.Command {
 	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
 	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "Optional HTTP headers to set when connecting to the agent server")
 
+	f.StringVar(&a.ObservabilityListenNetwork, "observability-listen-network", defaultObservabilityListenNetwork, "Observability network to listen on")
+	f.StringVar(&a.ObservabilityListenAddress, "observability-listen-address", defaultObservabilityListenAddress, "Observability address to listen on")
 	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "Optional file with X.509 certificate in PEM format. User for observability endpoint TLS")
 	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "Optional file with X.509 key in PEM format. User for observability endpoint TLS")
 
