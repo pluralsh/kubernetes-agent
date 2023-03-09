@@ -69,8 +69,10 @@ var (
 )
 
 type proxyUserCacheKey struct {
+	agentId    int64
 	accessType string
 	accessKey  string
+	csrfToken  string
 }
 
 type kubernetesApiProxy struct {
@@ -314,8 +316,10 @@ func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *za
 
 func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Logger, agentId int64, accessType, accessKey, csrfToken string) (*gapi.AuthorizeProxyUserResponse, *grpctool.ErrResp) {
 	key := proxyUserCacheKey{
+		agentId:    agentId,
 		accessType: accessType,
 		accessKey:  accessKey,
+		csrfToken:  csrfToken,
 	}
 	auth, err := p.authorizeProxyUserCache.GetItem(ctx, key, func() (*gapi.AuthorizeProxyUserResponse, error) {
 		return gapi.AuthorizeProxyUser(ctx, p.gitLabClient, agentId, accessType, accessKey, csrfToken)

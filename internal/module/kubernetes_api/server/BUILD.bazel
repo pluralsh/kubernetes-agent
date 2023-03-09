@@ -45,6 +45,7 @@ go_library(
 go_custom_test(
     name = "server_test",
     srcs = [
+        "factory_test.go",
         "module_test.go",
         "proxy_test.go",
     ],
