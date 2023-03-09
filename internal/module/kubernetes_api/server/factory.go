@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/binary"
 	"fmt"
 	"net"
 
@@ -87,20 +88,11 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 				allowedAgentCacheTtl,
 				allowedAgentCacheErrorTtl,
 				&redistool.ErrCacher[proxyUserCacheKey]{
-					Log:          config.Log,
-					ErrRep:       modshared.ApiToErrReporter(config.Api),
-					Client:       config.RedisClient,
-					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(key proxyUserCacheKey) string {
-						// Hash half of the token. Even if that hash leaks, it's not a big deal.
-						// We do the same in api.AgentToken2key().
-						n := len(key.accessKey) / 2
-						h := sha256.New()
-						h.Write([]byte(key.accessType))
-						h.Write([]byte(key.accessKey[:n]))
-						tokenHash := h.Sum(nil)
-						return config.Config.Redis.KeyPrefix + ":auth_proxy_user_errs:" + string(tokenHash)
-					},
+					Log:           config.Log,
+					ErrRep:        modshared.ApiToErrReporter(config.Api),
+					Client:        config.RedisClient,
+					ErrMarshaler:  prototool.ProtoErrMarshaler{},
+					KeyToRedisKey: getAuthorizedProxyUserCacheKey(config.Config.Redis.KeyPrefix),
 				},
 				gapi.IsCacheableError,
 			),
@@ -130,4 +122,26 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	// Start after servers because proxy uses agent connection (config.AgentConn), which works by accessing
 	// in-memory private API server. So proxy needs to start after and stop before that server.
 	return modshared.ModuleStartAfterServers
+}
+
+func getAuthorizedProxyUserCacheKey(redisKeyPrefix string) redistool.KeyToRedisKey[proxyUserCacheKey] {
+	return func(key proxyUserCacheKey) string {
+		// Hash half of the token. Even if that hash leaks, it's not a big deal.
+		// We do the same in api.AgentToken2key().
+		n := len(key.accessKey) / 2
+
+		// Use delimiters between fields to ensure hash of "ab" + "c" is different from "a" + "bc".
+		h := sha256.New()
+		id := make([]byte, 8)
+		binary.LittleEndian.PutUint64(id, uint64(key.agentId))
+		h.Write(id)
+		// Don't need a delimiter here because id is fixed size in bytes
+		h.Write([]byte(key.accessType))
+		h.Write([]byte{11}) // delimiter
+		h.Write([]byte(key.accessKey[:n]))
+		h.Write([]byte{11}) // delimiter
+		h.Write([]byte(key.csrfToken))
+		tokenHash := h.Sum(nil)
+		return redisKeyPrefix + ":auth_proxy_user_errs:" + string(tokenHash)
+	}
 }
