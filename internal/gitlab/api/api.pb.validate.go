@@ -3333,3 +3333,156 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GroupAccessCFValidationError{}
+
+// Validate checks the field values on AgentConfigurationRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AgentConfigurationRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AgentConfigurationRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AgentConfigurationRequestMultiError, or nil if none found.
+func (m *AgentConfigurationRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AgentConfigurationRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetAgentId() <= 0 {
+		err := AgentConfigurationRequestValidationError{
+			field:  "AgentId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetAgentConfig() == nil {
+		err := AgentConfigurationRequestValidationError{
+			field:  "AgentConfig",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetAgentConfig()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, AgentConfigurationRequestValidationError{
+					field:  "AgentConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, AgentConfigurationRequestValidationError{
+					field:  "AgentConfig",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetAgentConfig()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationRequestValidationError{
+				field:  "AgentConfig",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return AgentConfigurationRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// AgentConfigurationRequestMultiError is an error wrapping multiple validation
+// errors returned by AgentConfigurationRequest.ValidateAll() if the
+// designated constraints aren't met.
+type AgentConfigurationRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AgentConfigurationRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AgentConfigurationRequestMultiError) AllErrors() []error { return m }
+
+// AgentConfigurationRequestValidationError is the validation error returned by
+// AgentConfigurationRequest.Validate if the designated constraints aren't met.
+type AgentConfigurationRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AgentConfigurationRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AgentConfigurationRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AgentConfigurationRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AgentConfigurationRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AgentConfigurationRequestValidationError) ErrorName() string {
+	return "AgentConfigurationRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AgentConfigurationRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAgentConfigurationRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AgentConfigurationRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AgentConfigurationRequestValidationError{}

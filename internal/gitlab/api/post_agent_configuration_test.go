@@ -38,16 +38,16 @@ func TestPostAgentConfiguration(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		actual := agentConfigurationRequest{
-			AgentConfig: prototool.JsonBox{Message: &agentcfg.ConfigurationFile{}},
+		actual := &AgentConfigurationRequest{
+			AgentConfig: &agentcfg.ConfigurationFile{},
 		}
-		err = json.Unmarshal(data, &actual)
+		err = json.Unmarshal(data, &prototool.JsonBox{Message: actual})
 		if !assert.NoError(t, err) {
 			return
 		}
-		expected := agentConfigurationRequest{
+		expected := &AgentConfigurationRequest{
 			AgentId:     testhelpers.AgentId,
-			AgentConfig: prototool.JsonBox{Message: config},
+			AgentConfig: config,
 		}
 		assert.Empty(t, cmp.Diff(expected, actual, protocmp.Transform()))
 		w.WriteHeader(http.StatusNoContent)
