@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 )
 
 const (
@@ -13,15 +14,8 @@ const (
 	ProjectIdQueryParam = "id"
 )
 
-type ProjectInfoResponse struct {
-	ProjectId        int64                   `json:"project_id"`
-	GitalyInfo       gitlab.GitalyInfo       `json:"gitaly_info"`
-	GitalyRepository gitlab.GitalyRepository `json:"gitaly_repository"`
-	DefaultBranch    string                  `json:"default_branch"`
-}
-
 func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentToken api.AgentToken, projectId string, opts ...gitlab.DoOption) (*api.ProjectInfo, error) {
-	response := ProjectInfoResponse{}
+	response := &GetProjectInfoResponse{}
 	err := client.Do(ctx,
 		joinOpts(opts,
 			gitlab.WithPath(ProjectInfoApiPath),
@@ -29,18 +23,16 @@ func GetProjectInfo(ctx context.Context, client gitlab.ClientInterface, agentTok
 				ProjectIdQueryParam: []string{projectId},
 			}),
 			gitlab.WithAgentToken(agentToken),
-			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
+			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&prototool.JsonBox{Message: response})),
 			gitlab.WithJWT(true),
 		)...,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return &api.ProjectInfo{
-		ProjectId:     response.ProjectId,
-		GitalyInfo:    response.GitalyInfo.ToGitalyInfo(),
-		Repository:    response.GitalyRepository.ToProtoRepository(),
-		DefaultBranch: response.DefaultBranch,
-	}, nil
-
+	err = response.ValidateAll()
+	if err != nil {
+		return nil, err
+	}
+	return response.ToApiProjectInfo(), nil
 }

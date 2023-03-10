@@ -1105,6 +1105,694 @@ var _ interface {
 	ErrorName() string
 } = EnvironmentValidationError{}
 
+// Validate checks the field values on GetAgentInfoResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *GetAgentInfoResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetAgentInfoResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetAgentInfoResponseMultiError, or nil if none found.
+func (m *GetAgentInfoResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetAgentInfoResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetProjectId() <= 0 {
+		err := GetAgentInfoResponseValidationError{
+			field:  "ProjectId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetAgentId() <= 0 {
+		err := GetAgentInfoResponseValidationError{
+			field:  "AgentId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetAgentName()) < 1 {
+		err := GetAgentInfoResponseValidationError{
+			field:  "AgentName",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetGitalyInfo() == nil {
+		err := GetAgentInfoResponseValidationError{
+			field:  "GitalyInfo",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetGitalyInfo()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetAgentInfoResponseValidationError{
+					field:  "GitalyInfo",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetAgentInfoResponseValidationError{
+					field:  "GitalyInfo",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitalyInfo()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetAgentInfoResponseValidationError{
+				field:  "GitalyInfo",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if m.GetGitalyRepository() == nil {
+		err := GetAgentInfoResponseValidationError{
+			field:  "GitalyRepository",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetGitalyRepository()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetAgentInfoResponseValidationError{
+					field:  "GitalyRepository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetAgentInfoResponseValidationError{
+					field:  "GitalyRepository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitalyRepository()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetAgentInfoResponseValidationError{
+				field:  "GitalyRepository",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(m.GetDefaultBranch()) < 1 {
+		err := GetAgentInfoResponseValidationError{
+			field:  "DefaultBranch",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GetAgentInfoResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetAgentInfoResponseMultiError is an error wrapping multiple validation
+// errors returned by GetAgentInfoResponse.ValidateAll() if the designated
+// constraints aren't met.
+type GetAgentInfoResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetAgentInfoResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetAgentInfoResponseMultiError) AllErrors() []error { return m }
+
+// GetAgentInfoResponseValidationError is the validation error returned by
+// GetAgentInfoResponse.Validate if the designated constraints aren't met.
+type GetAgentInfoResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetAgentInfoResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetAgentInfoResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetAgentInfoResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetAgentInfoResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetAgentInfoResponseValidationError) ErrorName() string {
+	return "GetAgentInfoResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GetAgentInfoResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetAgentInfoResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetAgentInfoResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetAgentInfoResponseValidationError{}
+
+// Validate checks the field values on GitalyInfo with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GitalyInfo) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GitalyInfo with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GitalyInfoMultiError, or
+// nil if none found.
+func (m *GitalyInfo) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GitalyInfo) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetAddress()) < 1 {
+		err := GitalyInfoValidationError{
+			field:  "Address",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for Token
+
+	// no validation rules for Features
+
+	if len(errors) > 0 {
+		return GitalyInfoMultiError(errors)
+	}
+
+	return nil
+}
+
+// GitalyInfoMultiError is an error wrapping multiple validation errors
+// returned by GitalyInfo.ValidateAll() if the designated constraints aren't met.
+type GitalyInfoMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitalyInfoMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitalyInfoMultiError) AllErrors() []error { return m }
+
+// GitalyInfoValidationError is the validation error returned by
+// GitalyInfo.Validate if the designated constraints aren't met.
+type GitalyInfoValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GitalyInfoValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GitalyInfoValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GitalyInfoValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GitalyInfoValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GitalyInfoValidationError) ErrorName() string { return "GitalyInfoValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GitalyInfoValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGitalyInfo.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GitalyInfoValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GitalyInfoValidationError{}
+
+// Validate checks the field values on GitalyRepository with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *GitalyRepository) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GitalyRepository with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GitalyRepositoryMultiError, or nil if none found.
+func (m *GitalyRepository) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GitalyRepository) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetStorageName()) < 1 {
+		err := GitalyRepositoryValidationError{
+			field:  "StorageName",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetRelativePath()) < 1 {
+		err := GitalyRepositoryValidationError{
+			field:  "RelativePath",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetGlRepository()) < 1 {
+		err := GitalyRepositoryValidationError{
+			field:  "GlRepository",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetGlProjectPath()) < 1 {
+		err := GitalyRepositoryValidationError{
+			field:  "GlProjectPath",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GitalyRepositoryMultiError(errors)
+	}
+
+	return nil
+}
+
+// GitalyRepositoryMultiError is an error wrapping multiple validation errors
+// returned by GitalyRepository.ValidateAll() if the designated constraints
+// aren't met.
+type GitalyRepositoryMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitalyRepositoryMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitalyRepositoryMultiError) AllErrors() []error { return m }
+
+// GitalyRepositoryValidationError is the validation error returned by
+// GitalyRepository.Validate if the designated constraints aren't met.
+type GitalyRepositoryValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GitalyRepositoryValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GitalyRepositoryValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GitalyRepositoryValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GitalyRepositoryValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GitalyRepositoryValidationError) ErrorName() string { return "GitalyRepositoryValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GitalyRepositoryValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGitalyRepository.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GitalyRepositoryValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GitalyRepositoryValidationError{}
+
+// Validate checks the field values on GetProjectInfoResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *GetProjectInfoResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetProjectInfoResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetProjectInfoResponseMultiError, or nil if none found.
+func (m *GetProjectInfoResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetProjectInfoResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetProjectId() <= 0 {
+		err := GetProjectInfoResponseValidationError{
+			field:  "ProjectId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetGitalyInfo() == nil {
+		err := GetProjectInfoResponseValidationError{
+			field:  "GitalyInfo",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetGitalyInfo()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetProjectInfoResponseValidationError{
+					field:  "GitalyInfo",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetProjectInfoResponseValidationError{
+					field:  "GitalyInfo",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitalyInfo()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetProjectInfoResponseValidationError{
+				field:  "GitalyInfo",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if m.GetGitalyRepository() == nil {
+		err := GetProjectInfoResponseValidationError{
+			field:  "GitalyRepository",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetGitalyRepository()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetProjectInfoResponseValidationError{
+					field:  "GitalyRepository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetProjectInfoResponseValidationError{
+					field:  "GitalyRepository",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitalyRepository()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetProjectInfoResponseValidationError{
+				field:  "GitalyRepository",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(m.GetDefaultBranch()) < 1 {
+		err := GetProjectInfoResponseValidationError{
+			field:  "DefaultBranch",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GetProjectInfoResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetProjectInfoResponseMultiError is an error wrapping multiple validation
+// errors returned by GetProjectInfoResponse.ValidateAll() if the designated
+// constraints aren't met.
+type GetProjectInfoResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetProjectInfoResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetProjectInfoResponseMultiError) AllErrors() []error { return m }
+
+// GetProjectInfoResponseValidationError is the validation error returned by
+// GetProjectInfoResponse.Validate if the designated constraints aren't met.
+type GetProjectInfoResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetProjectInfoResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetProjectInfoResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetProjectInfoResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetProjectInfoResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetProjectInfoResponseValidationError) ErrorName() string {
+	return "GetProjectInfoResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GetProjectInfoResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetProjectInfoResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetProjectInfoResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetProjectInfoResponseValidationError{}
+
 // Validate checks the field values on AllowedAgentsForJob with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.

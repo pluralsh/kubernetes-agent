@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 )
@@ -16,16 +16,16 @@ func TestGetProjectInfo(t *testing.T) {
 		projectId = "bla/bla"
 	)
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
-	response := ProjectInfoResponse{
+	response := &GetProjectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: gitlab.GitalyInfo{
+		GitalyInfo: &GitalyInfo{
 			Address: "example.com",
 			Token:   "123123",
 			Features: map[string]string{
 				"a": "b",
 			},
 		},
-		GitalyRepository: gitlab.GitalyRepository{
+		GitalyRepository: &GitalyRepository{
 			StorageName:   "234",
 			RelativePath:  "123",
 			GlRepository:  "254634",
@@ -38,14 +38,14 @@ func TestGetProjectInfo(t *testing.T) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		assert.Equal(t, projectId, r.URL.Query().Get(ProjectIdQueryParam))
 
-		testhelpers.RespondWithJSON(t, w, response)
+		testhelpers.RespondWithJSON(t, w, prototool.JsonBox{Message: response})
 	})
 
 	projInfo, err := GetProjectInfo(ctx, gitLabClient, testhelpers.AgentkToken, projectId)
 	require.NoError(t, err)
 
 	assert.Equal(t, response.ProjectId, projInfo.ProjectId)
-	mock_gitlab.AssertGitalyInfo(t, response.GitalyInfo, projInfo.GitalyInfo)
-	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, projInfo.Repository)
+	AssertGitalyInfo(t, response.GitalyInfo, projInfo.GitalyInfo)
+	AssertGitalyRepository(t, response.GitalyRepository, projInfo.Repository)
 	assert.Equal(t, response.DefaultBranch, projInfo.DefaultBranch)
 }
