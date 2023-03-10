@@ -676,8 +676,11 @@ func configUserAccessGitLabHandler(t *testing.T, auth *gapi.AuthorizeProxyUserRe
 }
 
 func assertUserAccessCredentials(t *testing.T, req *http.Request) bool {
-	auth := gapi.AuthorizeProxyUserRequest{}
-	err := json.NewDecoder(req.Body).Decode(&auth)
+	auth := &gapi.AuthorizeProxyUserRequest{}
+	boxedAuth := prototool.JsonBox{Message: auth}
+	data, err := io.ReadAll(req.Body)
+	assert.NoError(t, err)
+	err = json.Unmarshal(data, &boxedAuth)
 	return assert.NoError(t, err) &&
 		assert.Equal(t, auth.AgentId, testhelpers.AgentId) &&
 		assert.Equal(t, auth.AccessType, "session_cookie") &&

@@ -1430,6 +1430,156 @@ var _ interface {
 	ErrorName() string
 } = AllowedAgentsForJobValidationError{}
 
+// Validate checks the field values on AuthorizeProxyUserRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AuthorizeProxyUserRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AuthorizeProxyUserRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AuthorizeProxyUserRequestMultiError, or nil if none found.
+func (m *AuthorizeProxyUserRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AuthorizeProxyUserRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetAgentId() <= 0 {
+		err := AuthorizeProxyUserRequestValidationError{
+			field:  "AgentId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := _AuthorizeProxyUserRequest_AccessType_InLookup[m.GetAccessType()]; !ok {
+		err := AuthorizeProxyUserRequestValidationError{
+			field:  "AccessType",
+			reason: "value must be in list [session_cookie]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetAccessKey()) < 1 {
+		err := AuthorizeProxyUserRequestValidationError{
+			field:  "AccessKey",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetCsrfToken()) < 1 {
+		err := AuthorizeProxyUserRequestValidationError{
+			field:  "CsrfToken",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return AuthorizeProxyUserRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// AuthorizeProxyUserRequestMultiError is an error wrapping multiple validation
+// errors returned by AuthorizeProxyUserRequest.ValidateAll() if the
+// designated constraints aren't met.
+type AuthorizeProxyUserRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AuthorizeProxyUserRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AuthorizeProxyUserRequestMultiError) AllErrors() []error { return m }
+
+// AuthorizeProxyUserRequestValidationError is the validation error returned by
+// AuthorizeProxyUserRequest.Validate if the designated constraints aren't met.
+type AuthorizeProxyUserRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AuthorizeProxyUserRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AuthorizeProxyUserRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AuthorizeProxyUserRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AuthorizeProxyUserRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AuthorizeProxyUserRequestValidationError) ErrorName() string {
+	return "AuthorizeProxyUserRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AuthorizeProxyUserRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAuthorizeProxyUserRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AuthorizeProxyUserRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AuthorizeProxyUserRequestValidationError{}
+
+var _AuthorizeProxyUserRequest_AccessType_InLookup = map[string]struct{}{
+	"session_cookie": {},
+}
+
 // Validate checks the field values on AuthorizeProxyUserResponse with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
