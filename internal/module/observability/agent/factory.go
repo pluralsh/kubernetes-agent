@@ -13,14 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	listenNetwork = "tcp"
-	listenAddress = ":8080"
-)
-
 type Factory struct {
 	LogLevel            zap.AtomicLevel
 	GrpcLogLevel        zap.AtomicLevel
+	ListenNetwork       string
+	ListenAddress       string
 	CertFile            string
 	KeyFile             string
 	DefaultGrpcLogLevel agentcfg.LogLevelEnum
@@ -34,11 +31,11 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	var listener func() (net.Listener, error)
 	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
-			return tls.Listen(listenNetwork, listenAddress, tlsConfig) // nolint:gosec
+			return tls.Listen(f.ListenNetwork, f.ListenAddress, tlsConfig) // nolint:gosec
 		}
 	} else {
 		listener = func() (net.Listener, error) {
-			return net.Listen(listenNetwork, listenAddress) // nolint:gosec
+			return net.Listen(f.ListenNetwork, f.ListenAddress) // nolint:gosec
 		}
 	}
 	return &module{
