@@ -38,8 +38,8 @@ const (
 
 	defaultRedisPoolSize     = 5
 	defaultRedisDialTimeout  = 5 * time.Second
-	defaultRedisReadTimeout  = 1 * time.Second
-	defaultRedisWriteTimeout = 1 * time.Second
+	defaultRedisReadTimeout  = 3 * time.Second
+	defaultRedisWriteTimeout = 3 * time.Second
 	defaultRedisIdleTimeout  = 50 * time.Second // must be smaller than server's setting
 	defaultRedisKeyPrefix    = "gitlab-kas"
 	defaultRedisNetwork      = "tcp"

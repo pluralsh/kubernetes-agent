@@ -33,12 +33,14 @@ type pollItem struct {
 	newCycle bool
 }
 
-func (c *pollingContext) copyHoldersInto(holders *[]holder) {
+func (c *pollingContext) copyHoldersInto(holders []holder) []holder {
+	holders = holders[:0]
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for h := range c.holders {
-		*holders = append(*holders, *h)
+		holders = append(holders, *h)
 	}
+	return holders
 }
 
 // AggregatingQuerier gruops requests
@@ -108,14 +110,16 @@ func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *holder) {
 func (q *AggregatingQuerier) maybeStopPolling(agentId int64, h *holder) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
+
 	pc := q.listeners[agentId]
 	pc.mu.Lock()
+	defer pc.mu.Unlock()
+
 	delete(pc.holders, h)
 	if len(pc.holders) == 0 {
 		pc.cancel() // stop polling
 		delete(q.listeners, agentId)
 	}
-	pc.mu.Unlock()
 }
 
 func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollingContext) {
@@ -124,8 +128,7 @@ func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollin
 	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		newCycle := true
 		err := q.delegate.KasUrlsByAgentId(ctx, agentId, func(kasUrl string) (bool, error) {
-			holders = holders[:0]
-			pc.copyHoldersInto(&holders)
+			holders = pc.copyHoldersInto(holders)
 			for _, h := range holders {
 				select {
 				case <-h.ctxDone:
