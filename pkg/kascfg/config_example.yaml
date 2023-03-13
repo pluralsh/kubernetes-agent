@@ -52,7 +52,10 @@ observability:
     address: 127.0.0.1:8151
   prometheus:
     url_path: /metrics
-  tracing: {}
+  # tracing:
+  #   otlp_endpoint: "https://localhost:4317/traces/foo/bar"
+  #   otlp_token_secret_file: "/some/path"
+  #   otlp_ca_certificate_file: "/some/path/ca.crt"
   sentry:
     dsn: ""
     environment: ""

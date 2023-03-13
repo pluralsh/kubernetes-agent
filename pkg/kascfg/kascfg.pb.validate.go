@@ -506,34 +506,26 @@ func (m *TracingCF) validate(all bool) error {
 
 	var errors []error
 
-	if m.OtlpEndpoint != nil {
-
-		if len(m.GetOtlpEndpoint()) < 1 {
-			err := TracingCFValidationError{
-				field:  "OtlpEndpoint",
-				reason: "value length must be at least 1 bytes",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if len(m.GetOtlpEndpoint()) < 1 {
+		err := TracingCFValidationError{
+			field:  "OtlpEndpoint",
+			reason: "value length must be at least 1 bytes",
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if m.OtlpTokenSecretFile != nil {
-
-		if len(m.GetOtlpTokenSecretFile()) < 1 {
-			err := TracingCFValidationError{
-				field:  "OtlpTokenSecretFile",
-				reason: "value length must be at least 1 bytes",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
+	if len(m.GetOtlpTokenSecretFile()) < 1 {
+		err := TracingCFValidationError{
+			field:  "OtlpTokenSecretFile",
+			reason: "value length must be at least 1 bytes",
 		}
-
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if m.OtlpCaCertificateFile != nil {
