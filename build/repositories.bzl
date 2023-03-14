@@ -3164,6 +3164,14 @@ def go_repositories():
         version = "v0.11.4",
     )
     go_repository(
+        name = "com_github_piotrkowalczuk_promgrpc_v4",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/piotrkowalczuk/promgrpc/v4",
+        sum = "h1:X8NIOHEeAb578lV/VVb4PeAMewtmLi0hfpy1pWlKsXQ=",
+        version = "v4.0.4",
+    )
+
+    go_repository(
         name = "com_github_pkg_browser",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/pkg/browser",

@@ -65,6 +65,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
+	"google.golang.org/grpc/stats"
 )
 
 const (
@@ -102,8 +103,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// reg := prometheus.NewPedanticRegistry()
 	registerer := prometheus.DefaultRegisterer
 	gatherer := prometheus.DefaultGatherer
+	ssh := metric.ServerStatsHandler()
+	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
-	err := metric.Register(registerer, gitlabBuildInfoGauge())
+	err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
 	if err != nil {
 		return err
 	}
@@ -149,19 +152,19 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, rpcApiFactory, probeRegistry) // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -204,7 +207,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(tp, p)
+	gitalyClientPool := a.constructGitalyPool(csh, tp, p)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
@@ -467,7 +470,7 @@ func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(tp trace.TracerProvider, p propagation.TextMapPropagator) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, p propagation.TextMapPropagator) *client.Pool {
 	g := a.Configuration.Gitaly
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
@@ -476,6 +479,7 @@ func (a *ConfiguredApp) constructGitalyPool(tp trace.TracerProvider, p propagati
 	return client.NewPoolWithOptions(
 		client.WithDialOptions(
 			grpc.WithUserAgent(kasServerName()),
+			grpc.WithStatsHandler(csh),
 			// Don't put interceptors here as order is important. Put them below.
 		),
 		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {

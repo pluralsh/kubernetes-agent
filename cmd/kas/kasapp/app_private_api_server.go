@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/stats"
 )
 
 var (
@@ -43,7 +44,7 @@ type privateApiServer struct {
 }
 
 func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, factory modserver.RpcApiFactory,
+	p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
 	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry) (*privateApiServer, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
@@ -55,14 +56,14 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 	listener := grpctool.NewDialListener()
 
 	// Client pool
-	kasPool, err := newKasPool(log, errRep, tp, p, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost, listenCfg.CaCertificateFile, listener.DialContext)
+	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost, listenCfg.CaCertificateFile, listener.DialContext)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
 	}
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, jwtSecret, factory, ownPrivateApiHost)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
@@ -111,7 +112,7 @@ func (s *privateApiServer) RegisterService(desc *grpc.ServiceDesc, impl interfac
 }
 
 func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, jwtSecret []byte, factory modserver.RpcApiFactory, ownPrivateApiHost string) (*grpc.Server, *grpc.Server, error) {
+	p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory, ownPrivateApiHost string) (*grpc.Server, *grpc.Server, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -128,6 +129,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	sharedOpts := []grpc.ServerOption{
 		keepaliveOpt,
+		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
@@ -154,10 +156,12 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	return server, inMemServer, nil
 }
 
-func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator, jwtSecret []byte,
-	ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string, dialer func(context.Context, string) (net.Conn, error)) (grpctool.PoolInterface, error) {
+func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator,
+	csh stats.Handler, jwtSecret []byte, ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string,
+	dialer func(context.Context, string) (net.Conn, error)) (grpctool.PoolInterface, error) {
 
 	sharedPoolOpts := []grpc.DialOption{
+		grpc.WithStatsHandler(csh),
 		grpc.WithUserAgent(kasServerName()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                55 * time.Second,
