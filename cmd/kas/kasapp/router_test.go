@@ -305,7 +305,8 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
 		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
-		kasRoutingDurationError:   prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationTimeout: prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),
 		tunnelFindTimeout:         100 * time.Millisecond,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
@@ -461,7 +462,8 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
 		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
-		kasRoutingDurationError:   prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationTimeout: prometheus.ObserverFunc(func(f float64) {}),
+		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),
 		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)

@@ -83,7 +83,8 @@ const (
 	kasRoutingMetricName              = "k8s_api_proxy_routing_duration_seconds"
 	kasRoutingStatusLabelName         = "status"
 	kasRoutingStatusSuccessLabelValue = "success"
-	kasRoutingStatusErrorLabelValue   = "error"
+	kasRoutingStatusTimeoutLabelValue = "timeout"
+	kasRoutingStatusAbortedLabelValue = "aborted"
 )
 
 type ConfiguredApp struct {
@@ -364,7 +365,8 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
 		kasRoutingDurationSuccess: kasRoutingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
-		kasRoutingDurationError:   kasRoutingDuration.WithLabelValues(kasRoutingStatusErrorLabelValue),
+		kasRoutingDurationTimeout: kasRoutingDuration.WithLabelValues(kasRoutingStatusTimeoutLabelValue),
+		kasRoutingDurationAborted: kasRoutingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
 		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}, nil
 }
