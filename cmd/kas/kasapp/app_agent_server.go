@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/stats"
 )
 
 const (
@@ -42,7 +43,8 @@ type agentServer struct {
 }
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	redisClient redis.UniversalClient, factory modserver.AgentRpcApiFactory, probeRegistry *observability.ProbeRegistry) (*agentServer, error) {
+	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
+	probeRegistry *observability.ProbeRegistry) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -62,6 +64,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
