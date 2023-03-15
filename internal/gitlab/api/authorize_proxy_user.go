@@ -12,30 +12,26 @@ const (
 	AuthorizeProxyUserApiPath = "/api/v4/internal/kubernetes/authorize_proxy_user"
 )
 
-type AuthorizeProxyUserRequest struct {
-	AgentId    int64  `json:"agent_id"`
-	AccessType string `json:"access_type"`
-	AccessKey  string `json:"access_key"`
-	CsrfToken  string `json:"csrf_token"`
-}
-
 func AuthorizeProxyUser(ctx context.Context, client gitlab.ClientInterface, agentId int64, accessType, accessKey, csrfToken string, opts ...gitlab.DoOption) (*AuthorizeProxyUserResponse, error) {
-	auth := &AuthorizeProxyUserResponse{}
-	jsonBox := &prototool.JsonBox{
-		Message: auth,
+	req := &AuthorizeProxyUserRequest{
+		AgentId:    agentId,
+		AccessType: accessType,
+		AccessKey:  accessKey,
+		CsrfToken:  csrfToken,
 	}
-	err := client.Do(ctx,
+	err := req.ValidateAll()
+	if err != nil {
+		return nil, err
+	}
+
+	auth := &AuthorizeProxyUserResponse{}
+	err = client.Do(ctx,
 		joinOpts(opts,
 			gitlab.WithMethod(http.MethodPost),
 			gitlab.WithPath(AuthorizeProxyUserApiPath),
 			gitlab.WithJWT(true),
-			gitlab.WithJsonRequestBody(&AuthorizeProxyUserRequest{
-				AgentId:    agentId,
-				AccessType: accessType,
-				AccessKey:  accessKey,
-				CsrfToken:  csrfToken,
-			}),
-			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(jsonBox)),
+			gitlab.WithJsonRequestBody(&prototool.JsonBox{Message: req}),
+			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&prototool.JsonBox{Message: auth})),
 		)...,
 	)
 	if err != nil {

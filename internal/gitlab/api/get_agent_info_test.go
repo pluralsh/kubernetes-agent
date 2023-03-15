@@ -6,25 +6,25 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 )
 
 func TestGetAgentInfo(t *testing.T) {
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
-	response := getAgentInfoResponse{
+	response := &GetAgentInfoResponse{
 		ProjectId: 234,
 		AgentId:   555,
 		AgentName: "agent-x",
-		GitalyInfo: gitlab.GitalyInfo{
+		GitalyInfo: &GitalyInfo{
 			Address: "example.com",
 			Token:   "123123",
 			Features: map[string]string{
 				"a": "b",
 			},
 		},
-		GitalyRepository: gitlab.GitalyRepository{
+		GitalyRepository: &GitalyRepository{
 			StorageName:   "234",
 			RelativePath:  "123",
 			GlRepository:  "254634",
@@ -34,7 +34,7 @@ func TestGetAgentInfo(t *testing.T) {
 	}
 	c := mock_gitlab.SetupClient(t, AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
-		testhelpers.RespondWithJSON(t, w, response)
+		testhelpers.RespondWithJSON(t, w, prototool.JsonBox{Message: response})
 	})
 	agentInfo, err := GetAgentInfo(ctx, c, testhelpers.AgentkToken)
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestGetAgentInfo(t *testing.T) {
 	assert.Equal(t, response.AgentId, agentInfo.Id)
 	assert.Equal(t, response.AgentName, agentInfo.Name)
 
-	mock_gitlab.AssertGitalyInfo(t, response.GitalyInfo, agentInfo.GitalyInfo)
-	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, agentInfo.Repository)
+	AssertGitalyInfo(t, response.GitalyInfo, agentInfo.GitalyInfo)
+	AssertGitalyRepository(t, response.GitalyRepository, agentInfo.Repository)
 	assert.Equal(t, response.DefaultBranch, agentInfo.DefaultBranch)
 }

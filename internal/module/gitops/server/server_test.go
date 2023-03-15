@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
@@ -607,17 +607,17 @@ func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
 	require.EqualError(t, err, "rpc error: code = NotFound desc = GitOps: repository poll failed: NotFound: Bla: file/directory/ref not found: some/ref")
 }
 
-func projectInfoRest() *gapi.ProjectInfoResponse {
-	return &gapi.ProjectInfoResponse{
+func projectInfoRest() *gapi.GetProjectInfoResponse {
+	return &gapi.GetProjectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: gitlab.GitalyInfo{
+		GitalyInfo: &gapi.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
 			Features: map[string]string{
 				"bla": "false",
 			},
 		},
-		GitalyRepository: gitlab.GitalyRepository{
+		GitalyRepository: &gapi.GitalyRepository{
 			StorageName:   "StorageName1",
 			RelativePath:  "RelativePath1",
 			GlRepository:  "GlRepository1",
@@ -631,8 +631,8 @@ func projectInfo() *api.ProjectInfo {
 	rest := projectInfoRest()
 	return &api.ProjectInfo{
 		ProjectId:     rest.ProjectId,
-		GitalyInfo:    rest.GitalyInfo.ToGitalyInfo(),
-		Repository:    rest.GitalyRepository.ToProtoRepository(),
+		GitalyInfo:    rest.GitalyInfo.ToApiGitalyInfo(),
+		Repository:    rest.GitalyRepository.ToGitalyProtoRepository(),
 		DefaultBranch: rest.DefaultBranch,
 	}
 }
@@ -642,7 +642,7 @@ func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServ
 	ctx, s, ctrl, mockRpcApi, gitalyPool := setupServerWithAgentInfo(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
-		testhelpers.RespondWithJSON(t, w, projectInfoRest())
+		testhelpers.RespondWithJSON(t, w, prototool.JsonBox{Message: projectInfoRest()})
 	})
 	ctx, traceId = testhelpers.InjectSpanContext(t, ctx)
 

@@ -53,12 +53,13 @@ func TestAuthorizeProxyUser(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		actual := AuthorizeProxyUserRequest{}
-		err = json.Unmarshal(data, &actual)
+		actual := &AuthorizeProxyUserRequest{}
+		boxedActual := prototool.JsonBox{Message: actual}
+		err = json.Unmarshal(data, &boxedActual)
 		if !assert.NoError(t, err) {
 			return
 		}
-		expected := AuthorizeProxyUserRequest{
+		expected := &AuthorizeProxyUserRequest{
 			AgentId:    agentId,
 			AccessType: accessType,
 			AccessKey:  accessKey,
