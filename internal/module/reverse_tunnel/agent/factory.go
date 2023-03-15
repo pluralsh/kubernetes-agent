@@ -15,7 +15,7 @@ import (
 
 const (
 	minIdleConnections = 2
-	maxConnections     = 100
+	maxConnections     = 500
 	maxIdleTime        = time.Minute
 	// scaleUpStep defines how many new connections are started when there is not enough idle connections.
 	scaleUpStep = 10
