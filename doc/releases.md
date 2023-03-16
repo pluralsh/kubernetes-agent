@@ -14,23 +14,19 @@
    [Example MR](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/111845). [List of bot-created MRs](https://gitlab.com/gitlab-org/gitlab/-/merge_requests?scope=all&state=all&label_name[]=group%3A%3Aconfigure&author_username=gitlab-dependency-update-bot). [Bot configuration](https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/blob/main/renovate/gitlab/version-files.config.js).
 1. Wait for the MR to get deployed to a .com environment (can be pre, gstg, gprd etc; this is shown in the MR widget).
 1. Find the latest image built of KAS in the [dev.gitlab.org registry]( https://dev.gitlab.org/gitlab/charts/components/images/container_registry/426?orderBy=NAME&sort=asc):
-   - Go to [`#releases` in Slack](https://gitlab.slack.com/archives/C0XM5UU6B) (internal link)
-   - Look at the latest comment from `auto-deploy-bot`. It should be something like:
-
-     > New auto-deploy branch: `14-10-auto-deploy-2022041215`
-
-     Pick out the timestamp from there, e.g. `2022041215` and enter it into the search box. This should give the tag, e.g. `dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5`.
-   - Ensure that the version is correct. Running the image with `--help` should match `GITLAB_KAS_VERSION` from `gitlab-org/gitlab`. For example:
+   - Construct a timestamp from today's or yesterday's date according to the `YYYYMMDD` format (e.g. `20230316`) and enter it into the search box. This should give you a list of tags published on that day.
+     Pick the latest one, e.g. `dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:15-10-202303160020-bc2cbbf9e9d`.
+   - Ensure that the version is correct. Running the image with `--version` should match `GITLAB_KAS_VERSION` from `gitlab-org/gitlab`. For example:
 
      ```shell
      docker login dev.gitlab.org:5005 # use your username and a personal access token with the read_registry scope
-     docker run --rm dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:14-10-202204121520-1ad684ad2e5 --version
+     docker run --rm dev.gitlab.org:5005/gitlab/charts/components/images/gitlab-kas:15-10-202303160020-bc2cbbf9e9d --version
      ```
 
      outputs
 
      ```
-     kas version v14.10.0-rc2, commit: 68ae893, built: 20220412.152619
+     kas version v15.10.0, commit: v15.10.0, built: 20230316.002657
      ```
 
 1. Make an MR to update `kas` image tag for `pre` and `gstg` in
