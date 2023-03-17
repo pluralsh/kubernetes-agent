@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 )
@@ -34,7 +33,7 @@ func TestGetAgentInfo(t *testing.T) {
 	}
 	c := mock_gitlab.SetupClient(t, AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
-		testhelpers.RespondWithJSON(t, w, prototool.JsonBox{Message: response})
+		testhelpers.RespondWithJSON(t, w, response)
 	})
 	agentInfo, err := GetAgentInfo(ctx, c, testhelpers.AgentkToken)
 	require.NoError(t, err)

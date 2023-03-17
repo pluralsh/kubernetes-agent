@@ -53,7 +53,6 @@ go_custom_test(
     embed = [":api"],
     deps = [
         "//internal/api",
-        "//internal/tool/prototool",
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
@@ -61,6 +60,7 @@ go_custom_test(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
+        "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//testing/protocmp",
     ],
 )

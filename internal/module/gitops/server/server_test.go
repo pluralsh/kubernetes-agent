@@ -18,7 +18,6 @@ import (
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
@@ -642,7 +641,7 @@ func setupServer(t *testing.T) (*mock_rpc.MockGitops_GetObjectsToSynchronizeServ
 	ctx, s, ctrl, mockRpcApi, gitalyPool := setupServerWithAgentInfo(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
 		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
-		testhelpers.RespondWithJSON(t, w, prototool.JsonBox{Message: projectInfoRest()})
+		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
 	ctx, traceId = testhelpers.InjectSpanContext(t, ctx)
 
