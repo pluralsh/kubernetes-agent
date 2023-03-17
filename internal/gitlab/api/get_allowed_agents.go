@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 )
 
 const (
@@ -13,20 +12,13 @@ const (
 
 func GetAllowedAgentsForJob(ctx context.Context, client gitlab.ClientInterface, jobToken string, opts ...gitlab.DoOption) (*AllowedAgentsForJob, error) {
 	aa := &AllowedAgentsForJob{}
-	resp := &prototool.JsonBox{
-		Message: aa,
-	}
 	err := client.Do(ctx,
 		joinOpts(opts,
 			gitlab.WithPath(AllowedAgentsApiPath),
 			gitlab.WithJobToken(jobToken),
-			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(resp)),
+			gitlab.WithResponseHandler(gitlab.ProtoJsonResponseHandler(aa)),
 		)...,
 	)
-	if err != nil {
-		return nil, err
-	}
-	err = aa.ValidateAll()
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 )
 
 const (
@@ -19,13 +18,9 @@ func GetAgentInfo(ctx context.Context, client gitlab.ClientInterface, agentToken
 			gitlab.WithPath(AgentInfoApiPath),
 			gitlab.WithAgentToken(agentToken),
 			gitlab.WithJWT(true),
-			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&prototool.JsonBox{Message: response})),
+			gitlab.WithResponseHandler(gitlab.ProtoJsonResponseHandler(response)),
 		)...,
 	)
-	if err != nil {
-		return nil, err
-	}
-	err = response.ValidateAll()
 	if err != nil {
 		return nil, err
 	}

@@ -55,7 +55,6 @@ go_custom_test(
         "//internal/gitlab/api",
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
-        "//internal/tool/prototool",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",

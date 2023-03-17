@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -40,6 +39,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -671,16 +671,15 @@ func configUserAccessGitLabHandler(t *testing.T, auth *gapi.AuthorizeProxyUserRe
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		testhelpers.RespondWithJSON(t, w, &prototool.JsonBox{Message: auth})
+		testhelpers.RespondWithJSON(t, w, auth)
 	}
 }
 
 func assertUserAccessCredentials(t *testing.T, req *http.Request) bool {
-	auth := &gapi.AuthorizeProxyUserRequest{}
-	boxedAuth := prototool.JsonBox{Message: auth}
 	data, err := io.ReadAll(req.Body)
 	assert.NoError(t, err)
-	err = json.Unmarshal(data, &boxedAuth)
+	auth := &gapi.AuthorizeProxyUserRequest{}
+	err = protojson.Unmarshal(data, auth)
 	return assert.NoError(t, err) &&
 		assert.Equal(t, auth.AgentId, testhelpers.AgentId) &&
 		assert.Equal(t, auth.AccessType, "session_cookie") &&
@@ -891,7 +890,7 @@ func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		testhelpers.RespondWithJSON(t, w, &prototool.JsonBox{Message: &gapi.AllowedAgentsForJob{
+		testhelpers.RespondWithJSON(t, w, &gapi.AllowedAgentsForJob{
 			AllowedAgents: []*gapi.AllowedAgent{
 				{
 					Id: testhelpers.AgentId,
@@ -920,7 +919,7 @@ func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *
 				Username: "testuser",
 			},
 			Environment: env,
-		}})
+		})
 	}
 }
 

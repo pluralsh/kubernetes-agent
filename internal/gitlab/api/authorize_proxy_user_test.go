@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
@@ -9,9 +8,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -24,7 +23,7 @@ func TestAuthorizeProxyUser(t *testing.T) {
 		csrfToken       string = "token"
 	)
 	ctx, _ := testhelpers.CtxWithSpanContext(t)
-	response := AuthorizeProxyUserResponse{
+	response := &AuthorizeProxyUserResponse{
 		Agent: &AuthorizedAgentForUser{
 			Id:            agentId,
 			ConfigProject: &ConfigProject{Id: configProjectId},
@@ -54,8 +53,7 @@ func TestAuthorizeProxyUser(t *testing.T) {
 			return
 		}
 		actual := &AuthorizeProxyUserRequest{}
-		boxedActual := prototool.JsonBox{Message: actual}
-		err = json.Unmarshal(data, &boxedActual)
+		err = protojson.Unmarshal(data, actual)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -67,7 +65,7 @@ func TestAuthorizeProxyUser(t *testing.T) {
 		}
 
 		assert.Empty(t, cmp.Diff(expected, actual, protocmp.Transform()))
-		testhelpers.RespondWithJSON(t, w, &prototool.JsonBox{Message: &response})
+		testhelpers.RespondWithJSON(t, w, response)
 	})
 
 	auth, err := AuthorizeProxyUser(ctx, gitLabClient, agentId, accessType, accessKey, csrfToken)

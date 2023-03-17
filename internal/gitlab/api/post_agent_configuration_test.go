@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
@@ -9,10 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -41,7 +40,7 @@ func TestPostAgentConfiguration(t *testing.T) {
 		actual := &AgentConfigurationRequest{
 			AgentConfig: &agentcfg.ConfigurationFile{},
 		}
-		err = json.Unmarshal(data, &prototool.JsonBox{Message: actual})
+		err = protojson.Unmarshal(data, actual)
 		if !assert.NoError(t, err) {
 			return
 		}

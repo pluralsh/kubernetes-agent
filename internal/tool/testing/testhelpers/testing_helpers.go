@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,16 +38,14 @@ const (
 )
 
 // RespondWithJSON marshals response into JSON and writes it into w.
-// Wrap proto.Message responses with prototool.JsonBox for correct JSON marshaling.
 func RespondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
-	if _, ok := response.(proto.Message); ok {
-		if _, ok = response.(*prototool.JsonBox); !ok {
-			assert.Fail(t, "response must not be naked proto.Message, wrap in *prototool.JsonBox")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var data []byte
+	var err error
+	if m, ok := response.(proto.Message); ok {
+		data, err = protojson.Marshal(m)
+	} else {
+		data, err = json.Marshal(response)
 	}
-	data, err := json.Marshal(response)
 	if !assert.NoError(t, err) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
