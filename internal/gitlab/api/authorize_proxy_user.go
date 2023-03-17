@@ -13,24 +13,18 @@ const (
 )
 
 func AuthorizeProxyUser(ctx context.Context, client gitlab.ClientInterface, agentId int64, accessType, accessKey, csrfToken string, opts ...gitlab.DoOption) (*AuthorizeProxyUserResponse, error) {
-	req := &AuthorizeProxyUserRequest{
-		AgentId:    agentId,
-		AccessType: accessType,
-		AccessKey:  accessKey,
-		CsrfToken:  csrfToken,
-	}
-	err := req.ValidateAll()
-	if err != nil {
-		return nil, err
-	}
-
 	auth := &AuthorizeProxyUserResponse{}
-	err = client.Do(ctx,
+	err := client.Do(ctx,
 		joinOpts(opts,
 			gitlab.WithMethod(http.MethodPost),
 			gitlab.WithPath(AuthorizeProxyUserApiPath),
 			gitlab.WithJWT(true),
-			gitlab.WithJsonRequestBody(&prototool.JsonBox{Message: req}),
+			gitlab.WithProtoJsonRequestBody(&AuthorizeProxyUserRequest{
+				AgentId:    agentId,
+				AccessType: accessType,
+				AccessKey:  accessKey,
+				CsrfToken:  csrfToken,
+			}),
 			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&prototool.JsonBox{Message: auth})),
 		)...,
 	)

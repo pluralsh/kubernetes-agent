@@ -11,6 +11,8 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type ResponseHandler interface {
@@ -19,6 +21,10 @@ type ResponseHandler interface {
 	// Accept returns the value to send in the Accept HTTP header.
 	// Empty string means no value should be sent.
 	Accept() string
+}
+type ValidatableMessage interface {
+	proto.Message
+	ValidateAll() error
 }
 
 // doConfig holds configuration for the Do call.
@@ -129,6 +135,23 @@ func WithRequestBody(body io.Reader, contentType string) DoOption {
 	}
 }
 
+// WithProtoJsonRequestBody specifies the object to marshal to JSON and use as request body.
+// Use this method with proto messages.
+func WithProtoJsonRequestBody(body ValidatableMessage) DoOption {
+	return func(config *doConfig) error {
+		if err := body.ValidateAll(); err != nil {
+			return fmt.Errorf("WithProtoJsonRequestBody: %w", err)
+		}
+		bodyBytes, err := protojson.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("WithProtoJsonRequestBody: %w", err)
+		}
+		return WithRequestBody(bytes.NewReader(bodyBytes), "application/json")(config)
+	}
+}
+
+// WithJsonRequestBody specifies the object to marshal to JSON and use as request body.
+// Do NOT use this method with proto messages, use WithProtoJsonRequestBody instead.
 func WithJsonRequestBody(body interface{}) DoOption {
 	return func(config *doConfig) error {
 		bodyBytes, err := json.Marshal(body)
