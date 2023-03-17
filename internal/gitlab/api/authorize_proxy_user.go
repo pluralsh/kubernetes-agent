@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 )
 
 const (
@@ -25,13 +24,9 @@ func AuthorizeProxyUser(ctx context.Context, client gitlab.ClientInterface, agen
 				AccessKey:  accessKey,
 				CsrfToken:  csrfToken,
 			}),
-			gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&prototool.JsonBox{Message: auth})),
+			gitlab.WithResponseHandler(gitlab.ProtoJsonResponseHandler(auth)),
 		)...,
 	)
-	if err != nil {
-		return nil, err
-	}
-	err = auth.ValidateAll()
 	if err != nil {
 		return nil, err
 	}

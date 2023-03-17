@@ -31,7 +31,6 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitlab",
-        "//internal/tool/prototool",
         "//pkg/agentcfg",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
