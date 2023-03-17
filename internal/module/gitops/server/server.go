@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
@@ -37,15 +35,14 @@ var (
 
 type server struct {
 	rpc.UnimplementedGitopsServer
-	gitalyPool                  gitaly.PoolInterface
-	projectInfoClient           *projectInfoClient
-	syncCount                   usage_metrics.Counter
-	gitOpsPollIntervalHistogram prometheus.Histogram
-	getObjectsPollConfig        retry.PollConfigFactory
-	maxManifestFileSize         int64
-	maxTotalManifestFileSize    int64
-	maxNumberOfPaths            uint32
-	maxNumberOfFiles            uint32
+	gitalyPool               gitaly.PoolInterface
+	projectInfoClient        *projectInfoClient
+	syncCount                usage_metrics.Counter
+	getObjectsPollConfig     retry.PollConfigFactory
+	maxManifestFileSize      int64
+	maxTotalManifestFileSize int64
+	maxNumberOfPaths         uint32
+	maxNumberOfFiles         uint32
 }
 
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
@@ -53,10 +50,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	if err != nil {
 		return err // no wrap
 	}
-	var (
-		lastPoll  time.Time
-		agentInfo *api.AgentInfo
-	)
+	var agentInfo *api.AgentInfo
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
@@ -112,7 +106,6 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 				return nil, retry.Continue
 			}
 		}
-		s.trackPollInterval(&lastPoll)
 
 		// If the commit to synchronize is the same as the previously synchronized commit, we don't need to do anything
 		if commitToSynchronize == req.CommitId {
@@ -162,17 +155,6 @@ func (s *server) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchr
 		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", s.maxNumberOfPaths, numberOfPaths)
 	}
 	return nil
-}
-
-func (s *server) trackPollInterval(lastPoll *time.Time) {
-	now := time.Now()
-
-	if !lastPoll.IsZero() {
-		pollInterval := now.Sub(*lastPoll).Seconds()
-		s.gitOpsPollIntervalHistogram.Observe(pollInterval)
-	}
-
-	*lastPoll = now
 }
 
 func (s *server) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSynchronizeServer, commitId string, projectId int64) error {

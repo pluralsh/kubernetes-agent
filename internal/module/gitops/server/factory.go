@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api"
@@ -13,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
@@ -50,11 +48,6 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 }
 
 func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient) (*server, error) {
-	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
-	err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
-	if err != nil {
-		return nil, err
-	}
 	gitops := config.Config.Agent.Gitops
 	return &server{
 		gitalyPool: config.Gitaly,
@@ -81,8 +74,7 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 				gapi.IsCacheableError,
 			),
 		},
-		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
-		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
+		syncCount: config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		getObjectsPollConfig: retry.NewPollConfigFactory(gitops.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,
@@ -95,12 +87,4 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
 		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
 	}, nil
-}
-
-func constructGitOpsPollIntervalHistogram() prometheus.Histogram {
-	return prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "gitops_poll_interval",
-		Help:    "The time between kas calls to Gitaly to look for GitOps updates",
-		Buckets: prometheus.LinearBuckets(20, 20, 5), // 5 buckets (20, 40, 60, 80, 100)
-	})
 }
