@@ -81,10 +81,10 @@ const (
 
 	kasName = "gitlab-kas"
 
-	kasRoutingMetricName              = "k8s_api_proxy_routing_duration_seconds"
+	kasRoutingDurationMetricName      = "k8s_api_proxy_routing_duration_seconds"
+	kasRoutingTimeoutMetricName       = "k8s_api_proxy_routing_timeout_total"
 	kasRoutingStatusLabelName         = "status"
 	kasRoutingStatusSuccessLabelValue = "success"
-	kasRoutingStatusTimeoutLabelValue = "timeout"
 	kasRoutingStatusAbortedLabelValue = "aborted"
 )
 
@@ -346,8 +346,8 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 	if err != nil {
 		return nil, err
 	}
-	kasRoutingDuration := constructKasRoutingDurationHistogram()
-	err = metric.Register(registerer, kasRoutingDuration)
+	routingDuration, timeoutCounter := constructKasRoutingMetrics()
+	err = metric.Register(registerer, routingDuration, timeoutCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -367,9 +367,9 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
-		kasRoutingDurationSuccess: kasRoutingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
-		kasRoutingDurationTimeout: kasRoutingDuration.WithLabelValues(kasRoutingStatusTimeoutLabelValue),
-		kasRoutingDurationAborted: kasRoutingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
+		kasRoutingDurationSuccess: routingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
+		kasRoutingDurationAborted: routingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
+		kasRoutingDurationTimeout: timeoutCounter,
 		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}, nil
 }
@@ -671,12 +671,17 @@ func startModules(stage stager.Stage, modules []modserver.Module) {
 	}
 }
 
-func constructKasRoutingDurationHistogram() *prometheus.HistogramVec {
-	return prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    kasRoutingMetricName,
+func constructKasRoutingMetrics() (*prometheus.HistogramVec, prometheus.Counter) {
+	hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    kasRoutingDurationMetricName,
 		Help:    "The time it takes the routing kas to find a suitable tunnel in seconds",
 		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 9), // 9 buckets of milliseconds as seconds (1,4,16,64,256,1k,4k,16k,64k)
 	}, []string{kasRoutingStatusLabelName})
+	timeoutCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: kasRoutingTimeoutMetricName,
+		Help: "The total number of times routing timed out i.e. didn't find a suitable agent connection within allocated time",
+	})
+	return hist, timeoutCounter
 }
 
 func constructRedisReadinessProbe(redisClient redis.UniversalClient) observability.Probe {

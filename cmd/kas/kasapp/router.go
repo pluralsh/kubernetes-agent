@@ -36,8 +36,8 @@ type router struct {
 	privateApiServer          grpc.ServiceRegistrar
 	gatewayKasVisitor         *grpctool.StreamVisitor
 	kasRoutingDurationSuccess prometheus.Observer
-	kasRoutingDurationTimeout prometheus.Observer
 	kasRoutingDurationAborted prometheus.Observer
+	kasRoutingDurationTimeout prometheus.Counter
 	tunnelFindTimeout         time.Duration
 }
 

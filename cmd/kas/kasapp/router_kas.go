@@ -73,7 +73,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		span.SetStatus(otelcodes.Error, "Aborted")
 		return readyTunnel{}, grpctool.StatusErrorFromContext(findCtx, "RouteToKasStreamHandler request aborted")
 	case <-t.C:
-		r.kasRoutingDurationTimeout.Observe(time.Since(startRouting).Seconds())
+		r.kasRoutingDurationTimeout.Inc()
 		span.SetStatus(otelcodes.Error, "Timed out")
 		// No need to cancel ctx explicitly here.
 		// ctx will be cancelled when we return from the RPC handler and tf.Run() will stop.
