@@ -42,6 +42,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
@@ -587,8 +588,6 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 
 func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.TracingCF) (tracesdk.SpanExporter, error) {
 	otlpEndpoint := tracingConfig.OtlpEndpoint
-	otlpTokenSecretFile := tracingConfig.OtlpTokenSecretFile
-	otlpCaCertificateFile := tracingConfig.GetOtlpCaCertificateFile()
 
 	u, err := url.Parse(otlpEndpoint)
 	if err != nil {
@@ -608,17 +607,20 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 	otlpOptions = append(otlpOptions, otlptracehttp.WithEndpoint(u.Host))
 	otlpOptions = append(otlpOptions, otlptracehttp.WithURLPath(u.Path))
 
-	token, err := os.ReadFile(otlpTokenSecretFile) // nolint: gosec
-	if err != nil {
-		return nil, fmt.Errorf("unable to read OTLP token from %q: %w", otlpTokenSecretFile, err)
+	otlpTokenSecretFile := tracingConfig.OtlpTokenSecretFile
+	if otlpTokenSecretFile != nil {
+		token, err := os.ReadFile(*otlpTokenSecretFile) // nolint: gosec, govet
+		if err != nil {
+			return nil, fmt.Errorf("unable to read OTLP token from %q: %w", *otlpTokenSecretFile, err)
+		}
+
+		headers := map[string]string{
+			httpz.AuthorizationHeader: fmt.Sprintf("Bearer %s", bytes.TrimSpace(token)),
+		}
+		otlpOptions = append(otlpOptions, otlptracehttp.WithHeaders(headers))
 	}
 
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", bytes.TrimSpace(token)),
-	}
-	otlpOptions = append(otlpOptions, otlptracehttp.WithHeaders(headers))
-
-	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(otlpCaCertificateFile)
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(tracingConfig.GetOtlpCaCertificateFile())
 	if err != nil {
 		return nil, err
 	}
