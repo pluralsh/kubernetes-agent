@@ -675,7 +675,7 @@ func constructKasRoutingMetrics() (*prometheus.HistogramVec, prometheus.Counter)
 	hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    kasRoutingDurationMetricName,
 		Help:    "The time it takes the routing kas to find a suitable tunnel in seconds",
-		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 9), // 9 buckets of milliseconds as seconds (1,4,16,64,256,1k,4k,16k,64k)
+		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 8), // 8 buckets: 0.001s,0.004s,0.016s,0.064s,0.256s,1.024s,4.096s,16.384s, implicit: +Infs
 	}, []string{kasRoutingStatusLabelName})
 	timeoutCounter := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: kasRoutingTimeoutMetricName,
