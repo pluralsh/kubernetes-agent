@@ -189,7 +189,7 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:3e396404edc331898a4af2372c4047a9f4bcd714a69d2699e5933457a783e0b4",
+    digest = "sha256:1f42a01908b9f0f8c2bddf03357282c9a681143f9110579d9e93be522d77c6d3",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -197,7 +197,7 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 container_pull(
     name = "go_image_static",
-    digest = "sha256:f90a61802105c800ba80390432fbb3eb2ea1d113435496ec178016611532c0b0",
+    digest = "sha256:2c3673b4bd746cd5c159314f56ad0c14732add1a7c7d3a69c541019ce16db910",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
@@ -206,7 +206,7 @@ container_pull(
 container_pull(
     name = "go_debug_image_base_arm",
     architecture = "arm",
-    digest = "sha256:59c25bfc018ce4d253d3eec71da61e51c53834ad0c31c05045c7f4c91c5d1019",
+    digest = "sha256:71b7cc693a627307e946f108fc7d664cabc526bb90a96267921648de37c95b46",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -215,7 +215,7 @@ container_pull(
 container_pull(
     name = "go_image_static_arm",
     architecture = "arm",
-    digest = "sha256:6597fafd37d8dc1aca54fa5361456f66f497daccc1bbda8d54cae69888665827",
+    digest = "sha256:64d043969b8fe2f19d3d2c80c0765e7980dcc721c9479081c052f0cd05d65f24",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
@@ -224,7 +224,7 @@ container_pull(
 container_pull(
     name = "go_debug_image_base_arm64",
     architecture = "arm64",
-    digest = "sha256:b2ddbf8b8c2a7ae5b601cdc63771a07f9ed8be85faaf08a118eb3f41f053f9a5",
+    digest = "sha256:071216296b505906a7ed9a6098bd7fe8c0023193ff79c41145d86b9790fee514",
     registry = "gcr.io",
     repository = "distroless/base-debian11",
 )
@@ -233,7 +233,7 @@ container_pull(
 container_pull(
     name = "go_image_static_arm64",
     architecture = "arm64",
-    digest = "sha256:8a685fc385761dd6766ec6302e37b164ba15874fd20df8d500d7fdc871c60262",
+    digest = "sha256:62b71ce97bbc119533a48f4ee854d7158d2b3d1dd36c9461d92cda8fd62b3604",
     registry = "gcr.io",
     repository = "distroless/static-debian11",
 )
