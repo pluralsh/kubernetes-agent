@@ -34,8 +34,6 @@ stages:
   - create_release
 
 danger-review:
-  stage: lint
-  needs: []
   allow_failure: true
   variables:
     GITLAB_DANGERFILES_VERSION: "3.7.0"
