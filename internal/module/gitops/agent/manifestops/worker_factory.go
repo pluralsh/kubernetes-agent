@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
 	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
+	"sigs.k8s.io/cli-utils/pkg/kstatus/watcher"
 	"sigs.k8s.io/cli-utils/pkg/object"
 	"sigs.k8s.io/cli-utils/pkg/object/validation"
 )
@@ -86,14 +87,15 @@ func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.
 				// https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management
 				FieldManager: "agentk",
 			},
-			ReconcileTimeout:       project.ReconcileTimeout.AsDuration(),
-			EmitStatusEvents:       true,
-			NoPrune:                !project.GetPrune(),
-			DryRunStrategy:         f.mapDryRunStrategy(project.DryRunStrategy),
-			PrunePropagationPolicy: f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
-			PruneTimeout:           project.PruneTimeout.AsDuration(),
-			InventoryPolicy:        f.mapInventoryPolicy(project.InventoryPolicy),
-			ValidationPolicy:       validation.ExitEarly,
+			ReconcileTimeout:         project.ReconcileTimeout.AsDuration(),
+			EmitStatusEvents:         true,
+			NoPrune:                  !project.GetPrune(),
+			DryRunStrategy:           f.mapDryRunStrategy(project.DryRunStrategy),
+			PrunePropagationPolicy:   f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
+			PruneTimeout:             project.PruneTimeout.AsDuration(),
+			InventoryPolicy:          f.mapInventoryPolicy(project.InventoryPolicy),
+			ValidationPolicy:         validation.ExitEarly,
+			WatcherRESTScopeStrategy: watcher.RESTScopeNamespace,
 		},
 		decodeRetryPolicy: f.decodeRetryPolicy(),
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
