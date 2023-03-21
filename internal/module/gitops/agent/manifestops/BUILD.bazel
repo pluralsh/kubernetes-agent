@@ -37,6 +37,7 @@ go_library(
         "@io_k8s_sigs_cli_utils//pkg/apply/event",
         "@io_k8s_sigs_cli_utils//pkg/common",
         "@io_k8s_sigs_cli_utils//pkg/inventory",
+        "@io_k8s_sigs_cli_utils//pkg/kstatus/watcher",
         "@io_k8s_sigs_cli_utils//pkg/manifestreader",
         "@io_k8s_sigs_cli_utils//pkg/object",
         "@io_k8s_sigs_cli_utils//pkg/object/validation",
