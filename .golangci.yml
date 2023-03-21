@@ -640,8 +640,9 @@ linters:
 #  enable-all: true
   disable:
     - scopelint
-#    - maligned
-#    - prealloc
+    - deadcode
+    - varcheck
+    - structcheck
   presets:
     - bugs
     - unused
