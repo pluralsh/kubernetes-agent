@@ -13,6 +13,7 @@ go_library(
         "doc.go",
         "err_cacher.go",
         "expiring_hash.go",
+        "log.go",
         "redistool.pb.go",
         "token_limiter.go",
     ],

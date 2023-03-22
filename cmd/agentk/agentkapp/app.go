@@ -31,11 +31,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -55,6 +57,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -399,8 +402,12 @@ func NewCommand() *cobra.Command {
 			defer errz.SafeCall(grpcLog.Sync, &retErr)
 
 			grpclog.SetLoggerV2(zapgrpc.NewLogger(grpcLog)) // pipe gRPC logs into zap
+			logrLogger := zapr.NewLogger(a.Log)
 			// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
-			klog.SetLogger(zapr.NewLogger(a.Log))
+			klog.SetLogger(logrLogger)
+			log.SetLogger(logrLogger) // controller-runtime is a special snowflake, why not use klog like all of Kubernetes?!
+			otel.SetLogger(logrLogger)
+			otel.SetErrorHandler((*metric.OtelErrorHandler)(a.Log))
 
 			return a.Run(cmd.Context())
 		},

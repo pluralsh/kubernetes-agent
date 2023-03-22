@@ -6,10 +6,14 @@ import (
 	"os"
 
 	"github.com/go-logr/zapr"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/kascfg"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
@@ -47,8 +51,12 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeCall(log.Sync, &retErr)
 	defer errz.SafeCall(grpcLog.Sync, &retErr)
 	grpclog.SetLoggerV2(zapgrpc.NewLogger(grpcLog)) // pipe gRPC logs into zap
+	logrLogger := zapr.NewLogger(log)
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
-	klog.SetLogger(zapr.NewLogger(log))
+	klog.SetLogger(logrLogger)
+	otel.SetLogger(logrLogger)
+	otel.SetErrorHandler((*metric.OtelErrorHandler)(log))
+	redis.SetLogger((*redistool.ZapLogger)(log.Sugar()))
 	app := ConfiguredApp{
 		Log:               log,
 		Configuration:     cfg,
