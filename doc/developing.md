@@ -17,6 +17,8 @@ structured:
 
 ## Running kas and agentk locally
 
+[![GitLab Agent development environment setup](https://img.youtube.com/vi/UWptMO-Amtc/0.jpg)](https://www.youtube.com/watch?v=UWptMO-Amtc "GitLab Agent development environment setup")
+
 You can run `kas` and `agentk` locally to test the Agent yourself.
 
 1. Create a `token.txt`. This is the token for
