@@ -8,6 +8,9 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // These constants are for type-safe zap field helpers that are not here to:
@@ -157,4 +160,15 @@ func NumberOfTunnelFindRequests(n int) zap.Field {
 
 func Filename(filename string) zap.Field {
 	return zap.String("filename", filename)
+}
+
+func ProtoJsonValue(key string, value proto.Message) zap.Field {
+	return zap.Inline(zapcore.ObjectMarshalerFunc(func(encoder zapcore.ObjectEncoder) error {
+		data, err := protojson.Marshal(value)
+		if err != nil {
+			return err
+		}
+		encoder.AddByteString(key, data)
+		return nil
+	}))
 }
