@@ -41,7 +41,7 @@ func GenerateCACert(t *testing.T) (string /* caCertFile */, string /* caKeyFile 
 		SerialNumber: randomSerialNumber(t),
 		Subject: pkix.Name{
 			Organization:       []string{"GitLab test CA"},
-			OrganizationalUnit: []string{"Configure"},
+			OrganizationalUnit: []string{"group::environments"},
 			CommonName:         "test CA cert",
 		},
 		SubjectKeyId: skid[:],
@@ -88,7 +88,7 @@ func GenerateCert(t *testing.T, name string, caCert *x509.Certificate, caKey cry
 		SerialNumber: randomSerialNumber(t),
 		Subject: pkix.Name{
 			Organization:       []string{"GitLab test certificate - " + name},
-			OrganizationalUnit: []string{"Configure"},
+			OrganizationalUnit: []string{"group::environments"},
 		},
 
 		NotBefore: time.Now(),

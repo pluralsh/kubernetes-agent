@@ -16,7 +16,7 @@ FROM ${UBI_IMAGE}
 
 LABEL source="https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent" \
       name="GitLab Agent for Kubernetes" \
-      maintainer="GitLab Configure Team" \
+      maintainer="GitLab group::environments" \
       vendor="GitLab" \
       summary="GitLab Agent for Kubernetes" \
       description="GitLab Agent for Kubernetes allows to integrate your cluster with GitLab in a secure way"

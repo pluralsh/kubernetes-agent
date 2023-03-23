@@ -1,6 +1,6 @@
 # Release Process
 
-1. On the 15th, an automatic Slack notification reminds the Configure team to create a monthly release.
+1. On the 15th, an automatic Slack notification reminds the Environments team to create a monthly release.
 1. On the 15th, tag a new version that matches the upcoming GitLab minor version. E.g. If the upcoming milestone is 13.7,
    then tag `v13.7.0`.
 1. Make a release of the [gitlab-agent chart](https://gitlab.com/gitlab-org/charts/gitlab-agent#publishing-a-new-release):
