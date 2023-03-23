@@ -27,10 +27,6 @@ func (a *App) logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) 
 	), atomicLevel, nil
 }
 
-func agentConfig(config *agentcfg.AgentConfiguration) zap.Field {
-	return zap.Reflect(logz.AgentConfig, config)
-}
-
 // agentIdEncoder wraps a zapcore.Encoder to add agent id field if agent id is available.
 type agentIdEncoder struct {
 	zapcore.Encoder

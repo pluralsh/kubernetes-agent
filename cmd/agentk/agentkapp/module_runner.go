@@ -95,7 +95,7 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 }
 
 func (r *moduleRunner) applyConfiguration(commitId string, config *agentcfg.AgentConfiguration) error {
-	r.log.Debug("Applying configuration", logz.CommitId(commitId), agentConfig(config))
+	r.log.Debug("Applying configuration", logz.CommitId(commitId), logz.ProtoJsonValue(logz.AgentConfig, config))
 	// Default and validate before setting for use.
 	for _, holder := range r.holders {
 		err := holder.module.DefaultAndValidateConfiguration(config)
