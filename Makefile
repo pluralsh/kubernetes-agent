@@ -80,7 +80,7 @@ regenerate-mocks: internal-regenerate-mocks fmt update-bazel
 
 .PHONY: update-repos
 update-repos:
-	go mod tidy -compat=1.18
+	go mod tidy -compat=1.19
 	bazel run \
 		//:gazelle -- \
 		update-repos \
@@ -88,7 +88,7 @@ update-repos:
 		-prune=true \
 		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
-	go mod tidy -compat=1.18
+	go mod tidy -compat=1.19
 
 .PHONY: update-bazel
 update-bazel: gazelle
