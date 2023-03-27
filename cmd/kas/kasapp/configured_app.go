@@ -16,6 +16,8 @@ import (
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/go-redis/extra/redisotel/v9"
+	"github.com/redis/go-redis/extra/redisprometheus/v9"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
@@ -55,6 +57,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -105,6 +108,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// reg := prometheus.NewPedanticRegistry()
 	registerer := prometheus.DefaultRegisterer
 	gatherer := prometheus.DefaultGatherer
+	mp := global.MeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	ssh := metric.ServerStatsHandler()
 	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
@@ -144,7 +148,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	errRep := modshared.ApiToErrReporter(srvApi)
 
 	// Redis
-	redisClient, err := a.constructRedisClient()
+	redisClient, err := a.constructRedisClient(tp, mp, registerer)
 	if err != nil {
 		return err
 	}
@@ -240,7 +244,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	poolWrapper := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
 	}
-	meterProvider := global.MeterProvider() // TODO
 	var beforeServersModules, afterServersModules []modserver.Module
 	for _, factory := range factories {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
@@ -260,7 +263,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
-			MeterProvider:    meterProvider, // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
+			MeterProvider:    mp,
 			RedisClient:      redisClient,
 			KasName:          kasName,
 			Version:          cmd.Version,
@@ -518,7 +521,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 	)
 }
 
-func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
+func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, registerer prometheus.Registerer) (redis.UniversalClient, error) {
 	cfg := a.Configuration.Redis
 	poolSize := int(cfg.PoolSize)
 	dialTimeout := cfg.DialTimeout.AsDuration()
@@ -535,18 +538,19 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 	var password string
 	if cfg.PasswordFile != "" {
-		passwordBytes, err := os.ReadFile(cfg.PasswordFile)
+		passwordBytes, err := os.ReadFile(cfg.PasswordFile) // nolint:govet
 		if err != nil {
 			return nil, err
 		}
 		password = string(passwordBytes)
 	}
+	var client redis.UniversalClient
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
 		if tlsConfig != nil {
 			tlsConfig.ServerName = strings.Split(v.Server.Address, ":")[0]
 		}
-		return redis.NewClient(&redis.Options{
+		client = redis.NewClient(&redis.Options{
 			Addr:            v.Server.Address,
 			ClientName:      kasServerName(),
 			PoolSize:        poolSize,
@@ -558,17 +562,17 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			Network:         cfg.Network,
 			ConnMaxIdleTime: idleTimeout,
 			TLSConfig:       tlsConfig,
-		}), nil
+		})
 	case *kascfg.RedisCF_Sentinel:
 		var sentinelPassword string
 		if v.Sentinel.SentinelPasswordFile != "" {
-			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.SentinelPasswordFile)
+			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.SentinelPasswordFile) // nolint:govet
 			if err != nil {
 				return nil, err
 			}
 			sentinelPassword = string(sentinelPasswordBytes)
 		}
-		return redis.NewFailoverClient(&redis.FailoverOptions{
+		client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:       v.Sentinel.MasterName,
 			SentinelAddrs:    v.Sentinel.Addresses,
 			ClientName:       kasServerName(),
@@ -581,11 +585,27 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			SentinelPassword: sentinelPassword,
 			ConnMaxIdleTime:  idleTimeout,
 			TLSConfig:        tlsConfig,
-		}), nil
+		})
 	default:
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
+	if a.isTracingEnabled() {
+		// Instrument Redis client with tracing only if it's configured.
+		if err = redisotel.InstrumentTracing(client, redisotel.WithTracerProvider(tp)); err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
+	// Enable metrics instrumentation.
+	//if err = redisotel.InstrumentMetrics(client, redisotel.WithMeterProvider(mp)); err != nil {
+	//	return nil, err
+	//}
+	if err = registerer.Register(redisprometheus.NewCollector("", "redis", client)); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.TracingCF) (tracesdk.SpanExporter, error) {
@@ -632,8 +652,7 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 }
 
 func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
-	tracingConfig := a.Configuration.Observability.Tracing
-	if tracingConfig == nil {
+	if !a.isTracingEnabled() {
 		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
 	}
 
@@ -644,7 +663,7 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 
 	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,
 	// which TracerProvider does in its Shutdown() method.
-	exporter, err := constructTracingExporter(ctx, tracingConfig)
+	exporter, err := constructTracingExporter(ctx, a.Configuration.Observability.Tracing)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -660,6 +679,9 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 		return tp.Shutdown(ctx)
 	}
 	return tp, p, tpStop, nil
+}
+func (a *ConfiguredApp) isTracingEnabled() bool {
+	return a.Configuration.Observability.Tracing != nil
 }
 
 func startModules(stage stager.Stage, modules []modserver.Module) {

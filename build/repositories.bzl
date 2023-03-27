@@ -1423,15 +1423,15 @@ def go_repositories():
         name = "com_github_go_kit_kit",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-kit/kit",
-        sum = "h1:wDJmvq38kDhkVxi50ni9ykkdUr1PKgqKOoi01fa0Mdk=",
-        version = "v0.9.0",
+        sum = "h1:Wz+5lgoB0kkuqLEc6NVmwRknTKP6dTGbSqvhZtBI/j0=",
+        version = "v0.8.0",
     )
     go_repository(
         name = "com_github_go_kit_log",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-kit/log",
-        sum = "h1:7i2K3eKTos3Vc0enKCfnVcgHh2olr/MyfboYq7cAcFw=",
-        version = "v0.2.0",
+        sum = "h1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=",
+        version = "v0.2.1",
     )
     go_repository(
         name = "com_github_go_logfmt_logfmt",
@@ -3251,15 +3251,15 @@ def go_repositories():
         name = "com_github_prometheus_common",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/prometheus/common",
-        sum = "h1:ccBbHCgIiT9uSoFY0vX8H3zsNR5eLt17/RQLUvn8pXE=",
-        version = "v0.37.0",
+        sum = "h1:oOyhkDq05hPZKItWVBkJ6g6AtGxi+fy7F4JvUV8uhsI=",
+        version = "v0.39.0",
     )
     go_repository(
         name = "com_github_prometheus_procfs",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/prometheus/procfs",
-        sum = "h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5mo=",
-        version = "v0.8.0",
+        sum = "h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=",
+        version = "v0.9.0",
     )
     go_repository(
         name = "com_github_prometheus_prometheus",
@@ -3306,6 +3306,28 @@ def go_repositories():
         sum = "h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=",
         version = "v0.0.0-20201227073835-cf1acfcdf475",
     )
+    go_repository(
+        name = "com_github_redis_go_redis_extra_rediscmd_v9",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/redis/go-redis/extra/rediscmd/v9",
+        sum = "h1:RImcxeEeyrbUSm8vE/CGwrBVfaHoWw67n12tv4uXTJw=",
+        version = "v9.0.2",
+    )
+    go_repository(
+        name = "com_github_redis_go_redis_extra_redisotel_v9",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/redis/go-redis/extra/redisotel/v9",
+        sum = "h1:M7X7ZJFESh919eIhL8Rj8fNVlY9LGcsIpE+jFZMyblw=",
+        version = "v9.0.2",
+    )
+    go_repository(
+        name = "com_github_redis_go_redis_extra_redisprometheus_v9",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/redis/go-redis/extra/redisprometheus/v9",
+        sum = "h1:3yTaNLv1UdvnBjhENCAlnY/fsiTTEVWqX3YpBOX/P3I=",
+        version = "v9.0.2",
+    )
+
     go_repository(
         name = "com_github_redis_go_redis_v9",
         build_file_proto_mode = "disable_global",
