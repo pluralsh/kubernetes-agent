@@ -552,7 +552,6 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		}
 		client = redis.NewClient(&redis.Options{
 			Addr:            v.Server.Address,
-			ClientName:      kasServerName(),
 			PoolSize:        poolSize,
 			DialTimeout:     dialTimeout,
 			ReadTimeout:     readTimeout,
@@ -575,7 +574,6 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:       v.Sentinel.MasterName,
 			SentinelAddrs:    v.Sentinel.Addresses,
-			ClientName:       kasServerName(),
 			DialTimeout:      dialTimeout,
 			ReadTimeout:      readTimeout,
 			WriteTimeout:     writeTimeout,
