@@ -2,11 +2,20 @@ package tracker
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"go.uber.org/zap"
+)
+
+type pollingState byte
+
+const (
+	stopped pollingState = iota
+	running
 )
 
 // PollKasUrlsByAgentIdCallback is called periodically for each found kas URL for a particular agent id.
@@ -17,15 +26,25 @@ type PollingQuerier interface {
 	PollKasUrlsByAgentId(ctx context.Context, agentId int64, cb PollKasUrlsByAgentIdCallback)
 }
 
-type holder struct {
+type pollConsumer struct {
 	ctxDone   <-chan struct{}
 	pollItems chan<- pollItem
 }
 
 type pollingContext struct {
-	mu      sync.Mutex
-	holders map[*holder]struct{}
-	cancel  context.CancelFunc
+	mu        sync.Mutex
+	consumers map[*pollConsumer]struct{}
+	cancel    context.CancelFunc
+	kasUrls   []string
+	stoppedAt time.Time
+	state     pollingState
+}
+
+func newPollingContext() *pollingContext {
+	return &pollingContext{
+		consumers: map[*pollConsumer]struct{}{},
+		state:     stopped,
+	}
 }
 
 type pollItem struct {
@@ -33,46 +52,95 @@ type pollItem struct {
 	newCycle bool
 }
 
-func (c *pollingContext) copyHoldersInto(holders []holder) []holder {
-	holders = holders[:0]
+func (c *pollingContext) copyConsumersInto(consumers []pollConsumer) []pollConsumer {
+	consumers = consumers[:0]
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for h := range c.holders {
-		holders = append(holders, *h)
+	for h := range c.consumers {
+		consumers = append(consumers, *h)
 	}
-	return holders
+	return consumers
 }
 
-// AggregatingQuerier gruops requests
+func (c *pollingContext) setKasUrls(kasUrls []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.kasUrls = kasUrls
+}
+
+func (c *pollingContext) isExpired(before time.Time) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.state == stopped && c.stoppedAt.Before(before)
+}
+
+// AggregatingQuerier groups polling requests.
 type AggregatingQuerier struct {
 	log        *zap.Logger
 	delegate   Querier
 	api        modshared.Api
 	pollConfig retry.PollConfigFactory
+	gcPeriod   time.Duration
 
 	mu        sync.Mutex
 	listeners map[int64]*pollingContext
 }
 
-func NewAggregatingQuerier(log *zap.Logger, delegate Querier, api modshared.Api, pollConfig retry.PollConfigFactory) *AggregatingQuerier {
+func NewAggregatingQuerier(log *zap.Logger, delegate Querier, api modshared.Api, pollConfig retry.PollConfigFactory, gcPeriod time.Duration) *AggregatingQuerier {
 	return &AggregatingQuerier{
 		log:        log,
 		delegate:   delegate,
 		api:        api,
 		pollConfig: pollConfig,
+		gcPeriod:   gcPeriod,
 		listeners:  make(map[int64]*pollingContext),
+	}
+}
+
+func (q *AggregatingQuerier) Run(ctx context.Context) error {
+	done := ctx.Done()
+	t := time.NewTicker(q.gcPeriod)
+	defer t.Stop()
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-t.C:
+			q.runGc()
+		}
+	}
+}
+
+func (q *AggregatingQuerier) runGc() {
+	before := time.Now().Add(-q.gcPeriod)
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	for agentId, pc := range q.listeners {
+		if pc.isExpired(before) {
+			delete(q.listeners, agentId)
+		}
 	}
 }
 
 func (q *AggregatingQuerier) PollKasUrlsByAgentId(ctx context.Context, agentId int64, cb PollKasUrlsByAgentIdCallback) {
 	pollItems := make(chan pollItem)
 	ctxDone := ctx.Done()
-	h := &holder{
+	h := &pollConsumer{
 		ctxDone:   ctxDone,
 		pollItems: pollItems,
 	}
-	q.maybeStartPolling(agentId, h) // nolint: contextcheck
+	kasUrls := q.maybeStartPolling(agentId, h) // nolint: contextcheck
 	defer q.maybeStopPolling(agentId, h)
+	// Send cached URLs.
+	newCycle := true
+	for _, kasUrl := range kasUrls {
+		done := cb(newCycle, kasUrl)
+		if done {
+			return
+		}
+		newCycle = false
+	}
+	// Send URLs from polling.
 	for {
 		select {
 		case <-ctxDone:
@@ -86,50 +154,71 @@ func (q *AggregatingQuerier) PollKasUrlsByAgentId(ctx context.Context, agentId i
 	}
 }
 
-func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *holder) {
+func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *pollConsumer) []string {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	pc := q.listeners[agentId]
-	if pc != nil { // already polling
-		pc.mu.Lock()
-		pc.holders[h] = struct{}{} // register for notifications
-		pc.mu.Unlock()
-	} else { // not polling, start.
-		ctx, cancel := context.WithCancel(context.Background())
-		pc = &pollingContext{
-			holders: map[*holder]struct{}{
-				h: {},
-			},
-			cancel: cancel,
-		}
+	if pc == nil { // no existing context
+		pc = newPollingContext()
 		q.listeners[agentId] = pc
-		go q.poll(ctx, agentId, pc)
 	}
+	return q.registerConsumerLocked(agentId, pc, h)
 }
 
-func (q *AggregatingQuerier) maybeStopPolling(agentId int64, h *holder) {
+func (q *AggregatingQuerier) registerConsumerLocked(agentId int64, pc *pollingContext, h *pollConsumer) []string {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	pc.consumers[h] = struct{}{} // register for notifications
+	switch pc.state {
+	case stopped:
+		pc.state = running
+		ctx, cancel := context.WithCancel(context.Background())
+		pc.cancel = cancel
+		go q.poll(ctx, agentId, pc)
+	case running:
+		// Already polling, nothing to do.
+	default:
+		panic(fmt.Sprintf("invalid state value: %d", pc.state))
+	}
+	return pc.kasUrls
+}
+
+func (q *AggregatingQuerier) maybeStopPolling(agentId int64, h *pollConsumer) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	pc := q.listeners[agentId]
-	pc.mu.Lock()
-	defer pc.mu.Unlock()
-
-	delete(pc.holders, h)
-	if len(pc.holders) == 0 {
-		pc.cancel() // stop polling
+	if q.unregisterConsumerLocked(pc, h) {
+		// No point in keeping this pollingContext around if it doesn't have any cached URLs.
 		delete(q.listeners, agentId)
 	}
 }
 
+func (q *AggregatingQuerier) unregisterConsumerLocked(pc *pollingContext, h *pollConsumer) bool {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+
+	delete(pc.consumers, h)
+	if len(pc.consumers) == 0 {
+		pc.cancel()     // stop polling
+		pc.cancel = nil // release the kraken! err... GC
+		pc.state = stopped
+		pc.stoppedAt = time.Now()
+		return len(pc.kasUrls) == 0
+	}
+	return false
+}
+
 func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollingContext) {
 	// err can only be retry.ErrWaitTimeout
-	var holders []holder // reuse slice between polls
+	var consumers []pollConsumer // reuse slice between polls
 	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		newCycle := true
+		var kasUrls []string
 		err := q.delegate.KasUrlsByAgentId(ctx, agentId, func(kasUrl string) (bool, error) {
-			holders = pc.copyHoldersInto(holders)
-			for _, h := range holders {
+			kasUrls = append(kasUrls, kasUrl)
+			consumers = pc.copyConsumersInto(consumers)
+			for _, h := range consumers {
 				select {
 				case <-h.ctxDone:
 					// This PollKasUrlsByAgentId() invocation is no longer interested in being called. Ignore it.
@@ -144,6 +233,7 @@ func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollin
 			q.api.HandleProcessingError(ctx, q.log, agentId, "KasUrlsByAgentId() failed", err)
 			// fallthrough
 		}
+		pc.setKasUrls(kasUrls)
 		return nil, retry.Continue
 	})
 }

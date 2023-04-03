@@ -80,6 +80,7 @@ const (
 	routingBackoffFactor     = 2.0
 	routingJitter            = 1.0
 	routingTunnelFindTimeout = 20 * time.Second
+	routingCachePeriod       = 5 * time.Minute
 
 	authSecretLength = 32
 
@@ -193,14 +194,22 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	defer tunnelRegistry.Stop() // nolint: contextcheck
 
 	// Kas to agentk router
+	pollConfig := retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
+		routingInitBackoff,
+		routingMaxBackoff,
+		routingResetDuration,
+		routingBackoffFactor,
+		routingJitter,
+	))
+	tunnelQuerier := tracker.NewAggregatingQuerier(a.Log, tunnelTracker, srvApi, pollConfig, routingCachePeriod)
 	kasToAgentRouter, err := a.constructKasToAgentRouter(
-		tunnelTracker,
+		tunnelQuerier,
 		tunnelRegistry,
 		a.OwnPrivateApiUrl,
 		internalSrv.server,
 		privateApiSrv,
 		privateApiSrv.kasPool,
-		srvApi,
+		pollConfig,
 		registerer)
 	if err != nil {
 		return err
@@ -289,6 +298,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// Start things that modules use.
 		func(stage stager.Stage) {
 			stage.Go(agentTracker.Run)
+			stage.Go(tunnelQuerier.Run)
 		},
 		// Start modules.
 		func(stage stager.Stage) {
@@ -343,9 +353,9 @@ func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHu
 	return f.New, fAgent.New
 }
 
-func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder,
+func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.PollingQuerier, tunnelFinder reverse_tunnel.TunnelFinder,
 	ownPrivateApiUrl string, internalServer, privateApiServer grpc.ServiceRegistrar, kasPool grpctool.PoolInterface,
-	api modshared.Api, registerer prometheus.Registerer) (kasRouter, error) {
+	pollConfig retry.PollConfigFactory, registerer prometheus.Registerer) (kasRouter, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
@@ -355,16 +365,9 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.Querier,
 	if err != nil {
 		return nil, err
 	}
-	pollConfig := retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
-		routingInitBackoff,
-		routingMaxBackoff,
-		routingResetDuration,
-		routingBackoffFactor,
-		routingJitter,
-	))
 	return &router{
 		kasPool:                   kasPool,
-		tunnelQuerier:             tracker.NewAggregatingQuerier(a.Log, tunnelQuerier, api, pollConfig),
+		tunnelQuerier:             tunnelQuerier,
 		tunnelFinder:              tunnelFinder,
 		ownPrivateApiUrl:          ownPrivateApiUrl,
 		pollConfig:                pollConfig,
