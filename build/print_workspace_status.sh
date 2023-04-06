@@ -12,7 +12,7 @@ set -o pipefail
 # See: https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/253
 [ -z "${GIT_COMMIT:-}" ] && GIT_COMMIT=$(git rev-parse --short HEAD)
 [ -z "${GIT_TAG:-}" ] && GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
-GIT_TAG="${GIT_TAG:="latest"}"
+GIT_TAG="${GIT_TAG:="v0.0.0"}"
 
 CONTAINER_REPOSITORY_PATH="${CI_PROJECT_PATH:-"gitlab-org/cluster-integration/gitlab-agent"}"
 CI_REGISTRY="${CI_REGISTRY:-"registry.gitlab.com"}"
