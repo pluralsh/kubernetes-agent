@@ -53,7 +53,7 @@ type tunnelFinder struct {
 	agentId          int64
 	outgoingCtx      context.Context
 	pollConfig       retry.PollConfigFactory
-	foundTunnel      chan<- readyTunnel
+	foundTunnel      chan readyTunnel
 
 	wg          wait.Group
 	mu          sync.Mutex                // protects connections,done
@@ -61,7 +61,25 @@ type tunnelFinder struct {
 	done        bool                      // successfully done searching
 }
 
-func (f *tunnelFinder) Run(ctx context.Context) {
+func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
+	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
+	pollConfig retry.PollConfigFactory) *tunnelFinder {
+	return &tunnelFinder{
+		log:              log,
+		kasPool:          kasPool,
+		tunnelQuerier:    tunnelQuerier,
+		rpcApi:           rpcApi,
+		fullMethod:       fullMethod,
+		ownPrivateApiUrl: ownPrivateApiUrl,
+		agentId:          agentId,
+		outgoingCtx:      outgoingCtx,
+		pollConfig:       pollConfig,
+		foundTunnel:      make(chan readyTunnel),
+		connections:      make(map[string]kasConnAttempt),
+	}
+}
+
+func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	defer f.wg.Wait()
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
@@ -81,6 +99,13 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 		}
 		return false
 	})
+	select {
+	case <-ctx.Done():
+		f.stopAllConnectionAttempts()
+		return readyTunnel{}, ctx.Err()
+	case rt := <-f.foundTunnel:
+		return rt, nil
+	}
 }
 
 func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool {
@@ -161,7 +186,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 		}
 		f.done = true
 		pollCancel()
-		f.stopAllConnectionAttemptsExcept(kasUrl)
+		f.stopAllConnectionAttemptsExceptLocked(kasUrl)
 		f.mu.Unlock()
 
 		// 5. Tell the other kas we are starting streaming
@@ -189,10 +214,18 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 	})
 }
 
-func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
+func (f *tunnelFinder) stopAllConnectionAttemptsExceptLocked(kasUrl string) {
 	for url, c := range f.connections {
 		if url != kasUrl {
 			c.cancel()
 		}
+	}
+}
+
+func (f *tunnelFinder) stopAllConnectionAttempts() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, c := range f.connections {
+		c.cancel()
 	}
 }

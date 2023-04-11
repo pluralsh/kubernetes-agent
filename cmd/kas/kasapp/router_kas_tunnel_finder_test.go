@@ -63,7 +63,8 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
 	)
 
-	tf.Run(ctx)
+	_, err := tf.Find(ctx)
+	assert.Same(t, context.Canceled, err)
 	assert.Len(t, tf.connections, 2)
 	assert.Contains(t, tf.connections, selfAddr)
 	assert.Contains(t, tf.connections, "grpc://pipe")
@@ -120,7 +121,8 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	rpcApi.EXPECT().
 		HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
 		Times(2)
-	tf.Run(ctx)
+	_, err := tf.Find(ctx)
+	assert.Same(t, context.Canceled, err)
 	assert.Len(t, tf.connections, 3)
 	assert.Contains(t, tf.connections, selfAddr)
 	assert.Contains(t, tf.connections, "grpc://pipe")
@@ -134,18 +136,16 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	kasPool := mock_rpc.NewMockPoolInterface(ctrl)
 
-	tf := &tunnelFinder{
-		log:              zaptest.NewLogger(t),
-		kasPool:          kasPool,
-		tunnelQuerier:    querier,
-		rpcApi:           rpcApi,
-		fullMethod:       "/gitlab.agent.grpctool.test.Testing/RequestResponse",
-		ownPrivateApiUrl: selfAddr,
-		agentId:          testhelpers.AgentId,
-		outgoingCtx:      ctx,
-		pollConfig:       testhelpers.NewPollConfig(100 * time.Millisecond),
-		foundTunnel:      make(chan readyTunnel),
-		connections:      make(map[string]kasConnAttempt),
-	}
+	tf := newTunnelFinder(
+		zaptest.NewLogger(t),
+		kasPool,
+		querier,
+		rpcApi,
+		"/gitlab.agent.grpctool.test.Testing/RequestResponse",
+		selfAddr,
+		testhelpers.AgentId,
+		ctx,
+		testhelpers.NewPollConfig(100*time.Millisecond),
+	)
 	return tf, querier, rpcApi, kasPool
 }
