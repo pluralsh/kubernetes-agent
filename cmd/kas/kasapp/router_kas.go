@@ -66,15 +66,19 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 
 	rt, err := tf.Find(findCtx)
 	if err != nil {
-		// Find() aborted or timed out
-		if ctx.Err() != nil {
+		switch { // Order is important here.
+		case ctx.Err() != nil: // Incoming stream cancelled.
 			r.kasRoutingDurationAborted.Observe(time.Since(startRouting).Seconds())
 			span.SetStatus(otelcodes.Error, "Aborted")
 			return readyTunnel{}, grpctool.StatusErrorFromContext(ctx, "RouteToKasStreamHandler request aborted")
-		} else {
+		case findCtx.Err() != nil: // Find tunnel timed out.
 			r.kasRoutingDurationTimeout.Inc()
 			span.SetStatus(otelcodes.Error, "Timed out")
 			return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
+		default: // This should never happen, but let's handle a non-ctx error for completeness and future-proofing.
+			span.SetStatus(otelcodes.Error, "Failed")
+			span.RecordError(err)
+			return readyTunnel{}, status.Errorf(codes.Unavailable, "Find tunnel failed: %v", err)
 		}
 	}
 	r.kasRoutingDurationSuccess.Observe(time.Since(startRouting).Seconds())
