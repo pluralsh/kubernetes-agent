@@ -53,15 +53,33 @@ type tunnelFinder struct {
 	agentId          int64
 	outgoingCtx      context.Context
 	pollConfig       retry.PollConfigFactory
-	foundTunnel      chan<- readyTunnel
+	foundTunnel      chan readyTunnel
+	wg               wait.Group
+	connections      map[string]kasConnAttempt // kas URL -> conn info
 
-	wg          wait.Group
-	mu          sync.Mutex                // protects connections,done
-	connections map[string]kasConnAttempt // kas URL -> conn info
-	done        bool                      // successfully done searching
+	mu   sync.Mutex // protects done
+	done bool       // successfully done searching
 }
 
-func (f *tunnelFinder) Run(ctx context.Context) {
+func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
+	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
+	pollConfig retry.PollConfigFactory) *tunnelFinder {
+	return &tunnelFinder{
+		log:              log,
+		kasPool:          kasPool,
+		tunnelQuerier:    tunnelQuerier,
+		rpcApi:           rpcApi,
+		fullMethod:       fullMethod,
+		ownPrivateApiUrl: ownPrivateApiUrl,
+		agentId:          agentId,
+		outgoingCtx:      outgoingCtx,
+		pollConfig:       pollConfig,
+		foundTunnel:      make(chan readyTunnel),
+		connections:      make(map[string]kasConnAttempt),
+	}
+}
+
+func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	defer f.wg.Wait()
 	pollCtx, pollCancel := context.WithCancel(ctx)
 	defer pollCancel()
@@ -81,14 +99,17 @@ func (f *tunnelFinder) Run(ctx context.Context) {
 		}
 		return false
 	})
+	select {
+	case <-ctx.Done():
+		f.stopAllConnectionAttempts()
+		return readyTunnel{}, ctx.Err()
+	case rt := <-f.foundTunnel:
+		f.stopAllConnectionAttemptsExcept(rt.kasUrl)
+		return rt, nil
+	}
 }
 
 func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.done {
-		return true
-	}
 	if _, ok := f.connections[kasUrl]; ok {
 		return false // skip tunnel via kas that we have connected to already
 	}
@@ -154,19 +175,15 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 		}
 
 		// 4. Check if another goroutine has found a suitable tunnel already
-		f.mu.Lock()
+		f.mu.Lock() // Ensure only one kas gets StartStreaming message
 		if f.done {
 			f.mu.Unlock()
 			return nil, retry.Done
 		}
-		f.done = true
-		pollCancel()
-		f.stopAllConnectionAttemptsExcept(kasUrl)
-		f.mu.Unlock()
-
 		// 5. Tell the other kas we are starting streaming
 		err = kasStream.SendMsg(&StartStreaming{})
 		if err != nil {
+			f.mu.Unlock()
 			if err == io.EOF { // nolint:errorlint
 				var frame grpctool.RawFrame
 				err = kasStream.RecvMsg(&frame) // get the real error
@@ -174,6 +191,9 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 			_ = f.rpcApi.HandleIoError(log, "SendMsg(StartStreaming)", err)
 			return nil, retry.Backoff
 		}
+		f.done = true
+		f.mu.Unlock()
+		pollCancel()
 		rt := readyTunnel{
 			kasUrl:          kasUrl,
 			kasStream:       kasStream,
@@ -194,5 +214,11 @@ func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
 		if url != kasUrl {
 			c.cancel()
 		}
+	}
+}
+
+func (f *tunnelFinder) stopAllConnectionAttempts() {
+	for _, c := range f.connections {
+		c.cancel()
 	}
 }

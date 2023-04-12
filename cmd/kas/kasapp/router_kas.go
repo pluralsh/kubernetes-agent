@@ -50,37 +50,38 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
-	tChan := make(chan readyTunnel)
-	tf := tunnelFinder{
-		log:              rpcApi.Log().With(logz.AgentId(agentId)),
-		kasPool:          r.kasPool,
-		tunnelQuerier:    r.tunnelQuerier,
-		rpcApi:           rpcApi,
-		fullMethod:       grpc.ServerTransportStreamFromContext(ctx).Method(),
-		ownPrivateApiUrl: r.ownPrivateApiUrl,
-		agentId:          agentId,
-		outgoingCtx:      metadata.NewOutgoingContext(ctx, md),
-		pollConfig:       r.pollConfig,
-		foundTunnel:      tChan,
-		connections:      make(map[string]kasConnAttempt),
+	tf := newTunnelFinder(
+		rpcApi.Log().With(logz.AgentId(agentId)),
+		r.kasPool,
+		r.tunnelQuerier,
+		rpcApi,
+		grpc.ServerTransportStreamFromContext(ctx).Method(),
+		r.ownPrivateApiUrl,
+		agentId,
+		metadata.NewOutgoingContext(ctx, md),
+		r.pollConfig,
+	)
+	findCtx, findCancel := context.WithTimeout(findCtx, r.tunnelFindTimeout)
+	defer findCancel()
+
+	rt, err := tf.Find(findCtx)
+	if err != nil {
+		switch { // Order is important here.
+		case ctx.Err() != nil: // Incoming stream cancelled.
+			r.kasRoutingDurationAborted.Observe(time.Since(startRouting).Seconds())
+			span.SetStatus(otelcodes.Error, "Aborted")
+			return readyTunnel{}, grpctool.StatusErrorFromContext(ctx, "RouteToKasStreamHandler request aborted")
+		case findCtx.Err() != nil: // Find tunnel timed out.
+			r.kasRoutingDurationTimeout.Inc()
+			span.SetStatus(otelcodes.Error, "Timed out")
+			return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
+		default: // This should never happen, but let's handle a non-ctx error for completeness and future-proofing.
+			span.SetStatus(otelcodes.Error, "Failed")
+			span.RecordError(err)
+			return readyTunnel{}, status.Errorf(codes.Unavailable, "Find tunnel failed: %v", err)
+		}
 	}
-	t := time.NewTimer(r.tunnelFindTimeout)
-	defer t.Stop()
-	go tf.Run(findCtx)
-	select {
-	case <-findCtx.Done():
-		r.kasRoutingDurationAborted.Observe(time.Since(startRouting).Seconds())
-		span.SetStatus(otelcodes.Error, "Aborted")
-		return readyTunnel{}, grpctool.StatusErrorFromContext(findCtx, "RouteToKasStreamHandler request aborted")
-	case <-t.C:
-		r.kasRoutingDurationTimeout.Inc()
-		span.SetStatus(otelcodes.Error, "Timed out")
-		// No need to cancel ctx explicitly here.
-		// ctx will be cancelled when we return from the RPC handler and tf.Run() will stop.
-		return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
-	case rt := <-tChan:
-		r.kasRoutingDurationSuccess.Observe(time.Since(startRouting).Seconds())
-		span.SetStatus(otelcodes.Ok, "")
-		return rt, nil
-	}
+	r.kasRoutingDurationSuccess.Observe(time.Since(startRouting).Seconds())
+	span.SetStatus(otelcodes.Ok, "")
+	return rt, nil
 }
