@@ -138,7 +138,13 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 			cleanHeader(outboundResponse)
 			x.MergeHeaders(outboundResponse, w.Header())
 			w.WriteHeader(int(header.Response.StatusCode))
-			flush()
+			// NOTE: the HTTP standard library doesn't no-op for a flush when WriteHeader() was already called with a 1xx status code
+			// and already flushed. This leads to the response being sent twice once with the correct status code and once with `200 OK`.
+			// Thus, we avoid flushing manually for all 1xx responses.
+			// This seems to be a regression in Go 1.19, introduced with https://go-review.googlesource.com/c/go/+/269997
+			if header.Response.StatusCode >= 200 {
+				flush()
+			}
 			headerWritten = true
 			return nil
 		}),

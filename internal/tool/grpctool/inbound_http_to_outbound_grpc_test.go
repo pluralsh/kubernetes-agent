@@ -142,8 +142,6 @@ func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
 					httpz.ConnectionHeader: []string{"upgrade"},
 				}, wh)
 			}),
-		w.EXPECT().
-			Flush(),
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
