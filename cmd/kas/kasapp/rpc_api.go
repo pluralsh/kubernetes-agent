@@ -23,6 +23,7 @@ type serverRpcApi struct {
 
 	sentryHubOnce sync.Once
 	sentryHub     SentryHub
+	transaction   string
 }
 
 func (a *serverRpcApi) HandleProcessingError(log *zap.Logger, agentId int64, msg string, err error) {
@@ -36,9 +37,9 @@ func (a *serverRpcApi) HandleIoError(log *zap.Logger, msg string, err error) err
 	return grpctool.HandleIoError(msg, err)
 }
 
-func (a *serverRpcApi) hub() SentryHub {
+func (a *serverRpcApi) hub() (SentryHub, string) {
 	a.sentryHubOnce.Do(a.hubOnce)
-	return a.sentryHub
+	return a.sentryHub, a.transaction
 }
 
 func (a *serverRpcApi) hubOnce() {
@@ -46,9 +47,8 @@ func (a *serverRpcApi) hubOnce() {
 	scope := hub.Scope()
 	scope.SetTag(modserver.GrpcServiceSentryField, a.service)
 	scope.SetTag(modserver.GrpcMethodSentryField, a.method)
-	transaction := a.service + "::" + a.method                           // Like in Gitaly
-	scope.SetTransaction(transaction)                                    // Like in Gitaly
-	scope.SetFingerprint([]string{"{{ default }}", "grpc", transaction}) // use Sentry's default error hash but also split by gRPC transaction
+	a.transaction = a.service + "::" + a.method                            // Like in Gitaly
+	scope.SetFingerprint([]string{"{{ default }}", "grpc", a.transaction}) // use Sentry's default error hash but also split by gRPC transaction
 	if a.traceID.IsValid() {
 		scope.SetTag(modserver.TraceIdSentryField, a.traceID.String())
 	}

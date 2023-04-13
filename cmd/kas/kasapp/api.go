@@ -40,11 +40,11 @@ func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 	handleProcessingError(ctx, a.hub, log, agentId, msg, err)
 }
 
-func (a *serverApi) hub() SentryHub {
-	return a.Hub
+func (a *serverApi) hub() (SentryHub, string) {
+	return a.Hub, ""
 }
 
-func handleProcessingError(ctx context.Context, hub func() SentryHub, log *zap.Logger, agentId int64, msg string, err error) {
+func handleProcessingError(ctx context.Context, hub func() (SentryHub, string), log *zap.Logger, agentId int64, msg string, err error) {
 	if grpctool.RequestCanceledOrTimedOut(err) {
 		// An error caused by context signalling done
 		return
@@ -56,11 +56,12 @@ func handleProcessingError(ctx context.Context, hub func() SentryHub, log *zap.L
 		// Log at Info for now.
 		log.Info(msg, logz.Error(err))
 	} else {
-		logAndCapture(ctx, hub(), log, agentId, msg, err)
+		h, transaction := hub()
+		logAndCapture(ctx, h, transaction, log, agentId, msg, err)
 	}
 }
 
-func logAndCapture(ctx context.Context, hub SentryHub, log *zap.Logger, agentId int64, msg string, err error) {
+func logAndCapture(ctx context.Context, hub SentryHub, transaction string, log *zap.Logger, agentId int64, msg string, err error) {
 	log.Error(msg, logz.Error(err))
 
 	errStr := removeRandomPort(err.Error())
@@ -81,6 +82,7 @@ func logAndCapture(ctx context.Context, hub SentryHub, log *zap.Logger, agentId 
 	if traceId.IsValid() {
 		event.Tags[modserver.TraceIdSentryField] = traceId.String()
 	}
+	event.Transaction = transaction
 	hub.CaptureEvent(event)
 }
 
