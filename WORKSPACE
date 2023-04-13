@@ -176,7 +176,7 @@ bazel_skylib_workspace()
 go_rules_dependencies()
 
 go_register_toolchains(
-    version = "1.19.6",
+    version = "1.19.8",
 )
 
 gazelle_dependencies()
