@@ -4852,6 +4852,35 @@ func (m *ConfigurationFile) validate(all bool) error {
 		}
 	}
 
+	if all {
+		switch v := interface{}(m.GetRemoteDevelopment()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ConfigurationFileValidationError{
+					field:  "RemoteDevelopment",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ConfigurationFileValidationError{
+					field:  "RemoteDevelopment",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRemoteDevelopment()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "RemoteDevelopment",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return ConfigurationFileMultiError(errors)
 	}
@@ -5076,6 +5105,35 @@ func (m *AgentConfiguration) validate(all bool) error {
 
 	// no validation rules for ProjectPath
 
+	if all {
+		switch v := interface{}(m.GetRemoteDevelopment()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, AgentConfigurationValidationError{
+					field:  "RemoteDevelopment",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, AgentConfigurationValidationError{
+					field:  "RemoteDevelopment",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRemoteDevelopment()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
+				field:  "RemoteDevelopment",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return AgentConfigurationMultiError(errors)
 	}
@@ -5155,3 +5213,106 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = AgentConfigurationValidationError{}
+
+// Validate checks the field values on RemoteCF with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *RemoteCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RemoteCF with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in RemoteCFMultiError, or nil
+// if none found.
+func (m *RemoteCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RemoteCF) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Enabled
+
+	// no validation rules for DnsZone
+
+	if len(errors) > 0 {
+		return RemoteCFMultiError(errors)
+	}
+
+	return nil
+}
+
+// RemoteCFMultiError is an error wrapping multiple validation errors returned
+// by RemoteCF.ValidateAll() if the designated constraints aren't met.
+type RemoteCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RemoteCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RemoteCFMultiError) AllErrors() []error { return m }
+
+// RemoteCFValidationError is the validation error returned by
+// RemoteCF.Validate if the designated constraints aren't met.
+type RemoteCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RemoteCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RemoteCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RemoteCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RemoteCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RemoteCFValidationError) ErrorName() string { return "RemoteCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RemoteCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRemoteCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RemoteCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RemoteCFValidationError{}

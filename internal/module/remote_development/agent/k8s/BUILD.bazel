@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "k8s",
+    srcs = [
+        "client.go",
+        "k8s.go",
+        "mock.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development/agent/k8s",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/logz",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
+        "@io_k8s_cli_runtime//pkg/resource",
+        "@io_k8s_client_go//kubernetes",
+        "@io_k8s_kubectl//pkg/cmd/util",
+        "@io_k8s_sigs_cli_utils//pkg/apply",
+        "@io_k8s_sigs_cli_utils//pkg/apply/event",
+        "@io_k8s_sigs_cli_utils//pkg/common",
+        "@io_k8s_sigs_cli_utils//pkg/inventory",
+        "@io_k8s_sigs_cli_utils//pkg/kstatus/watcher",
+        "@io_k8s_sigs_cli_utils//pkg/object/validation",
+        "@org_uber_go_zap//:zap",
+        "@org_uber_go_zap//zapcore",
+    ],
+)

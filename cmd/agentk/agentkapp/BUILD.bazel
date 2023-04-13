@@ -28,6 +28,7 @@ go_library(
         "//internal/module/modagent",
         "//internal/module/modshared",
         "//internal/module/observability/agent",
+        "//internal/module/remote_development/agent",
         "//internal/module/reverse_tunnel/agent",
         "//internal/module/starboard_vulnerability/agent",
         "//internal/tool/errz",

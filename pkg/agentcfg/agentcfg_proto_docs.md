@@ -26,6 +26,7 @@
     - [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF)
     - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
     - [PathCF](#gitlab-agent-agentcfg-PathCF)
+    - [RemoteCF](#gitlab-agent-agentcfg-RemoteCF)
     - [StarboardCF](#gitlab-agent-agentcfg-StarboardCF)
     - [StarboardFilter](#gitlab-agent-agentcfg-StarboardFilter)
     - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
@@ -67,6 +68,7 @@ additional config for kas.
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
 | starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
 | project_path | [string](#string) |  | Path of the configuration project |
+| remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
 
 
 
@@ -296,6 +298,7 @@ ConfigurationFile represents user-facing configuration file.
 | starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
 | container_scanning | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
 | user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
+| remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
 
 
 
@@ -415,6 +418,22 @@ Project with Kubernetes object manifests.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | glob | [string](#string) |  | Glob to use to scan for files in the repository. Directories with names starting with a dot are ignored. See https://github.com/bmatcuk/doublestar#about and https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for globbing rules. |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-RemoteCF"></a>
+
+### RemoteCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| enabled | [bool](#bool) |  |  |
+| dns_zone | [string](#string) |  |  |
 
 
 

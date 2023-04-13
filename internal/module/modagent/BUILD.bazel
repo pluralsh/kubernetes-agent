@@ -15,6 +15,7 @@ go_library(
         "//internal/module/gitops/agent:__subpackages__",
         "//internal/module/kubernetes_api/agent:__subpackages__",
         "//internal/module/observability/agent:__subpackages__",
+        "//internal/module/remote_development/agent:__subpackages__",
         "//internal/module/reverse_tunnel/agent:__subpackages__",
         "//internal/module/reverse_tunnel/test:__subpackages__",
         "//internal/module/starboard_vulnerability/agent:__subpackages__",
