@@ -28,6 +28,7 @@
     - [RedisSentinelCF](#gitlab-agent-kascfg-RedisSentinelCF)
     - [RedisServerCF](#gitlab-agent-kascfg-RedisServerCF)
     - [RedisTLSCF](#gitlab-agent-kascfg-RedisTLSCF)
+    - [RemoteDevelopmentCF](#gitlab-agent-kascfg-RemoteDevelopmentCF)
     - [SentryCF](#gitlab-agent-kascfg-SentryCF)
     - [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF)
     - [TracingCF](#gitlab-agent-kascfg-TracingCF)
@@ -62,6 +63,7 @@
 | redis_conn_info_refresh | [google.protobuf.Duration](#google-protobuf-Duration) |  | Refresh period for information about connected agents, stored in Redis. |
 | redis_conn_info_gc | [google.protobuf.Duration](#google-protobuf-Duration) |  | Garbage collection period for information about connected agents, stored in Redis. If gitlab-kas crashes, another gitlab-kas instance will clean up stale data. This is how often this cleanup runs. |
 | kubernetes_api | [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF) |  | Configuration for exposing Kubernetes API. |
+| remote_development | [RemoteDevelopmentCF](#gitlab-agent-kascfg-RemoteDevelopmentCF) |  | Configuration for RemoteDevelopment. |
 
 
 
@@ -484,6 +486,21 @@ ConfigurationFile represents kas configuration file.
 | certificate_file | [string](#string) |  | For mutual TLS, specify both certificate_file and key_file; otherwise, specify neither Optional custom X.509 certificate file for TLS in PEM format |
 | key_file | [string](#string) |  | Optional custom X.509 key file for TLS in PEM format |
 | ca_certificate_file | [string](#string) |  | Optional custom X.509 root CA file in PEM format, used to validate the Redis server&#39;s certificate (e.g. if the server has a self-signed certificate) |
+
+
+
+
+
+
+<a name="gitlab-agent-kascfg-RemoteDevelopmentCF"></a>
+
+### RemoteDevelopmentCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| poll_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How often to poll RemoteDevelopment server module for changes. |
 
 
 

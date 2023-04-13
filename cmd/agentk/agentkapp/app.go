@@ -25,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability/agent"
+	remote_development_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development/agent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel/agent"
 	starboard_vulnerability "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/starboard_vulnerability/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
@@ -231,6 +232,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			InternalServerConn: internalServerConn,
 		},
 		&kubernetes_api_agent.Factory{},
+		&remote_development_agent.Factory{},
 	}
 	var beforeServersModules, afterServersModules []modagent.Module
 	for _, f := range factories {

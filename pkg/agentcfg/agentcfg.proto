@@ -271,6 +271,7 @@ message ConfigurationFile {
   StarboardCF starboard = 5 [json_name = "starboard"];
   StarboardCF container_scanning = 6 [json_name = "container_scanning"];
   UserAccessCF user_access = 7 [json_name = "user_access"];
+  RemoteCF remote_development = 8 [json_name = "remote_development"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -289,4 +290,10 @@ message AgentConfiguration {
   StarboardCF starboard = 7;
   // Path of the configuration project
   string project_path = 8;
+  RemoteCF remote_development = 9;
+}
+
+message RemoteCF {
+  bool enabled = 1 [json_name = "enabled"];
+  string dns_zone = 2 [json_name = "dns_zone"];
 }

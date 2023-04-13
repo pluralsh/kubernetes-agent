@@ -121,6 +121,11 @@ message GitopsCF {
   uint32 max_number_of_files = 7 [json_name = "max_number_of_files"];
 }
 
+message RemoteDevelopmentCF {
+  // How often to poll RemoteDevelopment server module for changes.
+  google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
+}
+
 message SentryCF {
   // Sentry DSN https://docs.sentry.io/platforms/go/#configure
   string dsn = 1 [json_name = "dsn"];
@@ -184,6 +189,8 @@ message AgentCF {
   google.protobuf.Duration redis_conn_info_gc = 9 [json_name = "redis_conn_info_gc"];
   // Configuration for exposing Kubernetes API.
   KubernetesApiCF kubernetes_api = 10 [json_name = "kubernetes_api"];
+  // Configuration for RemoteDevelopment.
+  RemoteDevelopmentCF remote_development = 11 [json_name = "remote_development"];
 }
 
 message AgentConfigurationCF {

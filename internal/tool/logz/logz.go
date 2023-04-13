@@ -20,6 +20,7 @@ import (
 
 const (
 	AgentConfig = "agent_config"
+	ApplyEvent  = "apply_event"
 )
 
 func NetAddressFromAddr(addr net.Addr) zap.Field {
@@ -160,6 +161,18 @@ func NumberOfTunnelFindRequests(n int) zap.Field {
 
 func Filename(filename string) zap.Field {
 	return zap.String("filename", filename)
+}
+
+func WorkspaceName(name string) zap.Field {
+	return zap.String("workspace_name", name)
+}
+
+func WorkspaceNamespace(namespace string) zap.Field {
+	return zap.String("workspace_namespace", namespace)
+}
+
+func StatusCode(code int32) zap.Field {
+	return zap.Int32("status_code", code)
 }
 
 func ProtoJsonValue(key string, value proto.Message) zap.Field {

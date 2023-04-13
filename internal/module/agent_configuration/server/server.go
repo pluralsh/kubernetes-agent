@@ -127,13 +127,14 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 	agentInfo *api.AgentInfo, configFile *agentcfg.ConfigurationFile, commitId string) error {
 	return server.Send(&rpc.ConfigurationResponse{
 		Configuration: &agentcfg.AgentConfiguration{
-			Gitops:        configFile.Gitops,
-			Observability: configFile.Observability,
-			AgentId:       agentInfo.Id,
-			ProjectId:     agentInfo.ProjectId,
-			ProjectPath:   agentInfo.Repository.GlProjectPath,
-			CiAccess:      configFile.CiAccess,
-			Starboard:     s.fetchContainerScanningConfiguration(configFile),
+			Gitops:            configFile.Gitops,
+			Observability:     configFile.Observability,
+			AgentId:           agentInfo.Id,
+			ProjectId:         agentInfo.ProjectId,
+			ProjectPath:       agentInfo.Repository.GlProjectPath,
+			CiAccess:          configFile.CiAccess,
+			Starboard:         s.fetchContainerScanningConfiguration(configFile),
+			RemoteDevelopment: configFile.RemoteDevelopment,
 		},
 		CommitId: commitId,
 	})
