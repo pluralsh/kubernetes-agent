@@ -22,6 +22,7 @@ type MessageType string
 
 const (
 	MessageTypeWorkspaceUpdates MessageType = "workspace_updates"
+	WorkspaceStateTerminated    string      = "Terminated"
 )
 
 type worker struct {
@@ -53,12 +54,12 @@ type RequestPayload struct {
 }
 
 type WorkspaceRailsInfo struct {
-	Name                               string `json:"name"`
-	Namespace                          string `json:"namespace"`
-	PersistedDeploymentResourceVersion string `json:"persisted_deployment_resource_version,omitempty"`
-	PersistedActualStateIsTerminated   bool   `json:"persisted_actual_state_is_terminated,omitempty"`
-	DesiredStateIsTerminated           bool   `json:"desired_state_is_terminated,omitempty"`
-	ConfigToApply                      string `json:"config_to_apply,omitempty"`
+	Name                      string `json:"name"`
+	Namespace                 string `json:"namespace"`
+	DeploymentResourceVersion string `json:"deployment_resource_version,omitempty"`
+	ActualState               string `json:"actual_state,omitempty"`
+	DesiredState              string `json:"desired_state,omitempty"`
+	ConfigToApply             string `json:"config_to_apply,omitempty"`
 }
 
 type ResponsePayload struct {
@@ -115,11 +116,11 @@ func (w *worker) applyWorkspaceChanges(ctx context.Context, workspaceRailsInfo *
 	name := workspaceRailsInfo.Name
 	namespace := workspaceRailsInfo.Namespace
 
-	// Guard clause for when Desired State is terminated, handle it and return; no need
-	// to process/apply the workspace config if we are deleting it
-	if workspaceRailsInfo.DesiredStateIsTerminated {
+	// When desired state is Terminated, trigger workspace deletion and exit early
+	// to avoid processing/applying the workspace config
+	if workspaceRailsInfo.DesiredState == WorkspaceStateTerminated {
 		// Handle Terminated state (delete the namespace and workspace) and return
-		err := w.handleDesiredStateIsTerminated(ctx, name, namespace, workspaceRailsInfo.PersistedActualStateIsTerminated)
+		err := w.handleDesiredStateIsTerminated(ctx, name, namespace, workspaceRailsInfo.ActualState)
 		if err != nil {
 			return fmt.Errorf("error when handling terminated state for workspace %s: %w", name, err)
 		}
@@ -127,7 +128,7 @@ func (w *worker) applyWorkspaceChanges(ctx context.Context, workspaceRailsInfo *
 		return nil
 	}
 
-	// Desired State is not Terminated, so continue to handle namespace creation and config apply if needed
+	// Desired state is not Terminated, so continue to handle workspace creation and config apply if needed
 
 	// Create namespace if needed
 	namespaceExists := w.k8sClient.NamespaceExists(ctx, namespace)
@@ -150,7 +151,11 @@ func (w *worker) applyWorkspaceChanges(ctx context.Context, workspaceRailsInfo *
 
 func (w *worker) generateWorkspaceAgentInfos() ([]WorkspaceAgentInfo, error) {
 	parsedWorkspaces := w.informer.List()
-	var workspaceAgentInfos []WorkspaceAgentInfo //nolint:prealloc
+	// "workspaceAgentInfos" is constructed by looping over "parsedWorkspaces" and "terminatedTracker".
+	// It can remain a nil slice because GitLab already has the latest version of all workspaces,
+	// However, we want it to be an empty(0-length) slice. Hence, initializing it.
+	// TODO: add a test case - https://gitlab.com/gitlab-org/gitlab/-/issues/407554
+	workspaceAgentInfos := make([]WorkspaceAgentInfo, 0)
 
 	for _, workspace := range parsedWorkspaces {
 		// if Rails already knows about the latest version of the resource, don't send the info again
@@ -224,9 +229,9 @@ func (w *worker) performWorkspaceUpdateRequestToRailsApi(ctx context.Context, wo
 	return responsePayload.WorkspaceRailsInfos, nil
 }
 
-func (w *worker) handleDesiredStateIsTerminated(ctx context.Context, name string, namespace string, persistedActualStateIsTerminated bool) error {
-	if w.terminatedTracker.isTerminated(name) && persistedActualStateIsTerminated {
-		w.log.Debug("PersistedActualStateIsTerminated=true, so deleting it from persistedTerminatedWorkspacesTracker", logz.WorkspaceNamespace(namespace))
+func (w *worker) handleDesiredStateIsTerminated(ctx context.Context, name string, namespace string, actualState string) error {
+	if w.terminatedTracker.isTerminated(name) && actualState == WorkspaceStateTerminated {
+		w.log.Debug("ActualState=Terminated, so deleting it from persistedTerminatedWorkspacesTracker", logz.WorkspaceNamespace(namespace))
 		w.terminatedTracker.delete(name)
 		w.stateTracker.delete(name)
 		return nil
@@ -234,14 +239,12 @@ func (w *worker) handleDesiredStateIsTerminated(ctx context.Context, name string
 
 	if w.k8sClient.NamespaceExists(ctx, namespace) {
 		w.log.Debug("Namespace for terminated workspace still exists, so deleting the namespace", logz.WorkspaceNamespace(namespace))
-
-		// TODO: We will keep re-attempting the deletion until it succeeds. This could potentially be optimized
-		// by only attempting to delete the namespace once, and then waiting for the namespace to be deleted
-		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/402766
 		err := w.k8sClient.DeleteNamespace(ctx, namespace)
 		if err != nil {
 			return fmt.Errorf("failed to terminate workspace by deleting namespace: %w", err)
 		}
+		// TODO: Rails no longer will continue to request termination of a workspace which has already been requested for termination
+		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/406565
 		return nil
 	}
 

@@ -46,7 +46,8 @@ func (w *WorkerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 	// test assumes an existing running workspace that rails intends to terminate
 	w.ensureWorkspaceExists(ctx, w.runner.stateTracker, w.mockK8sClient, existingWorkspaceA)
 
-	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, true, false)))
+	workspaceChangesFromRails := w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, WorkspaceStateTerminated, "Running")
+	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(workspaceChangesFromRails))
 	err := w.runner.Run(ctx)
 	w.Require().NoError(err)
 	w.Require().False(w.runner.terminatedTracker.isTerminated(existingWorkspaceA.Name))
@@ -59,7 +60,10 @@ func (w *WorkerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 
 	// While the workspace termination in progress, it is expected that rails will continue to request termination
 	// while agent will continue to skip when generating payload for the workspace in question
-	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, true, false)))
+	// TODO: Rails no longer will continue to request termination of a workspace which has already been requested for termination
+	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/406565
+	workspaceChangesFromRails = w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, WorkspaceStateTerminated, "Terminating")
+	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(workspaceChangesFromRails))
 	err = w.runner.Run(ctx)
 	w.Require().NoError(err)
 	w.Require().False(w.runner.terminatedTracker.isTerminated(existingWorkspaceA.Name))
@@ -68,7 +72,8 @@ func (w *WorkerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 	// In this cycle, agent will discover that the workspace has been deleted
 	// which will result in the workspace being tracked in the termination tracker
 	delete(w.mockInformer.Resources, existingWorkspaceA.Name)
-	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, true, false)))
+	workspaceChangesFromRails = w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, WorkspaceStateTerminated, "Terminating")
+	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(), w.generateRailsResponse(workspaceChangesFromRails))
 	err = w.runner.Run(ctx)
 	w.Require().NoError(err)
 	w.Require().True(w.runner.terminatedTracker.isTerminated(existingWorkspaceA.Name))
@@ -85,7 +90,8 @@ func (w *WorkerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 			},
 		},
 	}
-	w.expectRequestAndReturnReply(w.mockApi, expectedRailsRequest, w.generateRailsResponse(w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, true, true)))
+	workspaceChangesFromRails = w.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, WorkspaceStateTerminated, WorkspaceStateTerminated)
+	w.expectRequestAndReturnReply(w.mockApi, expectedRailsRequest, w.generateRailsResponse(workspaceChangesFromRails))
 	err = w.runner.Run(ctx)
 	w.Require().NoError(err)
 	w.Require().False(w.runner.terminatedTracker.isTerminated(existingWorkspaceA.Name))
@@ -118,8 +124,8 @@ func (w *WorkerTestSuite) TestSuccessfulCreationOfWorkspace() {
 	w.updateMockWorkspaceStateInInformer(w.mockInformer, currentWorkspaceState)
 
 	//ensure rails acks the latest persisted version
-	workspaceChangesFromRails := w.generateInfoForWorkspaceChanges(workspace, false, false)
-	workspaceChangesFromRails.PersistedDeploymentResourceVersion = currentWorkspaceState.ResourceVersion
+	workspaceChangesFromRails := w.generateInfoForWorkspaceChanges(workspace, "Running", "Starting")
+	workspaceChangesFromRails.DeploymentResourceVersion = currentWorkspaceState.ResourceVersion
 
 	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(currentWorkspaceState), w.generateRailsResponse(workspaceChangesFromRails))
 	err = w.runner.Run(ctx)
@@ -129,8 +135,8 @@ func (w *WorkerTestSuite) TestSuccessfulCreationOfWorkspace() {
 
 	// step3: simulate transition to "Running" step(modify resource version in informer), expect rails req to contain update
 	w.updateMockWorkspaceStateInInformer(w.mockInformer, currentWorkspaceState)
-	workspaceChangesFromRails = w.generateInfoForWorkspaceChanges(workspace, false, false)
-	workspaceChangesFromRails.PersistedDeploymentResourceVersion = currentWorkspaceState.ResourceVersion
+	workspaceChangesFromRails = w.generateInfoForWorkspaceChanges(workspace, "Running", "Running")
+	workspaceChangesFromRails.DeploymentResourceVersion = currentWorkspaceState.ResourceVersion
 
 	w.expectRequestAndReturnReply(w.mockApi, w.generateRailsRequest(currentWorkspaceState), w.generateRailsResponse(workspaceChangesFromRails))
 	err = w.runner.Run(ctx)
@@ -155,9 +161,9 @@ func (w *WorkerTestSuite) updateMockWorkspaceStateInInformer(mockInformer *infor
 func (w *WorkerTestSuite) ensureWorkspaceExists(ctx context.Context, stateTracker *persistedStateTracker, mockK8sClient *k8s.MockClient, existingWorkspaceA *informer.ParsedWorkspace) {
 	if _, ok := stateTracker.persistedVersion[existingWorkspaceA.Name]; !ok {
 		stateTracker.recordVersion(&WorkspaceRailsInfo{
-			Name:                               existingWorkspaceA.Name,
-			Namespace:                          existingWorkspaceA.Namespace,
-			PersistedDeploymentResourceVersion: existingWorkspaceA.ResourceVersion,
+			Name:                      existingWorkspaceA.Name,
+			Namespace:                 existingWorkspaceA.Namespace,
+			DeploymentResourceVersion: existingWorkspaceA.ResourceVersion,
 		})
 	}
 
@@ -206,28 +212,31 @@ func (w *WorkerTestSuite) expectRequestAndReturnReply(mockApi *mock_modagent.Moc
 
 func (w *WorkerTestSuite) generateInfoForNewWorkspace(name string) *WorkspaceRailsInfo {
 	return &WorkspaceRailsInfo{
-		Name:                               name,
-		Namespace:                          name + "-namespace",
-		PersistedDeploymentResourceVersion: "",
-		PersistedActualStateIsTerminated:   false,
-		DesiredStateIsTerminated:           false,
-		ConfigToApply:                      "test",
+		Name:                      name,
+		Namespace:                 name + "-namespace",
+		DeploymentResourceVersion: "",
+		ActualState:               "Creating",
+		DesiredState:              "Running",
+		ConfigToApply:             "",
 	}
 }
 
-func (w *WorkerTestSuite) generateInfoForWorkspaceChanges(name string, desiredStateTerminated bool, persistedActualState bool) *WorkspaceRailsInfo {
+func (w *WorkerTestSuite) generateInfoForWorkspaceChanges(name, desiredState, actualState string) *WorkspaceRailsInfo {
 	return &WorkspaceRailsInfo{
-		Name:                               name,
-		Namespace:                          name + "-namespace",
-		PersistedDeploymentResourceVersion: "1",
-		PersistedActualStateIsTerminated:   persistedActualState,
-		DesiredStateIsTerminated:           desiredStateTerminated,
-		ConfigToApply:                      "test",
+		Name:                      name,
+		Namespace:                 name + "-namespace",
+		DeploymentResourceVersion: "1",
+		ActualState:               actualState,
+		DesiredState:              desiredState,
+		ConfigToApply:             "test",
 	}
 }
 
 func (w *WorkerTestSuite) generateRailsRequest(workspaces ...*informer.ParsedWorkspace) RequestPayload {
-	var infos []WorkspaceAgentInfo //nolint:prealloc
+	// "infos" is constructed by looping over "workspaces".
+	// It can remain a nil slice if "workspaces" is a 0-length slice.
+	// However, we want it to be an empty(0-length) slice. Hence, initializing it.
+	infos := make([]WorkspaceAgentInfo, 0)
 
 	for _, workspace := range workspaces {
 		info := WorkspaceAgentInfo{

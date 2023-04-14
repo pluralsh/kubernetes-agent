@@ -25,7 +25,7 @@ func (p *persistedStateTracker) isPersisted(name, deploymentResourceVersion stri
 }
 
 func (p *persistedStateTracker) recordVersion(wi *WorkspaceRailsInfo) {
-	p.persistedVersion[wi.Name] = wi.PersistedDeploymentResourceVersion
+	p.persistedVersion[wi.Name] = wi.DeploymentResourceVersion
 }
 
 // delete removes persisted workspace from memory
