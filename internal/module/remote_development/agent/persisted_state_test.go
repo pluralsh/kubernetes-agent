@@ -7,12 +7,12 @@ import (
 )
 
 var testVersion = &WorkspaceRailsInfo{
-	Name:                               "workspace-123",
-	Namespace:                          "namespace",
-	PersistedDeploymentResourceVersion: "123",
-	PersistedActualStateIsTerminated:   false,
-	DesiredStateIsTerminated:           false,
-	ConfigToApply:                      "",
+	Name:                      "workspace-123",
+	Namespace:                 "namespace",
+	DeploymentResourceVersion: "123",
+	ActualState:               "Starting",
+	DesiredState:              "Running",
+	ConfigToApply:             "",
 }
 
 func TestRecordAndRetrieve(t *testing.T) {
