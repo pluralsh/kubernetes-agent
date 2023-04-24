@@ -123,6 +123,20 @@ func (m *MockPollingQuerier) EXPECT() *MockPollingQuerierMockRecorder {
 	return m.recorder
 }
 
+// CachedKasUrlsByAgentId mocks base method.
+func (m *MockPollingQuerier) CachedKasUrlsByAgentId(arg0 int64) []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CachedKasUrlsByAgentId", arg0)
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// CachedKasUrlsByAgentId indicates an expected call of CachedKasUrlsByAgentId.
+func (mr *MockPollingQuerierMockRecorder) CachedKasUrlsByAgentId(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CachedKasUrlsByAgentId", reflect.TypeOf((*MockPollingQuerier)(nil).CachedKasUrlsByAgentId), arg0)
+}
+
 // PollKasUrlsByAgentId mocks base method.
 func (m *MockPollingQuerier) PollKasUrlsByAgentId(arg0 context.Context, arg1 int64, arg2 tracker.PollKasUrlsByAgentIdCallback) {
 	m.ctrl.T.Helper()

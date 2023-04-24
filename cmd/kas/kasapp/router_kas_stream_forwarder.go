@@ -17,6 +17,7 @@ const (
 	messageFieldNumber     protoreflect.FieldNumber = 3
 	trailerFieldNumber     protoreflect.FieldNumber = 4
 	errorFieldNumber       protoreflect.FieldNumber = 5
+	noTunnelFieldNumber    protoreflect.FieldNumber = 6
 )
 
 type kasStreamForwarder struct {

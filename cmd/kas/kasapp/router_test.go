@@ -248,11 +248,15 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	privateApiServerListener := grpctool.NewDialListener()
 	defer privateApiServerListener.Close()
 
-	querier.EXPECT().
-		PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
-			<-ctx.Done()
-		})
+	gomock.InOrder(
+		querier.EXPECT().
+			CachedKasUrlsByAgentId(testhelpers.AgentId),
+		querier.EXPECT().
+			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+				<-ctx.Done()
+			}),
+	)
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
 			RpcApiStub: modshared.RpcApiStub{
@@ -398,10 +402,11 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 
 	gomock.InOrder(
 		querier.EXPECT().
+			CachedKasUrlsByAgentId(testhelpers.AgentId),
+		querier.EXPECT().
 			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
 			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
-				done := cb(true, kasUrlPipe)
-				assert.False(t, done)
+				cb([]string{kasUrlPipe})
 				<-ctx.Done()
 			}),
 		finder.EXPECT().
