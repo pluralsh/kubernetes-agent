@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.notifications.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc";
+
+import "validate/validate.proto";
+
+message GitPushEventRequest {
+  Project project = 1 [(validate.rules).message.required = true];
+}
+
+message Project {
+  // The numeric GitLab project id
+  int64 id = 1 [(validate.rules).int64.gt = 0];
+  // The full path to the GitLab project
+  string full_path = 2 [(validate.rules).string.min_bytes = 1];
+}
+
+message GitPushEventResponse {
+}
+
+// Service to send notifications to KAS
+service Notifications {
+  // Emit a git push event
+  // This may be a tag, branch or commit
+  rpc GitPushEvent (GitPushEventRequest) returns (GitPushEventResponse) {
+  }
+}

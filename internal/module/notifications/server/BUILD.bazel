@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "factory.go",
+        "module.go",
+        "server.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/modserver",
+        "//internal/module/modshared",
+        "//internal/module/notifications",
+        "//internal/module/notifications/rpc",
+    ],
+)
+
+go_custom_test(
+    name = "server_test",
+    srcs = ["server_test.go"],
+    embed = [":server"],
+    deps = [
+        "//internal/module/modserver",
+        "//internal/module/notifications/rpc",
+        "//internal/tool/testing/mock_modserver",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
+        "@org_uber_go_zap//:zap",
+    ],
+)

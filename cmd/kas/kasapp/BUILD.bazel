@@ -54,6 +54,7 @@ go_library(
         "//internal/module/kubernetes_api/server",
         "//internal/module/modserver",
         "//internal/module/modshared",
+        "//internal/module/notifications/server",
         "//internal/module/observability",
         "//internal/module/observability/server",
         "//internal/module/reverse_tunnel",

@@ -25,6 +25,7 @@ go_library(
         "//internal/module/gitops/server:__subpackages__",
         "//internal/module/google_profiler/server:__subpackages__",
         "//internal/module/kubernetes_api/server:__subpackages__",
+        "//internal/module/notifications/server:__subpackages__",
         "//internal/module/observability/server:__subpackages__",
         "//internal/module/reverse_tunnel/server:__subpackages__",
         "//internal/module/reverse_tunnel/test:__subpackages__",

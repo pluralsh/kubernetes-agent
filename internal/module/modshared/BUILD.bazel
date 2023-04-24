@@ -31,6 +31,7 @@ go_library(
         "//internal/module/kubernetes_api/server:__subpackages__",
         "//internal/module/modagent:__subpackages__",
         "//internal/module/modserver:__subpackages__",
+        "//internal/module/notifications/server:__subpackages__",
         "//internal/module/observability:__pkg__",
         "//internal/module/observability/agent:__subpackages__",
         "//internal/module/observability/server:__subpackages__",
