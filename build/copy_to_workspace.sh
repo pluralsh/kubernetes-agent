@@ -23,6 +23,7 @@ do
   if [[ "$name" == "$file_to_copy" ]]
   then
     to="$BUILD_WORKSPACE_DIRECTORY/$workspace_relative_target_directory/$name"
+    mkdir -p "$(dirname "$to")"
     cp "$file" "$to"
     chmod +w "$to"
     break
