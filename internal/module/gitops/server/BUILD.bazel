@@ -21,6 +21,7 @@ go_library(
         "//internal/module/gitops",
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
+        "//internal/module/modserver/notifications",
         "//internal/module/modshared",
         "//internal/module/usage_metrics",
         "//internal/tool/cache",
@@ -35,6 +36,7 @@ go_library(
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -58,6 +60,7 @@ go_custom_test(
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_internalgitaly",
         "//internal/tool/testing/mock_modserver",
+        "//internal/tool/testing/mock_modserver_notifications",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/mock_usage_metrics",
         "//internal/tool/testing/testhelpers",

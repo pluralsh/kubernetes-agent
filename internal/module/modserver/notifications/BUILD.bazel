@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:proto.bzl", "go_proto_generate")
+
+go_proto_generate(
+    src = "api.proto",
+    workspace_relative_target_directory = "internal/module/modserver/notifications",
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
+)
+
+go_library(
+    name = "notifications",
+    srcs = [
+        "api.pb.go",
+        "api.pb.validate.go",
+        "subscriber.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications",
+    visibility = [
+        "//cmd/kas:__subpackages__",
+        "//internal/module/gitops/server:__subpackages__",
+        "//internal/module/notifications:__subpackages__",
+        "//internal/tool/testing/mock_modserver_notifications:__subpackages__",
+    ],
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
+    ],
+)

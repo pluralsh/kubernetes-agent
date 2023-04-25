@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
@@ -20,6 +21,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -43,6 +45,7 @@ type server struct {
 	maxTotalManifestFileSize int64
 	maxNumberOfPaths         uint32
 	maxNumberOfFiles         uint32
+	gitPushEventsSubscriber  notifications.Subscriber
 }
 
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
@@ -55,7 +58,32 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
 	log := rpcApi.Log().With(logz.ProjectId(req.ProjectId))
-	return rpcApi.PollWithBackoff(s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
+
+	pokeC := make(chan retry.PokeSentinel)
+	// FIXME: channel .. should it actually be bound to the subscriber?!
+	// FIXME: do I need to wait for this coroutine .. don't think so because of ctx, but also not really sure where server.Context() is coming from ...
+	go func() {
+		err := s.gitPushEventsSubscriber.Subscribe(ctx, "git_push_events", func(ctx context.Context, message proto.Message) error {
+			m, ok := message.(*notifications.Project)
+			if !ok {
+				// FIXME: what's the error here? Create new one?!
+				return rpcApi.HandleIoError(log, "GitOps: failed to cast received git push event to concrete type", nil)
+			}
+			// FIXME: yes, the req.ProjectId is NOT a project id, but a full project path ...
+			if m.FullPath == req.ProjectId {
+				pokeC <- retry.PokeSentinel{}
+			}
+			return nil
+		})
+		if err != nil {
+			rpcApi.HandleIoError(log, "GitOps: failed to subscribe to git push events channel", err)
+		}
+	}()
+
+	// construct poll config with git push events callback as "poke"
+	pollCfg := s.getObjectsPollConfig().WithPokeChannel(pokeC)
+
+	return rpcApi.PollWithBackoff(pollCfg, func() (error, retry.AttemptResult) {
 		if agentInfo == nil { // executed only once (if successful)
 			agentInfo, err = rpcApi.AgentInfo(ctx, log)
 			if err != nil {

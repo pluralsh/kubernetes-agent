@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
@@ -28,10 +29,11 @@ const (
 )
 
 type Factory struct {
+	GitPushEventsSubscriber notifications.Subscriber
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s, err := newServerFromConfig(config, config.RedisClient)
+	s, err := newServerFromConfig(config, config.RedisClient, f.GitPushEventsSubscriber)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +49,7 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient) (*server, error) {
+func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, gitPushEventsSubscriber notifications.Subscriber) (*server, error) {
 	gitops := config.Config.Agent.Gitops
 	return &server{
 		gitalyPool: config.Gitaly,
@@ -74,7 +76,8 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 				gapi.IsCacheableError,
 			),
 		},
-		syncCount: config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
+		gitPushEventsSubscriber: gitPushEventsSubscriber,
+		syncCount:               config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		getObjectsPollConfig: retry.NewPollConfigFactory(gitops.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,

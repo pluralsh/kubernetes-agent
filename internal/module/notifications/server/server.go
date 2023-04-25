@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	git_push_events_channel = "git_push_events"
+	gitPushEventsChannel = "git_push_events"
 )
 
 func newServer(publisher Publisher) *server {
@@ -28,7 +28,7 @@ func (s *server) GitPushEvent(ctx context.Context, req *rpc.GitPushEventRequest)
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	log := rpcApi.Log()
 	log.Sugar().Debugf("received git push notifications event for project %s", req.Project)
-	err := s.publisher.Publish(ctx, git_push_events_channel, "this-is-the-payload")
+	err := s.publisher.Publish(ctx, gitPushEventsChannel, req.Project.ToNotificationsProject())
 	if err != nil {
 		if ioHandleErr := rpcApi.HandleIoError(log, "failed to publish received git push event", err); ioHandleErr != nil {
 			return nil, fmt.Errorf("failed to handle io error %q: %w", err, ioHandleErr)

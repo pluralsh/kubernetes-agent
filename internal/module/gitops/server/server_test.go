@@ -23,6 +23,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver_notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
@@ -673,6 +674,9 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	usageTracker.EXPECT().
 		RegisterCounter(gitopsSyncCountKnownMetric).
 		Return(mock_usage_metrics.NewMockCounter(ctrl))
+	mockSubscriber := mock_modserver_notifications.NewMockSubscriber(ctrl)
+	mockSubscriber.EXPECT().
+		Subscribe(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 	config := &kascfg.ConfigurationFile{}
 	ApplyDefaults(config)
@@ -685,7 +689,7 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		Gitaly:       gitalyPool,
-	}, client)
+	}, client, mockSubscriber)
 	require.NoError(t, err)
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }

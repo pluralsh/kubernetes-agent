@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type ProtoErrMarshaler struct {
@@ -15,11 +14,11 @@ func (ProtoErrMarshaler) Marshal(err error) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("expected proto.Message, got %T", err) // nolint:errorlint
 	}
-	return protoMarshal(e)
+	return ProtoMarshal(e)
 }
 
 func (ProtoErrMarshaler) Unmarshal(data []byte) (error, error) {
-	e, err := protoUnmarshal(data)
+	e, err := ProtoUnmarshal(data)
 	if err != nil {
 		return nil, err
 	}
@@ -28,21 +27,4 @@ func (ProtoErrMarshaler) Unmarshal(data []byte) (error, error) {
 		return nil, fmt.Errorf("expected the proto.Message to be an error but it's not: %T", e)
 	}
 	return err, nil
-}
-
-func protoMarshal(m proto.Message) ([]byte, error) {
-	any, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in protoUnmarshal()
-	if err != nil {
-		return nil, err
-	}
-	return proto.Marshal(any)
-}
-
-func protoUnmarshal(data []byte) (proto.Message, error) {
-	var any anypb.Any
-	err := proto.Unmarshal(data, &any)
-	if err != nil {
-		return nil, err
-	}
-	return any.UnmarshalNew()
 }

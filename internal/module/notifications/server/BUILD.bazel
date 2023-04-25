@@ -30,6 +30,7 @@ go_custom_test(
     embed = [":server"],
     deps = [
         "//internal/module/modserver",
+        "//internal/module/modserver/notifications",
         "//internal/module/notifications/rpc",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_modserver",

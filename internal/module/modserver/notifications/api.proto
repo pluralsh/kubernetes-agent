@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.modserver.notifications.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications";
+
+import "validate/validate.proto";
+
+message Project {
+  int64 id = 1 [(validate.rules).int64.gt = 0];
+  string full_path = 2 [(validate.rules).string.min_bytes = 1];
+}

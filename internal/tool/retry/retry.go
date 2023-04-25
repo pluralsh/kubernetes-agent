@@ -37,10 +37,18 @@ type PollWithBackoffFunc func() (error, AttemptResult)
 // Signature is unusual because AttemptResult must be checked, not the error.
 type PollWithBackoffCtxFunc func(ctx context.Context) (error, AttemptResult)
 
+type PokeSentinel struct{}
+
 type PollConfig struct {
 	Backoff  BackoffManager
 	Interval time.Duration
 	Sliding  bool
+	pokeC    <-chan PokeSentinel
+}
+
+func (c PollConfig) WithPokeChannel(ch <-chan PokeSentinel) PollConfig {
+	c.pokeC = ch
+	return c
 }
 
 type PollConfigFactory func() PollConfig
@@ -59,6 +67,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 			<-t.C()
 		}
 	}()
+
 	done := ctx.Done()
 	for {
 		if !cfg.Sliding {
@@ -80,6 +89,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 				case <-done:
 					timer.Stop()
 					return ErrWaitTimeout
+				case <-cfg.pokeC:
 				case <-timer.C:
 				}
 			case ContinueImmediately: // immediately call f again
@@ -105,6 +115,8 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		select {
 		case <-done:
 			return ErrWaitTimeout
+		case <-cfg.pokeC:
+			t = nil
 		case <-t.C():
 			t = nil
 		}
