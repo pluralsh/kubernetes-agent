@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // MockPublisher is a mock of Publisher interface.
@@ -35,7 +36,7 @@ func (m *MockPublisher) EXPECT() *MockPublisherMockRecorder {
 }
 
 // Publish mocks base method.
-func (m *MockPublisher) Publish(ctx context.Context, channel string, message interface{}) error {
+func (m *MockPublisher) Publish(ctx context.Context, channel string, message proto.Message) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Publish", ctx, channel, message)
 	ret0, _ := ret[0].(error)

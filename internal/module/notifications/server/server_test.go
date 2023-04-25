@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
 	"go.uber.org/zap"
 )
@@ -29,7 +30,10 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 
 	// setup mock expectations
 	rpcApi.EXPECT().Log().Return(zap.NewNop())
-	publisher.EXPECT().Publish(gomock.Any(), git_push_events_channel, "this-is-the-payload")
+	publisher.EXPECT().Publish(
+		gomock.Any(),
+		git_push_events_channel,
+		matcher.ProtoEq(t, rpc.Project{Id: 42, PathWithNamespace: "foo/bar"}))
 
 	s := newServer(publisher)
 

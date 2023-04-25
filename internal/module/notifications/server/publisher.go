@@ -1,7 +1,11 @@
 package server
 
-import "context"
+import (
+	"context"
+
+	"google.golang.org/protobuf/proto"
+)
 
 type Publisher interface {
-	Publish(ctx context.Context, channel string, message interface{}) error
+	Publish(ctx context.Context, channel string, message proto.Message) error
 }

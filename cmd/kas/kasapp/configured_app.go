@@ -71,6 +71,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/stats"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -778,8 +780,12 @@ type notificationsPublisher struct {
 	redisClient redis.UniversalClient
 }
 
-func (n *notificationsPublisher) Publish(ctx context.Context, channel string, message interface{}) error {
-	err := n.redisClient.Publish(ctx, channel, message).Err()
+func (n *notificationsPublisher) Publish(ctx context.Context, channel string, message proto.Message) error {
+	payload, err := anypb.New(message)
+	if err != nil {
+		return fmt.Errorf("failed to create new anypb from proto message to publish: %w", err)
+	}
+	err = n.redisClient.Publish(ctx, channel, payload).Err()
 	return err
 }
 
