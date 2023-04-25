@@ -236,7 +236,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentRegisterer: agentTracker,
 		},
 		&configuration_project_server.Factory{},
-		&notifications_server.Factory{},
+		&notifications_server.Factory{
+			Publisher: a.constructNotificationsPublisher(redisClient),
+		},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
@@ -381,6 +383,10 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.PollingQ
 		kasRoutingDurationTimeout: timeoutCounter,
 		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}, nil
+}
+
+func (a *ConfiguredApp) constructNotificationsPublisher(redisClient redis.UniversalClient) notifications_server.Publisher {
+	return &notificationsPublisher{redisClient: redisClient}
 }
 
 func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient redis.UniversalClient) agent_tracker.Tracker {
@@ -767,6 +773,15 @@ func kasServerName() string {
 var (
 	_ redistool.RpcApi = (*tokenLimiterApi)(nil)
 )
+
+type notificationsPublisher struct {
+	redisClient redis.UniversalClient
+}
+
+func (n *notificationsPublisher) Publish(ctx context.Context, channel string, message interface{}) error {
+	err := n.redisClient.Publish(ctx, channel, message).Err()
+	return err
+}
 
 type tokenLimiterApi struct {
 	rpcApi modserver.AgentRpcApi

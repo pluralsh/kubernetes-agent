@@ -52,6 +52,7 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/agentk/agentkapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/kas/kasapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/server" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/chartops" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/starboard_vulnerability/agent" \

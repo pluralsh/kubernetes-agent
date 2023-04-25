@@ -4,8 +4,10 @@ load("//build:build.bzl", "go_custom_test")
 go_library(
     name = "server",
     srcs = [
+        "doc.go",
         "factory.go",
         "module.go",
+        "publisher.go",
         "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/server",
@@ -20,13 +22,17 @@ go_library(
 
 go_custom_test(
     name = "server_test",
-    srcs = ["server_test.go"],
+    srcs = [
+        "mock_for_test.go",
+        "server_test.go",
+    ],
     embed = [":server"],
     deps = [
         "//internal/module/modserver",
         "//internal/module/notifications/rpc",
         "//internal/tool/testing/mock_modserver",
         "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_uber_go_zap//:zap",
     ],

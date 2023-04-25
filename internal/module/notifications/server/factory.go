@@ -8,10 +8,13 @@ import (
 )
 
 type Factory struct {
+	Publisher Publisher
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	rpc.RegisterNotificationsServer(config.ApiServer, &server{})
+	rpc.RegisterNotificationsServer(config.ApiServer, newServer(
+		f.Publisher,
+	))
 	return &module{}, nil
 }
 
