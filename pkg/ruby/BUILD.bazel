@@ -28,6 +28,14 @@ ruby_grpc_compile(
     tags = ["manual"],
 )
 
+ruby_grpc_compile(
+    name = "notifications_grpc",
+    protos = [
+        "//internal/module/notifications/rpc:proto",
+    ],
+    tags = ["manual"],
+)
+
 copy_to_workspace(
     name = "extract_modshared_pb",
     file_to_copy = "modshared_pb.rb",
@@ -57,4 +65,9 @@ copy_grpc_files(
 copy_grpc_files(
     label = ":configuration_project_grpc",
     module_name = "configuration_project",
+)
+
+copy_grpc_files(
+    label = ":notifications_grpc",
+    module_name = "notifications",
 )
