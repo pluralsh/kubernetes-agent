@@ -273,3 +273,33 @@ startup --output_user_root=/Volumes/ramdisk
 ```
 
 [Docs about the `.bazelrc` file](https://docs.bazel.build/versions/main/guide.html#bazelrc-the-bazel-configuration-file).
+
+## Ruby gRPC interface
+
+In `pkg/ruby` we generate Ruby gRPC types intended to be used by GitLab to interact with KAS. 
+The following sections outline how to build a test that generated Ruby code in the context of GDK.
+
+### Build
+
+The ruby gem can be built using `make build-gem`. The gem file will be located in `pkg/ruby`.
+
+### Use kas-grpc gem in GDK
+
+To use this locally built gem in GDK do:
+
+1. Add the path to the directory where the gem is located to the `gem 'kas-grpc'` line in the `Gemfile` of the `gitlab` project.
+   It'll look something like this: `gem 'kas-grpc', path: '/path/to/gitlab-agent/pkg/ruby'`
+1. Run `bundle install`
+1. Restart GDK with `gdk restart`
+
+After that you can either implement and test changes like with any other GitLab work or
+use `gdk rails console` to exploratory test, e.g.:
+
+```irb
+[1] pry(main)> client = Gitlab::Kas::Client.new()
+=> #<Gitlab::Kas::Client:0x000000012c9584b8>
+[2] pry(main)> client.send_git_push_event(project: Project.find(1))
+  Project Load (2.4ms)  SELECT "projects".* FROM "projects" WHERE "projects"."id" = 1 LIMIT 1 /*application:console,db_config_name:main,console_hostname:tuxmac.local,console_username:timo,line:(pry):2:in `__pry__'*/
+  Route Load (0.6ms)  SELECT "routes".* FROM "routes" WHERE "routes"."source_id" = 1 AND "routes"."source_type" = 'Project' LIMIT 1 /*application:console,db_config_name:main,console_hostname:tuxmac.local,console_username:timo,line:/app/models/concerns/routable.rb:141:in `block in full_attribute'*/
+=> <Gitlab::Agent::Notifications::Rpc::GitPushEventResponse: >
+```
