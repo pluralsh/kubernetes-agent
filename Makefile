@@ -254,3 +254,8 @@ delete-generated-files:
 	find . -name '*.pb.validate.go' -type f -delete
 	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
 	find . -name '*_proto_docs.md' -type f -delete
+
+# Build the KAS gRPC ruby gem
+.PHONY: build-gem
+build-gem:
+	cd pkg/ruby gem build kas-grpc.gemspec
