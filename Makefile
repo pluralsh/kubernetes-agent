@@ -258,4 +258,4 @@ delete-generated-files:
 # Build the KAS gRPC ruby gem
 .PHONY: build-gem
 build-gem:
-	cd pkg/ruby gem build kas-grpc.gemspec
+	cd pkg/ruby && gem build kas-grpc.gemspec
