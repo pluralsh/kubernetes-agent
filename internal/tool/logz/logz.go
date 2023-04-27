@@ -185,3 +185,19 @@ func ProtoJsonValue(key string, value proto.Message) zap.Field {
 		return nil
 	}))
 }
+
+func TargetNamespace(namespace string) zap.Field {
+	return zap.String("target_namespace", namespace)
+}
+
+func PodName(podName string) zap.Field {
+	return zap.String("pod_name", podName)
+}
+
+func PodStatus(podStatus string) zap.Field {
+	return zap.String("pod_status", podStatus)
+}
+
+func PodLog(podLog string) zap.Field {
+	return zap.String("pod_logs", podLog)
+}
