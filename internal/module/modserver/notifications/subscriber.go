@@ -6,8 +6,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Callback func(ctx context.Context, message proto.Message) error
+const (
+	GitPushEventsChannel = "git_push_events"
+)
 
+type Callback func(ctx context.Context, message proto.Message)
+
+// Subscriber provides a `Subscribe` interface to receive messages that have
+// been published using `Publisher` from the `notifications` module.
 type Subscriber interface {
-	Subscribe(ctx context.Context, channel string, callback Callback) error
+	Subscribe(ctx context.Context, channel string, callback Callback)
 }

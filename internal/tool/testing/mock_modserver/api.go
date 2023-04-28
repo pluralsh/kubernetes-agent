@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
+	notifications "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	zap "go.uber.org/zap"
 )
@@ -47,6 +48,18 @@ func (m *MockApi) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, 
 func (mr *MockApiMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockApi)(nil).HandleProcessingError), arg0, arg1, arg2, arg3, arg4)
+}
+
+// Subscribe mocks base method.
+func (m *MockApi) Subscribe(arg0 context.Context, arg1 string, arg2 notifications.Callback) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
+}
+
+// Subscribe indicates an expected call of Subscribe.
+func (mr *MockApiMockRecorder) Subscribe(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockApi)(nil).Subscribe), arg0, arg1, arg2)
 }
 
 // MockRpcApi is a mock of RpcApi interface.

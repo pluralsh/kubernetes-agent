@@ -24,18 +24,17 @@ var (
 
 func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 	// GIVEN
+	// setup test fixtures
 	ctrl := gomock.NewController(t)
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
-	publisher := NewMockPublisher(ctrl)
 	ctx := modserver.InjectRpcApi(context.Background(), rpcApi)
-
-	// setup mock expectations
-	rpcApi.EXPECT().Log().Return(zap.NewNop())
+	publisher := NewMockPublisher(ctrl)
 	publisher.EXPECT().Publish(
 		gomock.Any(),
-		gitPushEventsChannel,
+		notifications.GitPushEventsChannel,
 		matcher.ProtoEq(t, notifications.Project{Id: 42, FullPath: "foo/bar"}))
 
+	// setup server under test
 	s := newServer(publisher)
 
 	// WHEN
@@ -49,16 +48,16 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 
 func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 	// GIVEN
+	// setup test fixtures
 	ctrl := gomock.NewController(t)
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	publisher := NewMockPublisher(ctrl)
 	ctx := modserver.InjectRpcApi(context.Background(), rpcApi)
-
-	// setup mock expectations
 	rpcApi.EXPECT().Log().Return(zap.NewNop())
 	rpcApi.EXPECT().HandleIoError(gomock.Any(), gomock.Any(), gomock.Any())
 	publisher.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some-error"))
 
+	// setup server under test
 	s := newServer(publisher)
 
 	// WHEN

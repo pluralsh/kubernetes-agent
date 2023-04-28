@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
@@ -22,6 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -58,30 +60,37 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
 	log := rpcApi.Log().With(logz.ProjectId(req.ProjectId))
+	pollCfg := s.getObjectsPollConfig()
 
-	pokeC := make(chan retry.PokeSentinel)
-	// FIXME: channel .. should it actually be bound to the subscriber?!
-	// FIXME: do I need to wait for this coroutine .. don't think so because of ctx, but also not really sure where server.Context() is coming from ...
-	go func() {
-		err := s.gitPushEventsSubscriber.Subscribe(ctx, "git_push_events", func(ctx context.Context, message proto.Message) error {
-			m, ok := message.(*notifications.Project)
-			if !ok {
-				// FIXME: what's the error here? Create new one?!
-				return rpcApi.HandleIoError(log, "GitOps: failed to cast received git push event to concrete type", nil)
-			}
-			// FIXME: yes, the req.ProjectId is NOT a project id, but a full project path ...
-			if m.FullPath == req.ProjectId {
-				pokeC <- retry.PokeSentinel{}
-			}
-			return nil
+	var wg wait.Group
+	defer wg.Wait()
+
+	// we not only want to stop the poke subscription when the stream context is stopped,
+	// but also when the `PollWithBackoff` call below finishes.
+	pollingDoneCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// is true if the current synchronization is for a commit
+	synchronizingCommit := req.GetRef().GetCommit() != ""
+	if !synchronizingCommit {
+		wg.Start(func() {
+			s.gitPushEventsSubscriber.Subscribe(pollingDoneCtx, notifications.GitPushEventsChannel, func(ctx context.Context, message proto.Message) {
+				switch m := (message).(type) {
+				case *notifications.Project:
+					// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
+					if m.FullPath == req.ProjectId {
+						pollCfg.Poke()
+					}
+				default:
+					rpcApi.HandleProcessingError(
+						log,
+						modshared.NoAgentId,
+						"GitOps: unable to handle received git push event",
+						errors.New("failed to cast proto message to concrete type"))
+				}
+			})
 		})
-		if err != nil {
-			rpcApi.HandleIoError(log, "GitOps: failed to subscribe to git push events channel", err)
-		}
-	}()
-
-	// construct poll config with git push events callback as "poke"
-	pollCfg := s.getObjectsPollConfig().WithPokeChannel(pokeC)
+	}
 
 	return rpcApi.PollWithBackoff(pollCfg, func() (error, retry.AttemptResult) {
 		if agentInfo == nil { // executed only once (if successful)
@@ -106,8 +115,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		}
 
 		var commitToSynchronize string
-		synchronizingCommit := req.GetRef().GetCommit() != ""
-		// Declare a new logger to no append the same field in every poll.
+		// Declare a new logger to not append the same field in every poll.
 		log := log // nolint:govet
 		if synchronizingCommit {
 			// no need to poll, because we already have an immutable commit sha

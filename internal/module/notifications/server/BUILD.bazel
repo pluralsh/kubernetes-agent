@@ -14,6 +14,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modserver",
+        "//internal/module/modserver/notifications",
         "//internal/module/modshared",
         "//internal/module/notifications",
         "//internal/module/notifications/rpc",

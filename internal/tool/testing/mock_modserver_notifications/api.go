@@ -36,11 +36,9 @@ func (m *MockSubscriber) EXPECT() *MockSubscriberMockRecorder {
 }
 
 // Subscribe mocks base method.
-func (m *MockSubscriber) Subscribe(arg0 context.Context, arg1 string, arg2 notifications.Callback) error {
+func (m *MockSubscriber) Subscribe(arg0 context.Context, arg1 string, arg2 notifications.Callback) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
 }
 
 // Subscribe indicates an expected call of Subscribe.

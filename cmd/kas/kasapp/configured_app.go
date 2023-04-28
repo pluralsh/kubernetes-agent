@@ -33,7 +33,6 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/google_profiler/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	notifications_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
@@ -73,6 +72,7 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/stats"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -148,15 +148,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return fmt.Errorf("error tracker: %w", err)
 	}
 
-	srvApi := &serverApi{Hub: sentryHub}
-	errRep := modshared.ApiToErrReporter(srvApi)
-
 	// Redis
 	redisClient, err := a.constructRedisClient(tp, mp, registerer)
 	if err != nil {
 		return err
 	}
 	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
+
+	srvApi := &serverApi{log: a.Log, Hub: sentryHub, redisClient: redisClient}
+	errRep := modshared.ApiToErrReporter(srvApi)
 
 	// RPC API factory
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
@@ -241,10 +241,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&notifications_server.Factory{
 			Publisher: a.constructNotificationsRedisPublisher(redisClient),
 		},
-		&gitops_server.Factory{
-			// FIXME: shortcut
-			GitPushEventsSubscriber: &notificationsRedisSubscriber{redisClient: redisClient, log: a.Log},
-		},
+		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
 		},
@@ -788,7 +785,7 @@ type notificationsRedisPublisher struct {
 }
 
 func (n *notificationsRedisPublisher) Publish(ctx context.Context, channel string, message proto.Message) error {
-	payload, err := prototool.ProtoMarshal(message)
+	payload, err := redisProtoMarshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
 	}
@@ -796,39 +793,12 @@ func (n *notificationsRedisPublisher) Publish(ctx context.Context, channel strin
 	return err
 }
 
-var (
-	_ notifications.Subscriber = &notificationsRedisSubscriber{}
-)
-
-type notificationsRedisSubscriber struct {
-	redisClient redis.UniversalClient
-	log         *zap.Logger
-}
-
-func (n *notificationsRedisSubscriber) Subscribe(ctx context.Context, channel string, callback notifications.Callback) error {
-	// go-redis will automatically re-connect on error
-	pubsub := n.redisClient.Subscribe(ctx, channel)
-	defer pubsub.Close()
-
-	// FIXME: check if and what options we may need here ...
-	ch := pubsub.Channel()
-
-	for message := range ch {
-		// FIXME: not sure if that byte[] conversion is a good idea.
-		// Why the hell is redis PubSub not type symmetric - why is one an interface{} and the other string?
-		protoMessage, err := prototool.ProtoUnmarshal([]byte(message.Payload))
-		if err != nil {
-			n.log.Sugar().Errorf("receiver message in channel %q cannot be unmarshalled into proto message: %w", channel, err)
-			// we should probably call something like HandleProcessingError but agent agnostic ... so that observability etc is supported
-			continue
-		}
-		if err = callback(ctx, protoMessage); err != nil {
-			n.log.Sugar().Errorf("failure in callback of channel %q: %w", channel, err)
-			continue
-		}
+func redisProtoMarshal(m proto.Message) ([]byte, error) {
+	a, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in redisProtoUnmarshal()
+	if err != nil {
+		return nil, err
 	}
-
-	return nil
+	return proto.Marshal(a)
 }
 
 type tokenLimiterApi struct {

@@ -36,6 +36,7 @@ go_library(
         "//internal/api",
         "//internal/gitaly",
         "//internal/gitlab",
+        "//internal/module/modserver/notifications",
         "//internal/module/modshared",
         "//internal/module/observability",
         "//internal/module/usage_metrics",

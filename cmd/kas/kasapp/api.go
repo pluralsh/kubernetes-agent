@@ -9,13 +9,17 @@ import (
 	"strconv"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -26,6 +30,8 @@ var (
 	ipv4 = `(?:\d+\.){3}\d+`
 
 	removePortStdLibError = regexp.MustCompile(`(` + ipv4 + `:)\d+(->` + ipv4 + `:\d+)`)
+
+	_ notifications.Subscriber = &serverApi{}
 )
 
 type SentryHub interface {
@@ -33,7 +39,9 @@ type SentryHub interface {
 }
 
 type serverApi struct {
-	Hub SentryHub
+	log         *zap.Logger
+	Hub         SentryHub
+	redisClient redis.UniversalClient
 }
 
 func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
@@ -42,6 +50,40 @@ func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 
 func (a *serverApi) hub() (SentryHub, string) {
 	return a.Hub, ""
+}
+
+// TODO: optimize open subscriptions by multiplexing callbacks and only subscribe to redis once.
+func (a *serverApi) Subscribe(ctx context.Context, channel string, callback notifications.Callback) {
+	// go-redis will automatically re-connect on error
+	pubsub := a.redisClient.Subscribe(ctx, channel)
+	defer func() {
+		if err := pubsub.Close(); err != nil {
+			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", channel), err)
+		}
+	}()
+	ch := pubsub.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case message := <-ch:
+			protoMessage, err := redisProtoUnmarshal(message.Payload)
+			if err != nil {
+				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", channel), err)
+				continue
+			}
+			callback(ctx, protoMessage)
+		}
+	}
+}
+
+func redisProtoUnmarshal(payload string) (proto.Message, error) {
+	var a anypb.Any
+	err := proto.Unmarshal([]byte(payload), &a)
+	if err != nil {
+		return nil, err
+	}
+	return a.UnmarshalNew()
 }
 
 func handleProcessingError(ctx context.Context, hub func() (SentryHub, string), log *zap.Logger, agentId int64, msg string, err error) {

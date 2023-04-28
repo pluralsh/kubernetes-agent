@@ -20,7 +20,9 @@ go_library(
     visibility = [
         "//cmd/kas:__subpackages__",
         "//internal/module/gitops/server:__subpackages__",
+        "//internal/module/modserver:__subpackages__",
         "//internal/module/notifications:__subpackages__",
+        "//internal/tool/testing/mock_modserver:__subpackages__",
         "//internal/tool/testing/mock_modserver_notifications:__subpackages__",
     ],
     deps = [

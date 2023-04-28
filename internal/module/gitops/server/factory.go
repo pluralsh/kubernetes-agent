@@ -29,11 +29,10 @@ const (
 )
 
 type Factory struct {
-	GitPushEventsSubscriber notifications.Subscriber
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s, err := newServerFromConfig(config, config.RedisClient, f.GitPushEventsSubscriber)
+	s, err := newServerFromConfig(config, config.RedisClient, config.Api)
 	if err != nil {
 		return nil, err
 	}

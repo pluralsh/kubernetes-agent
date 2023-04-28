@@ -15,7 +15,6 @@ go_library(
     srcs = [
         "defaulting.go",
         "err_marshaler.go",
-        "marshaler.go",
         "prototool.extra_methods.go",
         "prototool.pb.go",
         "prototool.pb.validate.go",
