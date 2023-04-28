@@ -8,7 +8,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development/agent/informer"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
@@ -69,7 +68,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	return &module{
 		log: config.Log,
 		api: config.Api,
-		workerFactory: func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevWorker, error) {
+		reconcilerFactory: func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error) {
 			agentId, err := config.Api.GetAgentId(ctx)
 			if err != nil {
 				return nil, err
@@ -78,11 +77,12 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(client, resyncDuration, corev1.NamespaceAll, func(opts *metav1.ListOptions) {
 				opts.LabelSelector = fmt.Sprintf("%s=%d", agentIdLabelSelector, agentId)
 			})
-			inf, err := informer.NewK8sInformer(config.Log, factory.ForResource(deploymentGVR).Informer())
+			inf, err := newK8sInformer(config.Log, factory.ForResource(deploymentGVR).Informer())
 			if err != nil {
 				return nil, err
 			}
-			return &worker{
+
+			r := &reconciler{
 				log:               config.Log,
 				agentId:           agentId,
 				api:               config.Api,
@@ -92,7 +92,15 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				terminatedTracker: newPersistedTerminatedWorkspacesTracker(),
 				informer:          inf,
 				k8sClient:         k8sClient,
-			}, nil
+				config:            cfg,
+			}
+
+			err = r.informer.Start(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			return r, nil
 		},
 	}, nil
 }

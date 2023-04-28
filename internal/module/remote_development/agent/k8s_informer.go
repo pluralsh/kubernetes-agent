@@ -1,4 +1,4 @@
-package informer
+package agent
 
 import (
 	"context"
@@ -13,16 +13,18 @@ import (
 
 // https://caiorcferreira.github.io/post/the-kubernetes-dynamic-client/
 
-type K8sInformer struct {
-	informer cache.SharedIndexInformer
+type k8sInformer struct {
+	informer       cache.SharedIndexInformer
+	log            *zap.Logger
+	backgroundTask stoppableTask
 }
 
-func NewK8sInformer(log *zap.Logger, informer cache.SharedIndexInformer) (*K8sInformer, error) {
+func newK8sInformer(log *zap.Logger, informer cache.SharedIndexInformer) (*k8sInformer, error) {
 	_, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			// Handler logic
 			u := obj.(*unstructured.Unstructured)
-			log.Debug("Received add event", logz.WorkspaceNamespace(u.GetNamespace()), logz.WorkspaceName(u.GetName()))
+			log.Debug("Received add event", extractEventFields(u)...)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			// Handler logic
@@ -31,13 +33,13 @@ func NewK8sInformer(log *zap.Logger, informer cache.SharedIndexInformer) (*K8sIn
 			if equality.Semantic.DeepEqual(oldU, newU) {
 				return
 			}
-			log.Debug("Received update event", logz.WorkspaceNamespace(newU.GetNamespace()), logz.WorkspaceName(newU.GetName()))
+			log.Debug("Received update event", extractEventFields(newU)...)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// Handler logic
 			switch u := obj.(type) {
 			case *unstructured.Unstructured:
-				log.Debug("Received delete event", logz.WorkspaceNamespace(u.GetNamespace()), logz.WorkspaceName(u.GetName()))
+				log.Debug("Received delete event", extractEventFields(u)...)
 			default:
 				log.Debug("Received unknown delete event")
 			}
@@ -46,14 +48,24 @@ func NewK8sInformer(log *zap.Logger, informer cache.SharedIndexInformer) (*K8sIn
 	if err != nil {
 		return nil, err
 	}
-	return &K8sInformer{
+	return &k8sInformer{
 		informer: informer,
+		log:      log,
 	}, nil
 }
 
-func (i *K8sInformer) Start(ctx context.Context) error {
+func extractEventFields(event *unstructured.Unstructured) []zap.Field {
+	return []zap.Field{
+		logz.WorkspaceNamespace(event.GetNamespace()),
+		logz.WorkspaceName(event.GetName()),
+	}
+}
 
-	go i.informer.Run(ctx.Done())
+func (i *k8sInformer) Start(ctx context.Context) error {
+
+	i.backgroundTask = newStoppableTask(ctx, func(ctx context.Context) {
+		i.informer.Run(ctx.Done())
+	})
 
 	isSynced := cache.WaitForCacheSync(ctx.Done(), i.informer.HasSynced)
 
@@ -64,9 +76,9 @@ func (i *K8sInformer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (i *K8sInformer) List() []*ParsedWorkspace {
+func (i *k8sInformer) List() []*parsedWorkspace {
 	list := i.informer.GetIndexer().List()
-	result := make([]*ParsedWorkspace, 0, len(list))
+	result := make([]*parsedWorkspace, 0, len(list))
 
 	for _, raw := range list {
 		result = append(result, i.parseUnstructuredToWorkspace(raw.(*unstructured.Unstructured)))
@@ -75,11 +87,18 @@ func (i *K8sInformer) List() []*ParsedWorkspace {
 	return result
 }
 
-func (i *K8sInformer) parseUnstructuredToWorkspace(rawWorkspace *unstructured.Unstructured) *ParsedWorkspace {
-	return &ParsedWorkspace{
+func (i *k8sInformer) parseUnstructuredToWorkspace(rawWorkspace *unstructured.Unstructured) *parsedWorkspace {
+	return &parsedWorkspace{
 		Name:              rawWorkspace.GetName(),
 		Namespace:         rawWorkspace.GetNamespace(),
 		ResourceVersion:   rawWorkspace.GetResourceVersion(),
 		K8sDeploymentInfo: rawWorkspace.Object,
+	}
+}
+
+func (i *k8sInformer) Stop() {
+	if i.backgroundTask != nil {
+		i.backgroundTask.StopAndWait()
+		i.log.Info("informer stopped")
 	}
 }
