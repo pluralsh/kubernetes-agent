@@ -2,6 +2,9 @@ package agentcfg
 
 import (
 	"testing"
+	"time"
+
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
 )
@@ -76,6 +79,17 @@ func TestValidation_Valid(t *testing.T) {
 			Name: "minimal ChartValuesUrlCF",
 			Valid: &ChartValuesUrlCF{
 				Url: "https://example.com",
+			},
+		},
+		{
+			Name:  "minimal RemoteCF",
+			Valid: &RemoteCF{},
+		},
+		{
+			Name: "RemoteCF with valid intervals",
+			Valid: &RemoteCF{
+				PartialSyncInterval: durationpb.New(1 * time.Second),
+				FullSyncInterval:    durationpb.New(1 * time.Second),
 			},
 		},
 	}
@@ -161,6 +175,13 @@ func TestValidation_Invalid(t *testing.T) {
 		{
 			ErrString: "invalid ChartValuesUrlCF.Url: value must be absolute",
 			Invalid:   &ChartValuesUrlCF{},
+		},
+		{
+			ErrString: "invalid RemoteCF.PartialSyncInterval: value must be greater than 0s; invalid RemoteCF.FullSyncInterval: value must be greater than 0s",
+			Invalid: &RemoteCF{
+				PartialSyncInterval: durationpb.New(0),
+				FullSyncInterval:    durationpb.New(0),
+			},
 		},
 	}
 	testhelpers.AssertInvalid(t, tests)

@@ -434,6 +434,8 @@ Project with Kubernetes object manifests.
 | ----- | ---- | ----- | ----------- |
 | enabled | [bool](#bool) |  |  |
 | dns_zone | [string](#string) |  |  |
+| partial_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
+| full_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
 
 
 

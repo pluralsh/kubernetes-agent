@@ -296,4 +296,6 @@ message AgentConfiguration {
 message RemoteCF {
   bool enabled = 1 [json_name = "enabled"];
   string dns_zone = 2 [json_name = "dns_zone"];
+  google.protobuf.Duration partial_sync_interval = 3 [json_name = "partial_sync_interval", (validate.rules).duration = {gt: {}}];
+  google.protobuf.Duration full_sync_interval = 4 [json_name = "full_sync_interval", (validate.rules).duration = {gt: {}}];
 }
