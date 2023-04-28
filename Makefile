@@ -14,9 +14,9 @@ FIPS_TAG_GIT_ARCH = $(FIPS_TAG_GIT)-$(ARCH)
 FIPS_TAG_STABLE = $(CI_REGISTRY_IMAGE)/agentk-fips:stable
 FIPS_TAG_STABLE_ARCH = $(FIPS_TAG_STABLE)-$(ARCH)
 
-LDFLAGS := -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version=$(GIT_TAG)"
-LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit=$(GIT_COMMIT)"
-LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime=$(BUILD_TIME)"
+LDFLAGS := -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Version=$(GIT_TAG)"
+LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Commit=$(GIT_COMMIT)"
+LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.BuildTime=$(BUILD_TIME)"
 
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
@@ -49,31 +49,31 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/agentk/agentkapp" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/kas/kasapp" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/chartops" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/starboard_vulnerability/agent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/reverse_tunnel" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_agent_tracker" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_cache" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_gitlab_access" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_internalgitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_k8s" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_kubernetes_api" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modagent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modshared" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_redis" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_reverse_tunnel_tracker" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_tool" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_usage_metrics"
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/agentk/agentkapp" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/chartops" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/starboard_vulnerability/agent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_agent_tracker" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_cache" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitaly" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab_access" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_internalgitaly" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_k8s" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_kubernetes_api" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modshared" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_redis" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_rpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tracker" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks fmt update-bazel

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

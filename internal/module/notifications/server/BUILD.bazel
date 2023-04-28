@@ -8,7 +8,7 @@ go_library(
         "module.go",
         "server.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modserver",

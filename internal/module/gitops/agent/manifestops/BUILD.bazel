@@ -15,7 +15,7 @@ go_library(
         "worker_3_apply.go",
         "worker_factory.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/manifestops",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/gitops",

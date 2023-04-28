@@ -7,7 +7,7 @@ go_library(
         "api.go",
         "doc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modshared",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modshared",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/retry",

@@ -67,7 +67,7 @@ go_library(
         "build_info.go",
         "utils.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd",
     visibility = [
         "//cmd:__subpackages__",
     ],

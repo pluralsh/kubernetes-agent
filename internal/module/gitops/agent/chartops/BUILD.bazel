@@ -13,7 +13,7 @@ go_library(
         "worker_2_install_or_upgrade.go",
         "worker_factory.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/agent/chartops",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/chartops",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitaly",

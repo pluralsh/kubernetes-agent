@@ -15,7 +15,7 @@ go_library(
         "task.go",
         "worker.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/remote_development/agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modagent",

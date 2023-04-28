@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 )
 
 func TestValidation_Valid(t *testing.T) {

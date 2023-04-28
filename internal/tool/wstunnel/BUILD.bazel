@@ -8,7 +8,7 @@ go_library(
         "client.go",
         "server.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/wstunnel",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/wstunnel",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/httpz",

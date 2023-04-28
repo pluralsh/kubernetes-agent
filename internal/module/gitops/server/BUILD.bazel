@@ -11,7 +11,7 @@ go_library(
         "server.go",
         "visitor.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

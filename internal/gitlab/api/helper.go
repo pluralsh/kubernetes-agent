@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 )
 
 // IsCacheableError checks if an error is cacheable.

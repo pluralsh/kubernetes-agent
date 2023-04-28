@@ -5,9 +5,9 @@ import (
 	"net"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"

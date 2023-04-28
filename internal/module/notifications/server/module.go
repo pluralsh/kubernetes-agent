@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications"
 )
 
 type module struct {

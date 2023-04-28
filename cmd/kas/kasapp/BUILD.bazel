@@ -36,7 +36,7 @@ go_library(
         "router_kas_tunnel_finder.go",
         "rpc_api.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd/kas/kasapp",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",

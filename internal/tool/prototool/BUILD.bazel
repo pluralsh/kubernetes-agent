@@ -19,7 +19,7 @@ go_library(
         "prototool.pb.go",
         "prototool.pb.validate.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/httpz",

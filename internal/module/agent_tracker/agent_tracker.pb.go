@@ -10,7 +10,7 @@ import (
 	reflect "reflect"
 	sync "sync"
 
-	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
+	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"

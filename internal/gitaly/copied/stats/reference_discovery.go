@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/pktline"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/memz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/copied/pktline"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
 )
 
 // Reference as used by the reference discovery protocol.

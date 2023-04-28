@@ -7,6 +7,6 @@ go_library(
         "rwmutex.go",
         "synz.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/syncz",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz",
     visibility = ["//:__subpackages__"],
 )

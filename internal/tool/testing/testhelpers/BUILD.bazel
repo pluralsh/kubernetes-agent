@@ -8,7 +8,7 @@ go_library(
         "tls.go",
         "validation.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/testhelpers",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

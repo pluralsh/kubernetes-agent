@@ -20,7 +20,7 @@ go_library(
         "rpc_extra.go",
         "rpc_grpc.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitaly",

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
 
