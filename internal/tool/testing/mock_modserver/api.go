@@ -10,7 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api"
-	notifications "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
+	modserver "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/retry"
 	zap "go.uber.org/zap"
 )
@@ -50,16 +50,16 @@ func (mr *MockApiMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockApi)(nil).HandleProcessingError), arg0, arg1, arg2, arg3, arg4)
 }
 
-// Subscribe mocks base method.
-func (m *MockApi) Subscribe(arg0 context.Context, arg1 string, arg2 notifications.Callback) {
+// OnGitPushEvent mocks base method.
+func (m *MockApi) OnGitPushEvent(arg0 context.Context, arg1 modserver.GitPushEventCallback) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
+	m.ctrl.Call(m, "OnGitPushEvent", arg0, arg1)
 }
 
-// Subscribe indicates an expected call of Subscribe.
-func (mr *MockApiMockRecorder) Subscribe(arg0, arg1, arg2 interface{}) *gomock.Call {
+// OnGitPushEvent indicates an expected call of OnGitPushEvent.
+func (mr *MockApiMockRecorder) OnGitPushEvent(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockApi)(nil).Subscribe), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnGitPushEvent", reflect.TypeOf((*MockApi)(nil).OnGitPushEvent), arg0, arg1)
 }
 
 // MockRpcApi is a mock of RpcApi interface.

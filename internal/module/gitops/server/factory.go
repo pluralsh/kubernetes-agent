@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/prototool"
@@ -48,9 +47,10 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, gitPushEventsSubscriber notifications.Subscriber) (*server, error) {
+func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) (*server, error) {
 	gitops := config.Config.Agent.Gitops
 	return &server{
+		serverApi:  serverApi,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient: config.GitLabClient,
@@ -75,8 +75,7 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 				gapi.IsCacheableError,
 			),
 		},
-		gitPushEventsSubscriber: gitPushEventsSubscriber,
-		syncCount:               config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
+		syncCount: config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		getObjectsPollConfig: retry.NewPollConfigFactory(gitops.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,

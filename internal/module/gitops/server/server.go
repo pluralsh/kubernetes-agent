@@ -12,8 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
@@ -22,7 +20,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -39,6 +36,7 @@ var (
 
 type server struct {
 	rpc.UnimplementedGitopsServer
+	serverApi                modserver.Api
 	gitalyPool               gitaly.PoolInterface
 	projectInfoClient        *projectInfoClient
 	syncCount                usage_metrics.Counter
@@ -47,7 +45,6 @@ type server struct {
 	maxTotalManifestFileSize int64
 	maxNumberOfPaths         uint32
 	maxNumberOfFiles         uint32
-	gitPushEventsSubscriber  notifications.Subscriber
 }
 
 func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
@@ -65,28 +62,19 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	var wg wait.Group
 	defer wg.Wait()
 
-	// we not only want to stop the poke subscription when the stream context is stopped,
-	// but also when the `PollWithBackoff` call below finishes.
-	pollingDoneCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	// is true if the current synchronization is for a commit
 	synchronizingCommit := req.GetRef().GetCommit() != ""
 	if !synchronizingCommit {
+		// we not only want to stop the poke subscription when the stream context is stopped,
+		// but also when the `PollWithBackoff` call below finishes.
+		pollingDoneCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
 		wg.Start(func() {
-			s.gitPushEventsSubscriber.Subscribe(pollingDoneCtx, notifications.GitPushEventsChannel, func(ctx context.Context, message proto.Message) {
-				switch m := (message).(type) {
-				case *notifications.Project:
-					// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
-					if m.FullPath == req.ProjectId {
-						pollCfg.Poke()
-					}
-				default:
-					rpcApi.HandleProcessingError(
-						log,
-						modshared.NoAgentId,
-						"GitOps: unable to handle received git push event",
-						errors.New("failed to cast proto message to concrete type"))
+			s.serverApi.OnGitPushEvent(pollingDoneCtx, func(ctx context.Context, message *modserver.Project) {
+				// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
+				if message.FullPath == req.ProjectId {
+					pollCfg.Poke()
 				}
 			})
 		})

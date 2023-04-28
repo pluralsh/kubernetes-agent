@@ -32,7 +32,6 @@ multirun(
         "//internal/module/gitops/rpc:extract_generated",
         "//internal/module/kubernetes_api/rpc:extract_generated",
         "//internal/module/modserver:extract_generated",
-        "//internal/module/modserver/notifications:extract_generated",
         "//internal/module/modshared:extract_generated",
         "//internal/module/reverse_tunnel/info:extract_generated",
         "//internal/module/reverse_tunnel/rpc:extract_generated",

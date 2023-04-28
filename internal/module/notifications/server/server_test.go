@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/mock_modserver"
@@ -31,8 +30,8 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 	publisher := NewMockPublisher(ctrl)
 	publisher.EXPECT().Publish(
 		gomock.Any(),
-		notifications.GitPushEventsChannel,
-		matcher.ProtoEq(t, notifications.Project{Id: 42, FullPath: "foo/bar"}))
+		modserver.GitPushEventsChannel,
+		matcher.ProtoEq(t, modserver.Project{Id: 42, FullPath: "foo/bar"}))
 
 	// setup server under test
 	s := newServer(publisher)
@@ -54,8 +53,9 @@ func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 	publisher := NewMockPublisher(ctrl)
 	ctx := modserver.InjectRpcApi(context.Background(), rpcApi)
 	rpcApi.EXPECT().Log().Return(zap.NewNop())
-	rpcApi.EXPECT().HandleIoError(gomock.Any(), gomock.Any(), gomock.Any())
-	publisher.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some-error"))
+	givenErr := errors.New("some error")
+	rpcApi.EXPECT().HandleIoError(gomock.Any(), gomock.Any(), gomock.Any()).Return(givenErr)
+	publisher.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(givenErr)
 
 	// setup server under test
 	s := newServer(publisher)
@@ -66,5 +66,5 @@ func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 	})
 
 	// THEN
-	assert.EqualError(t, err, "failed to handle git push event")
+	assert.EqualError(t, err, "some error")
 }

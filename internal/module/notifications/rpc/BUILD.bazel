@@ -20,7 +20,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/module/modserver/notifications",
+        "//internal/module/modserver",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

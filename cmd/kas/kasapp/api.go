@@ -11,7 +11,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver/notifications"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/grpctool"
@@ -30,8 +29,6 @@ var (
 	ipv4 = `(?:\d+\.){3}\d+`
 
 	removePortStdLibError = regexp.MustCompile(`(` + ipv4 + `:)\d+(->` + ipv4 + `:\d+)`)
-
-	_ notifications.Subscriber = &serverApi{}
 )
 
 type SentryHub interface {
@@ -53,12 +50,12 @@ func (a *serverApi) hub() (SentryHub, string) {
 }
 
 // TODO: optimize open subscriptions by multiplexing callbacks and only subscribe to redis once.
-func (a *serverApi) Subscribe(ctx context.Context, channel string, callback notifications.Callback) {
+func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
 	// go-redis will automatically re-connect on error
-	pubsub := a.redisClient.Subscribe(ctx, channel)
+	pubsub := a.redisClient.Subscribe(ctx, modserver.GitPushEventsChannel)
 	defer func() {
 		if err := pubsub.Close(); err != nil {
-			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", channel), err)
+			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", modserver.GitPushEventsChannel), err)
 		}
 	}()
 	ch := pubsub.Channel()
@@ -69,10 +66,21 @@ func (a *serverApi) Subscribe(ctx context.Context, channel string, callback noti
 		case message := <-ch:
 			protoMessage, err := redisProtoUnmarshal(message.Payload)
 			if err != nil {
-				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", channel), err)
+				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", modserver.GitPushEventsChannel), err)
 				continue
 			}
-			callback(ctx, protoMessage)
+
+			switch m := (protoMessage).(type) {
+			case *modserver.Project:
+				callback(ctx, m)
+			default:
+				a.HandleProcessingError(
+					ctx,
+					a.log,
+					modshared.NoAgentId,
+					"GitOps: unable to handle received git push event",
+					fmt.Errorf("failed to cast proto message of type %T to concrete type", m))
+			}
 		}
 	}
 }
