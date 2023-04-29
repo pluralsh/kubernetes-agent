@@ -668,11 +668,13 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	client, _ := redismock.NewClientMock()
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)
+	mockApi := mock_modserver.NewMockApi(ctrl)
 	ctx := mock_modserver.IncomingAgentCtx(t, mockRpcApi)
 	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
 	usageTracker.EXPECT().
 		RegisterCounter(gitopsSyncCountKnownMetric).
 		Return(mock_usage_metrics.NewMockCounter(ctrl))
+	mockApi.EXPECT().OnGitPushEvent(gomock.Any(), gomock.Any()).AnyTimes()
 
 	config := &kascfg.ConfigurationFile{}
 	ApplyDefaults(config)
@@ -685,7 +687,7 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		Gitaly:       gitalyPool,
-	}, client)
+	}, client, mockApi)
 	require.NoError(t, err)
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }

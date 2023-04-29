@@ -31,7 +31,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s, err := newServerFromConfig(config, config.RedisClient)
+	s, err := newServerFromConfig(config, config.RedisClient, config.Api)
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +47,10 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient) (*server, error) {
+func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) (*server, error) {
 	gitops := config.Config.Agent.Gitops
 	return &server{
+		serverApi:  serverApi,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient: config.GitLabClient,

@@ -4,16 +4,32 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func newServer(gitPushPublisher func(ctx context.Context, e *modserver.Project) error) *server {
+	return &server{
+		gitPushPublisher: gitPushPublisher,
+	}
+}
 
 type server struct {
 	rpc.UnimplementedNotificationsServer
+	gitPushPublisher func(ctx context.Context, e *modserver.Project) error
 }
 
 func (s *server) GitPushEvent(ctx context.Context, req *rpc.GitPushEventRequest) (*rpc.GitPushEventResponse, error) {
-	rpcApi := modserver.RpcApiFromContext(ctx)
-	log := rpcApi.Log()
-	log.Sugar().Debugf("received git push notifications event for project %s", req.Project)
+	err := s.gitPushPublisher(ctx, &modserver.Project{
+		Id:       req.Project.Id,
+		FullPath: req.Project.FullPath,
+	})
+	if err != nil {
+		rpcApi := modserver.RpcApiFromContext(ctx)
+		rpcApi.HandleProcessingError(rpcApi.Log(), modshared.NoAgentId, "failed to publish received git push event", err)
+		return nil, status.Errorf(codes.Unavailable, "Failed to publish received git push event: %v", err)
+	}
 	return &rpc.GitPushEventResponse{}, nil
 }

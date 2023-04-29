@@ -33,6 +33,7 @@ go_library(
         "//pkg/kascfg",
         "@com_github_redis_go_redis_v9//:go-redis",
         "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
+        "@io_k8s_apimachinery//pkg/util/wait",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_uber_go_zap//:zap",

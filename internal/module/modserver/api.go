@@ -80,9 +80,12 @@ type Config struct {
 	ProbeRegistry *observability.ProbeRegistry
 }
 
+type GitPushEventCallback func(ctx context.Context, project *Project)
+
 // Api provides the API for the module to use.
 type Api interface {
 	modshared.Api
+	OnGitPushEvent(ctx context.Context, callback GitPushEventCallback)
 }
 
 type Factory interface {

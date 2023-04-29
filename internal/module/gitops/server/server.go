@@ -20,6 +20,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -35,6 +36,7 @@ var (
 
 type server struct {
 	rpc.UnimplementedGitopsServer
+	serverApi                modserver.Api
 	gitalyPool               gitaly.PoolInterface
 	projectInfoClient        *projectInfoClient
 	syncCount                usage_metrics.Counter
@@ -55,7 +57,30 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	rpcApi := modserver.AgentRpcApiFromContext(server.Context())
 	agentToken := rpcApi.AgentToken()
 	log := rpcApi.Log().With(logz.ProjectId(req.ProjectId))
-	return rpcApi.PollWithBackoff(s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
+	pollCfg := s.getObjectsPollConfig()
+
+	// is true if the current synchronization is for a commit
+	synchronizingCommit := req.GetRef().GetCommit() != ""
+	if !synchronizingCommit {
+		var wg wait.Group
+		defer wg.Wait()
+
+		// we not only want to stop the poke subscription when the stream context is stopped,
+		// but also when the `PollWithBackoff` call below finishes.
+		pollingDoneCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		wg.Start(func() {
+			s.serverApi.OnGitPushEvent(pollingDoneCtx, func(ctx context.Context, message *modserver.Project) {
+				// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
+				if message.FullPath == req.ProjectId {
+					pollCfg.Poke()
+				}
+			})
+		})
+	}
+
+	return rpcApi.PollWithBackoff(pollCfg, func() (error, retry.AttemptResult) {
 		if agentInfo == nil { // executed only once (if successful)
 			agentInfo, err = rpcApi.AgentInfo(ctx, log)
 			if err != nil {
@@ -78,8 +103,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		}
 
 		var commitToSynchronize string
-		synchronizingCommit := req.GetRef().GetCommit() != ""
-		// Declare a new logger to no append the same field in every poll.
+		// Declare a new logger to not append the same field in every poll.
 		log := log // nolint:govet
 		if synchronizingCommit {
 			// no need to poll, because we already have an immutable commit sha

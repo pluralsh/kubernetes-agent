@@ -146,15 +146,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return fmt.Errorf("error tracker: %w", err)
 	}
 
-	srvApi := &serverApi{Hub: sentryHub}
-	errRep := modshared.ApiToErrReporter(srvApi)
-
 	// Redis
 	redisClient, err := a.constructRedisClient(tp, mp, registerer)
 	if err != nil {
 		return err
 	}
 	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
+
+	srvApi := &serverApi{log: a.Log, Hub: sentryHub, redisClient: redisClient}
+	errRep := modshared.ApiToErrReporter(srvApi)
 
 	// RPC API factory
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
@@ -236,7 +236,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentRegisterer: agentTracker,
 		},
 		&configuration_project_server.Factory{},
-		&notifications_server.Factory{},
+		&notifications_server.Factory{
+			GitPushPublisher: srvApi.publishGitPushEvent,
+		},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,

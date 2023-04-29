@@ -41,6 +41,14 @@ type PollConfig struct {
 	Backoff  BackoffManager
 	Interval time.Duration
 	Sliding  bool
+	pokeC    chan struct{}
+}
+
+func (c *PollConfig) Poke() {
+	select {
+	case c.pokeC <- struct{}{}:
+	default:
+	}
 }
 
 type PollConfigFactory func() PollConfig
@@ -59,6 +67,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 			<-t.C()
 		}
 	}()
+
 	done := ctx.Done()
 	for {
 		if !cfg.Sliding {
@@ -80,6 +89,8 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 				case <-done:
 					timer.Stop()
 					return ErrWaitTimeout
+				case <-cfg.pokeC:
+					timer.Stop()
 				case <-timer.C:
 				}
 			case ContinueImmediately: // immediately call f again
@@ -105,6 +116,9 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		select {
 		case <-done:
 			return ErrWaitTimeout
+		case <-cfg.pokeC:
+			t.Stop()
+			t = nil
 		case <-t.C():
 			t = nil
 		}
@@ -123,6 +137,9 @@ func NewPollConfigFactory(interval time.Duration, backoff BackoffManagerFactory)
 			Backoff:  backoff(),
 			Interval: interval,
 			Sliding:  true,
+			// Size 1 to ensure we preserve the fact that there was a poke.
+			// We don't care how many notifications there have been, just care that there was at least one.
+			pokeC: make(chan struct{}, 1),
 		}
 	}
 }
