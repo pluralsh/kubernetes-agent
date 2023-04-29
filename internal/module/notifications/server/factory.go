@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications"
@@ -8,13 +10,12 @@ import (
 )
 
 type Factory struct {
-	Publisher Publisher
+	// GitPushPublisher provides a `Publish` interface to emit notifications about Git push events.
+	GitPushPublisher func(ctx context.Context, e *modserver.Project) error
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	rpc.RegisterNotificationsServer(config.ApiServer, newServer(
-		f.Publisher,
-	))
+	rpc.RegisterNotificationsServer(config.ApiServer, newServer(f.GitPushPublisher))
 	return &module{}, nil
 }
 

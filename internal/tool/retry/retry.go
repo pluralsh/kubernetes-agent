@@ -37,18 +37,16 @@ type PollWithBackoffFunc func() (error, AttemptResult)
 // Signature is unusual because AttemptResult must be checked, not the error.
 type PollWithBackoffCtxFunc func(ctx context.Context) (error, AttemptResult)
 
-type pokeSentinel struct{}
-
 type PollConfig struct {
 	Backoff  BackoffManager
 	Interval time.Duration
 	Sliding  bool
-	pokeC    chan pokeSentinel
+	pokeC    chan struct{}
 }
 
 func (c *PollConfig) Poke() {
 	select {
-	case c.pokeC <- pokeSentinel{}:
+	case c.pokeC <- struct{}{}:
 	default:
 	}
 }
@@ -139,7 +137,9 @@ func NewPollConfigFactory(interval time.Duration, backoff BackoffManagerFactory)
 			Backoff:  backoff(),
 			Interval: interval,
 			Sliding:  true,
-			pokeC:    make(chan pokeSentinel, 1),
+			// Size 1 to ensure we preserve the fact that there was a poke.
+			// We don't care how many notifications there have been, just care that there was at least one.
+			pokeC: make(chan struct{}, 1),
 		}
 	}
 }

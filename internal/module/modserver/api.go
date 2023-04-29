@@ -80,10 +80,6 @@ type Config struct {
 	ProbeRegistry *observability.ProbeRegistry
 }
 
-const (
-	GitPushEventsChannel = "git_push_events"
-)
-
 type GitPushEventCallback func(ctx context.Context, project *Project)
 
 // Api provides the API for the module to use.

@@ -71,8 +71,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/stats"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -239,7 +237,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&configuration_project_server.Factory{},
 		&notifications_server.Factory{
-			Publisher: a.constructNotificationsRedisPublisher(redisClient),
+			GitPushPublisher: srvApi.publishGitPushEvent,
 		},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
@@ -385,10 +383,6 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.PollingQ
 		kasRoutingDurationTimeout: timeoutCounter,
 		tunnelFindTimeout:         routingTunnelFindTimeout,
 	}, nil
-}
-
-func (a *ConfiguredApp) constructNotificationsRedisPublisher(redisClient redis.UniversalClient) notifications_server.Publisher {
-	return &notificationsRedisPublisher{redisClient: redisClient}
 }
 
 func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient redis.UniversalClient) agent_tracker.Tracker {
@@ -775,31 +769,6 @@ func kasServerName() string {
 var (
 	_ redistool.RpcApi = (*tokenLimiterApi)(nil)
 )
-
-var (
-	_ notifications_server.Publisher = &notificationsRedisPublisher{}
-)
-
-type notificationsRedisPublisher struct {
-	redisClient redis.UniversalClient
-}
-
-func (n *notificationsRedisPublisher) Publish(ctx context.Context, channel string, message proto.Message) error {
-	payload, err := redisProtoMarshal(message)
-	if err != nil {
-		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
-	}
-	err = n.redisClient.Publish(ctx, channel, payload).Err()
-	return err
-}
-
-func redisProtoMarshal(m proto.Message) ([]byte, error) {
-	a, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in redisProtoUnmarshal()
-	if err != nil {
-		return nil, err
-	}
-	return proto.Marshal(a)
-}
 
 type tokenLimiterApi struct {
 	rpcApi modserver.AgentRpcApi

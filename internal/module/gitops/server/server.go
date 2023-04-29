@@ -59,12 +59,12 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	log := rpcApi.Log().With(logz.ProjectId(req.ProjectId))
 	pollCfg := s.getObjectsPollConfig()
 
-	var wg wait.Group
-	defer wg.Wait()
-
 	// is true if the current synchronization is for a commit
 	synchronizingCommit := req.GetRef().GetCommit() != ""
 	if !synchronizingCommit {
+		var wg wait.Group
+		defer wg.Wait()
+
 		// we not only want to stop the poke subscription when the stream context is stopped,
 		// but also when the `PollWithBackoff` call below finishes.
 		pollingDoneCtx, cancel := context.WithCancel(ctx)

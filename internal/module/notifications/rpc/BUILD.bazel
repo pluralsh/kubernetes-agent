@@ -14,13 +14,11 @@ go_library(
     srcs = [
         "rpc.pb.go",
         "rpc.pb.validate.go",
-        "rpc_extra.go",
         "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/module/modserver",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

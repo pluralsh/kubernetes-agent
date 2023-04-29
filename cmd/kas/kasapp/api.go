@@ -31,6 +31,10 @@ var (
 	removePortStdLibError = regexp.MustCompile(`(` + ipv4 + `:)\d+(->` + ipv4 + `:\d+)`)
 )
 
+const (
+	gitPushEventsRedisChannel = "kas_git_push_events"
+)
+
 type SentryHub interface {
 	CaptureEvent(event *sentry.Event) *sentry.EventID
 }
@@ -52,21 +56,22 @@ func (a *serverApi) hub() (SentryHub, string) {
 // TODO: optimize open subscriptions by multiplexing callbacks and only subscribe to redis once.
 func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
 	// go-redis will automatically re-connect on error
-	pubsub := a.redisClient.Subscribe(ctx, modserver.GitPushEventsChannel)
+	pubsub := a.redisClient.Subscribe(ctx, gitPushEventsRedisChannel)
 	defer func() {
 		if err := pubsub.Close(); err != nil {
-			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", modserver.GitPushEventsChannel), err)
+			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", gitPushEventsRedisChannel), err)
 		}
 	}()
 	ch := pubsub.Channel()
+	done := ctx.Done()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-done:
 			return
 		case message := <-ch:
 			protoMessage, err := redisProtoUnmarshal(message.Payload)
 			if err != nil {
-				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", modserver.GitPushEventsChannel), err)
+				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", gitPushEventsRedisChannel), err)
 				continue
 			}
 
@@ -83,6 +88,22 @@ func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPu
 			}
 		}
 	}
+}
+
+func (a *serverApi) publishGitPushEvent(ctx context.Context, e *modserver.Project) error {
+	payload, err := redisProtoMarshal(e)
+	if err != nil {
+		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
+	}
+	return a.redisClient.Publish(ctx, gitPushEventsRedisChannel, payload).Err()
+}
+
+func redisProtoMarshal(m proto.Message) ([]byte, error) {
+	a, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in redisProtoUnmarshal()
+	if err != nil {
+		return nil, err
+	}
+	return proto.Marshal(a)
 }
 
 func redisProtoUnmarshal(payload string) (proto.Message, error) {
