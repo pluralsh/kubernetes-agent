@@ -74,7 +74,7 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 				hub.EXPECT().
 					CaptureEvent(gomock.Any()).
 					Do(func(event *sentry.Event) {
-						assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
+						assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 						assert.Empty(t, event.User.ID)
 						assert.Equal(t, sentry.LevelError, event.Level)
 						assert.Equal(t, "*gitlab.ClientError", event.Exception[0].Type)
@@ -100,7 +100,7 @@ func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
+			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
@@ -115,7 +115,7 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
+			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)

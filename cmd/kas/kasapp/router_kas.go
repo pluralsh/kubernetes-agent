@@ -50,8 +50,9 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
+	log := rpcApi.Log().With(logz.AgentId(agentId))
 	tf := newTunnelFinder(
-		rpcApi.Log().With(logz.AgentId(agentId)),
+		log,
 		r.kasPool,
 		r.tunnelQuerier,
 		rpcApi,
@@ -74,6 +75,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		case findCtx.Err() != nil: // Find tunnel timed out.
 			r.kasRoutingDurationTimeout.Inc()
 			span.SetStatus(otelcodes.Error, "Timed out")
+			rpcApi.HandleProcessingError(log, agentId, "Agent connection not found", findCtx.Err())
 			return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
 		default: // This should never happen, but let's handle a non-ctx error for completeness and future-proofing.
 			span.SetStatus(otelcodes.Error, "Failed")

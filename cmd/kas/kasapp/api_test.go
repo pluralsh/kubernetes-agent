@@ -34,7 +34,7 @@ func TestHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.Equal(t, traceId.String(), event.Tags[modserver.TraceIdSentryField])
+			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
@@ -49,7 +49,7 @@ func TestHandleProcessingError_NonUserError_NoAgentId_NoTraceId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) {
-			assert.NotContains(t, event.Tags, modserver.TraceIdSentryField)
+			assert.NotContains(t, event.Tags, modserver.SentryFieldTraceId)
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)

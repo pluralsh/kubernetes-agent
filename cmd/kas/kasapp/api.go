@@ -149,9 +149,15 @@ func logAndCapture(ctx context.Context, hub SentryHub, transaction string, log *
 			Stacktrace: sentry.ExtractStacktrace(err),
 		},
 	}
-	traceId := trace.SpanContextFromContext(ctx).TraceID()
+	tc := trace.SpanContextFromContext(ctx)
+	traceId := tc.TraceID()
 	if traceId.IsValid() {
-		event.Tags[modserver.TraceIdSentryField] = traceId.String()
+		event.Tags[modserver.SentryFieldTraceId] = traceId.String()
+		sampled := "false"
+		if tc.IsSampled() {
+			sampled = "true"
+		}
+		event.Tags[modserver.SentryFieldTraceSampled] = sampled
 	}
 	event.Transaction = transaction
 	hub.CaptureEvent(event)

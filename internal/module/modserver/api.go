@@ -29,10 +29,11 @@ const (
 	// that is forwarding the request to an agentk.
 	RoutingAgentIdMetadataKey = RoutingHopPrefix + "routing-agent-id"
 
-	// TraceIdSentryField is the name of the Sentry field for trace ID.
-	TraceIdSentryField     = "trace_id"
-	GrpcServiceSentryField = "grpc.service"
-	GrpcMethodSentryField  = "grpc.method"
+	// SentryFieldTraceId is the name of the Sentry field for trace ID.
+	SentryFieldTraceId      = "trace_id"
+	SentryFieldTraceSampled = "trace_sampled"
+	GrpcServiceSentryField  = "grpc.service"
+	GrpcMethodSentryField   = "grpc.method"
 )
 
 // ApplyDefaults is a signature of a public function, exposed by modules to perform defaulting.
