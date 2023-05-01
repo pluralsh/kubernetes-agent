@@ -296,7 +296,7 @@ linters-settings:
 #    template-path:
     # also as alternative of directive 'template' you may put the path to file with the template source
 
-  goimports:
+  #goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
 #    local-prefixes: github.com/org/project

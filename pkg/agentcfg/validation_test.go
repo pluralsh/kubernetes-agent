@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func TestValidation_Valid(t *testing.T) {
