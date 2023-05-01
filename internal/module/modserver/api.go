@@ -2,7 +2,6 @@ package modserver
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
@@ -17,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -101,10 +99,4 @@ type Module interface {
 	Run(context.Context) error
 	// Name returns module's name.
 	Name() string
-}
-
-func RoutingMetadata(agentId int64) metadata.MD {
-	return metadata.MD{
-		RoutingAgentIdMetadataKey: []string{strconv.FormatInt(agentId, 10)},
-	}
 }
