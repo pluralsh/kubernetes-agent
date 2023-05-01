@@ -50,7 +50,7 @@ func (a *serverRpcApi) hubOnce() {
 	a.transaction = a.service + "::" + a.method                            // Like in Gitaly
 	scope.SetFingerprint([]string{"{{ default }}", "grpc", a.transaction}) // use Sentry's default error hash but also split by gRPC transaction
 	if a.traceID.IsValid() {
-		scope.SetTag(modserver.TraceIdSentryField, a.traceID.String())
+		scope.SetTag(modserver.SentryFieldTraceId, a.traceID.String())
 	}
 	a.sentryHub = hub
 }
