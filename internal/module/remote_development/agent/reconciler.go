@@ -8,15 +8,14 @@ import (
 	"io"
 	"net/http"
 
-	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 type MessageType string

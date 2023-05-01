@@ -95,7 +95,7 @@ update-bazel: gazelle
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports -w cmd internal pkg
+	go run github.com/daixiang0/gci@v0.10.1 write cmd internal pkg -s standard -s default
 
 .PHONY: test
 test: fmt update-bazel
