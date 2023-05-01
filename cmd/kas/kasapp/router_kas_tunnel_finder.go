@@ -237,7 +237,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 			}),
 			grpctool.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
 		)
-		switch err {
+		switch err { // nolint:errorlint
 		case nil:
 			// Gateway kas closed the connection cleanly, perhaps it's been open for too long
 			return nil, retry.ContinueImmediately
