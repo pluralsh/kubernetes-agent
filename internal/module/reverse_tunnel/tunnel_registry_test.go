@@ -122,12 +122,18 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	<-reg
-	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	found, th := r.FindTunnel(agentInfo.Id, serviceName, methodName)
+	assert.True(t, found)
+	tun, err := th.Get(context.Background())
 	require.NoError(t, err)
 	tun.Done()
-	tun, err = r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	th.Done()
+	found, th = r.FindTunnel(agentInfo.Id, serviceName, methodName)
+	assert.True(t, found)
+	tun, err = th.Get(context.Background())
 	require.NoError(t, err)
 	tun.Done()
+	th.Done()
 	tl, fl := r.stopInternal()
 	assert.EqualValues(t, 1, tl)
 	assert.Zero(t, fl)
@@ -170,12 +176,15 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	<-reg
-	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	found, th := r.FindTunnel(agentInfo.Id, serviceName, methodName)
+	assert.True(t, found)
+	tun, err := th.Get(context.Background())
 	require.NoError(t, err)
 	tun.Done()
 	assert.PanicsWithError(t, "unreachable: ready -> done should never happen", func() {
 		tun.Done()
 	})
+	th.Done()
 	tl, fl := r.stopInternal()
 	assert.EqualValues(t, 1, tl)
 	assert.Zero(t, fl)
@@ -265,7 +274,9 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	})
 	// wait for both to register
 	regWg.Wait()
-	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	found, th := r.FindTunnel(agentInfo.Id, serviceName, methodName)
+	assert.True(t, found)
+	tun, err := th.Get(context.Background())
 	require.NoError(t, err)
 	// cancel context for the found tunnel
 	switch tun.(*tunnel).tunnel {
@@ -282,6 +293,7 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		return tun.(*tunnel).state == stateContextDone
 	}, time.Second, 10*time.Millisecond)
 	tun.Done()
+	th.Done()
 }
 
 func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
@@ -331,7 +343,10 @@ func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 		assert.NoError(t, r.HandleTunnel(context.Background(), agentInfo, tunnel))
 	})
 	time.Sleep(50 * time.Millisecond)
-	tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+	found, th := r.FindTunnel(agentInfo.Id, serviceName, methodName)
+	defer th.Done()
+	assert.True(t, found)
+	tun, err := th.Get(context.Background())
 	require.NoError(t, err)
 	defer tun.Done()
 	err = tun.ForwardStream(zaptest.NewLogger(t), rpcApi, incomingStream, cb)
@@ -369,8 +384,11 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 	time.Sleep(50 * time.Millisecond)
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel2()
-	_, err = r.FindTunnel(ctx2, agentInfo.Id, "missing_service", "missing_method")
-	assert.Equal(t, context.DeadlineExceeded, err)
+	found, th := r.FindTunnel(agentInfo.Id, "missing_service", "missing_method")
+	defer th.Done()
+	assert.False(t, found)
+	_, err = th.Get(ctx2)
+	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = FindTunnel request aborted: context deadline exceeded")
 }
 
 func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
@@ -385,7 +403,9 @@ func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 		assert.Zero(t, fl)
 	}()
 	wg.Start(func() {
-		tun, err := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
+		_, th := r.FindTunnel(agentInfo.Id, serviceName, methodName)
+		defer th.Done()
+		tun, err := th.Get(context.Background())
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -424,7 +444,10 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 	defer wg.Wait()
 	defer r.Stop()
 	wg.Start(func() {
-		_, findErr := r.FindTunnel(context.Background(), agentInfo.Id, "missing_service", "missing_method")
+		found, th := r.FindTunnel(agentInfo.Id, "missing_service", "missing_method")
+		defer th.Done()
+		assert.False(t, found)
+		_, findErr := th.Get(context.Background())
 		assert.EqualError(t, findErr, "rpc error: code = Unavailable desc = kas is shutting down")
 	})
 	time.Sleep(50 * time.Millisecond)
@@ -444,8 +467,11 @@ func TestFindTunnelIsUnblockedByContext(t *testing.T) {
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
-	_, err = r.FindTunnel(ctxConn, testhelpers.AgentId, serviceName, methodName)
-	assert.Equal(t, context.DeadlineExceeded, err)
+	found, th := r.FindTunnel(testhelpers.AgentId, serviceName, methodName)
+	defer th.Done()
+	assert.False(t, found)
+	_, err = th.Get(ctxConn)
+	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = FindTunnel request aborted: context deadline exceeded")
 }
 
 func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver.MockAgentRpcApi, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {

@@ -29,6 +29,9 @@ const (
 	// that is forwarding the request to an agentk.
 	RoutingAgentIdMetadataKey = RoutingHopPrefix + "routing-agent-id"
 
+	RoutingFeaturePrefix   = RoutingHopPrefix + "feat-"
+	RoutingFeatureNoTunnel = RoutingFeaturePrefix + "no-tun" // TODO remove somewhere in e.g. v16.5
+
 	// SentryFieldTraceId is the name of the Sentry field for trace ID.
 	SentryFieldTraceId      = "trace_id"
 	SentryFieldTraceSampled = "trace_sampled"

@@ -395,6 +395,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	log := zaptest.NewLogger(t)
 	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
+	fh := mock_reverse_tunnel.NewMockFindHandle(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
 	privateApiServerListener := grpctool.NewDialListener()
@@ -410,10 +411,13 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 				<-ctx.Done()
 			}),
 		finder.EXPECT().
-			FindTunnel(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
+			FindTunnel(testhelpers.AgentId, gomock.Any(), gomock.Any()).
+			Return(true, fh),
+		fh.EXPECT().
+			Get(gomock.Any()).
 			Return(tunnel, nil),
-		tunnelForwardStream,
 		tunnel.EXPECT().Done(),
+		fh.EXPECT().Done(),
 	)
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{
