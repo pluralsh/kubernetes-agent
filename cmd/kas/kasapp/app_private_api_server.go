@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"

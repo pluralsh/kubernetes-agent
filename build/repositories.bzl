@@ -1778,6 +1778,13 @@ def go_repositories():
         version = "v1.4.0",
     )
     go_repository(
+        name = "com_github_grpc_ecosystem_go_grpc_middleware_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/grpc-ecosystem/go-grpc-middleware/v2",
+        sum = "h1:3IZOAnD058zZllQTZNBioTlrzrBG/IjpiZ133IEtusM=",
+        version = "v2.0.0-rc.5",
+    )
+    go_repository(
         name = "com_github_grpc_ecosystem_go_grpc_prometheus",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/go-grpc-prometheus",

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/golang-jwt/jwt/v4"
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
