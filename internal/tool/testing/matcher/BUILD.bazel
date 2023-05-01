@@ -4,7 +4,7 @@ go_library(
     name = "matcher",
     testonly = True,
     srcs = ["matchers.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/testing/matcher",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_golang_mock//gomock",

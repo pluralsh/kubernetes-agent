@@ -3,8 +3,8 @@ package rpc
 import (
 	"fmt"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 )
 
 func NewRpcRef(configRef *agentcfg.GitRefCF) *GitRefCF {

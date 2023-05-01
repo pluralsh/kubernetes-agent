@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops"
 )
 
 type module struct {

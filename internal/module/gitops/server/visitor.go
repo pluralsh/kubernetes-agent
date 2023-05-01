@@ -1,7 +1,7 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
 

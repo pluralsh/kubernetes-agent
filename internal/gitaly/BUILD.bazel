@@ -12,7 +12,7 @@ go_library(
         "poller.go",
         "pool.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

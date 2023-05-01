@@ -10,7 +10,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/tool/redistool"
+	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
 )
 
 // MockExpiringHashInterface is a mock of ExpiringHashInterface interface.

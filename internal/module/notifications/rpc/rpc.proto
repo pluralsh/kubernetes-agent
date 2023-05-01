@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.notifications.rpc;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/notifications/rpc";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/rpc";
 
 import "validate/validate.proto";
 

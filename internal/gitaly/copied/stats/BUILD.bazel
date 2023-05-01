@@ -4,7 +4,7 @@ load("//build:build.bzl", "go_custom_test")
 go_library(
     name = "stats",
     srcs = ["reference_discovery.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitaly/copied/stats",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/copied/stats",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitaly/copied/pktline",

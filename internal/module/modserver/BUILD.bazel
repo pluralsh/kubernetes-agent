@@ -18,7 +18,7 @@ go_library(
         "modserver.pb.validate.go",
         "rpc_api.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modserver",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver",
     visibility = [
         "//cmd/kas:__subpackages__",
         "//internal/module/agent_configuration/server:__subpackages__",

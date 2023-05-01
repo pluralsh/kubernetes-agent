@@ -36,9 +36,9 @@ def define_command_targets(
         base_image_arm_race = "@go_debug_image_base_arm//image",
         base_image_arm64_race = "@go_debug_image_base_arm64//image"):
     x_defs = {
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/cmd.BuildTime": "{BUILD_TIME}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.BuildTime": "{BUILD_TIME}",
     }
     go_binary(
         name = name,

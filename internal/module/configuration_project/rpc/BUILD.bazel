@@ -17,7 +17,7 @@ go_library(
         "rpc.pb.validate.go",
         "rpc_grpc.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/configuration_project/rpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/configuration_project/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modserver",

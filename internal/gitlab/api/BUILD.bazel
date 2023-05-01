@@ -26,7 +26,7 @@ go_library(
         "post_agent_configuration.go",
         "send_usage_ping.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

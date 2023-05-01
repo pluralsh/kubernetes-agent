@@ -9,7 +9,7 @@ go_library(
         "rpc_api.go",
         "worker_manager.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/module/modagent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent",
     visibility = [
         "//cmd/agentk:__subpackages__",
         "//internal/module/gitops/agent:__subpackages__",

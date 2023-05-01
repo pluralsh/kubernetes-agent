@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "api",
     srcs = ["types.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/api",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api",
     visibility = ["//:__subpackages__"],
     deps = ["@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb"],
 )

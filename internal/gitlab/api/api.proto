@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.gitlab.api;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v15/internal/gitlab/api";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api";
 
 import "pkg/agentcfg/agentcfg.proto";
 import "validate/validate.proto";
