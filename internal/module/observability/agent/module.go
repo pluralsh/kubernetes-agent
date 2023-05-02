@@ -21,6 +21,8 @@ type module struct {
 	grpcLogLevel        zap.AtomicLevel
 	defaultGrpcLogLevel agentcfg.LogLevelEnum
 	api                 modshared.Api
+	gatherer            prometheus.Gatherer
+	registerer          prometheus.Registerer
 	listener            func() (net.Listener, error)
 	serverName          string
 }
@@ -76,8 +78,8 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 					PrometheusUrlPath:     prometheusUrlPath,
 					LivenessProbeUrlPath:  livenessProbeUrlPath,
 					ReadinessProbeUrlPath: readinessProbeUrlPath,
-					Gatherer:              prometheus.DefaultGatherer,
-					Registerer:            prometheus.DefaultRegisterer,
+					Gatherer:              m.gatherer,
+					Registerer:            m.registerer,
 					ProbeRegistry:         observability.NewProbeRegistry(),
 				}
 

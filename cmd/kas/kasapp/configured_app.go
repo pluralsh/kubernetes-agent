@@ -14,8 +14,9 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/extra/redisprometheus/v9"
 	"github.com/redis/go-redis/v9"
@@ -106,18 +107,22 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return fmt.Errorf("%s environment variable is required so that kas instance is accessible to other kas instances", envVarOwnPrivateApiUrl)
 	}
 	// Metrics
-	// TODO use an independent registry
-	// reg := prometheus.NewPedanticRegistry()
-	registerer := prometheus.DefaultRegisterer
-	gatherer := prometheus.DefaultGatherer
+	reg := prometheus.NewPedanticRegistry()
 	mp := global.MeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	ssh := metric.ServerStatsHandler()
 	csh := metric.ClientStatsHandler()
-	//goCollector := prometheus.NewGoCollector()
-	err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
+	goCollector := collectors.NewGoCollector()
+	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
+	srvProm := grpc_prometheus.NewServerMetrics()
+	clientProm := grpc_prometheus.NewClientMetrics()
+	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm, gitlabBuildInfoGauge())
 	if err != nil {
 		return err
 	}
+	streamProm := srvProm.StreamServerInterceptor()
+	unaryProm := srvProm.UnaryServerInterceptor()
+	streamClientProm := clientProm.StreamClientInterceptor()
+	unaryClientProm := clientProm.UnaryClientInterceptor()
 
 	// Probe Registry
 	probeRegistry := observability.NewProbeRegistry()
@@ -147,7 +152,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Redis
-	redisClient, err := a.constructRedisClient(tp, mp, registerer)
+	redisClient, err := a.constructRedisClient(tp, mp, reg)
 	if err != nil {
 		return err
 	}
@@ -160,19 +165,23 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry) // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry,
+		streamProm, unaryProm) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry) // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry,
+		streamProm, unaryProm) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry) // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory,
+		a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry,
+		streamProm, unaryProm, streamClientProm, unaryClientProm) // nolint: contextcheck
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -211,7 +220,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		privateApiSrv,
 		privateApiSrv.kasPool,
 		pollConfig,
-		registerer)
+		reg)
 	if err != nil {
 		return err
 	}
@@ -223,13 +232,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(csh, tp, p)
+	gitalyClientPool := a.constructGitalyPool(csh, tp, p, streamClientProm, unaryClientProm)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
-			Gatherer: gatherer,
+			Gatherer: reg,
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
@@ -267,7 +276,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Api:              srvApi,
 			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
-			Registerer:       registerer,
+			Registerer:       reg,
 			UsageTracker:     usageTracker,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
@@ -483,7 +492,8 @@ func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, p propagation.TextMapPropagator) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, p propagation.TextMapPropagator,
+	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) *client.Pool {
 	g := a.Configuration.Gitaly
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
@@ -501,13 +511,13 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 				int(g.PerServerApiRateLimit.BucketSize))
 			opts := []grpc.DialOption{
 				grpc.WithChainStreamInterceptor(
-					grpc_prometheus.StreamClientInterceptor,
+					streamClientProm,
 					otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 					grpctool.StreamClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.StreamClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
 				grpc.WithChainUnaryInterceptor(
-					grpc_prometheus.UnaryClientInterceptor,
+					unaryClientProm,
 					otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 					grpctool.UnaryClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.UnaryClientLimitingInterceptor(perServerGitalyRpcLimiter),

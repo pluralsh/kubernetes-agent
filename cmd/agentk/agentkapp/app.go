@@ -13,7 +13,9 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -101,19 +103,34 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
+	// Metrics
+	reg := prometheus.NewPedanticRegistry()
+	goCollector := collectors.NewGoCollector()
+	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
+	srvProm := grpc_prometheus.NewServerMetrics()
+	clientProm := grpc_prometheus.NewClientMetrics()
+	err := metric.Register(reg, goCollector, procCollector, srvProm, clientProm)
+	if err != nil {
+		return err
+	}
+	streamProm := srvProm.StreamServerInterceptor()
+	unaryProm := srvProm.UnaryServerInterceptor()
+	streamClientProm := clientProm.StreamClientInterceptor()
+	unaryClientProm := clientProm.UnaryClientInterceptor()
+
 	// TODO Tracing
 	tp := trace.NewNoopTracerProvider()
 	p := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 
 	// Construct gRPC connection to gitlab-kas
-	kasConn, err := a.constructKasConnection(ctx, tp, p)
+	kasConn, err := a.constructKasConnection(ctx, tp, p, streamClientProm, unaryClientProm)
 	if err != nil {
 		return err
 	}
 	defer errz.SafeClose(kasConn, &retErr)
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(a.Log, tp, p) // nolint: contextcheck
+	internalSrv, err := newInternalServer(a.Log, tp, p, streamProm, unaryProm) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
@@ -149,7 +166,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	})
 
 	// Construct agent modules
-	beforeServersModules, afterServersModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr)
+	beforeServersModules, afterServersModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr, reg)
 	if err != nil {
 		return err
 	}
@@ -213,17 +230,19 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 }
 
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface,
-	k8sFactory util.Factory, lr *leaderRunner) ([]modagent.Module, []modagent.Module, error) {
+	k8sFactory util.Factory, lr *leaderRunner, reg *prometheus.Registry) ([]modagent.Module, []modagent.Module, error) {
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		&observability_agent.Factory{
 			LogLevel:            a.LogLevel,
 			GrpcLogLevel:        a.GrpcLogLevel,
+			DefaultGrpcLogLevel: defaultGrpcLogLevel,
+			Gatherer:            reg,
+			Registerer:          reg,
 			ListenNetwork:       a.ObservabilityListenNetwork,
 			ListenAddress:       a.ObservabilityListenAddress,
 			CertFile:            a.ObservabilityCertFile,
 			KeyFile:             a.ObservabilityKeyFile,
-			DefaultGrpcLogLevel: defaultGrpcLogLevel,
 		},
 		&manifestops.Factory{},
 		&chartops.Factory{},
@@ -268,7 +287,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	return beforeServersModules, afterServersModules, nil
 }
 
-func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator) (*grpc.ClientConn, error) {
+func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator,
+	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
 	tokenData, err := os.ReadFile(a.TokenFile)
 	if err != nil {
 		return nil, fmt.Errorf("token file: %w", err)
@@ -300,12 +320,12 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 			PermitWithoutStream: true,
 		}),
 		grpc.WithChainStreamInterceptor(
-			grpc_prometheus.StreamClientInterceptor,
+			streamClientProm,
 			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
-			grpc_prometheus.UnaryClientInterceptor,
+			unaryClientProm,
 			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),

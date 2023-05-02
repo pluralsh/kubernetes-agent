@@ -8,7 +8,6 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
@@ -45,7 +44,9 @@ type privateApiServer struct {
 
 func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
-	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry) (*privateApiServer, error) {
+	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry,
+	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
+	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*privateApiServer, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -56,14 +57,15 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 	listener := grpctool.NewDialListener()
 
 	// Client pool
-	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost, listenCfg.CaCertificateFile, listener.DialContext)
+	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost,
+		listenCfg.CaCertificateFile, listener.DialContext, streamClientProm, unaryClientProm)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
 	}
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost, streamProm, unaryProm)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
@@ -112,7 +114,8 @@ func (s *privateApiServer) RegisterService(desc *grpc.ServiceDesc, impl interfac
 }
 
 func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory, ownPrivateApiHost string) (*grpc.Server, *grpc.Server, error) {
+	p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory,
+	ownPrivateApiHost string, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*grpc.Server, *grpc.Server, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -132,14 +135,14 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
+			streamProm, // 1. measure all invocations
 			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
 		),
 		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
+			unaryProm, // 1. measure all invocations
 			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
@@ -158,7 +161,8 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 
 func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator,
 	csh stats.Handler, jwtSecret []byte, ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string,
-	dialer func(context.Context, string) (net.Conn, error)) (grpctool.PoolInterface, error) {
+	dialer func(context.Context, string) (net.Conn, error),
+	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (grpctool.PoolInterface, error) {
 
 	sharedPoolOpts := []grpc.DialOption{
 		grpc.WithStatsHandler(csh),
@@ -174,12 +178,12 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 			Insecure: true, // We may or may not have TLS setup, so always say creds don't need TLS.
 		}),
 		grpc.WithChainStreamInterceptor(
-			grpc_prometheus.StreamClientInterceptor,
+			streamClientProm,
 			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
-			grpc_prometheus.UnaryClientInterceptor,
+			unaryClientProm,
 			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),

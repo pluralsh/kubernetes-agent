@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
@@ -16,11 +17,13 @@ import (
 type Factory struct {
 	LogLevel            zap.AtomicLevel
 	GrpcLogLevel        zap.AtomicLevel
+	DefaultGrpcLogLevel agentcfg.LogLevelEnum
+	Gatherer            prometheus.Gatherer
+	Registerer          prometheus.Registerer
 	ListenNetwork       string
 	ListenAddress       string
 	CertFile            string
 	KeyFile             string
-	DefaultGrpcLogLevel agentcfg.LogLevelEnum
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
@@ -44,6 +47,8 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		grpcLogLevel:        f.GrpcLogLevel,
 		defaultGrpcLogLevel: f.DefaultGrpcLogLevel,
 		api:                 config.Api,
+		gatherer:            f.Gatherer,
+		registerer:          f.Registerer,
 		listener:            listener,
 		serverName:          fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.Version, config.AgentMeta.CommitId),
 	}, nil

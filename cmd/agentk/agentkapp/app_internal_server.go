@@ -6,7 +6,6 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -25,7 +24,8 @@ type internalServer struct {
 	listener net.Listener
 }
 
-func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.TextMapPropagator) (*internalServer, error) {
+func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.TextMapPropagator,
+	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*internalServer, error) {
 	// Internal gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
 
@@ -50,13 +50,13 @@ func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.T
 		server: grpc.NewServer(
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.ChainStreamInterceptor(
-				grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
+				streamProm, // 1. measure all invocations
 				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 				modagent.StreamRpcApiInterceptor(factory),                                                      // 3. inject RPC API
 				grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
 			),
 			grpc.ChainUnaryInterceptor(
-				grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
+				unaryProm, // 1. measure all invocations
 				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 				modagent.UnaryRpcApiInterceptor(factory),                                                      // 3. inject RPC API
 				grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
