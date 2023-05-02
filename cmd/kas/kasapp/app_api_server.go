@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -34,7 +33,7 @@ type apiServer struct {
 
 func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
-	probeRegistry *observability.ProbeRegistry) (*apiServer, error) {
+	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*apiServer, error) {
 	listenCfg := cfg.Api.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -55,14 +54,14 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,                                                        // 1. measure all invocations
+			streamProm, // 1. measure all invocations
 			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
 		),
 		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,                                                        // 1. measure all invocations
+			unaryProm, // 1. measure all invocations
 			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
 			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log

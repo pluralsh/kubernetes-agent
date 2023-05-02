@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
@@ -44,7 +43,7 @@ type agentServer struct {
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
-	probeRegistry *observability.ProbeRegistry) (*agentServer, error) {
+	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -67,14 +66,14 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor, // 1. measure all invocations
+			streamProm, // 1. measure all invocations
 			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
 			modserver.StreamAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
 			grpc_validator.StreamServerInterceptor(),                                                                      // x. wrap with validator
 			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor, // 1. measure all invocations
+			unaryProm, // 1. measure all invocations
 			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
 			modserver.UnaryAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
 			grpc_validator.UnaryServerInterceptor(),                                                                      // x. wrap with validator

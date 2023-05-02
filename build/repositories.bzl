@@ -1778,11 +1778,25 @@ def go_repositories():
         version = "v1.4.0",
     )
     go_repository(
+        name = "com_github_grpc_ecosystem_go_grpc_middleware_providers_prometheus",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus",
+        sum = "h1:mdLirNAJBxnGgyB6pjZLcs6ue/6eZGBui6gXspfq4ks=",
+        version = "v1.0.0-rc.0",
+    )
+    go_repository(
+        name = "com_github_grpc_ecosystem_go_grpc_middleware_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/grpc-ecosystem/go-grpc-middleware/v2",
+        sum = "h1:3IZOAnD058zZllQTZNBioTlrzrBG/IjpiZ133IEtusM=",
+        version = "v2.0.0-rc.5",
+    )
+    go_repository(
         name = "com_github_grpc_ecosystem_go_grpc_prometheus",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/go-grpc-prometheus",
-        sum = "h1:tDEI6JHij2b2WFuvCLn6ZFk4WcpH+lWJPrDdIAgeBuQ=",
-        version = "v1.2.1-0.20200507082539-9abf3eb82b4a",
+        sum = "h1:Ovs26xHkKqVztRpIrF/92BcuyuQ/YW4NSIpoGtfXNho=",
+        version = "v1.2.0",
     )
     go_repository(
         name = "com_github_grpc_ecosystem_grpc_gateway",
