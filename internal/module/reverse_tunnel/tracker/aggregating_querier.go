@@ -18,17 +18,17 @@ const (
 	running
 )
 
-// PollKasUrlsByAgentIdCallback is called periodically for each found kas URL for a particular agent id.
-// newCycle is set to true on the first item of a new polling cycle i.e. after poller has slept for the polling interval.
-type PollKasUrlsByAgentIdCallback func(newCycle bool, kasUrl string) bool
+// PollKasUrlsByAgentIdCallback is called periodically with found kas URLs for a particular agent id.
+type PollKasUrlsByAgentIdCallback func(kasUrls []string)
 
 type PollingQuerier interface {
 	PollKasUrlsByAgentId(ctx context.Context, agentId int64, cb PollKasUrlsByAgentIdCallback)
+	CachedKasUrlsByAgentId(agentId int64) []string
 }
 
 type pollConsumer struct {
-	ctxDone   <-chan struct{}
-	pollItems chan<- pollItem
+	ctxDone  <-chan struct{}
+	kasUrlsC chan<- []string
 }
 
 type pollingContext struct {
@@ -45,11 +45,6 @@ func newPollingContext() *pollingContext {
 		consumers: map[*pollConsumer]struct{}{},
 		state:     stopped,
 	}
-}
-
-type pollItem struct {
-	kasUrl   string
-	newCycle bool
 }
 
 func (c *pollingContext) copyConsumersInto(consumers []pollConsumer) []pollConsumer {
@@ -123,38 +118,37 @@ func (q *AggregatingQuerier) runGc() {
 }
 
 func (q *AggregatingQuerier) PollKasUrlsByAgentId(ctx context.Context, agentId int64, cb PollKasUrlsByAgentIdCallback) {
-	pollItems := make(chan pollItem)
+	kasUrlsC := make(chan []string)
 	ctxDone := ctx.Done()
 	h := &pollConsumer{
-		ctxDone:   ctxDone,
-		pollItems: pollItems,
+		ctxDone:  ctxDone,
+		kasUrlsC: kasUrlsC,
 	}
-	kasUrls := q.maybeStartPolling(agentId, h) // nolint: contextcheck
+	q.maybeStartPolling(agentId, h) // nolint: contextcheck
 	defer q.maybeStopPolling(agentId, h)
-	// Send cached URLs.
-	newCycle := true
-	for _, kasUrl := range kasUrls {
-		done := cb(newCycle, kasUrl)
-		if done {
-			return
-		}
-		newCycle = false
-	}
-	// Send URLs from polling.
 	for {
 		select {
 		case <-ctxDone:
 			return
-		case item := <-pollItems:
-			done := cb(item.newCycle, item.kasUrl)
-			if done {
-				return
-			}
+		case kasUrls := <-kasUrlsC:
+			cb(kasUrls)
 		}
 	}
 }
 
-func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *pollConsumer) []string {
+func (q *AggregatingQuerier) CachedKasUrlsByAgentId(agentId int64) []string {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	pc := q.listeners[agentId]
+	if pc == nil { // no existing context
+		return nil
+	}
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	return pc.kasUrls
+}
+
+func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *pollConsumer) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	pc := q.listeners[agentId]
@@ -162,10 +156,10 @@ func (q *AggregatingQuerier) maybeStartPolling(agentId int64, h *pollConsumer) [
 		pc = newPollingContext()
 		q.listeners[agentId] = pc
 	}
-	return q.registerConsumerLocked(agentId, pc, h)
+	q.registerConsumerLocked(agentId, pc, h)
 }
 
-func (q *AggregatingQuerier) registerConsumerLocked(agentId int64, pc *pollingContext, h *pollConsumer) []string {
+func (q *AggregatingQuerier) registerConsumerLocked(agentId int64, pc *pollingContext, h *pollConsumer) {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 	pc.consumers[h] = struct{}{} // register for notifications
@@ -180,7 +174,6 @@ func (q *AggregatingQuerier) registerConsumerLocked(agentId int64, pc *pollingCo
 	default:
 		panic(fmt.Sprintf("invalid state value: %d", pc.state))
 	}
-	return pc.kasUrls
 }
 
 func (q *AggregatingQuerier) maybeStopPolling(agentId int64, h *pollConsumer) {
@@ -210,30 +203,35 @@ func (q *AggregatingQuerier) unregisterConsumerLocked(pc *pollingContext, h *pol
 }
 
 func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollingContext) {
-	// err can only be retry.ErrWaitTimeout
 	var consumers []pollConsumer // reuse slice between polls
+	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		newCycle := true
 		var kasUrls []string
 		err := q.delegate.KasUrlsByAgentId(ctx, agentId, func(kasUrl string) (bool, error) {
 			kasUrls = append(kasUrls, kasUrl)
-			consumers = pc.copyConsumersInto(consumers)
-			for _, h := range consumers {
-				select {
-				case <-h.ctxDone:
-					// This PollKasUrlsByAgentId() invocation is no longer interested in being called. Ignore it.
-				case h.pollItems <- pollItem{kasUrl: kasUrl, newCycle: newCycle}:
-					// Data sent.
-				}
-			}
-			newCycle = false
 			return false, nil
 		})
 		if err != nil {
 			q.api.HandleProcessingError(ctx, q.log, agentId, "KasUrlsByAgentId() failed", err)
 			// fallthrough
 		}
-		pc.setKasUrls(kasUrls)
+		if len(kasUrls) > 0 {
+			consumers = pc.copyConsumersInto(consumers)
+			for _, h := range consumers {
+				select {
+				case <-h.ctxDone:
+					// This PollKasUrlsByAgentId() invocation is no longer interested in being called. Ignore it.
+				case h.kasUrlsC <- kasUrls:
+					// Data sent.
+				}
+			}
+		}
+		if err != nil && len(kasUrls) == 0 {
+			// if there was an error, and we failed to retrieve any kas URLs from Redis, we don't want to erase the
+			// cache. So, no-op here.
+		} else {
+			pc.setKasUrls(kasUrls)
+		}
 		return nil, retry.Continue
 	})
 }

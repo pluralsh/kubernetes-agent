@@ -315,7 +315,9 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	sts := grpc.ServerTransportStreamFromContext(ctx)
 	service, method := grpctool.SplitGrpcMethod(sts.Method())
-	tunnel, err := s.tunnelFinder.FindTunnel(ctx, testhelpers.AgentId, service, method)
+	_, th := s.tunnelFinder.FindTunnel(testhelpers.AgentId, service, method)
+	defer th.Done()
+	tunnel, err := th.Get(ctx)
 	if err != nil {
 		return status.FromContextError(err).Err()
 	}

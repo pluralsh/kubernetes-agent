@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
@@ -40,20 +41,22 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 		rpcApi.EXPECT().
 			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
 	)
-	querier.EXPECT().
-		PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
-			done := cb(true, kasUrlPipe)
-			assert.False(t, done)
-			done = cb(true, kasUrlPipe)
-			assert.False(t, done)
-			wg.Wait()
-			cancel()
-			<-ctx.Done()
-		})
+	gomock.InOrder(
+		querier.EXPECT().
+			CachedKasUrlsByAgentId(testhelpers.AgentId),
+		querier.EXPECT().
+			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+				cb([]string{kasUrlPipe})
+				cb([]string{kasUrlPipe}) // same thing two times
+				wg.Wait()
+				cancel()
+				<-ctx.Done()
+			}),
+	)
 	gomock.InOrder(
 		kasPool.EXPECT().
-			Dial(gomock.Any(), "grpc://pipe").
+			Dial(gomock.Any(), kasUrlPipe).
 			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
@@ -67,7 +70,7 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	assert.Same(t, context.Canceled, err)
 	assert.Len(t, tf.connections, 2)
 	assert.Contains(t, tf.connections, selfAddr)
-	assert.Contains(t, tf.connections, "grpc://pipe")
+	assert.Contains(t, tf.connections, kasUrlPipe)
 }
 
 func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
@@ -89,21 +92,18 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 		rpcApi.EXPECT().
 			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
 	)
-	querier.EXPECT().
-		PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
-			done := cb(true, kasUrlPipe)
-			assert.False(t, done)
-			done = cb(false, "grpc://pipe2")
-			assert.False(t, done)
-			done = cb(true, kasUrlPipe)
-			assert.False(t, done)
-			done = cb(false, "grpc://pipe2")
-			assert.False(t, done)
-			wg.Wait()
-			cancel()
-			<-ctx.Done()
-		})
+	gomock.InOrder(
+		querier.EXPECT().
+			CachedKasUrlsByAgentId(testhelpers.AgentId),
+		querier.EXPECT().
+			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+				cb([]string{kasUrlPipe, "grpc://pipe2"})
+				wg.Wait()
+				cancel()
+				<-ctx.Done()
+			}),
+	)
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe").
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
@@ -136,6 +136,9 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	kasPool := mock_rpc.NewMockPoolInterface(ctrl)
 
+	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	require.NoError(t, err)
+
 	tf := newTunnelFinder(
 		zaptest.NewLogger(t),
 		kasPool,
@@ -146,6 +149,7 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_
 		testhelpers.AgentId,
 		ctx,
 		testhelpers.NewPollConfig(100*time.Millisecond),
+		gatewayKasVisitor,
 	)
 	return tf, querier, rpcApi, kasPool
 }

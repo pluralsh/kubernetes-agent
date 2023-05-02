@@ -2,9 +2,10 @@ package kasapp
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"sync"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
@@ -13,11 +14,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	speculationFactor = 2
+	tryNewKasInterval = 10 * time.Millisecond
 )
 
 var (
@@ -25,6 +27,9 @@ var (
 		ServerStreams: true,
 		ClientStreams: true,
 	}
+
+	// tunnelReadySentinelError is a sentinel error value to make stream visitor exit early.
+	tunnelReadySentinelError = errors.New("")
 )
 
 type kasConnAttempt struct {
@@ -44,18 +49,21 @@ func (t readyTunnel) Done() {
 }
 
 type tunnelFinder struct {
-	log              *zap.Logger
-	kasPool          grpctool.PoolInterface
-	tunnelQuerier    tracker.PollingQuerier
-	rpcApi           modserver.RpcApi
-	fullMethod       string // /service/method
-	ownPrivateApiUrl string
-	agentId          int64
-	outgoingCtx      context.Context
-	pollConfig       retry.PollConfigFactory
-	foundTunnel      chan readyTunnel
-	wg               wait.Group
-	connections      map[string]kasConnAttempt // kas URL -> conn info
+	log               *zap.Logger
+	kasPool           grpctool.PoolInterface
+	tunnelQuerier     tracker.PollingQuerier
+	rpcApi            modserver.RpcApi
+	fullMethod        string // /service/method
+	ownPrivateApiUrl  string
+	agentId           int64
+	outgoingCtx       context.Context
+	pollConfig        retry.PollConfigFactory
+	gatewayKasVisitor *grpctool.StreamVisitor
+	foundTunnel       chan readyTunnel
+	noTunnel          chan struct{}
+	wg                wait.Group
+	connections       map[string]kasConnAttempt // kas URL -> conn info
+	pollCancel        context.CancelFunc
 
 	mu   sync.Mutex // protects done
 	done bool       // successfully done searching
@@ -63,72 +71,124 @@ type tunnelFinder struct {
 
 func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
 	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
-	pollConfig retry.PollConfigFactory) *tunnelFinder {
+	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool.StreamVisitor) *tunnelFinder {
 	return &tunnelFinder{
-		log:              log,
-		kasPool:          kasPool,
-		tunnelQuerier:    tunnelQuerier,
-		rpcApi:           rpcApi,
-		fullMethod:       fullMethod,
-		ownPrivateApiUrl: ownPrivateApiUrl,
-		agentId:          agentId,
-		outgoingCtx:      outgoingCtx,
-		pollConfig:       pollConfig,
-		foundTunnel:      make(chan readyTunnel),
-		connections:      make(map[string]kasConnAttempt),
+		log:               log,
+		kasPool:           kasPool,
+		tunnelQuerier:     tunnelQuerier,
+		rpcApi:            rpcApi,
+		fullMethod:        fullMethod,
+		ownPrivateApiUrl:  ownPrivateApiUrl,
+		agentId:           agentId,
+		outgoingCtx:       outgoingCtx,
+		pollConfig:        pollConfig,
+		gatewayKasVisitor: gatewayKasVisitor,
+		foundTunnel:       make(chan readyTunnel),
+		noTunnel:          make(chan struct{}),
+		connections:       make(map[string]kasConnAttempt),
 	}
 }
 
 func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	defer f.wg.Wait()
-	pollCtx, pollCancel := context.WithCancel(ctx)
-	defer pollCancel()
+	var pollCtx context.Context
+	pollCtx, f.pollCancel = context.WithCancel(ctx)
+	defer f.pollCancel()
 
-	// Unconditionally connect to self.
-	f.tryKasInternal(f.ownPrivateApiUrl, pollCancel) // nolint: contextcheck
+	// Unconditionally connect to self ASAP.
+	f.tryKas(f.ownPrivateApiUrl) // nolint: contextcheck
+	startedPolling := false
+	// This flag is set when we've run out of kas URLs to try. When a new set of URLs is received, if this is set,
+	// we try to connect to one of those URLs.
+	needToTryNewKas := false
 
-	newKasConnections := 0
-	f.tunnelQuerier.PollKasUrlsByAgentId(pollCtx, f.agentId, func(newCycle bool, kasUrl string) bool {
-		if newCycle {
-			newKasConnections = 0
-		}
-		if newKasConnections < speculationFactor {
-			if f.tryKas(kasUrl, pollCancel) {
-				newKasConnections++
+	// Timer is used to wake up the loop below after a certain amount of time has passed but there has been no activity,
+	// in particular, a recently connected to kas didn't reply with noTunnel. If it's not replying, we need to try
+	// another instance if it has been discovered.
+	// If, for some reason, our own private API server doesn't respond with noTunnel/startStreaming in time, we
+	// want to proceed with normal flow too.
+	t := time.NewTimer(tryNewKasInterval)
+	defer t.Stop()
+	kasUrlsC := make(chan []string)
+	kasUrls := f.tunnelQuerier.CachedKasUrlsByAgentId(f.agentId)
+	done := ctx.Done()
+
+	// Timer must have been stopped or has fired when this function is called
+	tryNextKasWhenTimerNotRunning := func() {
+		if f.tryNextKas(kasUrls) {
+			// Connected to an instance.
+			needToTryNewKas = false
+			t = time.NewTimer(tryNewKasInterval)
+		} else {
+			// Couldn't find a kas instance we haven't connected to already.
+			needToTryNewKas = true
+			if !startedPolling {
+				startedPolling = true
+				// No more cached instances, start polling for kas instances.
+				f.wg.Start(func() {
+					pollDone := pollCtx.Done()
+					f.tunnelQuerier.PollKasUrlsByAgentId(pollCtx, f.agentId, func(kasUrls []string) {
+						select {
+						case <-pollDone:
+						case kasUrlsC <- kasUrls:
+						}
+					})
+				})
 			}
 		}
-		return false
-	})
-	select {
-	case <-ctx.Done():
-		f.stopAllConnectionAttempts()
-		return readyTunnel{}, ctx.Err()
-	case rt := <-f.foundTunnel:
-		f.stopAllConnectionAttemptsExcept(rt.kasUrl)
-		return rt, nil
+	}
+
+	for {
+		select {
+		case <-done:
+			f.stopAllConnectionAttempts()
+			return readyTunnel{}, ctx.Err()
+		case <-f.noTunnel:
+			t.Stop()
+			tryNextKasWhenTimerNotRunning()
+		case kasUrls = <-kasUrlsC:
+			if !needToTryNewKas {
+				continue
+			}
+			if f.tryNextKas(kasUrls) {
+				// Connected to a new kas instance.
+				needToTryNewKas = false
+				t.Stop()
+				t = time.NewTimer(tryNewKasInterval)
+			}
+		case <-t.C:
+			tryNextKasWhenTimerNotRunning()
+		case rt := <-f.foundTunnel:
+			f.stopAllConnectionAttemptsExcept(rt.kasUrl)
+			return rt, nil
+		}
 	}
 }
 
-func (f *tunnelFinder) tryKas(kasUrl string, pollCancel context.CancelFunc) bool {
-	if _, ok := f.connections[kasUrl]; ok {
-		return false // skip tunnel via kas that we have connected to already
+func (f *tunnelFinder) tryNextKas(kasUrls []string) bool {
+	for _, kasUrl := range kasUrls {
+		if _, ok := f.connections[kasUrl]; ok {
+			continue // skip tunnel via kas that we have connected to already
+		}
+		f.tryKas(kasUrl)
+		return true
 	}
-	f.tryKasInternal(kasUrl, pollCancel)
-	return true
+	return false
 }
 
-func (f *tunnelFinder) tryKasInternal(kasUrl string, pollCancel context.CancelFunc) {
+func (f *tunnelFinder) tryKas(kasUrl string) {
 	connCtx, connCancel := context.WithCancel(f.outgoingCtx)
 	f.connections[kasUrl] = kasConnAttempt{
 		cancel: connCancel,
 	}
 	f.wg.Start(func() {
-		f.tryKasAsync(connCtx, connCancel, pollCancel, kasUrl)
+		f.tryKasAsync(connCtx, connCancel, kasUrl)
 	})
 }
 
-func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel context.CancelFunc, kasUrl string) {
+func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFunc, kasUrl string) {
 	log := f.log.With(logz.KasUrl(kasUrl)) // nolint:govet
+	noTunnelSent := false
 	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		success := false
@@ -159,18 +219,32 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 		}
 
 		// 3. Wait for the other kas to say it's ready to start streaming i.e. has a suitable tunnel to an agent
-		var kasResponse GatewayKasResponse
-		err = kasStream.RecvMsg(&kasResponse) // Wait for the tunnel to be found
-		if err != nil {
-			if err == io.EOF { // nolint:errorlint
-				// Gateway kas closed the connection cleanly, perhaps it's been open for too long
-				return nil, retry.ContinueImmediately
-			}
+		err = f.gatewayKasVisitor.Visit(kasStream,
+			grpctool.WithCallback(noTunnelFieldNumber, func(noTunnel *GatewayKasResponse_NoTunnel) error {
+				if !noTunnelSent { // send only once
+					noTunnelSent = true
+					// Let Find() know there is no tunnel available from that kas instantaneously.
+					// A tunnel may still be found when a suitable agent connects later, but none available immediately.
+					select {
+					case <-ctx.Done():
+					case f.noTunnel <- struct{}{}:
+					}
+				}
+				return nil
+			}),
+			grpctool.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
+				return tunnelReadySentinelError
+			}),
+			grpctool.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
+		)
+		switch err { // nolint:errorlint
+		case nil:
+			// Gateway kas closed the connection cleanly, perhaps it's been open for too long
+			return nil, retry.ContinueImmediately
+		case tunnelReadySentinelError:
+			// fallthrough
+		default:
 			f.rpcApi.HandleProcessingError(log, f.agentId, "RecvMsg(GatewayKasResponse)", err)
-			return nil, retry.Backoff
-		}
-		if kasResponse.GetTunnelReady() == nil {
-			f.rpcApi.HandleProcessingError(log, f.agentId, "GetTunnelReady()", fmt.Errorf("invalid oneof value type: %T", kasResponse.Msg))
 			return nil, retry.Backoff
 		}
 
@@ -193,7 +267,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel, pollCancel conte
 		}
 		f.done = true
 		f.mu.Unlock()
-		pollCancel()
+		f.pollCancel()
 		rt := readyTunnel{
 			kasUrl:          kasUrl,
 			kasStream:       kasStream,

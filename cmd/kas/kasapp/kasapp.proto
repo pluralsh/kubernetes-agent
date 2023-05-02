@@ -20,6 +20,11 @@ message GatewayKasResponse {
   // Tunnel is ready, can start forwarding stream.
   message TunnelReady {
   }
+
+  // No tunnels available at the moment.
+  message NoTunnel {
+  }
+
   // Headers is a gRPC metadata.
   message Header {
     map<string, prototool.Values> meta = 1;
@@ -44,7 +49,9 @@ message GatewayKasResponse {
 
   oneof msg {
     option (validate.required) = true;
+    option (grpctool.automata.first_allowed_field) = -1;
     option (grpctool.automata.first_allowed_field) = 1;
+    option (grpctool.automata.first_allowed_field) = 6;
 
     TunnelReady tunnel_ready = 1 [
       (grpctool.automata.next_allowed_field) = 2,
@@ -67,6 +74,11 @@ message GatewayKasResponse {
     ];
     Error error = 5 [
       (grpctool.automata.next_allowed_field) = -1,
+      (validate.rules).message.required = true
+    ];
+    NoTunnel no_tunnel = 6 [
+      (grpctool.automata.next_allowed_field) = -1,
+      (grpctool.automata.next_allowed_field) = 1,
       (validate.rules).message.required = true
     ];
   }

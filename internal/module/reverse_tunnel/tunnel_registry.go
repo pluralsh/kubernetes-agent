@@ -31,18 +31,56 @@ type TunnelHandler interface {
 	HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
 }
 
-type TunnelFinder interface {
-	// FindTunnel finds a tunnel to a matching agentk.
+type FindHandle interface {
+	// Get finds a tunnel to an agentk.
 	// It waits for a matching tunnel to proxy a connection through. When a matching tunnel is found, it is returned.
-	// It only returns errors from the context or context.Canceled if the finder is shutting down.
-	// service and method and gRPC service and method that the agent must support.
-	FindTunnel(ctx context.Context, agentId int64, service, method string) (Tunnel, error)
+	// It returns gRPC status errors only, ready to return from RPC handler.
+	Get(ctx context.Context) (Tunnel, error)
+	// Done must be called to free resources of this FindHandle instance.
+	Done()
+}
+
+type TunnelFinder interface {
+	// FindTunnel starts searching for a tunnel to a matching agentk.
+	// Found tunnel is:
+	// - to an agent with provided id.
+	// - supports handling provided gRPC service and method.
+	// Tunnel found boolean indicates whether a suitable tunnel is immediately available from the
+	// returned FindHandle object.
+	FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle)
 }
 
 type findTunnelRequest struct {
 	agentId         int64
 	service, method string
 	retTun          chan<- *tunnel
+}
+
+type findHandle struct {
+	retTun    <-chan *tunnel
+	done      func()
+	gotTunnel bool
+}
+
+func (h *findHandle) Get(ctx context.Context) (Tunnel, error) {
+	select {
+	case <-ctx.Done():
+		return nil, grpctool.StatusErrorFromContext(ctx, "FindTunnel request aborted")
+	case tun := <-h.retTun:
+		h.gotTunnel = true
+		if tun == nil {
+			return nil, status.Error(codes.Unavailable, "kas is shutting down")
+		}
+		return tun, nil
+	}
+}
+
+func (h *findHandle) Done() {
+	if h.gotTunnel {
+		// No cleanup needed if Get returned a tunnel.
+		return
+	}
+	h.done()
 }
 
 type TunnelRegistry struct {
@@ -75,7 +113,7 @@ func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegistere
 	}, nil
 }
 
-func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service, method string) (Tunnel, error) {
+func (r *TunnelRegistry) FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle) {
 	// Buffer 1 to not block on send when a tunnel is found before find request is registered.
 	retTun := make(chan *tunnel, 1) // can receive nil from it if Stop() is called
 	ftr := &findTunnelRequest{
@@ -84,7 +122,8 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 		method:  method,
 		retTun:  retTun,
 	}
-	doIO := func() IOFunc {
+	found := false
+	doIORegister := func() IOFunc {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 
@@ -96,9 +135,9 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 			// Suitable tunnel found!
 			tun.state = stateFound
 			retTun <- tun // must not block because the reception is below
+			found = true
 			return r.unregisterTunnelLocked(tun)
 		}
-
 		// 2. No suitable tunnel found, add to the queue
 		findRequestsForAgentId := r.findRequestsByAgentId[agentId]
 		if findRequestsForAgentId == nil {
@@ -108,29 +147,25 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64, service,
 		findRequestsForAgentId[ftr] = struct{}{}
 		return noIO
 	}()
-	doIO()
-	select {
-	case <-ctx.Done():
-		doIO = func() IOFunc {
-			r.mu.Lock()
-			defer r.mu.Unlock()
-			close(retTun)
-			tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
-			if tun != nil {
-				// Got the tunnel, but it's too late so return it to the registry.
-				return r.onTunnelDoneLocked(tun)
-			} else {
-				r.deleteFindRequest(ftr)
-				return noIO
-			}
-		}()
-		doIO()
-		return nil, ctx.Err()
-	case tun := <-retTun:
-		if tun == nil {
-			return nil, status.Error(codes.Unavailable, "kas is shutting down")
-		}
-		return tun, nil
+	doIORegister()
+	return found, &findHandle{
+		retTun: retTun,
+		done: func() {
+			doIODone := func() IOFunc {
+				r.mu.Lock()
+				defer r.mu.Unlock()
+				close(retTun)
+				tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
+				if tun != nil {
+					// Got the tunnel, but it's too late so return it to the registry.
+					return r.onTunnelDoneLocked(tun)
+				} else {
+					r.deleteFindRequest(ftr)
+					return noIO
+				}
+			}()
+			doIODone()
+		},
 	}
 }
 

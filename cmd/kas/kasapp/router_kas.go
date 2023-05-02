@@ -25,6 +25,7 @@ func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStre
 	if err != nil {
 		return err
 	}
+	md.Set(modserver.RoutingFeatureNoTunnel, "1") // mutating a cloned MD here.
 	rpcApi := modserver.RpcApiFromContext(ctx)
 
 	// 1. find a ready, suitable tunnel
@@ -61,6 +62,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		agentId,
 		metadata.NewOutgoingContext(ctx, md),
 		r.pollConfig,
+		r.gatewayKasVisitor,
 	)
 	findCtx, findCancel := context.WithTimeout(findCtx, r.tunnelFindTimeout)
 	defer findCancel()
