@@ -88,7 +88,24 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 					// Something went wrong in the PipeInboundToOutbound goroutine, exit.
 					return nil
 				}
-				r, err := x.HttpDo(ctx, header, pr)
+
+				var body io.Reader
+				if header.IsRequestWithoutBody() {
+					// NOTE: The golang standard library will add a `Transfer-Encoding: chunked` to the request
+					// for bodies with unknown size - which upgrade requests are,
+					// see https://github.com/golang/go/blob/39ca989b883b913287d282365510a9152a3f80e6/src/net/http/transfer.go#L95
+					// This leads to a zero-sized chunked HTTP body (`0 CR LF CR LF`) during upgrade requests which may
+					// not be consumed by certain HTTP servers before hijacking the connection and switching
+					// to "raw" TCP mode, namely the spdy upgrade logic in the Kubernetes apimachinery pkg (used in CRIs), see
+					// https://github.com/kubernetes/kubernetes/blob/f51dad586ddc1a02b4fcc4e3974092ad78b630a7/staging/src/k8s.io/apimachinery/pkg/util/httpstream/spdy/upgrade.go#LL86C9-L86C9
+					// However, we suspect that there is another bug on the Kubernetes stack to sometimes consumes
+					// these additionally bytes in the body and forwards a correct request to destination (e.g. CRI).
+					// See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/393
+					body = http.NoBody
+				} else {
+					body = pr
+				}
+				r, err := x.HttpDo(ctx, header, body)
 				if err != nil {
 					return err
 				}
@@ -121,11 +138,13 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToOutboundHttpStream,
 	headerC chan<- *HttpRequest_Header, respC <-chan DoResponse, pw *io.PipeWriter) error {
 	var isUpgrade bool
+	var notExpectingBody bool
 	var upgradeConn net.Conn
 	return HttpRequestStreamVisitor.Get().Visit(inbound,
 		WithCallback(HttpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
 			x.logRequest(header)
 			isUpgrade = header.Request.IsUpgrade()
+			notExpectingBody = header.IsRequestWithoutBody()
 			ctx := inbound.Context()
 			select {
 			case <-ctx.Done():
@@ -135,6 +154,9 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 			}
 		}),
 		WithCallback(HttpRequestDataFieldNumber, func(data *HttpRequest_Data) error {
+			if notExpectingBody {
+				return status.Errorf(codes.Internal, "unexpected HttpRequest_Data message received")
+			}
 			_, err := pw.Write(data.Data)
 			return x.maybeHandleIoError("request body write", err)
 		}),

@@ -17,6 +17,12 @@ message HttpRequest {
   message Header {
     prototool.HttpRequest request = 1 [(validate.rules).message.required = true];
     google.protobuf.Any extra = 2;
+    // content_length contains the size of the expected body (if any) in the request.
+    // Possible values are:
+    // * -1:  if the body size cannot be determined, but there is a body (e.g. chunked)
+    // * 0:   there is no body in the request
+    // * > 0: the actual size of the body in bytes
+    optional int64 content_length = 3 [(validate.rules).int64.gte = -1];
   }
   // Subsequent messages of the stream.
   message Data {
