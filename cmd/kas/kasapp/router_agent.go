@@ -88,23 +88,13 @@ type wrappingCallback struct {
 	log    *zap.Logger
 	rpcApi modserver.RpcApi
 	stream grpc.ServerStream
-	// msgResp is an embedded Message response to allocate it only once, not for each message
-	msgResp GatewayKasResponse
-	data    *[]byte
 }
 
 func newWrappingCallback(log *zap.Logger, rpcApi modserver.RpcApi, stream grpc.ServerStream) *wrappingCallback {
-	message := &GatewayKasResponse_Message{}
 	return &wrappingCallback{
 		log:    log,
 		rpcApi: rpcApi,
 		stream: stream,
-		msgResp: GatewayKasResponse{
-			Msg: &GatewayKasResponse_Message_{
-				Message: message,
-			},
-		},
-		data: &message.Data,
 	}
 }
 
@@ -119,8 +109,13 @@ func (c *wrappingCallback) Header(md map[string]*prototool.Values) error {
 }
 
 func (c *wrappingCallback) Message(data []byte) error {
-	*c.data = data
-	return c.sendMsg("SendMsg(GatewayKasResponse_Message) failed", &c.msgResp)
+	return c.sendMsg("SendMsg(GatewayKasResponse_Message) failed", &GatewayKasResponse{
+		Msg: &GatewayKasResponse_Message_{
+			Message: &GatewayKasResponse_Message{
+				Data: data,
+			},
+		},
+	})
 }
 
 func (c *wrappingCallback) Trailer(md map[string]*prototool.Values) error {
