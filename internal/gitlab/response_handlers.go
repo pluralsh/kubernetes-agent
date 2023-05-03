@@ -39,7 +39,7 @@ func NakedResponseHandler(response **http.Response) ResponseHandler {
 func JsonResponseHandler(response interface{}) ResponseHandler {
 	return ResponseHandlerStruct{
 		AcceptHeader: "application/json",
-		HandleFunc: handleOkResponse(func(body []byte) error {
+		HandleFunc: handleOkResponse(func(body []byte) error { // nolint:bodyclose
 			if err := json.Unmarshal(body, response); err != nil {
 				return fmt.Errorf("json.Unmarshal: %w", err)
 			}
@@ -51,7 +51,7 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 func ProtoJsonResponseHandler(response ValidatableMessage) ResponseHandler {
 	return ResponseHandlerStruct{
 		AcceptHeader: "application/json",
-		HandleFunc: handleOkResponse(func(body []byte) error {
+		HandleFunc: handleOkResponse(func(body []byte) error { // nolint:bodyclose
 			err := protojson.UnmarshalOptions{
 				DiscardUnknown: true,
 			}.Unmarshal(body, response)

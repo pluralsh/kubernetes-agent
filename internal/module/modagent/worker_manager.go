@@ -57,7 +57,7 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 	sources := m.workerFactory.SourcesFromConfiguration(cfg)
 	newSetOfSources := make(map[string]struct{}, len(sources))
 	var sourcesToStartWorkersFor []WorkSource[C]
-	var workersToStop []*workerHolder[C] //nolint:prealloc
+	var workersToStop []*workerHolder[C] // nolint:prealloc
 
 	// Collect sources without workers or with updated configuration.
 	for _, source := range sources {

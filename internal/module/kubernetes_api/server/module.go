@@ -22,7 +22,7 @@ func (m *module) Run(ctx context.Context) error {
 	}
 	// Error is ignored because kubernetesApiProxy.Run() closes the listener and
 	// a second close always produces an error.
-	defer lis.Close() // nolint:errcheck
+	defer lis.Close() // nolint:errcheck,gosec
 
 	m.log.Info("Kubernetes API endpoint is up",
 		logz.NetNetworkFromAddr(lis.Addr()),

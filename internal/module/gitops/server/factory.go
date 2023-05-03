@@ -31,10 +31,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s, err := newServerFromConfig(config, config.RedisClient, config.Api)
-	if err != nil {
-		return nil, err
-	}
+	s := newServerFromConfig(config, config.RedisClient, config.Api)
 	rpc.RegisterGitopsServer(config.AgentServer, s)
 	return &module{}, nil
 }
@@ -47,7 +44,7 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) (*server, error) {
+func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) *server {
 	gitops := config.Config.Agent.Gitops
 	return &server{
 		serverApi:  serverApi,
@@ -87,5 +84,5 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
 		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
 		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
-	}, nil
+	}
 }

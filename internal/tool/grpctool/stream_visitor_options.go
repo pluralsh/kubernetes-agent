@@ -81,7 +81,7 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 			return nil
 		}
 		var goField interface{}
-		switch field.Kind() { //nolint:exhaustive
+		switch field.Kind() { // nolint:exhaustive
 		case protoreflect.MessageKind:
 			goField = c.reflectMessage.Get(field).Message().Interface()
 		case protoreflect.EnumKind:

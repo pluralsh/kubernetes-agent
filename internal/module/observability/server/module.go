@@ -30,7 +30,7 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 	}
 	// Error is ignored because metricSrv.Run() closes the listener and
 	// a second close always produces an error.
-	defer lis.Close() // nolint:errcheck
+	defer lis.Close() // nolint:errcheck,gosec
 
 	m.log.Info("Observability endpoint is up",
 		logz.NetNetworkFromAddr(lis.Addr()),

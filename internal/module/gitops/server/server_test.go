@@ -680,7 +680,7 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	ApplyDefaults(config)
 	config.Agent.Gitops.ProjectInfoCacheTtl = durationpb.New(0)
 	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
-	s, err := newServerFromConfig(&modserver.Config{
+	s := newServerFromConfig(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Config:       config,
 		GitLabClient: mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
@@ -688,7 +688,6 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 		UsageTracker: usageTracker,
 		Gitaly:       gitalyPool,
 	}, client, mockApi)
-	require.NoError(t, err)
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }
 

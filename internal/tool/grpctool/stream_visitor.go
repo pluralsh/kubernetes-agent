@@ -110,7 +110,7 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 		} else { // a field callback
 			cb = cfg.fieldCallbacks[newState]
 			value := msgRefl.Get(field)
-			switch field.Kind() { //nolint:exhaustive
+			switch field.Kind() { // nolint:exhaustive
 			case protoreflect.MessageKind:
 				param = reflect.ValueOf(value.Message().Interface())
 			case protoreflect.EnumKind:
