@@ -111,7 +111,7 @@ verify:
     - make verify-ci
 
 lint:
-  image: golangci/golangci-lint:v1.46.0-alpine
+  image: golangci/golangci-lint:v1.52.2-alpine
   stage: test
   script:
     # Write the code coverage report to gl-code-quality-report.json

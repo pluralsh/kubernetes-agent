@@ -115,7 +115,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 
 	// Timer must have been stopped or has fired when this function is called
 	tryNextKasWhenTimerNotRunning := func() {
-		if f.tryNextKas(kasUrls) {
+		if f.tryNextKas(kasUrls) { // nolint: contextcheck
 			// Connected to an instance.
 			needToTryNewKas = false
 			t = time.NewTimer(tryNewKasInterval)
@@ -150,7 +150,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 			if !needToTryNewKas {
 				continue
 			}
-			if f.tryNextKas(kasUrls) {
+			if f.tryNextKas(kasUrls) { // nolint: contextcheck
 				// Connected to a new kas instance.
 				needToTryNewKas = false
 				t.Stop()

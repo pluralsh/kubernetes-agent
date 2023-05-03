@@ -165,23 +165,23 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry,
-		streamProm, unaryProm) // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry, // nolint: contextcheck
+		streamProm, unaryProm)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry,
-		streamProm, unaryProm) // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
+		streamProm, unaryProm)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory,
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
 		a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry,
-		streamProm, unaryProm, streamClientProm, unaryClientProm) // nolint: contextcheck
+		streamProm, unaryProm, streamClientProm, unaryClientProm)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -614,6 +614,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 
 	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	// Enable metrics instrumentation.
+	_ = mp
 	//if err = redisotel.InstrumentMetrics(client, redisotel.WithMeterProvider(mp)); err != nil {
 	//	return nil, err
 	//}
