@@ -4281,22 +4281,22 @@ var _ interface {
 	ErrorName() string
 } = UserAccessAsUserCFValidationError{}
 
-// Validate checks the field values on StarboardCF with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *StarboardCF) Validate() error {
+// Validate checks the field values on ContainerScanningCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ContainerScanningCF) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on StarboardCF with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in StarboardCFMultiError, or
-// nil if none found.
-func (m *StarboardCF) ValidateAll() error {
+// ValidateAll checks the field values on ContainerScanningCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ContainerScanningCFMultiError, or nil if none found.
+func (m *ContainerScanningCF) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *StarboardCF) validate(all bool) error {
+func (m *ContainerScanningCF) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -4307,7 +4307,7 @@ func (m *StarboardCF) validate(all bool) error {
 		switch v := interface{}(m.GetVulnerabilityReport()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, StarboardCFValidationError{
+				errors = append(errors, ContainerScanningCFValidationError{
 					field:  "VulnerabilityReport",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -4315,7 +4315,7 @@ func (m *StarboardCF) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, StarboardCFValidationError{
+				errors = append(errors, ContainerScanningCFValidationError{
 					field:  "VulnerabilityReport",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -4324,7 +4324,7 @@ func (m *StarboardCF) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetVulnerabilityReport()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return StarboardCFValidationError{
+			return ContainerScanningCFValidationError{
 				field:  "VulnerabilityReport",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -4333,7 +4333,7 @@ func (m *StarboardCF) validate(all bool) error {
 	}
 
 	if len(m.GetCadence()) < 1 {
-		err := StarboardCFValidationError{
+		err := ContainerScanningCFValidationError{
 			field:  "Cadence",
 			reason: "value length must be at least 1 bytes",
 		}
@@ -4344,18 +4344,19 @@ func (m *StarboardCF) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return StarboardCFMultiError(errors)
+		return ContainerScanningCFMultiError(errors)
 	}
 
 	return nil
 }
 
-// StarboardCFMultiError is an error wrapping multiple validation errors
-// returned by StarboardCF.ValidateAll() if the designated constraints aren't met.
-type StarboardCFMultiError []error
+// ContainerScanningCFMultiError is an error wrapping multiple validation
+// errors returned by ContainerScanningCF.ValidateAll() if the designated
+// constraints aren't met.
+type ContainerScanningCFMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m StarboardCFMultiError) Error() string {
+func (m ContainerScanningCFMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -4364,11 +4365,11 @@ func (m StarboardCFMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m StarboardCFMultiError) AllErrors() []error { return m }
+func (m ContainerScanningCFMultiError) AllErrors() []error { return m }
 
-// StarboardCFValidationError is the validation error returned by
-// StarboardCF.Validate if the designated constraints aren't met.
-type StarboardCFValidationError struct {
+// ContainerScanningCFValidationError is the validation error returned by
+// ContainerScanningCF.Validate if the designated constraints aren't met.
+type ContainerScanningCFValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -4376,22 +4377,24 @@ type StarboardCFValidationError struct {
 }
 
 // Field function returns field value.
-func (e StarboardCFValidationError) Field() string { return e.field }
+func (e ContainerScanningCFValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e StarboardCFValidationError) Reason() string { return e.reason }
+func (e ContainerScanningCFValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e StarboardCFValidationError) Cause() error { return e.cause }
+func (e ContainerScanningCFValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e StarboardCFValidationError) Key() bool { return e.key }
+func (e ContainerScanningCFValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e StarboardCFValidationError) ErrorName() string { return "StarboardCFValidationError" }
+func (e ContainerScanningCFValidationError) ErrorName() string {
+	return "ContainerScanningCFValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e StarboardCFValidationError) Error() string {
+func (e ContainerScanningCFValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -4403,14 +4406,14 @@ func (e StarboardCFValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sStarboardCF.%s: %s%s",
+		"invalid %sContainerScanningCF.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = StarboardCFValidationError{}
+var _ error = ContainerScanningCFValidationError{}
 
 var _ interface {
 	Field() string
@@ -4418,7 +4421,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = StarboardCFValidationError{}
+} = ContainerScanningCFValidationError{}
 
 // Validate checks the field values on VulnerabilityReport with the rules
 // defined in the proto definition for this message. If any rules are
@@ -4556,22 +4559,22 @@ var _ interface {
 	ErrorName() string
 } = VulnerabilityReportValidationError{}
 
-// Validate checks the field values on StarboardFilter with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *StarboardFilter) Validate() error {
+// Validate checks the field values on ContainerScanningFilter with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ContainerScanningFilter) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on StarboardFilter with the rules
-// defined in the proto definition for this message. If any rules are
+// ValidateAll checks the field values on ContainerScanningFilter with the
+// rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// StarboardFilterMultiError, or nil if none found.
-func (m *StarboardFilter) ValidateAll() error {
+// ContainerScanningFilterMultiError, or nil if none found.
+func (m *ContainerScanningFilter) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *StarboardFilter) validate(all bool) error {
+func (m *ContainerScanningFilter) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -4579,19 +4582,19 @@ func (m *StarboardFilter) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return StarboardFilterMultiError(errors)
+		return ContainerScanningFilterMultiError(errors)
 	}
 
 	return nil
 }
 
-// StarboardFilterMultiError is an error wrapping multiple validation errors
-// returned by StarboardFilter.ValidateAll() if the designated constraints
-// aren't met.
-type StarboardFilterMultiError []error
+// ContainerScanningFilterMultiError is an error wrapping multiple validation
+// errors returned by ContainerScanningFilter.ValidateAll() if the designated
+// constraints aren't met.
+type ContainerScanningFilterMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m StarboardFilterMultiError) Error() string {
+func (m ContainerScanningFilterMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -4600,11 +4603,11 @@ func (m StarboardFilterMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m StarboardFilterMultiError) AllErrors() []error { return m }
+func (m ContainerScanningFilterMultiError) AllErrors() []error { return m }
 
-// StarboardFilterValidationError is the validation error returned by
-// StarboardFilter.Validate if the designated constraints aren't met.
-type StarboardFilterValidationError struct {
+// ContainerScanningFilterValidationError is the validation error returned by
+// ContainerScanningFilter.Validate if the designated constraints aren't met.
+type ContainerScanningFilterValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -4612,22 +4615,24 @@ type StarboardFilterValidationError struct {
 }
 
 // Field function returns field value.
-func (e StarboardFilterValidationError) Field() string { return e.field }
+func (e ContainerScanningFilterValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e StarboardFilterValidationError) Reason() string { return e.reason }
+func (e ContainerScanningFilterValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e StarboardFilterValidationError) Cause() error { return e.cause }
+func (e ContainerScanningFilterValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e StarboardFilterValidationError) Key() bool { return e.key }
+func (e ContainerScanningFilterValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e StarboardFilterValidationError) ErrorName() string { return "StarboardFilterValidationError" }
+func (e ContainerScanningFilterValidationError) ErrorName() string {
+	return "ContainerScanningFilterValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e StarboardFilterValidationError) Error() string {
+func (e ContainerScanningFilterValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -4639,14 +4644,14 @@ func (e StarboardFilterValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sStarboardFilter.%s: %s%s",
+		"invalid %sContainerScanningFilter.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = StarboardFilterValidationError{}
+var _ error = ContainerScanningFilterValidationError{}
 
 var _ interface {
 	Field() string
@@ -4654,7 +4659,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = StarboardFilterValidationError{}
+} = ContainerScanningFilterValidationError{}
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -4759,35 +4764,6 @@ func (m *ConfigurationFile) validate(all bool) error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "CiAccess",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if all {
-		switch v := interface{}(m.GetStarboard()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Starboard",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Starboard",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetStarboard()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
-				field:  "Starboard",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -5075,11 +5051,11 @@ func (m *AgentConfiguration) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetStarboard()).(type) {
+		switch v := interface{}(m.GetContainerScanning()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, AgentConfigurationValidationError{
-					field:  "Starboard",
+					field:  "ContainerScanning",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -5087,16 +5063,16 @@ func (m *AgentConfiguration) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, AgentConfigurationValidationError{
-					field:  "Starboard",
+					field:  "ContainerScanning",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetStarboard()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetContainerScanning()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return AgentConfigurationValidationError{
-				field:  "Starboard",
+				field:  "ContainerScanning",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

@@ -133,19 +133,11 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			ProjectId:         agentInfo.ProjectId,
 			ProjectPath:       agentInfo.Repository.GlProjectPath,
 			CiAccess:          configFile.CiAccess,
-			Starboard:         s.fetchContainerScanningConfiguration(configFile),
+			ContainerScanning: configFile.ContainerScanning,
 			RemoteDevelopment: configFile.RemoteDevelopment,
 		},
 		CommitId: commitId,
 	})
-}
-
-func (s *server) fetchContainerScanningConfiguration(configFile *agentcfg.ConfigurationFile) *agentcfg.StarboardCF {
-	if configFile.ContainerScanning == nil {
-		return configFile.Starboard
-	}
-
-	return configFile.ContainerScanning
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
