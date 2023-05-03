@@ -26,7 +26,7 @@ const (
 	backoffFactor = 2.0
 	jitter        = 1.0
 
-	agentIdLabelSelector = "remotedevelopment.gitlab/agent-id"
+	agentIdLabelSelector = "agent.gitlab.com/id"
 	resyncDuration       = 5 * time.Minute
 )
 
@@ -83,16 +83,16 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			}
 
 			r := &reconciler{
-				log:               config.Log,
-				agentId:           agentId,
-				api:               config.Api,
-				pollConfig:        pollFactory,
-				pollFunction:      retry.PollWithBackoff,
-				stateTracker:      newPersistedStateTracker(),
-				terminatedTracker: newPersistedTerminatedWorkspacesTracker(),
-				informer:          inf,
-				k8sClient:         k8sClient,
-				config:            cfg,
+				log:                config.Log,
+				agentId:            agentId,
+				api:                config.Api,
+				pollConfig:         pollFactory,
+				pollFunction:       retry.PollWithBackoff,
+				stateTracker:       newPersistedStateTracker(),
+				terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
+				informer:           inf,
+				k8sClient:          k8sClient,
+				config:             cfg,
 			}
 
 			err = r.informer.Start(ctx)

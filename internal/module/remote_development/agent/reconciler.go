@@ -20,35 +20,41 @@ import (
 
 type MessageType string
 type WorkspaceUpdateType string
+type TerminationProgress string
 
 const (
-	MessageTypeWorkspaceUpdates MessageType = "workspace_updates"
-
 	WorkspaceUpdateTypePartial WorkspaceUpdateType = "partial"
 	WorkspaceUpdateTypeFull    WorkspaceUpdateType = "full"
 
-	WorkspaceStateTerminated string = "Terminated"
+	WorkspaceStateTerminated       string              = "Terminated"
+	TerminationProgressTerminating TerminationProgress = "Terminating"
+	TerminationProgressTerminated  TerminationProgress = "Terminated"
 )
 
 // reconciler is equipped to and responsible for carrying
 // one cycle of reconciliation when reconciler.Run() is invoked
 type reconciler struct {
-	log               *zap.Logger
-	agentId           int64
-	api               modagent.Api
-	pollConfig        retry.PollConfigFactory
-	pollFunction      func(ctx context.Context, cfg retry.PollConfig, f retry.PollWithBackoffCtxFunc) error
-	stateTracker      *persistedStateTracker
-	terminatedTracker persistedTerminatedWorkspacesTracker
-	informer          informer
-	k8sClient         k8s.Client
-	config            *agentcfg.RemoteCF
+	log          *zap.Logger
+	agentId      int64
+	api          modagent.Api
+	pollConfig   retry.PollConfigFactory
+	pollFunction func(ctx context.Context, cfg retry.PollConfig, f retry.PollWithBackoffCtxFunc) error
+	stateTracker *persistedStateTracker
+	informer     informer
+	k8sClient    k8s.Client
+	config       *agentcfg.RemoteCF
 
 	// This is used to determine whether the reconciliation cycle corresponds to
 	// a full or partial sync. When a reconciler runs for the first time, this will be false
 	// indicating a full sync. After the full sync successfully completes, this will be
 	// indicating partial sync for subsequent cycles for the same reconciler
 	hasFullSyncRunBefore bool
+
+	// terminatingTracker tracks all workspaces for whom termination has been initiated but
+	// still exist in the cluster and therefore considered "Terminating". These workspaces are
+	// removed from the tracker once they are removed from the cluster and their Terminated
+	// status is persisted in Rails
+	terminatingTracker persistedTerminatingWorkspacesTracker
 }
 
 // TODO: revisit all request and response types, and make more strongly typed if possible
@@ -58,11 +64,10 @@ type WorkspaceAgentInfo struct {
 	Name                    string                 `json:"name"`
 	Namespace               string                 `json:"namespace,omitempty"`
 	LatestK8sDeploymentInfo map[string]interface{} `json:"latest_k8s_deployment_info,omitempty"`
-	Terminated              bool                   `json:"terminated,omitempty"`
+	TerminationProgress     TerminationProgress    `json:"termination_progress,omitempty"`
 }
 
 type RequestPayload struct {
-	MessageType         MessageType          `json:"message_type"`
 	UpdateType          WorkspaceUpdateType  `json:"update_type"`
 	WorkspaceAgentInfos []WorkspaceAgentInfo `json:"workspace_agent_infos"`
 }
@@ -86,10 +91,7 @@ func (r *reconciler) Run(ctx context.Context) error {
 
 	// Load and the info on the workspaces from the informer. Skip it if the persisted state in
 	// rails is already up-to-date for the workspace
-	workspaceAgentInfos, err := r.generateWorkspaceAgentInfos()
-	if err != nil {
-		return err
-	}
+	workspaceAgentInfos := r.generateWorkspaceAgentInfos()
 
 	updateType := WorkspaceUpdateTypePartial
 	if !r.hasFullSyncRunBefore {
@@ -156,25 +158,28 @@ func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsIn
 	return nil
 }
 
-func (r *reconciler) generateWorkspaceAgentInfos() ([]WorkspaceAgentInfo, error) {
+func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
 	parsedWorkspaces := r.informer.List()
-	// "workspaceAgentInfos" is constructed by looping over "parsedWorkspaces" and "terminatedTracker".
+	// "workspaceAgentInfos" is constructed by looping over "parsedWorkspaces" and "terminatingTracker".
 	// It can remain a nil slice because GitLab already has the latest version of all workspaces,
 	// However, we want it to be an empty(0-length) slice. Hence, initializing it.
 	// TODO: add a test case - https://gitlab.com/gitlab-org/gitlab/-/issues/407554
 	workspaceAgentInfos := make([]WorkspaceAgentInfo, 0)
 
+	// nonTerminatedWorkspaces is a set of all workspaces in the cluster returned by the informer
+	// it is compared with the workspaces in the terminatingTracker (considered "Terminating") to determine
+	// which works have been removed from the cluster and can be deemed "Terminated"
+	nonTerminatedWorkspaces := make(map[string]struct{})
+
 	for _, workspace := range parsedWorkspaces {
+		// any workspace returned by the informer is deemed as having not been terminated irrespective of its status
+		// workspaces that have been terminated completely will be absent from this set
+		nonTerminatedWorkspaces[workspace.Name] = struct{}{}
+
 		// if Rails already knows about the latest version of the resource, don't send the info again
 		if r.stateTracker.isPersisted(workspace.Name, workspace.ResourceVersion) {
 			r.log.Debug("Skipping sending workspace info. GitLab already has the latest version", logz.WorkspaceName(workspace.Name))
 			continue
-		}
-
-		if r.terminatedTracker.isTerminated(workspace.Name) {
-			// TODO: Instead of returning an error and skipping the rest of the informer items, this should instead be returned in the `Error` field of the WorkspaceAgentInfo
-			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/397001
-			return nil, fmt.Errorf("invalid state for workspace, workspace exists in terminatedTracker but still exists in informer: %s", workspace.Name)
 		}
 
 		workspaceAgentInfos = append(workspaceAgentInfos, WorkspaceAgentInfo{
@@ -184,19 +189,31 @@ func (r *reconciler) generateWorkspaceAgentInfos() ([]WorkspaceAgentInfo, error)
 		})
 	}
 
-	// Add any already-deleted workspaces that are in the persistedTerminatedWorkspacesTracker
-	// In this case we send a minimal WorkspaceAgentInfo with only the name and Terminated = true
-	// TODO encapsulate this functionality so we don't have to expose the map which is a detail of terminated tracker implementation
-	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/402758
-	for terminatedWorkspaceName := range r.terminatedTracker {
-		r.log.Debug("Sending workspace info for already-terminated workspace", logz.WorkspaceName(terminatedWorkspaceName))
+	// For each workspace that has been scheduled for termination, check if it exists in the cluster
+	// If it is missing from the cluster, it can be considered as Terminated otherwise Terminating
+	//
+	// TODO this implementation will repeatedly send workspaces that have to be completely removed from the
+	//	cluster and are still considered Terminating. This may need to be optimized in case it becomes an issue
+	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/408844
+	for workspaceName := range r.terminatingTracker {
+		_, existsInCluster := nonTerminatedWorkspaces[workspaceName]
+
+		terminationProgress := TerminationProgressTerminating
+		if !existsInCluster {
+			terminationProgress = TerminationProgressTerminated
+		}
+
+		r.log.Debug("Sending termination progress workspace info workspace",
+			logz.WorkspaceName(workspaceName),
+			logz.WorkspaceTerminationProgress(string(terminationProgress)),
+		)
 		workspaceAgentInfos = append(workspaceAgentInfos, WorkspaceAgentInfo{
-			Name:       terminatedWorkspaceName,
-			Terminated: true,
+			Name:                workspaceName,
+			TerminationProgress: terminationProgress,
 		})
 	}
 
-	return workspaceAgentInfos, nil
+	return workspaceAgentInfos
 }
 
 func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
@@ -207,12 +224,11 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 	// Do the POST request to the Rails API
 	r.log.Debug("Making GitLab request")
 	var requestPayload = RequestPayload{
-		MessageType:         MessageTypeWorkspaceUpdates,
 		UpdateType:          updateType,
 		WorkspaceAgentInfos: workspaceAgentInfos,
 	}
 	// below code is from internal/module/starboard_vulnerability/agent/reporter.go
-	resp, err := r.api.MakeGitLabRequest(ctx, "/",
+	resp, err := r.api.MakeGitLabRequest(ctx, "/reconcile",
 		modagent.WithRequestMethod(http.MethodPost),
 		modagent.WithJsonRequestBody(requestPayload),
 	) // nolint: govet
@@ -242,26 +258,25 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 }
 
 func (r *reconciler) handleDesiredStateIsTerminated(ctx context.Context, name string, namespace string, actualState string) error {
-	if r.terminatedTracker.isTerminated(name) && actualState == WorkspaceStateTerminated {
-		r.log.Debug("ActualState=Terminated, so deleting it from persistedTerminatedWorkspacesTracker", logz.WorkspaceNamespace(namespace))
-		r.terminatedTracker.delete(name)
+	if r.terminatingTracker.isTerminating(name) && actualState == WorkspaceStateTerminated {
+		r.log.Debug("ActualState=Terminated, so deleting it from persistedTerminatingWorkspacesTracker", logz.WorkspaceNamespace(namespace))
+		r.terminatingTracker.delete(name)
 		r.stateTracker.delete(name)
 		return nil
 	}
 
-	if r.k8sClient.NamespaceExists(ctx, namespace) {
-		r.log.Debug("Namespace for terminated workspace still exists, so deleting the namespace", logz.WorkspaceNamespace(namespace))
-		err := r.k8sClient.DeleteNamespace(ctx, namespace)
-		if err != nil {
-			return fmt.Errorf("failed to terminate workspace by deleting namespace: %w", err)
-		}
-		// TODO: Rails no longer will continue to request termination of a workspace which has already been requested for termination
-		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/406565
+	if !r.k8sClient.NamespaceExists(ctx, namespace) {
+		// nothing to as the workspace has already absent from the cluster
 		return nil
 	}
 
-	r.log.Debug("Namespace no longer exists, sending Actual State as terminated", logz.WorkspaceName(name))
-	r.terminatedTracker.add(name)
+	r.log.Debug("Namespace for terminated workspace still exists, so deleting the namespace", logz.WorkspaceNamespace(namespace))
+	err := r.k8sClient.DeleteNamespace(ctx, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to terminate workspace by deleting namespace: %w", err)
+	}
+
+	r.terminatingTracker.add(name)
 
 	return nil
 }

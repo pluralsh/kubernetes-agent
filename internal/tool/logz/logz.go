@@ -171,6 +171,10 @@ func WorkspaceNamespace(namespace string) zap.Field {
 	return zap.String("workspace_namespace", namespace)
 }
 
+func WorkspaceTerminationProgress(status string) zap.Field {
+	return zap.String("workspace_termination_progress", status)
+}
+
 func StatusCode(code int32) zap.Field {
 	return zap.Int32("status_code", code)
 }
