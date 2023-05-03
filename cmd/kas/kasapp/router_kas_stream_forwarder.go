@@ -80,8 +80,8 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 // pipeFromStreamToKas pipes data kasStream -> stream
 // must return gRPC status compatible error or nil.
 func (f *kasStreamForwarder) pipeFromStreamToKas(kasStream grpc.ClientStream, stream grpc.ServerStream) error {
-	var frame grpctool.RawFrame
 	for {
+		var frame grpctool.RawFrame
 		err := stream.RecvMsg(&frame)
 		if err != nil {
 			if err == io.EOF { // nolint:errorlint
