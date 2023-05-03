@@ -62,7 +62,6 @@ func extractEventFields(event *unstructured.Unstructured) []zap.Field {
 }
 
 func (i *k8sInformer) Start(ctx context.Context) error {
-
 	i.backgroundTask = newStoppableTask(ctx, func(ctx context.Context) {
 		i.informer.Run(ctx.Done())
 	})

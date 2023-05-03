@@ -10,7 +10,7 @@ go_library(
         "mock_informer.go",
         "module.go",
         "persisted_state.go",
-        "persisted_terminated_workspaces.go",
+        "persisted_terminating_workspaces.go",
         "reconciler.go",
         "task.go",
         "worker.go",
