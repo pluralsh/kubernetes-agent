@@ -50,8 +50,13 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 	_ = retry.PollWithBackoff(ctx, o.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
-		req.CommitId = lastProcessedCommitId
-		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req)
+		// Send a new message each time rather than mutate req.
+		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, &ObjectsToSynchronizeRequest{
+			ProjectId: req.ProjectId,
+			Ref:       req.Ref,
+			CommitId:  lastProcessedCommitId,
+			Paths:     req.Paths,
+		})
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {
 				o.Log.Error("GetObjectsToSynchronize failed", logz.Error(err))

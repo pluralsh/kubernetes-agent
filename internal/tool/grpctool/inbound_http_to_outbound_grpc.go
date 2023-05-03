@@ -226,17 +226,16 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 func (x *InboundHttpToOutboundGrpc) sendRequestBody(outboundClient HttpRequestClient, body io.Reader) *ErrResp {
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
-	data := &HttpRequest_Data{} // allocate once
-	msg := &HttpRequest{
-		Message: &HttpRequest_Data_{
-			Data: data,
-		},
-	}
 	for {
 		n, readErr := body.Read(buffer)
 		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
-			data.Data = buffer[:n]
-			eResp := x.send(outboundClient, "failed to send request data", msg)
+			eResp := x.send(outboundClient, "failed to send request data", &HttpRequest{
+				Message: &HttpRequest_Data_{
+					Data: &HttpRequest_Data{
+						Data: buffer[:n],
+					},
+				},
+			})
 			if eResp != nil {
 				return eResp
 			}
@@ -338,17 +337,16 @@ func (x *InboundHttpToOutboundGrpc) pipeUpgradedConnection(outboundClient HttpRe
 func (x *InboundHttpToOutboundGrpc) pipeInboundToOutboundUpgraded(outboundClient HttpRequestClient, inboundStream io.Reader) error {
 	buffer := memz.Get32k()
 	defer memz.Put32k(buffer)
-	data := &HttpRequest_UpgradeData{} // allocate once
-	msg := &HttpRequest{
-		Message: &HttpRequest_UpgradeData_{
-			UpgradeData: data,
-		},
-	}
 	for {
 		n, readErr := inboundStream.Read(buffer)
 		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
-			data.Data = buffer[:n]
-			sendErr := outboundClient.Send(msg)
+			sendErr := outboundClient.Send(&HttpRequest{
+				Message: &HttpRequest_UpgradeData_{
+					UpgradeData: &HttpRequest_UpgradeData{
+						Data: buffer[:n],
+					},
+				},
+			})
 			if sendErr != nil {
 				if readErr == io.EOF {
 					return nil // the other goroutine will receive the error in RecvMsg()
