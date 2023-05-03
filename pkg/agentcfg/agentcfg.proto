@@ -243,17 +243,17 @@ message UserAccessAsAgentCF {
 message UserAccessAsUserCF {
 }
 
-message StarboardCF {
+message ContainerScanningCF {
   VulnerabilityReport vulnerability_report = 1 [json_name = "vulnerability_report"];
   string cadence = 2 [json_name = "cadence", (validate.rules).string.min_bytes = 1];
 }
 
 message VulnerabilityReport {
   repeated string namespaces = 1 [json_name = "namespaces"];
-  repeated StarboardFilter filters = 2 [json_name = "filters"];
+  repeated ContainerScanningFilter filters = 2 [json_name = "filters"];
 }
 
-message StarboardFilter {
+message ContainerScanningFilter {
   repeated string namespaces = 1 [json_name = "namespaces"];
   repeated string resources = 2 [json_name = "resources"];
   repeated string containers = 3 [json_name = "containers"];
@@ -268,10 +268,9 @@ message ConfigurationFile {
   ObservabilityCF observability = 2 [json_name = "observability"];
   reserved 3;
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
-  StarboardCF starboard = 5 [json_name = "starboard"];
-  StarboardCF container_scanning = 6 [json_name = "container_scanning"];
-  UserAccessCF user_access = 7 [json_name = "user_access"];
-  RemoteCF remote_development = 8 [json_name = "remote_development"];
+  ContainerScanningCF container_scanning = 5 [json_name = "container_scanning"];
+  UserAccessCF user_access = 6 [json_name = "user_access"];
+  RemoteCF remote_development = 7 [json_name = "remote_development"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -287,7 +286,7 @@ message AgentConfiguration {
   // Id of the configuration project.
   int64 project_id = 5;
   CiAccessCF ci_access = 6;
-  StarboardCF starboard = 7;
+  ContainerScanningCF container_scanning = 7;
   // Path of the configuration project
   string project_path = 8;
   RemoteCF remote_development = 9;

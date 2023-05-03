@@ -336,24 +336,6 @@ func TestGetConfiguration_GetAgentInfo_RetriableError(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
 }
 
-func TestFetchContainerScanningConfiguration(t *testing.T) {
-	s := &server{}
-	starboardConfig := &agentcfg.StarboardCF{Cadence: "0 * * * *"}
-	containerScanningConfig := &agentcfg.StarboardCF{Cadence: "30 * * * *"}
-	t.Run("ContainerScanning config missing, Starboard config present", func(t *testing.T) {
-		result := s.fetchContainerScanningConfiguration(&agentcfg.ConfigurationFile{Starboard: starboardConfig})
-		assert.Equal(t, starboardConfig, result)
-	})
-	t.Run("ContainerScanning config present, Starboard config missing", func(t *testing.T) {
-		result := s.fetchContainerScanningConfiguration(&agentcfg.ConfigurationFile{ContainerScanning: containerScanningConfig})
-		assert.Equal(t, containerScanningConfig, result)
-	})
-	t.Run("ContainerScanning config present, Starboard config present", func(t *testing.T) {
-		result := s.fetchContainerScanningConfiguration(&agentcfg.ConfigurationFile{ContainerScanning: containerScanningConfig, Starboard: starboardConfig})
-		assert.Equal(t, containerScanningConfig, result)
-	})
-}
-
 func setupServerBare(t *testing.T, pollTimes int) (*server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi, *mock_agent_tracker.MockTracker) {
 	ctrl := gomock.NewController(t)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)

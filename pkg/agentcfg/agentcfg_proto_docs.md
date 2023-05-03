@@ -19,6 +19,8 @@
     - [CiAccessGroupCF](#gitlab-agent-agentcfg-CiAccessGroupCF)
     - [CiAccessProjectCF](#gitlab-agent-agentcfg-CiAccessProjectCF)
     - [ConfigurationFile](#gitlab-agent-agentcfg-ConfigurationFile)
+    - [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF)
+    - [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter)
     - [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF)
     - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
     - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
@@ -27,8 +29,6 @@
     - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
     - [PathCF](#gitlab-agent-agentcfg-PathCF)
     - [RemoteCF](#gitlab-agent-agentcfg-RemoteCF)
-    - [StarboardCF](#gitlab-agent-agentcfg-StarboardCF)
-    - [StarboardFilter](#gitlab-agent-agentcfg-StarboardFilter)
     - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
     - [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF)
     - [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF)
@@ -66,7 +66,7 @@ additional config for kas.
 | agent_id | [int64](#int64) |  | GitLab-wide unique id of the agent. |
 | project_id | [int64](#int64) |  | Id of the configuration project. |
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
-| starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
+| container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | project_path | [string](#string) |  | Path of the configuration project |
 | remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
 
@@ -295,10 +295,43 @@ ConfigurationFile represents user-facing configuration file.
 | gitops | [GitopsCF](#gitlab-agent-agentcfg-GitopsCF) |  |  |
 | observability | [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF) |  | Configuration related to all things observability. This is about the agent itself, not any observability-related features. |
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
-| starboard | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
-| container_scanning | [StarboardCF](#gitlab-agent-agentcfg-StarboardCF) |  |  |
+| container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
 | remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-ContainerScanningCF"></a>
+
+### ContainerScanningCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| vulnerability_report | [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport) |  |  |
+| cadence | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-ContainerScanningFilter"></a>
+
+### ContainerScanningFilter
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| namespaces | [string](#string) | repeated |  |
+| resources | [string](#string) | repeated |  |
+| containers | [string](#string) | repeated |  |
+| kinds | [string](#string) | repeated |  |
 
 
 
@@ -442,40 +475,6 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-StarboardCF"></a>
-
-### StarboardCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| vulnerability_report | [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport) |  |  |
-| cadence | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-StarboardFilter"></a>
-
-### StarboardFilter
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| namespaces | [string](#string) | repeated |  |
-| resources | [string](#string) | repeated |  |
-| containers | [string](#string) | repeated |  |
-| kinds | [string](#string) | repeated |  |
-
-
-
-
-
-
 <a name="gitlab-agent-agentcfg-UserAccessAsAgentCF"></a>
 
 ### UserAccessAsAgentCF
@@ -568,7 +567,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | namespaces | [string](#string) | repeated |  |
-| filters | [StarboardFilter](#gitlab-agent-agentcfg-StarboardFilter) | repeated |  |
+| filters | [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter) | repeated |  |
 
 
 
