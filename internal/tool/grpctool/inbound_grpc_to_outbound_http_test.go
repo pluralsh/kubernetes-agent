@@ -128,6 +128,8 @@ func TestGrpc2Http_HappyPathNoBody(t *testing.T) {
 		Return(context.Background()).
 		MinTimes(1)
 	sh := sendHeader()
+	contentLength := int64(0)
+	sh.ContentLength = &contentLength
 	gomock.InOrder(mockRecvStream(server, true,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -163,6 +165,7 @@ func TestGrpc2Http_HappyPathNoBody(t *testing.T) {
 		},
 	)...)
 	grpc2http := makeGrpc2http(t, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (grpctool.DoResponse, error) {
+		assert.IsType(t, http.NoBody, body)
 		assert.Empty(t, cmp.Diff(header, sh, protocmp.Transform()))
 		data, err := io.ReadAll(body)
 		if !assert.NoError(t, err) {
@@ -184,7 +187,7 @@ func TestGrpc2Http_HappyPathNoBody(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGrpc2Http_UpgradeHappyPath(t *testing.T) {
+func TestGrpc2Http_UpgradeHappyPathWithBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
 	server.EXPECT().
@@ -308,6 +311,8 @@ func TestGrpc2Http_UpgradeHappyPathNoBody(t *testing.T) {
 	conn := mock_rpc.NewMockConn(ctrl)
 	conn.EXPECT().Close()
 	sh := sendUpgradeHeader()
+	contentLength := int64(0)
+	sh.ContentLength = &contentLength
 	gomock.InOrder(mockRecvStream(server, true,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -343,6 +348,7 @@ func TestGrpc2Http_UpgradeHappyPathNoBody(t *testing.T) {
 		},
 	)...)
 	grpc2http := makeGrpc2http(t, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (grpctool.DoResponse, error) {
+		assert.IsType(t, http.NoBody, body)
 		assert.Empty(t, cmp.Diff(header, sh, protocmp.Transform()))
 		data, err := io.ReadAll(body)
 		if !assert.NoError(t, err) {
@@ -469,6 +475,60 @@ func TestGrpc2Http_UpgradeMessageForNonUpgradeRequest(t *testing.T) {
 	})
 	err := grpc2http.Pipe(server)
 	require.EqualError(t, err, "rpc error: code = Internal desc = unexpected HttpRequest_UpgradeData message for non-upgrade request")
+}
+
+func TestGrpc2Http_FailureWhenDataWasSentForRequestNotExpectingData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	server := mock_rpc.NewMockInboundGrpcToOutboundHttpStream(ctrl)
+	server.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
+	sh := sendHeader()
+	contentLength := int64(0)
+	sh.ContentLength = &contentLength
+	gomock.InOrder(mockRecvStream(server, false,
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Header_{
+				Header: sh,
+			},
+		},
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Data_{
+				Data: &grpctool.HttpRequest_Data{
+					Data: []byte(requestBodyData),
+				},
+			},
+		},
+	)...)
+	gomock.InOrder(mockSendStream(t, server,
+		&grpctool.HttpResponse{
+			Message: &grpctool.HttpResponse_Header_{
+				Header: &grpctool.HttpResponse_Header{
+					Response: &prototool.HttpResponse{
+						StatusCode: http.StatusOK,
+						Status:     "OK!",
+					},
+				},
+			},
+		},
+		&grpctool.HttpResponse{
+			Message: &grpctool.HttpResponse_Trailer_{
+				Trailer: &grpctool.HttpResponse_Trailer{},
+			},
+		},
+	)...)
+	grpc2http := makeGrpc2http(t, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (grpctool.DoResponse, error) {
+		return grpctool.DoResponse{
+			Resp: &http.Response{
+				Status:     "OK!",
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(nil)),
+			},
+		}, nil
+	})
+	err := grpc2http.Pipe(server)
+	require.EqualError(t, err, "rpc error: code = Internal desc = unexpected HttpRequest_Data message received")
 }
 
 func TestGrpc2Http_UpgradeMessageWhenServerRefusesToUpgrade(t *testing.T) {

@@ -220,6 +220,7 @@ func TestHttp2Grpc_ServerRefusesToUpgrade(t *testing.T) {
 	wh := make(http.Header)
 	extra, err := anypb.New(headerExtra)
 	require.NoError(t, err)
+	contentLength := int64(len(requestBodyData))
 	send := mockSendHttp2grpcStream(t, mrClient, false,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -244,7 +245,8 @@ func TestHttp2Grpc_ServerRefusesToUpgrade(t *testing.T) {
 							},
 						},
 					},
-					Extra: extra,
+					Extra:         extra,
+					ContentLength: &contentLength,
 				},
 			},
 		},
@@ -454,7 +456,8 @@ func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKube
 		Header: http.Header{
 			"A": []string{"a1", "a2"},
 		},
-		Body: io.NopCloser(strings.NewReader(requestBodyData)),
+		ContentLength: int64(len(requestBodyData)),
+		Body:          io.NopCloser(strings.NewReader(requestBodyData)),
 	}
 	if isUpgrade {
 		r.Header[httpz.ConnectionHeader] = []string{"upgrade"}
@@ -494,6 +497,7 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 			Value: []string{"upgrade"},
 		}
 	}
+	contentLength := int64(len(requestBodyData))
 	return mockSendHttp2grpcStream(t, mrClient, !isUpgrade,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -508,7 +512,8 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 							},
 						},
 					},
-					Extra: extra,
+					Extra:         extra,
+					ContentLength: &contentLength,
 				},
 			},
 		},

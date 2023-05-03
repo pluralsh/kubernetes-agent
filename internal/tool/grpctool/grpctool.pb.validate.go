@@ -780,6 +780,21 @@ func (m *HttpRequest_Header) validate(all bool) error {
 		}
 	}
 
+	if m.ContentLength != nil {
+
+		if m.GetContentLength() < -1 {
+			err := HttpRequest_HeaderValidationError{
+				field:  "ContentLength",
+				reason: "value must be greater than or equal to -1",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
 	if len(errors) > 0 {
 		return HttpRequest_HeaderMultiError(errors)
 	}

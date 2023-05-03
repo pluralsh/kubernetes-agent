@@ -712,6 +712,7 @@ func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), urlPat
 		})
 	extra, err := anypb.New(expectedExtra)
 	require.NoError(t, err)
+	contentLength := int64(len(requestPayload))
 	send := mockSendStream(t, mrClient,
 		&grpctool.HttpRequest{
 			Message: &grpctool.HttpRequest_Header_{
@@ -745,7 +746,8 @@ func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), urlPat
 							},
 						},
 					},
-					Extra: extra,
+					Extra:         extra,
+					ContentLength: &contentLength,
 				},
 			},
 		},

@@ -204,7 +204,8 @@ func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpReq
 					UrlPath: r.URL.Path,
 					Query:   prototool.UrlValuesToValuesMap(r.URL.Query()),
 				},
-				Extra: extra,
+				Extra:         extra,
+				ContentLength: &r.ContentLength,
 			},
 		},
 	})
