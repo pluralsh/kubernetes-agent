@@ -107,6 +107,10 @@ func (r *reconciler) Run(ctx context.Context) error {
 
 	// Workspace update request was completed successfully, now process any RailsInfos received in the response
 	for _, workspaceRailsInfo := range workspaceRailsInfos {
+		// TODO: discuss whether/how to deal with errors returned by rails when processing individual workspaces
+		//  for ex. there may be a case where no workspace is found for a given combination of workspace name &
+		//  workspace
+		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/409807
 		err = r.applyWorkspaceChanges(ctx, workspaceRailsInfo)
 		if err != nil {
 			// TODO: how to report this back to rails?
@@ -195,8 +199,8 @@ func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
 	// TODO this implementation will repeatedly send workspaces that have to be completely removed from the
 	//	cluster and are still considered Terminating. This may need to be optimized in case it becomes an issue
 	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/408844
-	for workspaceName := range r.terminatingTracker {
-		_, existsInCluster := nonTerminatedWorkspaces[workspaceName]
+	for entry := range r.terminatingTracker {
+		_, existsInCluster := nonTerminatedWorkspaces[entry.name]
 
 		terminationProgress := TerminationProgressTerminating
 		if !existsInCluster {
@@ -204,11 +208,13 @@ func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
 		}
 
 		r.log.Debug("Sending termination progress workspace info workspace",
-			logz.WorkspaceName(workspaceName),
+			logz.WorkspaceName(entry.name),
 			logz.WorkspaceTerminationProgress(string(terminationProgress)),
 		)
+
 		workspaceAgentInfos = append(workspaceAgentInfos, WorkspaceAgentInfo{
-			Name:                workspaceName,
+			Name:                entry.name,
+			Namespace:           entry.namespace,
 			TerminationProgress: terminationProgress,
 		})
 	}
@@ -258,9 +264,9 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 }
 
 func (r *reconciler) handleDesiredStateIsTerminated(ctx context.Context, name string, namespace string, actualState string) error {
-	if r.terminatingTracker.isTerminating(name) && actualState == WorkspaceStateTerminated {
+	if r.terminatingTracker.isTerminating(name, namespace) && actualState == WorkspaceStateTerminated {
 		r.log.Debug("ActualState=Terminated, so deleting it from persistedTerminatingWorkspacesTracker", logz.WorkspaceNamespace(namespace))
-		r.terminatingTracker.delete(name)
+		r.terminatingTracker.delete(name, namespace)
 		r.stateTracker.delete(name)
 		return nil
 	}
@@ -276,7 +282,7 @@ func (r *reconciler) handleDesiredStateIsTerminated(ctx context.Context, name st
 		return fmt.Errorf("failed to terminate workspace by deleting namespace: %w", err)
 	}
 
-	r.terminatingTracker.add(name)
+	r.terminatingTracker.add(name, namespace)
 
 	return nil
 }
