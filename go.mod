@@ -1,6 +1,6 @@
 module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16
 
-go 1.18
+go 1.19
 
 require (
 	cloud.google.com/go/profiler v0.3.1
