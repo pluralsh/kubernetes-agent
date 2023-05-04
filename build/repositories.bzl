@@ -1681,8 +1681,8 @@ def go_repositories():
         name = "com_github_google_s2a_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/s2a-go",
-        sum = "h1:WVtYAYuYxKeYajAmThMRYWP6K3wXkcqbGHeUgeubUHY=",
-        version = "v0.1.2",
+        sum = "h1:FAgZmpLl/SXurPEZyCMPBIiiYeTbqfjlbdnCNTAkbGE=",
+        version = "v0.1.3",
     )
 
     go_repository(
@@ -2492,7 +2492,13 @@ def go_repositories():
         sum = "h1:VNzHMVCBNG1j0fh3OrsFRkVUwStdDArbgBWoPAffktY=",
         version = "v1.1.0",
     )
-
+    go_repository(
+        name = "com_github_lyft_protoc_gen_star_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/lyft/protoc-gen-star/v2",
+        sum = "h1:/3+/2sWyXeMLzKd1bX+ixWKgEMsULrIivpDsuaF441o=",
+        version = "v2.0.3",
+    )
     go_repository(
         name = "com_github_magiconair_properties",
         build_file_proto_mode = "disable_global",
@@ -3141,8 +3147,8 @@ def go_repositories():
         name = "com_github_prometheus_client_golang",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/prometheus/client_golang",
-        sum = "h1:5fCgGYogn0hFdhyhLbw7hEsWxufKtY9klyvdNfFlFhM=",
-        version = "v1.15.0",
+        sum = "h1:8tXpTmJbyH5lydzFPoxSIJ0J46jdh3tylbvM1xCv0LI=",
+        version = "v1.15.1",
     )
     go_repository(
         name = "com_github_prometheus_client_model",
@@ -3408,8 +3414,8 @@ def go_repositories():
         name = "com_github_spf13_afero",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/spf13/afero",
-        sum = "h1:j49Hj62F0n+DaZ1dDCvhABaPNSGNkt32oRFxI33IEMw=",
-        version = "v1.9.2",
+        sum = "h1:xoax2sJ2DT8S8xA2paPFjDCScCNeWsg75VG0DLRreiY=",
+        version = "v1.6.0",
     )
     go_repository(
         name = "com_github_spf13_cast",
@@ -5210,8 +5216,8 @@ def go_repositories():
         name = "org_golang_google_api",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/api",
-        sum = "h1:TTmhTei0mkR+kiBSW2UzZmAbkTaBfUUzfchyXnzG9Hs=",
-        version = "v0.120.0",
+        sum = "h1:8Oopoo8Vavxx6gt+sgs8s8/X60WBAtKQq6JqnkF+xow=",
+        version = "v0.121.0",
     )
     go_repository(
         name = "org_golang_google_appengine",
@@ -5282,8 +5288,8 @@ def go_repositories():
         name = "org_golang_x_mod",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/mod",
-        sum = "h1:KENHtAZL2y3NLMYZeHY9DW8HW8V+kQyJsY/V9JlKvCs=",
-        version = "v0.9.0",
+        sum = "h1:lFO9qtOdlre5W1jxS3r/4szv2/6iXxScdzjoBMXNhYk=",
+        version = "v0.10.0",
     )
     go_repository(
         name = "org_golang_x_net",

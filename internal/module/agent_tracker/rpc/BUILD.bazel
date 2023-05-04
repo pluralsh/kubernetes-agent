@@ -21,7 +21,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/agent_tracker",
-        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_default_library",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",

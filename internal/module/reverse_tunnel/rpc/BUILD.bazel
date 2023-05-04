@@ -29,7 +29,7 @@ go_library(
         "//internal/tool/grpctool",
         "//internal/tool/grpctool/automata",
         "//internal/tool/prototool",
-        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_default_library",
         "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
