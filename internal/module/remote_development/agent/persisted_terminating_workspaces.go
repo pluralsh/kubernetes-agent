@@ -1,22 +1,41 @@
 package agent
 
-// persistedTerminatingWorkspacesTracker is a set to track workspaces that exist
-// in Terminating state
-type persistedTerminatingWorkspacesTracker map[string]struct{}
-
-func newPersistedTerminatingWorkspacesTracker() persistedTerminatingWorkspacesTracker {
-	return make(map[string]struct{})
+// terminatingWorkspacesTrackerKey is used as a key within persistedTerminatingWorkspacesTracker
+// to uniquely identify a combination of workspace name and namespace that must be tracked
+type terminatingWorkspacesTrackerKey struct {
+	name      string
+	namespace string
 }
 
-func (p persistedTerminatingWorkspacesTracker) isTerminating(workspaceName string) bool {
-	_, ok := p[workspaceName]
+// persistedTerminatingWorkspacesTracker is a set to track workspaces that exist
+// in Terminating state
+type persistedTerminatingWorkspacesTracker map[terminatingWorkspacesTrackerKey]struct{}
+
+func newPersistedTerminatingWorkspacesTracker() persistedTerminatingWorkspacesTracker {
+	return make(map[terminatingWorkspacesTrackerKey]struct{})
+}
+
+func (p persistedTerminatingWorkspacesTracker) isTerminating(name string, namespace string) bool {
+	key := terminatingWorkspacesTrackerKey{
+		name:      name,
+		namespace: namespace,
+	}
+	_, ok := p[key]
 	return ok
 }
 
-func (p persistedTerminatingWorkspacesTracker) add(workspaceName string) {
-	p[workspaceName] = struct{}{}
+func (p persistedTerminatingWorkspacesTracker) add(name string, namespace string) {
+	key := terminatingWorkspacesTrackerKey{
+		name:      name,
+		namespace: namespace,
+	}
+	p[key] = struct{}{}
 }
 
-func (p persistedTerminatingWorkspacesTracker) delete(workspaceName string) {
-	delete(p, workspaceName)
+func (p persistedTerminatingWorkspacesTracker) delete(name string, namespace string) {
+	key := terminatingWorkspacesTrackerKey{
+		name:      name,
+		namespace: namespace,
+	}
+	delete(p, key)
 }
