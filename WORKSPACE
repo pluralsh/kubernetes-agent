@@ -54,9 +54,9 @@ http_archive(
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "fb7fc7a3c19a92b2f15ed7c4ffb2983e956625c1436f57a3430b897ba9864059",
-    strip_prefix = "rules_proto_grpc-4.3.0",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.3.0.tar.gz"],
+    sha256 = "928e4205f701b7798ce32f3d2171c1918b363e9a600390a25c876f075f1efc0a",
+    strip_prefix = "rules_proto_grpc-4.4.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/releases/download/4.4.0/rules_proto_grpc-4.4.0.tar.gz"],
 )
 
 http_archive(
@@ -122,15 +122,8 @@ go_repository(
     build_file_proto_mode = "disable_global",
     build_naming_convention = "go_default_library",
     importpath = "github.com/envoyproxy/protoc-gen-validate",
-    patch_args = ["-p1"],
-    # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
-    # patch created by manually editing the build file and running `diff -urN protoc-gen-validate protoc-gen-validate-copy`
-    # or `diff -urN protoc-gen-validate/validate/BUILD protoc-gen-validate-copy/validate/BUILD` for a single file.
-    patches = [
-        "@gitlab_k8s_agent//build:validate_dependency.patch",
-    ],
-    sum = "h1:PS7VIOgmSVhWUEeZwTe7z7zouA22Cr590PzXKbZHOVY=",
-    version = "v0.9.1",
+    sum = "h1:FPFO7LWZ2pfphahSUMX8L5p/6FqSzRYRxq6V74eG8ZI=",
+    version = "v1.0.0",
 )
 
 # Copied from rules_go to keep patches in place
@@ -155,15 +148,6 @@ http_archive(
     ],
 )
 
-# Here to set build_file_proto_mode=default. repositories.bzl sets it to disable_global which is not what we want.
-go_repository(
-    name = "com_github_lyft_protoc_gen_star",
-    build_file_proto_mode = "default",
-    importpath = "github.com/lyft/protoc-gen-star",
-    sum = "h1:erE0rdztuaDq3bpGifD95wfoPrSZc95nGA6tbiNYh6M=",
-    version = "v0.6.1",
-)
-
 load("//build:repositories.bzl", "go_repositories")
 
 # gazelle:repository_macro build/repositories.bzl%go_repositories
@@ -176,7 +160,7 @@ bazel_skylib_workspace()
 go_rules_dependencies()
 
 go_register_toolchains(
-    version = "1.19.8",
+    version = "1.19.9",
 )
 
 gazelle_dependencies()
@@ -253,15 +237,15 @@ load(
 )
 load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
+rules_proto_dependencies()
+
+rules_proto_toolchains()
+
 rules_proto_grpc_toolchains()
 
 rules_proto_grpc_repos()
 
 rules_proto_grpc_go_repos()
-
-rules_proto_dependencies()
-
-rules_proto_toolchains()
 
 rules_proto_grpc_doc_repos()
 
@@ -273,7 +257,6 @@ load(
     "@io_bazel_rules_docker//go:image.bzl",
     go_image_repositories = "repositories",
 )
-load("@com_github_envoyproxy_protoc_gen_validate//:dependencies.bzl", pgv_third_party = "go_third_party")
 
 go_image_repositories()
 
@@ -286,5 +269,3 @@ multirun_dependencies()
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 
 grpc_deps()
-
-pgv_third_party()

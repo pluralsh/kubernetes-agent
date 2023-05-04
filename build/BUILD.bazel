@@ -2,7 +2,6 @@ load("@com_github_ash2k_bazel_tools//multirun:def.bzl", "multirun")
 
 exports_files([
     "buildozer_commands.txt",
-    "validate_dependency.patch",
 ])
 
 sh_binary(
