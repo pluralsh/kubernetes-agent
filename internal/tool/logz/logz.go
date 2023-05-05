@@ -5,6 +5,7 @@ package logz
 import (
 	"context"
 	"net"
+	"time"
 
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -177,6 +178,22 @@ func WorkspaceTerminationProgress(status string) zap.Field {
 
 func StatusCode(code int32) zap.Field {
 	return zap.Int32("status_code", code)
+}
+
+func RequestId(requestId string) zap.Field {
+	return zap.String("request_id", requestId)
+}
+
+func DurationInMilliseconds(duration time.Duration) zap.Field {
+	return zap.Int64("duration_in_ms", duration.Milliseconds())
+}
+
+func PayloadSizeInBytes(size int) zap.Field {
+	return zap.Int("payload_size_in_bytes", size)
+}
+
+func WorkspaceDataCount(count int) zap.Field {
+	return zap.Int("workspace_data_count", count)
 }
 
 func ProtoJsonValue(key string, value proto.Message) zap.Field {

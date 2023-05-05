@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
@@ -229,6 +231,8 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 ) (workspaceRailsInfos []*WorkspaceRailsInfo, retError error) {
 	// Do the POST request to the Rails API
 	r.log.Debug("Making GitLab request")
+
+	startTime := time.Now()
 	var requestPayload = RequestPayload{
 		UpdateType:          updateType,
 		WorkspaceAgentInfos: workspaceAgentInfos,
@@ -241,7 +245,11 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 	if err != nil {
 		return nil, fmt.Errorf("error making api request: %w", err)
 	}
-	r.log.Debug("Made request to the Rails API", logz.StatusCode(resp.StatusCode))
+	r.log.Debug("Made request to the Rails API",
+		logz.StatusCode(resp.StatusCode),
+		logz.RequestId(resp.Header.Get(httpz.RequestIdHeader)),
+		logz.DurationInMilliseconds(time.Since(startTime)),
+	)
 
 	defer errz.SafeClose(resp.Body, &retError)
 	if resp.StatusCode != http.StatusCreated {
@@ -253,13 +261,18 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	r.log.Debug("Read body from the Rails API", zap.String("body", string(body)))
-
 	var responsePayload ResponsePayload
 	err = json.Unmarshal(body, &responsePayload)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing response body: %w", err)
 	}
+
+	r.log.Debug(
+		"Read body from the Rails API",
+		logz.PayloadSizeInBytes(len(body)),
+		logz.WorkspaceDataCount(len(responsePayload.WorkspaceRailsInfos)),
+	)
+
 	return responsePayload.WorkspaceRailsInfos, nil
 }
 
