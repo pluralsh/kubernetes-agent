@@ -37,6 +37,7 @@ const (
 	AccessControlRequestHeadersHeader   = "Access-Control-Request-Headers"   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Request-Headers
 	VaryHeader                          = "Vary"                             // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary
 	OriginHeader                        = "Origin"                           // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin
+	RequestIdHeader                     = "X-Request-Id"
 )
 
 // RemoveConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
