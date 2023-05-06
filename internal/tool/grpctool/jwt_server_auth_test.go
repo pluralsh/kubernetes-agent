@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,7 +103,7 @@ func TestJWTServerAuth(t *testing.T) {
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsaKey)
 		require.NoError(t, err)
 
-		assertValidationFailed(t, signedClaims, jwtAuther, "JWT validation failed")
+		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 	t.Run("none signing algorithm", func(t *testing.T) {
 		jwtAuther := setupAuther(t)
@@ -113,7 +113,7 @@ func TestJWTServerAuth(t *testing.T) {
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodNone, claims).SignedString(jwt.UnsafeAllowNoneSignatureType)
 		require.NoError(t, err)
 
-		assertValidationFailed(t, signedClaims, jwtAuther, "JWT validation failed")
+		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 	t.Run("unexpected audience", func(t *testing.T) {
 		jwtAuther := setupAuther(t)
@@ -124,7 +124,7 @@ func TestJWTServerAuth(t *testing.T) {
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 		require.NoError(t, err)
 
-		assertValidationFailed(t, signedClaims, jwtAuther, "JWT audience validation failed")
+		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 	t.Run("unexpected issuer", func(t *testing.T) {
 		jwtAuther := setupAuther(t)
@@ -135,7 +135,7 @@ func TestJWTServerAuth(t *testing.T) {
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 		require.NoError(t, err)
 
-		assertValidationFailed(t, signedClaims, jwtAuther, "JWT issuer validation failed")
+		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 }
 
@@ -145,7 +145,7 @@ func setupAuther(t *testing.T) *grpctool.JWTAuther {
 	})
 }
 
-func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpctool.JWTAuther, errStr string) {
+func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpctool.JWTAuther) {
 	unaryInfo := &grpc.UnaryServerInfo{
 		FullMethod: "bla",
 	}
@@ -154,13 +154,13 @@ func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpcto
 	}
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "bearer "+signedClaims))
 	_, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
-	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = "+errStr)
+	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = JWT validation failed")
 
 	ctrl := gomock.NewController(t)
 	stream := mock_rpc.NewMockServerStream(ctrl)
 	stream.EXPECT().Context().Return(ctx)
 	err = jwtAuther.StreamServerInterceptor(expectedSrv, stream, streamInfo, streamMustNotBeCalled(t))
-	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = "+errStr)
+	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = JWT validation failed")
 }
 
 func validClams(now time.Time) jwt.RegisteredClaims {

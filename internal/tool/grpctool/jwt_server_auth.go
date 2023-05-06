@@ -3,7 +3,7 @@ package grpctool
 import (
 	"context"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
@@ -13,8 +13,8 @@ import (
 )
 
 type JWTAuther struct {
-	jwtIssuer         string
-	jwtAudience       string
+	jwtIssuer         string // may be empty to disable validation
+	jwtAudience       string // may be empty to disable validation
 	secret            []byte
 	loggerFromContext func(context.Context) *zap.Logger
 }
@@ -49,24 +49,12 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 	if err != nil {
 		return err // returns gRPC status error
 	}
-	var claims jwt.RegisteredClaims
-	_, err = jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		return a.secret, nil
-	}, jwt.WithValidMethods([]string{"HS256", "HS384", "HS512"}))
+	}, jwt.WithAudience(a.jwtAudience), jwt.WithIssuer(a.jwtIssuer), jwt.WithValidMethods([]string{"HS256", "HS384", "HS512"}))
 	if err != nil {
-		a.loggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
+		a.loggerFromContext(ctx).Debug("JWT validation failed", logz.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
-	if a.jwtAudience != "" {
-		if !claims.VerifyAudience(a.jwtAudience, true) {
-			return status.Error(codes.Unauthenticated, "JWT audience validation failed")
-		}
-	}
-	if a.jwtIssuer != "" {
-		if !claims.VerifyIssuer(a.jwtIssuer, true) {
-			return status.Error(codes.Unauthenticated, "JWT issuer validation failed")
-		}
-	}
-
 	return nil
 }

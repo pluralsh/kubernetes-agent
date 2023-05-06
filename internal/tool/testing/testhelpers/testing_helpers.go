@@ -3,14 +3,13 @@ package testhelpers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -103,18 +102,10 @@ func AssertCommonRequestParams(t *testing.T, r *http.Request, traceId trace.Trac
 }
 
 func AssertJWTSignature(t *testing.T, r *http.Request) {
-	token, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
+	_, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		return []byte(AuthSecretKey), nil
-	})
-	if !assert.NoError(t, err) {
-		return
-	}
-	mapClaims := token.Claims.(jwt.MapClaims)
-	assert.True(t, mapClaims.VerifyAudience(jwtGitLabAudience, true))
-	assert.True(t, mapClaims.VerifyIssuer(jwtIssuer, true))
+	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer), jwt.WithValidMethods([]string{"HS256"}))
+	assert.NoError(t, err)
 }
 
 func CtxWithSpanContext(t *testing.T) (context.Context, trace.TraceID) {
