@@ -1566,7 +1566,13 @@ def go_repositories():
         sum = "h1:7cYmW1XlMY7h7ii7UhUyChSgS5wUJEnm9uZVTGqOWzg=",
         version = "v4.5.0",
     )
-
+    go_repository(
+        name = "com_github_golang_jwt_jwt_v5",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/golang-jwt/jwt/v5",
+        sum = "h1:1n1XNM9hk7O9mnQoNBGolZvzebBQ7p93ULHRc28XJUE=",
+        version = "v5.0.0",
+    )
     go_repository(
         name = "com_github_golang_mock",
         build_file_proto_mode = "disable_global",

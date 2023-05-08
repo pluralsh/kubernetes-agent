@@ -10,7 +10,7 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/go-redis/redismock/v9 v9.0.3
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/golang/mock v1.7.0-rc.1.0.20220812172401-5b455625bd2c
 	github.com/google/go-cmp v0.5.9
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
