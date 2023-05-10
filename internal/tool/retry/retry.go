@@ -117,7 +117,9 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		case <-done:
 			return ErrWaitTimeout
 		case <-cfg.pokeC:
-			t.Stop()
+			if !t.Stop() {
+				<-t.C()
+			}
 			t = nil
 		case <-t.C():
 			t = nil
