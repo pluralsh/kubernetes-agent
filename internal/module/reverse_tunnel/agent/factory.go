@@ -20,11 +20,11 @@ const (
 	// scaleUpStep defines how many new connections are started when there is not enough idle connections.
 	scaleUpStep = 10
 
-	connectionInitBackoff   = 10 * time.Second
-	connectionMaxBackoff    = 5 * time.Minute
-	connectionResetDuration = 10 * time.Minute
-	connectionBackoffFactor = 2.0
-	connectionJitter        = 1.0
+	connectionInitBackoff   = 1 * time.Second
+	connectionMaxBackoff    = 20 * time.Second
+	connectionResetDuration = 25 * time.Second
+	connectionBackoffFactor = 1.6
+	connectionJitter        = 0.2
 )
 
 type Factory struct {
