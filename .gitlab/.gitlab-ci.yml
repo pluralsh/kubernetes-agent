@@ -279,7 +279,6 @@ build-package-and-qa:
   trigger:
     project: 'gitlab-org/build/omnibus-gitlab-mirror'
     branch: 'master'
-    strategy: depend
   inherit:
     variables: false
   variables:
