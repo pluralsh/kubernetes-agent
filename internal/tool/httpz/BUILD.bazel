@@ -23,7 +23,7 @@ go_custom_test(
     ],
     embed = [":httpz"],
     deps = [
-        "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/mock_stdlib",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
@@ -194,7 +195,7 @@ func TestGrpc2Http_UpgradeHappyPathWithBody(t *testing.T) {
 		Context().
 		Return(context.Background()).
 		MinTimes(1)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	gomock.InOrder(
 		conn.EXPECT().Write([]byte(requestUpgradeBodyData[:1])),
 		conn.EXPECT().Write([]byte(requestUpgradeBodyData[1:])),
@@ -308,7 +309,7 @@ func TestGrpc2Http_UpgradeHappyPathNoBody(t *testing.T) {
 		Context().
 		Return(context.Background()).
 		MinTimes(1)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	conn.EXPECT().Close()
 	sh := sendUpgradeHeader()
 	contentLength := int64(0)

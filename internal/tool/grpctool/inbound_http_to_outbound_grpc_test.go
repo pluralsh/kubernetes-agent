@@ -19,7 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_kubernetes_api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -99,7 +99,7 @@ func TestHttp2Grpc_HappyPath(t *testing.T) {
 func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mrClient, w, r, x := setupHttp2grpc(t, true)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	headerExtra := &test.Request{}
 	wh := make(http.Header)
 	setReadDeadlineCall := conn.EXPECT().
@@ -441,10 +441,10 @@ func TestHttp2Grpc_ErrorAfterBodyWritten(t *testing.T) {
 	})
 }
 
-func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, *mock_rpc.MockResponseWriterFlusher, *http.Request, grpctool.InboundHttpToOutboundGrpc) {
+func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, *mock_stdlib.MockResponseWriterFlusher, *http.Request, grpctool.InboundHttpToOutboundGrpc) {
 	ctrl := gomock.NewController(t)
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(ctrl)
-	w := mock_rpc.NewMockResponseWriterFlusher(ctrl)
+	w := mock_stdlib.NewMockResponseWriterFlusher(ctrl)
 	r := &http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{

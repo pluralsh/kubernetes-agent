@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func TestContextConn_CloseUnblocksGoroutine(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	conn.EXPECT().
 		Close()
 	cc := httpz.NewContextConn(conn)
@@ -30,7 +30,7 @@ func TestContextConn_CloseUnblocksGoroutine(t *testing.T) {
 
 func TestContextConn_ContextClosesConn(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	conn.EXPECT().
 		Close()
 	cc := httpz.NewContextConn(conn)
@@ -45,7 +45,7 @@ func TestContextConn_ContextClosesConn(t *testing.T) {
 
 func TestContextConn_DuplicateClose(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	conn.EXPECT().
 		Close().
 		Times(2)
@@ -56,7 +56,7 @@ func TestContextConn_DuplicateClose(t *testing.T) {
 
 func TestWriteTimeoutConn_SetsWriteDeadline(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	gomock.InOrder(
 		conn.EXPECT().
 			SetWriteDeadline(gomock.Any()),
@@ -75,7 +75,7 @@ func TestWriteTimeoutConn_SetsWriteDeadline(t *testing.T) {
 
 func TestWriteTimeoutConn_ReturnsErrorFromSetWriteDeadline(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	conn := mock_rpc.NewMockConn(ctrl)
+	conn := mock_stdlib.NewMockConn(ctrl)
 	conn.EXPECT().
 		SetWriteDeadline(gomock.Any()).
 		Return(errors.New("boom"))
