@@ -651,10 +651,23 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 		if err != nil {
 			return nil, fmt.Errorf("unable to read OTLP token from %q: %w", *otlpTokenSecretFile, err)
 		}
+		token = bytes.TrimSpace(token)
 
-		headers := map[string]string{
-			httpz.AuthorizationHeader: fmt.Sprintf("Bearer %s", bytes.TrimSpace(token)),
+		// This is just a temporary measure to allow for smooth migration from
+		// Gitlab Observability UI tokens to Gitlab Access Tokens.
+		// Issue: https://gitlab.com/gitlab-org/opstrace/opstrace/-/issues/2148
+		//
+		// The idea is simple - we try to determine the type of the token and
+		// basing on it set correct HTTP headers. Gitlab
+		// Observability Backend makes the decision which auth mechanism to use
+		// basing on which HTTP header is present.
+		headers := make(map[string]string)
+		if bytes.HasPrefix(token, []byte("glpat-")) {
+			headers["Private-Token"] = string(token)
+		} else {
+			headers[httpz.AuthorizationHeader] = fmt.Sprintf("Bearer %s", token)
 		}
+
 		otlpOptions = append(otlpOptions, otlptracehttp.WithHeaders(headers))
 	}
 
