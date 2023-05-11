@@ -10,8 +10,6 @@ go_library(
         "gitops.go",
         "grpc.go",
         "grpctool.go",
-        "http.go",
-        "stdlib_net.go",
         "testing_helpers.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc",

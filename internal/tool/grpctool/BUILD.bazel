@@ -103,6 +103,7 @@ go_custom_test(
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_kubernetes_api",
         "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/mock_stdlib",
         "//internal/tool/testing/mock_tool",
         "//internal/tool/testing/testhelpers",
         "//internal/tool/tlstool",
