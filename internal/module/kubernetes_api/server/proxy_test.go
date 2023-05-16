@@ -405,16 +405,10 @@ func TestProxy_CiAccessHappyPath(t *testing.T) {
 		{
 			name:          "no prefix",
 			urlPathPrefix: "/",
-			expectedExtra: &rpc.HeaderExtra{
-				ImpConfig: &rpc.ImpersonationConfig{},
-			},
 		},
 		{
 			name:          "with prefix",
 			urlPathPrefix: "/bla/",
-			expectedExtra: &rpc.HeaderExtra{
-				ImpConfig: &rpc.ImpersonationConfig{},
-			},
 		},
 		{
 			name:          "impersonate agent",
@@ -425,9 +419,6 @@ func TestProxy_CiAccessHappyPath(t *testing.T) {
 						Agent: &agentcfg.CiAccessAsAgentCF{},
 					},
 				},
-			},
-			expectedExtra: &rpc.HeaderExtra{
-				ImpConfig: &rpc.ImpersonationConfig{},
 			},
 		},
 		{
@@ -575,9 +566,7 @@ func setExpectedJobToken(req *http.Request) {
 }
 
 func TestProxy_PreferAuthorizationHeaderOverSessionCookie(t *testing.T) {
-	expectedExtra := &rpc.HeaderExtra{
-		ImpConfig: &rpc.ImpersonationConfig{},
-	}
+	var expectedExtra *rpc.HeaderExtra // nil
 	setJobTokenAndCookie := func(req *http.Request) {
 		setExpectedJobToken(req)
 		setExpectedSessionCookieParams(req)
@@ -710,8 +699,12 @@ func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), urlPat
 			requireCorrectOutgoingMeta(t, ctx)
 			return mrClient, nil
 		})
-	extra, err := anypb.New(expectedExtra)
-	require.NoError(t, err)
+	var extra *anypb.Any
+	if expectedExtra != nil {
+		var err error
+		extra, err = anypb.New(expectedExtra)
+		require.NoError(t, err)
+	}
 	contentLength := int64(len(requestPayload))
 	send := mockSendStream(t, mrClient,
 		&grpctool.HttpRequest{

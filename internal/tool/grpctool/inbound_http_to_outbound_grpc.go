@@ -66,6 +66,7 @@ type InboundHttpToOutboundGrpc struct {
 }
 
 func (x *InboundHttpToOutboundGrpc) Pipe(outboundClient HttpRequestClient, w http.ResponseWriter, r *http.Request, headerExtra proto.Message) {
+	// headerExtra can be nil.
 	headerWritten, eResp := x.pipe(outboundClient, w, r, headerExtra)
 	if eResp != nil {
 		if headerWritten {
@@ -191,9 +192,13 @@ func (x *InboundHttpToOutboundGrpc) flush(w http.ResponseWriter) func() {
 }
 
 func (x *InboundHttpToOutboundGrpc) pipeInboundToOutbound(outboundClient HttpRequestClient, r *http.Request, headerExtra proto.Message) *ErrResp {
-	extra, err := anypb.New(headerExtra)
-	if err != nil {
-		return x.handleInternalError("failed to marshal header extra proto", err)
+	var extra *anypb.Any
+	if headerExtra != nil {
+		var err error
+		extra, err = anypb.New(headerExtra)
+		if err != nil {
+			return x.handleInternalError("failed to marshal header extra proto", err)
+		}
 	}
 	eResp := x.send(outboundClient, "failed to send request header", &HttpRequest{
 		Message: &HttpRequest_Header_{

@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
@@ -222,7 +223,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(r *http.Request) 
 
 	var (
 		userId    int64
-		impConfig *rpc.ImpersonationConfig
+		impConfig *rpc.ImpersonationConfig // can be nil
 	)
 
 	switch c := creds.(type) {
@@ -368,9 +369,13 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 		WriteErrorResponse: p.writeErrorResponse(log, agentId),
 		MergeHeaders:       p.mergeProxiedResponseHeaders,
 	}
-	http2grpc.Pipe(client, w, r, &rpc.HeaderExtra{
-		ImpConfig: impConfig,
-	})
+	var extra proto.Message // don't use a concrete type here or extra will be passed as a typed nil.
+	if impConfig != nil {
+		extra = &rpc.HeaderExtra{
+			ImpConfig: impConfig,
+		}
+	}
+	http2grpc.Pipe(client, w, r, extra)
 }
 
 func (p *kubernetesApiProxy) mergeProxiedResponseHeaders(outbound, inbound http.Header) {
@@ -553,12 +558,9 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 
 func constructJobImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
 	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
-	if as == nil {
-		as = &agentcfg.CiAccessAsCF_Agent{} // default value
-	}
 	switch imp := as.(type) {
-	case *agentcfg.CiAccessAsCF_Agent:
-		return &rpc.ImpersonationConfig{}, nil
+	case nil, *agentcfg.CiAccessAsCF_Agent: // nil means default value, which is Agent.
+		return nil, nil
 	case *agentcfg.CiAccessAsCF_Impersonate:
 		i := imp.Impersonate
 		return &rpc.ImpersonationConfig{
