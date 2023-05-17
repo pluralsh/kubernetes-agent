@@ -4,6 +4,7 @@ go_library(
     name = "mock_k8s",
     testonly = True,
     srcs = [
+        "apiextensionclient_v1.go",
         "cache.go",
         "core_v1.go",
         "doc.go",
@@ -17,6 +18,8 @@ go_library(
     deps = [
         "@com_github_golang_mock//gomock",
         "@io_k8s_api//core/v1:core",
+        "@io_k8s_apiextensions_apiserver//pkg/apis/apiextensions/v1:apiextensions",
+        "@io_k8s_apiextensions_apiserver//pkg/client/clientset/clientset/typed/apiextensions/v1:apiextensions",
         "@io_k8s_apimachinery//pkg/api/meta",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
