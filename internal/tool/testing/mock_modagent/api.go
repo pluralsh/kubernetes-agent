@@ -6,6 +6,7 @@ package mock_modagent
 
 import (
 	context "context"
+	url "net/url"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -51,6 +52,21 @@ func (m *MockApi) GetAgentId(arg0 context.Context) (int64, error) {
 func (mr *MockApiMockRecorder) GetAgentId(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentId", reflect.TypeOf((*MockApi)(nil).GetAgentId), arg0)
+}
+
+// GetGitLabExternalUrl mocks base method.
+func (m *MockApi) GetGitLabExternalUrl(arg0 context.Context) (url.URL, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGitLabExternalUrl", arg0)
+	ret0, _ := ret[0].(url.URL)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGitLabExternalUrl indicates an expected call of GetGitLabExternalUrl.
+func (mr *MockApiMockRecorder) GetGitLabExternalUrl(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGitLabExternalUrl", reflect.TypeOf((*MockApi)(nil).GetGitLabExternalUrl), arg0)
 }
 
 // HandleProcessingError mocks base method.

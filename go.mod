@@ -7,6 +7,9 @@ require (
 	github.com/ash2k/stager v0.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/envoyproxy/protoc-gen-validate v1.0.0
+	github.com/fluxcd/notification-controller/api v1.0.0-rc.1
+	github.com/fluxcd/pkg/apis/meta v1.0.0
+	github.com/fluxcd/source-controller/api v1.0.0-rc.1
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/go-redis/redismock/v9 v9.0.3

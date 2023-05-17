@@ -25,6 +25,7 @@ go_library(
         "//internal/module/agent_tracker/server:__subpackages__",
         "//internal/module/configuration_project/rpc:__subpackages__",
         "//internal/module/configuration_project/server:__subpackages__",
+        "//internal/module/flux/server:__subpackages__",
         "//internal/module/gitlab_access/server:__subpackages__",
         "//internal/module/gitops/server:__subpackages__",
         "//internal/module/google_profiler/server:__subpackages__",

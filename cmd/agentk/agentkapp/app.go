@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
+	flux_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/chartops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops"
@@ -84,11 +85,12 @@ const (
 )
 
 type App struct {
-	Log          *zap.Logger
-	LogLevel     zap.AtomicLevel
-	GrpcLogLevel zap.AtomicLevel
-	AgentMeta    *modshared.AgentMeta
-	AgentId      *AgentIdHolder
+	Log               *zap.Logger
+	LogLevel          zap.AtomicLevel
+	GrpcLogLevel      zap.AtomicLevel
+	AgentMeta         *modshared.AgentMeta
+	AgentId           *ValueHolder[int64]
+	GitLabExternalUrl *ValueHolder[url.URL]
 	// KasAddress specifies the address of kas.
 	KasAddress                 string
 	KasCACertFile              string
@@ -223,7 +225,15 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				getConfigurationJitter,
 			)),
 			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
-				return a.AgentId.set(data.Config.AgentId)
+				err := a.AgentId.set(data.Config.AgentId)
+				if err != nil {
+					return err
+				}
+				u, err := url.Parse(data.Config.GitlabExternalUrl)
+				if err != nil {
+					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GitlabExternalUrl, err)
+				}
+				return a.GitLabExternalUrl.set(*u)
 			},
 		},
 	}
@@ -252,6 +262,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		},
 		&kubernetes_api_agent.Factory{},
 		&remote_development_agent.Factory{},
+		&flux_agent.Factory{},
 	}
 	var beforeServersModules, afterServersModules []modagent.Module
 	for _, f := range factories {
@@ -260,9 +271,10 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			Log:       a.Log.With(logz.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
-				moduleName: moduleName,
-				agentId:    a.AgentId,
-				client:     accessClient,
+				moduleName:        moduleName,
+				agentId:           a.AgentId,
+				gitLabExternalUrl: a.GitLabExternalUrl,
+				client:            accessClient,
 			},
 			K8sUtilFactory:     k8sFactory,
 			KasConn:            kasConn,
@@ -389,7 +401,8 @@ func NewCommand() *cobra.Command {
 			Version:  cmd.Version,
 			CommitId: cmd.Commit,
 		},
-		AgentId:            NewAgentIdHolder(),
+		AgentId:            NewValueHolder[int64](),
+		GitLabExternalUrl:  NewValueHolder[url.URL](),
 		ServiceAccountName: os.Getenv(envVarServiceAccountName),
 		K8sClientGetter:    kubeConfigFlags,
 	}

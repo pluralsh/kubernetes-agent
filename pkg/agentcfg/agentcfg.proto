@@ -271,6 +271,7 @@ message ConfigurationFile {
   ContainerScanningCF container_scanning = 5 [json_name = "container_scanning"];
   UserAccessCF user_access = 6 [json_name = "user_access"];
   RemoteCF remote_development = 7 [json_name = "remote_development"];
+  FluxCF flux = 8 [json_name = "flux"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -290,6 +291,8 @@ message AgentConfiguration {
   // Path of the configuration project
   string project_path = 8;
   RemoteCF remote_development = 9;
+  FluxCF flux = 10;
+  string gitlab_external_url = 11;
 }
 
 message RemoteCF {
@@ -297,4 +300,8 @@ message RemoteCF {
   string dns_zone = 2 [json_name = "dns_zone"];
   google.protobuf.Duration partial_sync_interval = 3 [json_name = "partial_sync_interval", (validate.rules).duration = {gt: {}}];
   google.protobuf.Duration full_sync_interval = 4 [json_name = "full_sync_interval", (validate.rules).duration = {gt: {}}];
+}
+
+message FluxCF {
+  string webhook_receiver_url = 1 [json_name = "webhook_receiver_url"];
 }

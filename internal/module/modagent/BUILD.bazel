@@ -12,6 +12,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent",
     visibility = [
         "//cmd/agentk:__subpackages__",
+        "//internal/module/flux/agent:__subpackages__",
         "//internal/module/gitops/agent:__subpackages__",
         "//internal/module/kubernetes_api/agent:__subpackages__",
         "//internal/module/observability/agent:__subpackages__",

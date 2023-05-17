@@ -85,7 +85,7 @@ func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.
 				// https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
 				ForceConflicts: true,
 				// https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management
-				FieldManager: "agentk",
+				FieldManager: modagent.FieldManager,
 			},
 			ReconcileTimeout:         project.ReconcileTimeout.AsDuration(),
 			EmitStatusEvents:         true,

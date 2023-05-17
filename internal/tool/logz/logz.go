@@ -4,6 +4,7 @@ package logz
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"time"
 
@@ -221,4 +222,26 @@ func PodStatus(podStatus string) zap.Field {
 
 func PodLog(podLog string) zap.Field {
 	return zap.String("pod_logs", podLog)
+}
+
+func NamespacedName(n string) zap.Field {
+	return zap.String("namespaced_name", n)
+}
+
+func ProjectsToReconcile(p []string) zap.Field {
+	return zap.Strings("projects_to_reconcile", p)
+}
+
+func GitRepositoryUrl(url string) zap.Field {
+	return zap.String("gitrepository_url", url)
+}
+
+func ObjectKey(obj interface{}) zap.Field {
+	return zap.Inline(zapcore.ObjectMarshalerFunc(func(encoder zapcore.ObjectEncoder) error {
+		if k, ok := obj.(string); ok {
+			encoder.AddString("object_key", k)
+			return nil
+		}
+		return fmt.Errorf("unable to log object key as string, because got %[1]T: %[1]v", obj)
+	}))
 }

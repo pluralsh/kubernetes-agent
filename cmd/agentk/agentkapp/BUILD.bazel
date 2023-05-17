@@ -4,7 +4,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "agentkapp",
     srcs = [
-        "agent_id.go",
         "api.go",
         "app.go",
         "app_internal_server.go",
@@ -14,6 +13,7 @@ go_library(
         "logz.go",
         "module_runner.go",
         "rpc_api.go",
+        "value_holder.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
@@ -21,6 +21,7 @@ go_library(
         "//cmd",
         "//internal/api",
         "//internal/module/agent_configuration/rpc",
+        "//internal/module/flux/agent",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/gitops/agent/chartops",
         "//internal/module/gitops/agent/manifestops",
@@ -85,13 +86,13 @@ go_library(
 go_custom_test(
     name = "agentkapp_test",
     srcs = [
-        "agent_id_test.go",
         "api_test.go",
         "app_test.go",
         "leader_module_wrapper_test.go",
         "leader_runner_test.go",
         "mock_for_test.go",
         "module_runner_test.go",
+        "value_holder_test.go",
     ],
     embed = [":agentkapp"],
     deps = [

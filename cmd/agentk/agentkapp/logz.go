@@ -30,7 +30,7 @@ func (a *App) logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) 
 // agentIdEncoder wraps a zapcore.Encoder to add agent id field if agent id is available.
 type agentIdEncoder struct {
 	zapcore.Encoder
-	agentId *AgentIdHolder
+	agentId *ValueHolder[int64]
 }
 
 func (e *agentIdEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {

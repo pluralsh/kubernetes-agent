@@ -18,6 +18,12 @@ import (
 	"k8s.io/kubectl/pkg/cmd/util"
 )
 
+const (
+	// The field manager name for the ones agentk owns, see
+	// https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management
+	FieldManager = "agentk"
+)
+
 // Config holds configuration for a Module.
 type Config struct {
 	// Log can be used for logging from the module.
@@ -52,6 +58,7 @@ type Api interface {
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 	GetAgentId(ctx context.Context) (int64, error)
 	TryGetAgentId() (int64, bool)
+	GetGitLabExternalUrl(ctx context.Context) (url.URL, error)
 }
 
 // RpcApi provides the API for the module's gRPC handlers to use.

@@ -1219,6 +1219,35 @@ def go_repositories():
         sum = "h1:dCrjGJRXIlbDsLAgTJZTjhwUJnnxVWl1OgNyYh5nyDc=",
         version = "v0.1.1",
     )
+    go_repository(
+        name = "com_github_fluxcd_notification_controller_api",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/fluxcd/notification-controller/api",
+        sum = "h1:L6xM9Nvm2icc7SqcUSXYiIY8bTiV73kss5KleaUewts=",
+        version = "v1.0.0-rc.1",
+    )
+    go_repository(
+        name = "com_github_fluxcd_pkg_apis_acl",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/fluxcd/pkg/apis/acl",
+        sum = "h1:EoAl377hDQYL3WqanWCdifauXqXbMyFuK82NnX6pH4Q=",
+        version = "v0.1.0",
+    )
+    go_repository(
+        name = "com_github_fluxcd_pkg_apis_meta",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/fluxcd/pkg/apis/meta",
+        sum = "h1:i9IGHd/VNEZELX7mepkiYFbJxs2J5znaB4cN9z2nPm8=",
+        version = "v1.0.0",
+    )
+
+    go_repository(
+        name = "com_github_fluxcd_source_controller_api",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/fluxcd/source-controller/api",
+        sum = "h1:MZaP5utClMG95Aw/AVu1l05WEfmpEw/RIlCLnkCQl14=",
+        version = "v1.0.0-rc.1",
+    )
 
     go_repository(
         name = "com_github_form3tech_oss_jwt_go",
@@ -3099,6 +3128,7 @@ def go_repositories():
         sum = "h1:y5//uYreIhSUg3J1GEMiLbxo1LJaP8RfCpH6pymGZus=",
         version = "v0.0.0-20140419014527-cca7078d478f",
     )
+
     go_repository(
         name = "com_github_nelsam_hel_v2",
         build_file_proto_mode = "disable_global",

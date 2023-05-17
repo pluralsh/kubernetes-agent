@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -255,9 +256,10 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 	client := mock_gitlab_access.NewMockGitlabAccessClient(ctrl)
 	clientStream := mock_gitlab_access.NewMockGitlabAccess_MakeRequestClient(ctrl)
 	return &agentAPI{
-		moduleName: moduleName,
-		agentId:    NewAgentIdHolder(),
-		client:     client,
+		moduleName:        moduleName,
+		agentId:           NewValueHolder[int64](),
+		gitLabExternalUrl: NewValueHolder[url.URL](),
+		client:            client,
 	}, client, clientStream
 }
 

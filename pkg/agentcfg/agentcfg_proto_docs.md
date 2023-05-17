@@ -22,6 +22,7 @@
     - [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF)
     - [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter)
     - [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF)
+    - [FluxCF](#gitlab-agent-agentcfg-FluxCF)
     - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
     - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
     - [LoggingCF](#gitlab-agent-agentcfg-LoggingCF)
@@ -69,6 +70,8 @@ additional config for kas.
 | container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | project_path | [string](#string) |  | Path of the configuration project |
 | remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
+| flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
+| gitlab_external_url | [string](#string) |  |  |
 
 
 
@@ -298,6 +301,7 @@ ConfigurationFile represents user-facing configuration file.
 | container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
 | remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
+| flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
 
 
 
@@ -348,6 +352,21 @@ ConfigurationFile represents user-facing configuration file.
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
 | val | [string](#string) | repeated | Empty elements are allowed by Kubernetes. |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-FluxCF"></a>
+
+### FluxCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| webhook_receiver_url | [string](#string) |  |  |
 
 
 

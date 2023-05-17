@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"sync"
 
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
@@ -22,13 +23,18 @@ import (
 
 // agentAPI is an implementation of modagent.API.
 type agentAPI struct {
-	moduleName string
-	agentId    *AgentIdHolder
-	client     gitlab_access_rpc.GitlabAccessClient
+	moduleName        string
+	agentId           *ValueHolder[int64]
+	gitLabExternalUrl *ValueHolder[url.URL]
+	client            gitlab_access_rpc.GitlabAccessClient
 }
 
 func (a *agentAPI) GetAgentId(ctx context.Context) (int64, error) {
 	return a.agentId.get(ctx)
+}
+
+func (a *agentAPI) GetGitLabExternalUrl(ctx context.Context) (url.URL, error) {
+	return a.gitLabExternalUrl.get(ctx)
 }
 
 func (a *agentAPI) TryGetAgentId() (int64, bool) {

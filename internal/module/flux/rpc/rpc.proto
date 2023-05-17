@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.flux.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc";
+
+import "validate/validate.proto";
+
+message ReconcileProjectsRequest {
+  repeated Project project = 1;
+}
+
+message ReconcileProjectsResponse {
+  Project project = 1 [(validate.rules).message.required = true];
+}
+
+message Project {
+  // The project `id` here must be a GitLab full project path, e.g. `gitlab-org/gitlab`.
+  // Numerical ids are not supported, see https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/406
+  // We use `id` instead of something like `full_path` to have consistency across existing modules.
+  string id = 1 [(validate.rules).string.min_bytes = 1];
+}
+
+service GitLabFlux {
+  rpc ReconcileProjects(ReconcileProjectsRequest) returns (stream ReconcileProjectsResponse) {}
+}
