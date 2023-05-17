@@ -27,6 +27,7 @@ multirun(
         "//internal/module/agent_tracker:extract_generated",
         "//internal/module/configuration_project/rpc:extract_generated",
         "//internal/module/notifications/rpc:extract_generated",
+        "//internal/module/flux/rpc:extract_generated",
         "//internal/module/gitlab_access/rpc:extract_generated",
         "//internal/module/gitops/rpc:extract_generated",
         "//internal/module/kubernetes_api/rpc:extract_generated",

@@ -29,6 +29,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
 	configuration_project_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/configuration_project/server"
+	flux_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/server"
@@ -248,6 +249,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&notifications_server.Factory{
 			GitPushPublisher: srvApi.publishGitPushEvent,
 		},
+		&flux_server.Factory{},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,

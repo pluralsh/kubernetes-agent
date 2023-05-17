@@ -36,6 +36,7 @@ type server struct {
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
 	getConfigurationPollConfig retry.PollConfigFactory
+	gitLabExternalUrl          string
 }
 
 func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.AgentConfiguration_GetConfigurationServer) error {
@@ -135,6 +136,8 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 			CiAccess:          configFile.CiAccess,
 			ContainerScanning: configFile.ContainerScanning,
 			RemoteDevelopment: configFile.RemoteDevelopment,
+			Flux:              configFile.Flux,
+			GitlabExternalUrl: s.gitLabExternalUrl,
 		},
 		CommitId: commitId,
 	})

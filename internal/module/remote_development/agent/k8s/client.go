@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -94,7 +95,7 @@ func (k *K8sClient) Apply(ctx context.Context, namespace string, config string) 
 		ServerSideOptions: common.ServerSideOptions{
 			ServerSideApply: true,
 			ForceConflicts:  true,
-			FieldManager:    "agentk",
+			FieldManager:    modagent.FieldManager,
 		},
 		ReconcileTimeout:         0,
 		EmitStatusEvents:         true,

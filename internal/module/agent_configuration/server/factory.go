@@ -37,6 +37,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			getConfigurationBackoffFactor,
 			getConfigurationJitter,
 		)),
+		gitLabExternalUrl: config.Config.Gitlab.GetExternalUrl(),
 	})
 	return &module{}, nil
 }

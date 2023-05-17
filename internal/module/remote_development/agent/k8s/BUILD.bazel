@@ -10,6 +10,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/module/modagent",
         "//internal/tool/logz",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",

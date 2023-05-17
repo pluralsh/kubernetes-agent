@@ -48,6 +48,7 @@ go_library(
         "//internal/module/agent_tracker",
         "//internal/module/agent_tracker/server",
         "//internal/module/configuration_project/server",
+        "//internal/module/flux/server",
         "//internal/module/gitlab_access/server",
         "//internal/module/gitops/server",
         "//internal/module/google_profiler/server",
