@@ -64,7 +64,7 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 	}
 	// 2. Construct rest config
 	var headerExtra rpc.HeaderExtra
-	if h.Extra != nil { // May not be there on older kas versions. Also, just be more robust.
+	if h.Extra != nil { // Optional field.
 		err = h.Extra.UnmarshalTo(&headerExtra)
 		if err != nil {
 			return grpctool.DoResponse{}, err

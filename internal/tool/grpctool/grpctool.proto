@@ -16,6 +16,7 @@ message HttpRequest {
   // First message of the stream.
   message Header {
     prototool.HttpRequest request = 1 [(validate.rules).message.required = true];
+    // Optional extra information about the HTTP request.
     google.protobuf.Any extra = 2;
     // content_length contains the size of the expected body (if any) in the request.
     // Possible values are:

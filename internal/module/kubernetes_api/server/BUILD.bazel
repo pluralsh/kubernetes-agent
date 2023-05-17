@@ -38,6 +38,7 @@ go_library(
         "@io_opentelemetry_go_otel_metric//:metric",
         "@io_opentelemetry_go_otel_trace//:trace",
         "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],
 )
