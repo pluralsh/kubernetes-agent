@@ -3,10 +3,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "gittest",
     srcs = ["pktline.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/copied/gittest",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gittest",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/gitaly/copied/pktline",
+        "//internal/gitaly/vendored/pktline",
         "@com_github_stretchr_testify//require",
     ],
 )

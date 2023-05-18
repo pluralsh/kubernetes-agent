@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/copied/pktline"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/pktline"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
 )
 

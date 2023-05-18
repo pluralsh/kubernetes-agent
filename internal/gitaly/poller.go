@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/copied/stats"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/stats"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
 	"gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
 )
