@@ -3,7 +3,6 @@ load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
     src = "rpc.proto",
-    workspace_relative_target_directory = "internal/module/kubernetes_api/rpc",
     deps = [
         "//internal/tool/grpctool:proto",
     ],

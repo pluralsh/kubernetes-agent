@@ -5,7 +5,6 @@ load("//build:proto.bzl", "go_proto_generate")
 go_proto_generate(
     src = "agentcfg.proto",
     with_md_docs = True,
-    workspace_relative_target_directory = "pkg/agentcfg",
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
         "@com_google_protobuf//:duration_proto",

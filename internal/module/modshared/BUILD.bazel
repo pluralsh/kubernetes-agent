@@ -3,7 +3,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "modshared.proto",
-    workspace_relative_target_directory = "internal/module/modshared",
 )
 
 go_library(

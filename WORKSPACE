@@ -77,6 +77,13 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "aspect_bazel_lib",
+    sha256 = "f1c181b910f821072f38ee45bb87db6b56275458c7f832c54c54ba6334119eca",
+    strip_prefix = "bazel-lib-1.32.0",
+    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.32.0/bazel-lib-v1.32.0.tar.gz",
+)
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
@@ -236,6 +243,7 @@ load(
     container_repositories = "repositories",
 )
 load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
+load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies")
 
 rules_proto_dependencies()
 
@@ -269,3 +277,5 @@ multirun_dependencies()
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 
 grpc_deps()
+
+aspect_bazel_lib_dependencies()

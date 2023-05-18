@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
     src = "rpc.proto",
-    workspace_relative_target_directory = "internal/module/reverse_tunnel/rpc",
     deps = [
         "//internal/module/reverse_tunnel/info:proto",
         "//internal/tool/grpctool/automata:proto",

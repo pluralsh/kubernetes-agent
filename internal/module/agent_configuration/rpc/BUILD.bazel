@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
     src = "rpc.proto",
-    workspace_relative_target_directory = "internal/module/agent_configuration/rpc",
     deps = [
         "//internal/module/modshared:proto",
         "//pkg/agentcfg:proto",

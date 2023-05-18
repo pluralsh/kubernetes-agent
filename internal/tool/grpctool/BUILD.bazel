@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "grpctool.proto",
-    workspace_relative_target_directory = "internal/tool/grpctool",
     deps = [
         "//internal/tool/grpctool/automata:proto",
         "//internal/tool/prototool:proto",
