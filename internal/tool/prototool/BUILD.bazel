@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "prototool.proto",
-    workspace_relative_target_directory = "internal/tool/prototool",
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],

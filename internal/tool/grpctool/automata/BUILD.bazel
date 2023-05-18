@@ -3,7 +3,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "automata.proto",
-    workspace_relative_target_directory = "internal/tool/grpctool/automata",
     deps = [
         "@com_google_protobuf//:descriptor_proto",
     ],

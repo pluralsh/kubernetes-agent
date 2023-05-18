@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "agent_tracker.proto",
-    workspace_relative_target_directory = "internal/module/agent_tracker",
     deps = [
         "//internal/module/modshared:proto",
         "@com_google_protobuf//:timestamp_proto",

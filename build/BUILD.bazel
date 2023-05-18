@@ -10,12 +10,6 @@ sh_binary(
     visibility = ["//visibility:public"],
 )
 
-sh_binary(
-    name = "copy_to_workspace",
-    srcs = ["copy_to_workspace.sh"],
-    visibility = ["//visibility:public"],
-)
-
 multirun(
     name = "extract_generated_proto",
     commands = [
@@ -42,14 +36,6 @@ multirun(
         "//internal/tool/redistool:extract_generated",
         "//pkg/agentcfg:extract_generated",
         "//pkg/kascfg:extract_generated",
-        "//pkg/ruby:extract_modserver_pb",
-        "//pkg/ruby:extract_modshared_pb",
-        "//pkg/ruby:extract_agent_tracker_pb",
-        "//pkg/ruby:extract_agent_tracker_rpc_pb",
-        "//pkg/ruby:extract_agent_tracker_rpc_services_pb",
-        "//pkg/ruby:extract_configuration_project_rpc_pb",
-        "//pkg/ruby:extract_configuration_project_rpc_services_pb",
-        "//pkg/ruby:extract_notifications_rpc_pb",
-        "//pkg/ruby:extract_notifications_rpc_services_pb",
+        "//pkg/ruby:extract_generated",
     ],
 )

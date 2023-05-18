@@ -3,7 +3,6 @@ load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
     src = "rpc.proto",
-    workspace_relative_target_directory = "internal/module/configuration_project/rpc",
     deps = [
         "//internal/module/modserver:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",

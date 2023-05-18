@@ -1,73 +1,65 @@
-load(":copy_helper.bzl", "copy_grpc_files")
-load("//build:build.bzl", "copy_to_workspace")
-load("@rules_proto_grpc//ruby:defs.bzl", "ruby_grpc_compile", "ruby_proto_compile")
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@rules_proto_grpc//ruby:defs.bzl", "ruby_proto_compile")
+load("//build:proto_def.bzl", "ruby_grpc_compile")
 
-ruby_proto_compile(
-    name = "lib_proto",
-    protos = [
-        "//internal/module/agent_tracker:proto",
-        "//internal/module/modserver:proto",
-        "//internal/module/modshared:proto",
-    ],
+PROTO = [
+    "modshared",
+    "modserver",
+    "agent_tracker",
+]
+
+RPC = [
+    "agent_tracker",
+    "configuration_project",
+    "notifications",
+]
+
+[
+    ruby_proto_compile(
+        name = "%s_proto" % name,
+        protos = [
+            "//internal/module/%s:proto" % name,
+        ],
+        tags = ["manual"],
+    )
+    for name in PROTO
+]
+
+[
+    ruby_proto_compile(
+        name = "%s_rpc_proto" % name,
+        protos = [
+            "//internal/module/%s/rpc:proto" % name,
+        ],
+        tags = ["manual"],
+    )
+    for name in RPC
+]
+
+[
+    ruby_grpc_compile(
+        name = "%s_services_proto" % name,
+        protos = [
+            "//internal/module/%s/rpc:proto" % name,
+        ],
+        tags = ["manual"],
+    )
+    for name in RPC
+]
+
+write_source_files(
+    name = "extract_generated",
+    diff_test = False,
+    files = {
+        "lib/internal/module/%s/%s_pb.rb" % (name, name): ":%s_proto" % name
+        for name in PROTO
+    } | {
+        "lib/internal/module/%s/rpc/rpc_pb.rb" % name: ":%s_rpc_proto" % name
+        for name in RPC
+    } | {
+        "lib/internal/module/%s/rpc/rpc_services_pb.rb" % name: ":%s_services_proto" % name
+        for name in RPC
+    },
     tags = ["manual"],
-)
-
-ruby_grpc_compile(
-    name = "agent_tracker_grpc",
-    protos = [
-        "//internal/module/agent_tracker/rpc:proto",
-    ],
-    tags = ["manual"],
-)
-
-ruby_grpc_compile(
-    name = "configuration_project_grpc",
-    protos = [
-        "//internal/module/configuration_project/rpc:proto",
-    ],
-    tags = ["manual"],
-)
-
-ruby_grpc_compile(
-    name = "notifications_grpc",
-    protos = [
-        "//internal/module/notifications/rpc:proto",
-    ],
-    tags = ["manual"],
-)
-
-copy_to_workspace(
-    name = "extract_modshared_pb",
-    file_to_copy = "modshared_pb.rb",
-    label = ":lib_proto",
-    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/modshared",
-)
-
-copy_to_workspace(
-    name = "extract_modserver_pb",
-    file_to_copy = "modserver_pb.rb",
-    label = ":lib_proto",
-    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/modserver",
-)
-
-copy_to_workspace(
-    name = "extract_agent_tracker_pb",
-    file_to_copy = "agent_tracker_pb.rb",
-    label = ":lib_proto",
-    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker",
-)
-
-copy_grpc_files(
-    label = ":agent_tracker_grpc",
-    module_name = "agent_tracker",
-)
-
-copy_grpc_files(
-    label = ":configuration_project_grpc",
-    module_name = "configuration_project",
-)
-
-copy_grpc_files(
-    label = ":notifications_grpc",
-    module_name = "notifications",
+    visibility = ["//visibility:public"],
 )

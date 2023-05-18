@@ -4,7 +4,6 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "kasapp.proto",
-    workspace_relative_target_directory = "cmd/kas/kasapp",
     deps = [
         "//internal/tool/grpctool/automata:proto",
         "//internal/tool/prototool:proto",
