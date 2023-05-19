@@ -117,7 +117,7 @@ func (d *dnsResolver) resolve() (*resolver.State, error) {
 //     Backoff).
 //   - Other errors should be suppressed (they may represent the absence of a TXT record).
 func handleDNSError(err error) error {
-	if dnsErr, ok := err.(*net.DNSError); ok && !dnsErr.IsTimeout && !dnsErr.IsTemporary {
+	if dnsErr, ok := err.(*net.DNSError); ok && !dnsErr.IsTimeout && !dnsErr.IsTemporary { // nolint: errorlint
 		return nil
 	}
 

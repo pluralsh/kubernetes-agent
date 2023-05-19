@@ -53,7 +53,7 @@ func parseTarget(target, defaultPort string) (string, string, error) {
 		return target, defaultPort, nil
 	}
 
-	if host, port, err := net.SplitHostPort(target); err == nil {
+	if host, port, err := net.SplitHostPort(target); err == nil { // nolint: govet
 		if port == "" {
 			// If the port field is empty (target ends with colon), e.g. "[::1]:", this is an error.
 			return "", "", structerr.New("dns resolver: missing port after port-separator colon")

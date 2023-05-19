@@ -204,7 +204,7 @@ func (e Error) Unwrap() error {
 // Is checks whether the error is equivalent to the target error. Errors are only considered
 // equivalent if the GRPC representation of this error is the same.
 func (e Error) Is(targetErr error) bool {
-	target, ok := targetErr.(Error)
+	target, ok := targetErr.(Error) // nolint: errorlint
 	if !ok {
 		return false
 	}
@@ -244,7 +244,7 @@ func (e Error) GRPCStatus() *status.Status {
 func (e Error) errorChain() []Error {
 	var result []Error
 	for err := error(e); err != nil; err = errors.Unwrap(err) {
-		if structErr, ok := err.(Error); ok {
+		if structErr, ok := err.(Error); ok { // nolint: errorlint
 			result = append(result, structErr)
 		}
 	}

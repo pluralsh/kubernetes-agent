@@ -77,7 +77,7 @@ func Dial(ctx context.Context, rawAddress string, connOpts []grpc.DialOption, ha
 			return nil, fmt.Errorf("failed to extract host for 'tls' connection: %w", err)
 		}
 
-		certPool, err := x509.SystemCertPool()
+		certPool, err := x509.SystemCertPool() // nolint: govet
 		if err != nil {
 			return nil, fmt.Errorf("failed to get system certificat pool for 'tls' connection: %w", err)
 		}

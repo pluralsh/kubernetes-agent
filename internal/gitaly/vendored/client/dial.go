@@ -32,7 +32,7 @@ type DNSResolverBuilderConfig dnsresolver.BuilderConfig
 func DefaultDNSResolverBuilderConfig() *DNSResolverBuilderConfig {
 	return &DNSResolverBuilderConfig{
 		RefreshRate:     5 * time.Minute,
-		Backoff:         backoff.NewDefaultExponential(rand.New(rand.NewSource(time.Now().UnixNano()))),
+		Backoff:         backoff.NewDefaultExponential(rand.New(rand.NewSource(time.Now().UnixNano()))), // nolint: gosec
 		DefaultGrpcPort: "443",
 	}
 }
