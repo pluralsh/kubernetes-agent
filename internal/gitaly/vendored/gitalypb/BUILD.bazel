@@ -1,0 +1,113 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("//build:proto_def.bzl", "go_grpc_compile")
+
+proto_library(
+    name = "lint_proto",
+    srcs = ["lint.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+)
+
+proto_library(
+    name = "errors_proto",
+    srcs = ["errors.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        "@com_google_protobuf//:duration_proto",
+    ],
+)
+
+proto_library(
+    name = "shared_proto",
+    srcs = ["shared.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        ":lint_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)
+
+proto_library(
+    name = "commit_proto",
+    srcs = ["commit.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        ":lint_proto",
+        ":shared_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)
+
+proto_library(
+    name = "service_config_proto",
+    srcs = ["service_config.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        "@com_google_protobuf//:duration_proto",
+        "@com_google_protobuf//:wrappers_proto",
+    ],
+)
+
+proto_library(
+    name = "smarthttp_proto",
+    srcs = ["smarthttp.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+    deps = [
+        ":lint_proto",
+        ":shared_proto",
+    ],
+)
+
+PROTOS = [
+    "lint",
+    "errors",
+    "shared",
+    "service_config",
+]
+
+GRPC = [
+    "commit",
+    "smarthttp",
+]
+
+[
+    go_proto_compile(
+        name = "%s_proto_compile" % name,
+        protos = [":%s_proto" % name],
+        tags = ["manual"],
+    )
+    for name in PROTOS + GRPC
+]
+
+[
+    go_grpc_compile(
+        name = "%s_grpc_compile" % name,
+        protos = [":%s_proto" % name],
+        tags = ["manual"],
+    )
+    for name in GRPC
+]
+
+write_source_files(
+    name = "extract_generated",
+    diff_test = False,
+    files = {
+        "%s.pb.go" % name: ":%s_proto_compile" % name
+        for name in PROTOS + GRPC
+    } | {
+        "%s_grpc.pb.go" % name: ":%s_grpc_compile" % name
+        for name in GRPC
+    },
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
