@@ -16,6 +16,7 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitaly",
+        "//internal/gitaly/vendored/gitalypb",
         "//internal/gitlab",
         "//internal/gitlab/api",
         "//internal/module/gitops",
@@ -32,7 +33,6 @@ go_library(
         "//internal/tool/retry",
         "//pkg/kascfg",
         "@com_github_redis_go_redis_v9//:go-redis",
-        "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
@@ -51,6 +51,7 @@ go_custom_test(
     deps = [
         "//internal/api",
         "//internal/gitaly",
+        "//internal/gitaly/vendored/gitalypb",
         "//internal/gitlab/api",
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
@@ -68,7 +69,6 @@ go_custom_test(
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@com_gitlab_gitlab_org_gitaly_v15//proto/go/gitalypb",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/runtime",

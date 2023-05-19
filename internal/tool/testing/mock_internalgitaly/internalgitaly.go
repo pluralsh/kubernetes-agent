@@ -11,7 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
-	gitalypb "gitlab.com/gitlab-org/gitaly/v15/proto/go/gitalypb"
+	gitalypb "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 )
 
 // MockPoolInterface is a mock of PoolInterface interface.
