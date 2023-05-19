@@ -24,11 +24,6 @@ type Pool struct {
 	dialOptions []grpc.DialOption
 }
 
-// NewPool creates a new connection pool that's ready for use.
-func NewPool(dialOptions ...grpc.DialOption) *Pool {
-	return NewPoolWithOptions(WithDialOptions(dialOptions...))
-}
-
 // NewPoolWithOptions creates a new connection pool that's ready for use.
 func NewPoolWithOptions(poolOptions ...PoolOption) *Pool {
 	opts := applyPoolOptions(poolOptions)

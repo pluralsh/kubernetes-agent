@@ -11,8 +11,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/dnsresolver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
-	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
-	grpctracing "gitlab.com/gitlab-org/labkit/tracing/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -176,22 +174,6 @@ func Dial(ctx context.Context, rawAddress string, connOpts []grpc.DialOption, ha
 	}
 
 	return conn, nil
-}
-
-// StreamInterceptor returns the stream interceptors that should be configured for a client.
-func StreamInterceptor() grpc.DialOption {
-	return grpc.WithChainStreamInterceptor(
-		grpctracing.StreamClientTracingInterceptor(),
-		grpccorrelation.StreamClientCorrelationInterceptor(),
-	)
-}
-
-// UnaryInterceptor returns the unary interceptors that should be configured for a client.
-func UnaryInterceptor() grpc.DialOption {
-	return grpc.WithChainUnaryInterceptor(
-		grpctracing.UnaryClientTracingInterceptor(),
-		grpccorrelation.UnaryClientCorrelationInterceptor(),
-	)
 }
 
 func cloneOpts(opts []grpc.DialOption) []grpc.DialOption {

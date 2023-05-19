@@ -6,15 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/backoff"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/structerr"
 	"google.golang.org/grpc/resolver"
 )
 
 type dnsResolver struct {
-	logger *logrus.Entry
-	retry  backoff.Strategy
+	retry backoff.Strategy
 
 	ctx         context.Context
 	cancel      context.CancelFunc
@@ -27,7 +25,7 @@ type dnsResolver struct {
 	wg          sync.WaitGroup
 }
 
-var dnsLookupTimeout = 15 * time.Second
+const dnsLookupTimeout = 15 * time.Second
 
 type dnsLookuper interface {
 	LookupHost(context.Context, string) ([]string, error)
@@ -53,16 +51,12 @@ func (d *dnsResolver) Close() {
 
 func (d *dnsResolver) watch() {
 	defer d.wg.Done()
-	d.logger.Info("dns resolver: started")
-	defer d.logger.Info("dns resolver: stopped")
 
 	// Exponential retry after failed to resolve or client connection failed to update its state
 	var retries uint
 	for {
 		state, err := d.resolve()
 		if err != nil {
-			d.logger.WithField("dns.retries", retries).WithField("dns.error", err).Error(
-				"dns resolver: fail to lookup dns")
 			d.cc.ReportError(err)
 		} else {
 			err = d.updateState(state)
@@ -83,20 +77,17 @@ func (d *dnsResolver) watch() {
 			return
 		case <-timer.C:
 			// Refresh timer expires, issue another DNS lookup.
-			d.logger.Debug("dns resolver: refreshing")
 			continue
 		case <-d.reqs:
 			// If the resolver is requested to resolve now, force notify the client
 			// connection. Typically, client connection contacts the resolver when any
 			// of the subchannels change its connectivity state.
 			timer.Stop()
-			d.logger.Debug("dns resolver: handle ResolveNow request")
 		}
 	}
 }
 
 func (d *dnsResolver) updateState(state *resolver.State) error {
-	d.logger.WithField("dns.state", state).Info("dns resolver: updating state")
 	return d.cc.UpdateState(*state)
 }
 

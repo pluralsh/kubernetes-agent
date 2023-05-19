@@ -13,7 +13,6 @@ go_library(
     deps = [
         "//internal/gitaly/vendored/backoff",
         "//internal/gitaly/vendored/structerr",
-        "@com_github_sirupsen_logrus//:logrus",
         "@org_golang_google_grpc//resolver",
     ],
 )

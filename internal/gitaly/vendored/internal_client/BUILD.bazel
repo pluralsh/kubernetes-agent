@@ -11,8 +11,6 @@ go_library(
     deps = [
         "//internal/gitaly/vendored/dnsresolver",
         "//internal/gitaly/vendored/gitalypb",
-        "@com_gitlab_gitlab_org_labkit//correlation/grpc",
-        "@com_gitlab_gitlab_org_labkit//tracing/grpc",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials",
         "@org_golang_google_grpc//credentials/insecure",

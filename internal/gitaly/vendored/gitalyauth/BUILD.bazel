@@ -8,12 +8,5 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalyauth",
     visibility = ["//:__subpackages__"],
-    deps = [
-        "@com_github_grpc_ecosystem_go_grpc_middleware//auth",
-        "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
-        "@org_golang_google_grpc//codes",
-        "@org_golang_google_grpc//credentials",
-        "@org_golang_google_grpc//status",
-    ],
+    deps = ["@org_golang_google_grpc//credentials"],
 )

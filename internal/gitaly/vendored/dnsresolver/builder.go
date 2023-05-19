@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/backoff"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/structerr"
 	"google.golang.org/grpc/resolver"
@@ -28,8 +27,6 @@ type BuilderConfig struct {
 	// RefreshRate determines the periodic refresh rate of the resolver. The resolver may issue
 	// the resolver earlier if client connection demands
 	RefreshRate time.Duration
-	// Logger defines a logger for logging internal activities
-	Logger *logrus.Logger
 	// Backoff defines the backoff strategy when the resolver fails to resolve or pushes new
 	// state to client connection
 	Backoff backoff.Strategy
@@ -91,8 +88,7 @@ func (d *Builder) Build(target resolver.Target, cc resolver.ClientConn, _ resolv
 
 	ctx, cancel := context.WithCancel(context.Background())
 	dr := &dnsResolver{
-		logger: logrus.NewEntry(d.opts.Logger).WithField("target", target.URL.String()),
-		retry:  d.opts.Backoff,
+		retry: d.opts.Backoff,
 
 		ctx:         ctx,
 		cancel:      cancel,
