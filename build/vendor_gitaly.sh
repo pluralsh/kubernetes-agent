@@ -4,8 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-A="$HOME/src/gitlab-agent/internal/gitaly/vendored"
-G="$HOME/src/gitaly"
+A="${AGENT_DIR:-"$HOME/src/gitlab-agent/internal/gitaly/vendored"}"
+G="${GITALY_DIR:-"$HOME/src/gitaly"}"
 
 rm -rf "$A/backoff"
 cp -R "$G/internal/backoff" "$A"
