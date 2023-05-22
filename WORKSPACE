@@ -124,15 +124,6 @@ go_repository(
     version = "v1.15.1",
 )
 
-go_repository(
-    name = "com_github_envoyproxy_protoc_gen_validate",
-    build_file_proto_mode = "disable_global",
-    build_naming_convention = "go_default_library",
-    importpath = "github.com/envoyproxy/protoc-gen-validate",
-    sum = "h1:FPFO7LWZ2pfphahSUMX8L5p/6FqSzRYRxq6V74eG8ZI=",
-    version = "v1.0.0",
-)
-
 # Copied from rules_go to keep patches in place
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
 http_archive(

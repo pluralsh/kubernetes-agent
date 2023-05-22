@@ -1152,7 +1152,13 @@ def go_repositories():
         sum = "h1:jtLewhRR2vMRNnq2ZZUoCjUlgut+Y0+sDDWPOfwOi1o=",
         version = "v0.11.0",
     )
-
+    go_repository(
+        name = "com_github_envoyproxy_protoc_gen_validate",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/envoyproxy/protoc-gen-validate",
+        sum = "h1:FPFO7LWZ2pfphahSUMX8L5p/6FqSzRYRxq6V74eG8ZI=",
+        version = "v1.0.0",
+    )
     go_repository(
         name = "com_github_evanphx_json_patch",
         build_file_proto_mode = "disable_global",
