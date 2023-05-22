@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "internal_client",
+    srcs = [
+        "address_parser.go",
+        "dial.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/internal_client",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/gitaly/vendored/dnsresolver",
+        "//internal/gitaly/vendored/gitalypb",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_grpc//credentials/insecure",
+        "@org_golang_google_grpc//keepalive",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

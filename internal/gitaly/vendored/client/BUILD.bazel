@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "client",
+    srcs = [
+        "dial.go",
+        "pool.go",
+        "pool_options.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/client",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/gitaly/vendored/backoff",
+        "//internal/gitaly/vendored/dnsresolver",
+        "//internal/gitaly/vendored/gitalyauth",
+        "//internal/gitaly/vendored/internal_client",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

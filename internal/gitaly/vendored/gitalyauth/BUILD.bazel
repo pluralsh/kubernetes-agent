@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gitalyauth",
+    srcs = [
+        "rpccredentials.go",
+        "token.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalyauth",
+    visibility = ["//:__subpackages__"],
+    deps = ["@org_golang_google_grpc//credentials"],
+)
