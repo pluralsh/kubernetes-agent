@@ -24,6 +24,7 @@ go_library(
         "module_request.go",
         "post_agent_configuration.go",
         "send_usage_ping.go",
+        "verify_project_access.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api",
     visibility = ["//:__subpackages__"],
@@ -48,6 +49,7 @@ go_custom_test(
         "helper_test.go",
         "post_agent_configuration_test.go",
         "validation_test.go",
+        "verify_project_access_test.go",
     ],
     embed = [":api"],
     deps = [
