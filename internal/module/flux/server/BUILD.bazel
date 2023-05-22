@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "factory.go",
         "module.go",
-        "project_info_client.go",
         "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server",
