@@ -245,3 +245,11 @@ func ObjectKey(obj interface{}) zap.Field {
 		return fmt.Errorf("unable to log object key as string, because got %[1]T: %[1]v", obj)
 	}))
 }
+
+func K8sGroup(groupName string) zap.Field {
+	return zap.String("k8s_group", groupName)
+}
+
+func K8sResource(resourceName string) zap.Field {
+	return zap.String("k8s_resource", resourceName)
+}
