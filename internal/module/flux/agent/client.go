@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	notificationv1 "github.com/fluxcd/notification-controller/api/v1"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc"
@@ -22,20 +23,22 @@ import (
 const (
 	// projectReceiverIndex the name for the index on the FluxCD notification/Receiver objects
 	// that maps them to GitLab project paths.
-	projectReceiverIndex = "project"
+	projectReceiverIndex                  = "project"
+	defaultReconciliationDebounceDuration = 10 * time.Second
 )
 
 // client represents the client part of the Flux agent module.
 type client struct {
-	log                        *zap.Logger
-	agentApi                   modagent.Api
-	agentId                    int64
-	fluxGitLabClient           rpc.GitLabFluxClient
-	pollCfgFactory             retry.PollConfigFactory
-	receiverIndexer            cache.Indexer
-	reconcileTrigger           reconcileTrigger
-	updateProjectsToReconcileC chan []string
-	reconcilingProjectCache    []string
+	log                            *zap.Logger
+	agentApi                       modagent.Api
+	agentId                        int64
+	fluxGitLabClient               rpc.GitLabFluxClient
+	pollCfgFactory                 retry.PollConfigFactory
+	receiverIndexer                cache.Indexer
+	reconcileTrigger               reconcileTrigger
+	updateProjectsToReconcileC     chan []string
+	reconcilingProjectCache        []string
+	reconciliationDebounceDuration time.Duration
 }
 
 type clientFactory func(ctx context.Context, url string, receiverIndexer cache.Indexer) (*client, error)
@@ -59,14 +62,15 @@ func newClient(log *zap.Logger, agentApi modagent.Api, agentId int64, fluxGitLab
 	}
 	updateProjectsToReconcileC := make(chan []string)
 	return &client{
-		log:                        log,
-		agentApi:                   agentApi,
-		agentId:                    agentId,
-		fluxGitLabClient:           fluxGitLabClient,
-		pollCfgFactory:             pollCfgFactory,
-		receiverIndexer:            receiverIndexer,
-		reconcileTrigger:           reconcileTrigger,
-		updateProjectsToReconcileC: updateProjectsToReconcileC,
+		log:                            log,
+		agentApi:                       agentApi,
+		agentId:                        agentId,
+		fluxGitLabClient:               fluxGitLabClient,
+		pollCfgFactory:                 pollCfgFactory,
+		receiverIndexer:                receiverIndexer,
+		reconcileTrigger:               reconcileTrigger,
+		updateProjectsToReconcileC:     updateProjectsToReconcileC,
+		reconciliationDebounceDuration: defaultReconciliationDebounceDuration,
 	}, nil
 }
 
@@ -107,6 +111,8 @@ func addProjectIndex(receiverIndexer cache.Indexer) error {
 // There is only ever one reconciliation process running at the same
 // time and a call to ReconcileIndexedProjects will terminate
 // a potentially previously started reconciliation process.
+// The c.reconciliationDebounceDuration controls how long to debounce
+// before starting a new reconciliation for received projects.
 func (c *client) RunProjectReconciliation(ctx context.Context) {
 	done := ctx.Done()
 	var currentListenCtx context.Context
@@ -120,14 +126,33 @@ func (c *client) RunProjectReconciliation(ctx context.Context) {
 	defer wg.Wait()
 	defer maybeCancel()
 
+	debounceTimer := time.NewTimer(c.reconciliationDebounceDuration)
+	debounceTimer.Stop()
+	defer debounceTimer.Stop()
+
+	var lastProjects []string
+
 	for {
 		select {
 		case <-done:
 			// Shutdown
 			return // nolint:govet
 		case projects := <-c.updateProjectsToReconcileC:
-			// FIXME: we should implement some kind of debounce / cool down period to not restart reconciliation too often
-			// with intermediary projects, see https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/404
+			lastProjects = projects
+			if !debounceTimer.Stop() {
+				select {
+				case <-debounceTimer.C:
+				default:
+				}
+			}
+			debounceTimer.Reset(c.reconciliationDebounceDuration)
+		case <-debounceTimer.C:
+			if !c.isReconcileUpdateRequired(lastProjects) {
+				// NOTE: projects are the same as before even after the debounce,
+				// so we don't need to bother to update
+				continue
+			}
+			c.reconcilingProjectCache = lastProjects
 
 			// Stop previous listen and wait for it to end
 			maybeCancel()
@@ -135,8 +160,12 @@ func (c *client) RunProjectReconciliation(ctx context.Context) {
 
 			// start a new listen
 			currentListenCtx, cancel = context.WithCancel(ctx) // nolint:govet
+
+			// NOTE: since we use these projects in a goroutine `-race` would
+			// detect a race condition - so we just copy the projects
+			projectsToReconcile := lastProjects
 			wg.Start(func() {
-				c.reconcileProjects(currentListenCtx, projects)
+				c.reconcileProjects(currentListenCtx, projectsToReconcile)
 			})
 		}
 	}
@@ -148,11 +177,6 @@ func (c *client) RunProjectReconciliation(ctx context.Context) {
 // RunProjectReconciliation.
 func (c *client) ReconcileIndexedProjects(ctx context.Context) {
 	projects := c.receiverIndexer.ListIndexFuncValues(projectReceiverIndex)
-	if !c.isReconcileUpdateRequired(projects) {
-		// projects are the same as before, so we don't need to bother to update
-		return
-	}
-	c.reconcilingProjectCache = projects
 	c.log.Debug("Reconcile project update", logz.ProjectsToReconcile(projects))
 
 	select {
@@ -179,6 +203,9 @@ func (c *client) isReconcileUpdateRequired(projects []string) bool {
 // reconcileProjects makes an API call to the server to wait for reconciliation updates of a set of projects.
 // Once one of these projects is updated it triggers the associated FluxCD notification/Receiver webhook.
 func (c *client) reconcileProjects(ctx context.Context, projects []string) {
+	c.log.Debug("Started watching projects for reconciliation", logz.ProjectsToReconcile(projects))
+	defer c.log.Debug("Stopped watching projects for reconciliation", logz.ProjectsToReconcile(projects))
+
 	_ = retry.PollWithBackoff(ctx, c.pollCfgFactory(), func(ctx context.Context) (error, retry.AttemptResult) {
 		rpcClient, err := c.fluxGitLabClient.ReconcileProjects(ctx, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(projects)})
 		if err != nil {

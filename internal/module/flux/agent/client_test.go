@@ -129,14 +129,23 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// GIVEN
+			var wg wait.Group
+			defer wg.Wait()
+
 			ctrl := gomock.NewController(t)
 			mockReceiverIndexer := mock_k8s.NewMockIndexer(ctrl)
+			mockGitLabFluxClient := NewMockGitLabFluxClient(ctrl)
+			mockAgentApi := mock_modagent.NewMockApi(ctrl)
 			ch := make(chan []string, 1)
 			c := client{
-				log:                        zaptest.NewLogger(t),
-				receiverIndexer:            mockReceiverIndexer,
-				reconcilingProjectCache:    tc.cachedProjects,
-				updateProjectsToReconcileC: ch,
+				log:                            zaptest.NewLogger(t),
+				agentApi:                       mockAgentApi,
+				receiverIndexer:                mockReceiverIndexer,
+				fluxGitLabClient:               mockGitLabFluxClient,
+				reconcilingProjectCache:        tc.cachedProjects,
+				updateProjectsToReconcileC:     ch,
+				pollCfgFactory:                 retry.NewPollConfigFactory(1*time.Hour, func() retry.BackoffManager { return &fakeBackoff{1 * time.Hour} }),
+				reconciliationDebounceDuration: 0,
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -144,14 +153,26 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 			// setup mock expectations
 			mockReceiverIndexer.EXPECT().ListIndexFuncValues(projectReceiverIndex).Return(tc.projects)
 
+			// we need this to abort the PollWithBackoff in reconcileProjects eventually
+			if tc.expectedIsUpdateRequired {
+				mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				mockGitLabFluxClient.EXPECT().
+					ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)}).
+					DoAndReturn(func(_, _ interface{}, _ ...interface{}) (interface{}, error) {
+						cancel()
+						return nil, errors.New("just for testing, it's okay")
+					})
+			}
+
+			// start reconciliation ...
+			wg.StartWithContext(ctx, c.RunProjectReconciliation)
+
 			// WHEN
 			c.ReconcileIndexedProjects(ctx)
 
 			// THEN
 			if tc.expectedIsUpdateRequired {
-				assert.Equal(t, tc.projects, <-ch)
-			} else {
-				assert.Len(t, ch, 0)
+				<-ctx.Done()
 			}
 		})
 	}
@@ -176,12 +197,13 @@ func TestClient_RestartsProjectReconciliationOnProjectsUpdate(t *testing.T) {
 	mockAgentApi := mock_modagent.NewMockApi(ctrl)
 	ch := make(chan []string)
 	c := client{
-		log:                        zaptest.NewLogger(t),
-		agentApi:                   mockAgentApi,
-		fluxGitLabClient:           mockGitLabFluxClient,
-		receiverIndexer:            mockReceiverIndexer,
-		updateProjectsToReconcileC: ch,
-		pollCfgFactory:             retry.NewPollConfigFactory(1*time.Hour, func() retry.BackoffManager { return &fakeBackoff{1 * time.Hour} }),
+		log:                            zaptest.NewLogger(t),
+		agentApi:                       mockAgentApi,
+		fluxGitLabClient:               mockGitLabFluxClient,
+		receiverIndexer:                mockReceiverIndexer,
+		updateProjectsToReconcileC:     ch,
+		pollCfgFactory:                 retry.NewPollConfigFactory(1*time.Hour, func() retry.BackoffManager { return &fakeBackoff{1 * time.Hour} }),
+		reconciliationDebounceDuration: 0,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -209,11 +231,14 @@ func TestClient_RestartsProjectReconciliationOnProjectsUpdate(t *testing.T) {
 	// start with first set of projects
 	ch <- firstProjects
 
-	// give some time to start reconciliation
+	// give some time to start reconciliation after debounce
 	time.Sleep(1 * time.Second)
 
 	// update to the second set of projects
 	ch <- secondProjects
+
+	// give some time to start reconciliation after debounce
+	time.Sleep(1 * time.Second)
 
 	// THEN
 	// we cancel the context in the mock function - that's all we need to know regarding execution.
