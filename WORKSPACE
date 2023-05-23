@@ -24,9 +24,19 @@ http_archive(
 )
 
 http_archive(
-    name = "io_bazel_rules_docker",
-    sha256 = "b1e80761a8a8243d03ebca8845e9cc1ba6c82ce7c5179ce2b295cd36f7e394bf",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.25.0/rules_docker-v0.25.0.tar.gz"],
+    name = "rules_oci",
+    sha256 = "7824dcb6c9f9f87786d65592da006d9f1e2bea826d7560d96745e54cdecb5d47",
+    strip_prefix = "rules_oci-1.0.0-rc1",
+    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.0.0-rc1/rules_oci-v1.0.0-rc1.tar.gz",
+)
+
+http_archive(
+    name = "rules_pkg",
+    sha256 = "8f9ee2dc10c1ae514ee599a8b42ed99fa262b757058f65ad3c384289ff70c4b8",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+    ],
 )
 
 http_archive(
@@ -163,65 +173,6 @@ go_register_toolchains(
 
 gazelle_dependencies()
 
-load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
-
-# Images are managed by https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/tree/main/renovate/projects/gitlab-agent.config.js
-# DO NOT EDIT ================ START
-
-# debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
-container_pull(
-    name = "go_debug_image_base",
-    digest = "sha256:85e66d2a105ddbd7cbc60a08dc754557f4a30282ba61942272348e8d50ec1178",
-    registry = "gcr.io",
-    repository = "distroless/base-debian11",
-)
-
-# nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
-container_pull(
-    name = "go_image_static",
-    digest = "sha256:1b4dbd7d38a0fd4bbaf5216a21a615d07b56747a96d3c650689cbb7fdc412b49",
-    registry = "gcr.io",
-    repository = "distroless/static-debian11",
-)
-
-# debug-nonroot-arm from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
-container_pull(
-    name = "go_debug_image_base_arm",
-    architecture = "arm",
-    digest = "sha256:cc0547a72f6945e056e55e203737a6884b529cec4698bd03270664ad2449fdfb",
-    registry = "gcr.io",
-    repository = "distroless/base-debian11",
-)
-
-# nonroot-arm from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
-container_pull(
-    name = "go_image_static_arm",
-    architecture = "arm",
-    digest = "sha256:97807c386f55d44d73c2e5ac5b4e194458aae46ff2e99b6e7a3b2a8cb47d6771",
-    registry = "gcr.io",
-    repository = "distroless/static-debian11",
-)
-
-# debug-nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
-container_pull(
-    name = "go_debug_image_base_arm64",
-    architecture = "arm64",
-    digest = "sha256:419766970b96a8788b450a902a4307312a5d294a7f5c3a960f6ab2d88543d05f",
-    registry = "gcr.io",
-    repository = "distroless/base-debian11",
-)
-
-# nonroot-arm64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
-container_pull(
-    name = "go_image_static_arm64",
-    architecture = "arm64",
-    digest = "sha256:05810557ec4b4bf01f4df548c06cc915bb29d81cb339495fe1ad2e668434bf8e",
-    registry = "gcr.io",
-    repository = "distroless/static-debian11",
-)
-
-# DO NOT EDIT ================ END
-
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_ash2k_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
 load("@com_github_ash2k_bazel_tools//multirun:deps.bzl", "multirun_dependencies")
@@ -229,12 +180,11 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load("@rules_proto_grpc//doc:repositories.bzl", rules_proto_grpc_doc_repos = "doc_repos")
-load(
-    "@io_bazel_rules_docker//repositories:repositories.bzl",
-    container_repositories = "repositories",
-)
-load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies")
+load("@rules_oci//oci:dependencies.bzl", "rules_oci_dependencies")
+load("@rules_oci//oci:repositories.bzl", "LATEST_CRANE_VERSION", "oci_register_toolchains")
+load("@rules_oci//oci:pull.bzl", "oci_pull")
+load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 
 rules_proto_dependencies()
 
@@ -248,16 +198,12 @@ rules_proto_grpc_go_repos()
 
 rules_proto_grpc_doc_repos()
 
-container_repositories()
+rules_oci_dependencies()
 
-container_deps()
-
-load(
-    "@io_bazel_rules_docker//go:image.bzl",
-    go_image_repositories = "repositories",
+oci_register_toolchains(
+    name = "oci",
+    crane_version = LATEST_CRANE_VERSION,
 )
-
-go_image_repositories()
 
 buildifier_dependencies()
 
@@ -270,3 +216,34 @@ load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 grpc_deps()
 
 aspect_bazel_lib_dependencies()
+
+rules_pkg_dependencies()
+
+# Images are managed by https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/tree/main/renovate/projects/gitlab-agent.config.js
+# DO NOT EDIT ================ START
+
+# nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
+oci_pull(
+    name = "distroless_static_nonroot",
+    digest = "sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f",
+    image = "gcr.io/distroless/static-debian11",
+    platforms = [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64",
+    ],
+)
+
+# debug-nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
+oci_pull(
+    name = "distroless_base_debug_nonroot",
+    digest = "sha256:bff68ceffd34b9cf28686da8b11c2ab23c1220c785d2c7f3d319eeda8aeb5035",
+    image = "gcr.io/distroless/base-debian11",
+    platforms = [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64",
+    ],
+)
+
+# DO NOT EDIT ================ END

@@ -14,8 +14,6 @@ set -o pipefail
 [ -z "${GIT_TAG:-}" ] && GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
 GIT_TAG="${GIT_TAG:="v0.0.0"}"
 
-CONTAINER_REPOSITORY_PATH="${CI_PROJECT_PATH:-"gitlab-org/cluster-integration/gitlab-agent"}"
-CI_REGISTRY="${CI_REGISTRY:-"registry.gitlab.com"}"
 BUILD_TIME=$(date -u +%Y%m%d.%H%M%S)
 # Prefix with STABLE_ so that these values are saved to stable-status.txt
 # instead of volatile-status.txt.
@@ -25,7 +23,5 @@ BUILD_TIME=$(date -u +%Y%m%d.%H%M%S)
 cat <<EOF
 STABLE_BUILD_GIT_COMMIT ${GIT_COMMIT-}
 STABLE_BUILD_GIT_TAG ${GIT_TAG-}
-STABLE_CI_REGISTRY ${CI_REGISTRY}
-STABLE_CONTAINER_REPOSITORY_PATH ${CONTAINER_REPOSITORY_PATH-}
 BUILD_TIME ${BUILD_TIME-}
 EOF
