@@ -27,7 +27,6 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
-  - lint
   - test
   - scan
   - push_image
@@ -145,7 +144,7 @@ push_image_tag:
     - git fetch
     - >
       if [[ $(git branch --remotes --contains "tags/${CI_COMMIT_TAG}" | grep "${CI_DEFAULT_BRANCH}") ]]; then
-         make release-tag-and-stable
+         make release-tag release-stable
       else
          make release-tag
       fi

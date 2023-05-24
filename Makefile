@@ -18,6 +18,10 @@ LDFLAGS := -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Ve
 LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Commit=$(GIT_COMMIT)"
 LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.BuildTime=$(BUILD_TIME)"
 
+CI_REGISTRY ?= registry.gitlab.com
+CI_PROJECT_PATH ?= gitlab-org/cluster-integration/gitlab-agent
+OCI_REPO = $(CI_REGISTRY)/$(CI_PROJECT_PATH)/agentk
+
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
 .PHONY: lint
@@ -106,7 +110,7 @@ test: fmt update-bazel
 
 .PHONY: test-ci
 test-ci:
-	bazel test -- //... //cmd:push-latest //cmd/kas:container
+	bazel test -- //... //cmd/agentk:push //cmd/agentk:push_debug //cmd/kas:push //cmd/kas:push_debug
 
 .PHONY: test-ci-fips
 test-ci-fips:
@@ -126,46 +130,21 @@ quick-test:
 		--build_tests_only \
 		-- //...
 
-.PHONY: docker
-docker: update-bazel
-	bazel build //cmd/agentk:container
-
-# This only works from a linux machine
-.PHONY: docker-race
-docker-race: update-bazel
-	bazel build //cmd/agentk:container_race
-
-# Export docker image into local Docker
-.PHONY: docker-export
-docker-export: update-bazel
-	bazel run \
-		//cmd/agentk:container \
-		-- \
-		--norun
-
-# Export docker image into local Docker
-# This only works on a linux machine
-.PHONY: docker-export-race
-docker-export-race: update-bazel
-	bazel run \
-		//cmd/agentk:container_race \
-		-- \
-		--norun
-
 # Build and push all docker images tagged as "latest".
 # This only works on a linux machine
+# Flags are for oci_push rule. Docs https://docs.aspect.build/rules/rules_oci/docs/push.
 .PHONY: release-latest
 release-latest:
-	bazel run //cmd:push-latest
-	build/push_multiarch_agentk.sh 'latest'
+	bazel run //cmd/agentk:push -- --repository='$(OCI_REPO)' --tag=latest
+	bazel run //cmd/agentk:push_debug -- --repository='$(OCI_REPO)' --tag=latest-debug
 
-# Build and push all docker images tagged with the tag on the current commit and as "stable".
+# Build and push all docker images tagged as "stable".
 # This only works on a linux machine
-.PHONY: release-tag-and-stable
-release-tag-and-stable:
-	bazel run //cmd:push-tag-and-stable
-	build/push_multiarch_agentk.sh 'stable'
-	build/push_multiarch_agentk.sh '$(GIT_TAG)'
+# Flags are for oci_push rule. Docs https://docs.aspect.build/rules/rules_oci/docs/push.
+.PHONY: release-stable
+release-stable:
+	bazel run //cmd/agentk:push -- --repository='$(OCI_REPO)' --tag=stable
+	bazel run //cmd/agentk:push_debug -- --repository='$(OCI_REPO)' --tag=stable-debug
 
 # Build and push all FIPS docker images tagged with the tag on the current commit and as "stable".
 # This only works on a linux machine
@@ -191,10 +170,11 @@ release-tag-and-stable-fips-manifest:
 
 # Build and push all docker images tagged with the tag on the current commit.
 # This only works on a linux machine
+# Flags are for oci_push rule. Docs https://docs.aspect.build/rules/rules_oci/docs/push.
 .PHONY: release-tag
 release-tag:
-	bazel run //cmd:push-tag
-	build/push_multiarch_agentk.sh '$(GIT_TAG)'
+	bazel run //cmd/agentk:push -- --repository='$(OCI_REPO)' --tag='$(GIT_TAG)'
+	bazel run //cmd/agentk:push_debug -- --repository='$(OCI_REPO)' --tag='$(GIT_TAG)-debug'
 
 # Build and push all FIPS docker images tagged with the tag on the current commit.
 # This only works on a linux machine
