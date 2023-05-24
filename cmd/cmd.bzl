@@ -86,24 +86,28 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         name = "%s_index" % name,
         images = images,
         visibility = ["//visibility:public"],
+        tags = ["manual"],
     )
 
     oci_image_index(
         name = "%s_index_debug" % name,
         images = debug_images,
         visibility = ["//visibility:public"],
+        tags = ["manual"],
     )
 
     oci_push(
         name = "push",
         image = ":%s_index" % name,
         repository = _agentk_repo,
+        tags = ["manual"],
     )
 
     oci_push(
         name = "push_debug",
         image = ":%s_index_debug" % name,
         repository = _agentk_repo,
+        tags = ["manual"],
     )
 
 def binary_and_image(name, arch, debug, race, binary_embed):
