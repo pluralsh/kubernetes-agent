@@ -2,21 +2,27 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type server struct {
 	rpc.UnimplementedGitLabFluxServer
-	serverApi         modserver.Api
-	pollCfgFactory    retry.PollConfigFactory
-	projectInfoClient *projectInfoClient
+	serverApi           modserver.Api
+	pollCfgFactory      retry.PollConfigFactory
+	projectAccessClient *projectAccessClient
 }
 
 func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc.GitLabFlux_ReconcileProjectsServer) error {
@@ -45,15 +51,12 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 				return
 			}
 
-			// FIXME: actually check if that project is allowed to be accessed by this agent ...
-			// I think we cannot really check access when the receiver is created (or we receive a new project)
-			// in the server, because the user could grant access after the fact.
-			// So, here is actually a not too bad place.
-			// We could use a redis cache to cache access allowance for some time, so that we don't spam Rails.
-			// See comments in `project_info_client.go` and https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/401
-			_, err = s.getProjectInfo(ctx, log, rpcApi, agentInfo.Id, agentToken, message.FullPath)
+			hasAccess, err := s.verifyProjectAccess(ctx, log, rpcApi, agentInfo.Id, agentToken, message.FullPath)
 			if err != nil {
 				rpcApi.HandleProcessingError(log, agentInfo.Id, fmt.Sprintf("failed to check if project %s is accessible by agent", message.FullPath), err)
+				return
+			}
+			if !hasAccess {
 				return
 			}
 
@@ -69,4 +72,41 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 	})
 
 	return nil
+}
+
+// verifyProjectAccess verifies if the given agent has access to the given project.
+// If this is not the case `false` is returned, otherwise `true`.
+// If the error has the code Unavailable a caller my retry.
+func (s *server) verifyProjectAccess(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
+	agentToken api.AgentToken, projectId string) (bool, error) {
+	hasAccess, err := s.projectAccessClient.VerifyProjectAccess(ctx, agentToken, projectId)
+	switch {
+	case err == nil:
+		return hasAccess, nil
+	case errors.Is(err, context.Canceled):
+		err = status.Error(codes.Canceled, err.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		err = status.Error(codes.DeadlineExceeded, err.Error())
+	default:
+		rpcApi.HandleProcessingError(log, agentId, "VerifyProjectAccess()", err)
+		err = status.Error(codes.Unavailable, "unavailable")
+	}
+	return false, err
+}
+
+type projectAccessClient struct {
+	gitLabClient       gitlab.ClientInterface
+	projectAccessCache *cache.CacheWithErr[projectAccessCacheKey, bool]
+}
+
+func (c *projectAccessClient) VerifyProjectAccess(ctx context.Context, agentToken api.AgentToken, projectId string) (bool, error) {
+	key := projectAccessCacheKey{agentToken: agentToken, projectId: projectId}
+	return c.projectAccessCache.GetItem(ctx, key, func() (bool, error) {
+		return gapi.VerifyProjectAccess(ctx, c.gitLabClient, agentToken, projectId, gitlab.WithoutRetries())
+	})
+}
+
+type projectAccessCacheKey struct {
+	agentToken api.AgentToken
+	projectId  string
 }

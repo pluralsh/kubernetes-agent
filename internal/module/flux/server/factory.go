@@ -22,6 +22,8 @@ const (
 	reconcileProjectsResetDuration = 10 * time.Minute
 	reconcileProjectsBackoffFactor = 2.0
 	reconcileProjectsJitter        = 1.0
+	projectAccessCacheTtl          = 5 * time.Minute
+	projectAccessCacheErrTtl       = 1 * time.Minute
 )
 
 type Factory struct {
@@ -32,22 +34,20 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		serverApi: config.Api,
 		pollCfgFactory: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			reconcileProjectsInitBackoff, reconcileProjectsMaxBackoff, reconcileProjectsResetDuration, reconcileProjectsBackoffFactor, reconcileProjectsJitter)),
-		// FIXME: this is a copy from the GitOps module and I wonder if that logic below should be refactored into the GitLab API module or modserver ...
-		projectInfoClient: &projectInfoClient{
-			GitLabClient: config.GitLabClient,
-			ProjectInfoCache: cache.NewWithError[projectInfoCacheKey, *api.ProjectInfo](
-				// FIXME: make configurable
-				5*time.Minute,
-				1*time.Minute,
-				&redistool.ErrCacher[projectInfoCacheKey]{
+		projectAccessClient: &projectAccessClient{
+			gitLabClient: config.GitLabClient,
+			projectAccessCache: cache.NewWithError[projectAccessCacheKey, bool](
+				projectAccessCacheTtl,
+				projectAccessCacheErrTtl,
+				&redistool.ErrCacher[projectAccessCacheKey]{
 					Log:          config.Log,
 					ErrRep:       modshared.ApiToErrReporter(config.Api),
 					Client:       config.RedisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: func(cacheKey projectInfoCacheKey) string {
+					KeyToRedisKey: func(cacheKey projectAccessCacheKey) string {
 						var result strings.Builder
 						result.WriteString(config.Config.Redis.KeyPrefix)
-						result.WriteString(":project_info_errs:")
+						result.WriteString(":verify_project_access_errs:")
 						result.Write(api.AgentToken2key(cacheKey.agentToken))
 						result.WriteByte(':')
 						result.WriteString(cacheKey.projectId)
