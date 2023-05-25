@@ -10,7 +10,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func newServer(gitPushPublisher func(ctx context.Context, e *modserver.Project) error) *server {
+type gitPushPublisherFunc func(ctx context.Context, e *modserver.Project) error
+
+func newServer(gitPushPublisher gitPushPublisherFunc) *server {
 	return &server{
 		gitPushPublisher: gitPushPublisher,
 	}
@@ -18,7 +20,7 @@ func newServer(gitPushPublisher func(ctx context.Context, e *modserver.Project) 
 
 type server struct {
 	rpc.UnimplementedNotificationsServer
-	gitPushPublisher func(ctx context.Context, e *modserver.Project) error
+	gitPushPublisher gitPushPublisherFunc
 }
 
 func (s *server) GitPushEvent(ctx context.Context, req *rpc.GitPushEventRequest) (*rpc.GitPushEventResponse, error) {

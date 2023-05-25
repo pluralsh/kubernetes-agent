@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
@@ -16,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
@@ -97,4 +99,39 @@ func TestRemoveRandomPort(t *testing.T) {
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
+}
+
+func TestServerApi_GitPushEventDispatchingMultiple(t *testing.T) {
+	// GIVEN
+	var wg wait.Group
+	defer wg.Wait()
+
+	a := serverApi{}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// recorder for callback hits
+	rec1 := make(chan struct{})
+	rec2 := make(chan struct{})
+	subscriber1 := func(_ context.Context, _ *modserver.Project) { close(rec1) }
+	subscriber2 := func(_ context.Context, _ *modserver.Project) { close(rec2) }
+
+	// WHEN
+	// starting multiple subscribers
+	wg.Start(func() {
+		a.OnGitPushEvent(ctx, subscriber1)
+	})
+	wg.Start(func() {
+		a.OnGitPushEvent(ctx, subscriber2)
+	})
+
+	// give the OnGitPushEvent goroutines time to be scheduled and registered
+	time.Sleep(500 * time.Millisecond)
+
+	// dispatch a single git push event
+	a.dispatchGitPushEvent(ctx, &modserver.Project{})
+
+	// THEN
+	<-rec1
+	<-rec2
 }
