@@ -10,13 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_cache"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func TestGetItem_HappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errCacher.EXPECT().GetError(gomock.Any(), key)
-	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, alwaysCache)
+	tracer := trace.NewNoopTracerProvider().Tracer("")
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, tracer, alwaysCache)
 	item, err := c.GetItem(context.Background(), key, func() (int, error) {
 		return itemVal, nil
 	})
@@ -44,7 +46,8 @@ func TestGetItem_CacheableError(t *testing.T) {
 			GetError(gomock.Any(), key).
 			Return(errToCache),
 	)
-	c := NewWithError[int, int](time.Second, time.Minute, errCacher, alwaysCache)
+	tracer := trace.NewNoopTracerProvider().Tracer("")
+	c := NewWithError[int, int](time.Second, time.Minute, errCacher, tracer, alwaysCache)
 	_, err := c.GetItem(context.Background(), key, func() (int, error) {
 		return 0, errToCache
 	})
@@ -63,7 +66,8 @@ func TestGetItem_NonCacheableError(t *testing.T) {
 	errCacher.EXPECT().
 		GetError(gomock.Any(), key).
 		Times(2)
-	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, func(err error) bool {
+	tracer := trace.NewNoopTracerProvider().Tracer("")
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, tracer, func(err error) bool {
 		return false
 	})
 	_, err := c.GetItem(context.Background(), key, func() (int, error) {
@@ -81,7 +85,8 @@ func TestGetItem_Context(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	errCacher := mock_cache.NewMockErrCacher[int](ctrl)
 	errCacher.EXPECT().GetError(gomock.Any(), key)
-	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, alwaysCache)
+	tracer := trace.NewNoopTracerProvider().Tracer("")
+	c := NewWithError[int, int](time.Minute, time.Minute, errCacher, tracer, alwaysCache)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	start := make(chan struct{})

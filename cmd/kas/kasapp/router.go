@@ -9,11 +9,23 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	kasRoutingDurationMetricName      = "k8s_api_proxy_routing_duration_seconds"
+	kasRoutingTimeoutMetricName       = "k8s_api_proxy_routing_timeout_total"
+	kasRoutingStatusLabelName         = "status"
+	kasRoutingStatusSuccessLabelValue = "success"
+	kasRoutingStatusAbortedLabelValue = "aborted"
+
+	routerTracerName = "tunnel-router"
 )
 
 type kasRouter interface {
@@ -35,10 +47,54 @@ type router struct {
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	privateApiServer          grpc.ServiceRegistrar
 	gatewayKasVisitor         *grpctool.StreamVisitor
+	tracer                    trace.Tracer
 	kasRoutingDurationSuccess prometheus.Observer
 	kasRoutingDurationAborted prometheus.Observer
 	kasRoutingDurationTimeout prometheus.Counter
 	tunnelFindTimeout         time.Duration
+}
+
+func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
+	tunnelFinder reverse_tunnel.TunnelFinder, ownPrivateApiUrl string,
+	internalServer, privateApiServer grpc.ServiceRegistrar,
+	pollConfig retry.PollConfigFactory, tp trace.TracerProvider, registerer prometheus.Registerer) (*router, error) {
+	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	if err != nil {
+		return nil, err
+	}
+	routingDuration, timeoutCounter := constructKasRoutingMetrics()
+	err = metric.Register(registerer, routingDuration, timeoutCounter)
+	if err != nil {
+		return nil, err
+	}
+	return &router{
+		kasPool:                   kasPool,
+		tunnelQuerier:             tunnelQuerier,
+		tunnelFinder:              tunnelFinder,
+		ownPrivateApiUrl:          ownPrivateApiUrl,
+		pollConfig:                pollConfig,
+		internalServer:            internalServer,
+		privateApiServer:          privateApiServer,
+		gatewayKasVisitor:         gatewayKasVisitor,
+		tracer:                    tp.Tracer(routerTracerName),
+		kasRoutingDurationSuccess: routingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
+		kasRoutingDurationAborted: routingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
+		kasRoutingDurationTimeout: timeoutCounter,
+		tunnelFindTimeout:         routingTunnelFindTimeout,
+	}, nil
+}
+
+func constructKasRoutingMetrics() (*prometheus.HistogramVec, prometheus.Counter) {
+	hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    kasRoutingDurationMetricName,
+		Help:    "The time it takes the routing kas to find a suitable tunnel in seconds",
+		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 8), // 8 buckets: 0.001s,0.004s,0.016s,0.064s,0.256s,1.024s,4.096s,16.384s, implicit: +Infs
+	}, []string{kasRoutingStatusLabelName})
+	timeoutCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: kasRoutingTimeoutMetricName,
+		Help: "The total number of times routing timed out i.e. didn't find a suitable agent connection within allocated time",
+	})
+	return hist, timeoutCounter
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {

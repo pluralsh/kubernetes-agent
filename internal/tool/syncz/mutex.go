@@ -42,12 +42,3 @@ func (m Mutex) Lock(ctx context.Context) bool {
 func (m Mutex) Unlock() {
 	<-m.box // take something from the box
 }
-
-func (m Mutex) RunLocked(ctx context.Context, f func()) bool {
-	if !m.Lock(ctx) {
-		return false
-	}
-	defer m.Unlock()
-	f()
-	return true
-}

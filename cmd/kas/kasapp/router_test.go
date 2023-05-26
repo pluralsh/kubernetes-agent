@@ -25,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -309,6 +310,7 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
+		tracer:                    trace.NewNoopTracerProvider().Tracer(routerTracerName),
 		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
 		kasRoutingDurationTimeout: prometheus.NewCounter(prometheus.CounterOpts{}),
 		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),
@@ -471,6 +473,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
+		tracer:                    trace.NewNoopTracerProvider().Tracer(routerTracerName),
 		kasRoutingDurationSuccess: prometheus.ObserverFunc(func(f float64) {}),
 		kasRoutingDurationTimeout: prometheus.NewCounter(prometheus.CounterOpts{}),
 		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),

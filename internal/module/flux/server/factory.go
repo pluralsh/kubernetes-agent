@@ -54,6 +54,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 						return result.String()
 					},
 				},
+				config.TraceProvider.Tracer(flux.ModuleName),
 				gapi.IsCacheableError,
 			),
 		},

@@ -9,7 +9,10 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache",
     visibility = ["//:__subpackages__"],
-    deps = ["//internal/tool/syncz"],
+    deps = [
+        "//internal/tool/syncz",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
 )
 
 go_custom_test(
@@ -24,5 +27,6 @@ go_custom_test(
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@io_opentelemetry_go_otel_trace//:trace",
     ],
 )

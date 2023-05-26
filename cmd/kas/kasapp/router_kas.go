@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
@@ -46,8 +47,7 @@ func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStre
 
 func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, md metadata.MD, agentId int64) (readyTunnel, error) {
 	startRouting := time.Now()
-	tr := trace.SpanFromContext(ctx).TracerProvider().Tracer("tunnel-router")
-	findCtx, span := tr.Start(ctx, "find tunnel",
+	findCtx, span := r.tracer.Start(ctx, "find tunnel",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
@@ -77,7 +77,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		case findCtx.Err() != nil: // Find tunnel timed out.
 			r.kasRoutingDurationTimeout.Inc()
 			span.SetStatus(otelcodes.Error, "Timed out")
-			rpcApi.HandleProcessingError(log, agentId, "Agent connection not found", findCtx.Err())
+			rpcApi.HandleProcessingError(log, agentId, "Agent connection not found", errors.New(findCtx.Err().Error()))
 			return readyTunnel{}, status.Error(codes.DeadlineExceeded, "Agent connection not found. Is agent up to date and connected?")
 		default: // This should never happen, but let's handle a non-ctx error for completeness and future-proofing.
 			span.SetStatus(otelcodes.Error, "Failed")

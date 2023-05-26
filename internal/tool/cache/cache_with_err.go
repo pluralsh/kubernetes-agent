@@ -3,6 +3,8 @@ package cache
 import (
 	"context"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type GetItemDirectly[V any] func() (V, error)
@@ -20,28 +22,36 @@ type CacheWithErr[K comparable, V any] struct {
 	ttl       time.Duration
 	errTtl    time.Duration
 	errCacher ErrCacher[K]
+	tracer    trace.Tracer
 	// isCacheable determines whether an error is cacheable or not.
 	// Returns true if cacheable and false otherwise.
 	isCacheable func(error) bool
 }
 
-func NewWithError[K comparable, V any](ttl, errTtl time.Duration, errCacher ErrCacher[K], isCacheableFunc func(error) bool) *CacheWithErr[K, V] {
+func NewWithError[K comparable, V any](ttl, errTtl time.Duration, errCacher ErrCacher[K], tracer trace.Tracer,
+	isCacheableFunc func(error) bool) *CacheWithErr[K, V] {
 	return &CacheWithErr[K, V]{
 		cache:       New[K, V](ttl),
 		ttl:         ttl,
 		errTtl:      errTtl,
 		errCacher:   errCacher,
+		tracer:      tracer,
 		isCacheable: isCacheableFunc,
 	}
 }
 
 func (c *CacheWithErr[K, V]) GetItem(ctx context.Context, key K, f GetItemDirectly[V]) (V, error) {
+	ctx, span := c.tracer.Start(ctx, "cache.GetItem", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
 	if c.ttl == 0 {
 		return f()
 	}
 	c.cache.EvictExpiredEntries()
+	lockCtx, lockSpan := c.tracer.Start(ctx, "cache.Lock", trace.WithSpanKind(trace.SpanKindInternal))
 	entry := c.cache.GetOrCreateCacheEntry(key)
-	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
+	locked := entry.Lock(lockCtx)
+	lockSpan.End()
+	if !locked { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
 		var v V
 		return v, ctx.Err()
 	}
