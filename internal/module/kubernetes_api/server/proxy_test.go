@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
@@ -34,7 +35,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -927,22 +928,27 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	errCache := mock_cache.NewMockErrCacher[string](ctrl)
 	proxyErrCache := mock_cache.NewMockErrCacher[proxyUserCacheKey](ctrl)
 
+	tp := tracesdk.NewTracerProvider(tracesdk.WithSpanProcessor(tracetest.NewSpanRecorder()))
+	tracer := tp.Tracer(kubernetes_api.ModuleName)
+
 	p := kubernetesApiProxy{
-		log:                     zaptest.NewLogger(t),
-		api:                     mockApi,
-		kubernetesApiClient:     k8sClient,
-		gitLabClient:            mock_gitlab.SetupClient(t, "/", handler),
-		allowedOriginUrls:       []string{"kas.gitlab.example.com"},
-		allowedAgentsCache:      cache.NewWithError[string, *gapi.AllowedAgentsForJob](0, 0, errCache, func(err error) bool { return false }),
-		authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse](0, 0, proxyErrCache, func(err error) bool { return false }),
-		requestCounter:          requestCount,
-		ciTunnelUsersCounter:    ciTunnelUsageSet,
-		responseSerializer:      serializer.NewCodecFactory(runtime.NewScheme()),
-		traceProvider:           trace.NewTracerProvider(trace.WithSpanProcessor(tracetest.NewSpanRecorder())),
-		tracePropagator:         propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
-		serverName:              "sv1",
-		serverVia:               "gRPC/1.0 sv1",
-		urlPathPrefix:           urlPathPrefix,
+		log:                 zaptest.NewLogger(t),
+		api:                 mockApi,
+		kubernetesApiClient: k8sClient,
+		gitLabClient:        mock_gitlab.SetupClient(t, "/", handler),
+		allowedOriginUrls:   []string{"kas.gitlab.example.com"},
+		allowedAgentsCache: cache.NewWithError[string, *gapi.AllowedAgentsForJob](0, 0, errCache, tracer,
+			func(err error) bool { return false }),
+		authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse](0, 0, proxyErrCache, tracer,
+			func(err error) bool { return false }),
+		requestCounter:       requestCount,
+		ciTunnelUsersCounter: ciTunnelUsageSet,
+		responseSerializer:   serializer.NewCodecFactory(runtime.NewScheme()),
+		traceProvider:        tp,
+		tracePropagator:      propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+		serverName:           "sv1",
+		serverVia:            "gRPC/1.0 sv1",
+		urlPathPrefix:        urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group

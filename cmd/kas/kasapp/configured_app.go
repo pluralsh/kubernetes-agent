@@ -88,6 +88,8 @@ const (
 	authSecretLength = 32
 
 	kasName = "gitlab-kas"
+
+	kasTracerName = "kas"
 )
 
 type ConfiguredApp struct {
@@ -133,6 +135,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			retErr = tpErr
 		}
 	}()
+	dt := tp.Tracer(kasTracerName) // defaultTracer
 
 	// GitLab REST client
 	gitLabClient, err := a.constructGitLabClient()
@@ -157,7 +160,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	errRep := modshared.ApiToErrReporter(srvApi)
 
 	// RPC API factory
-	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient)
+	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling agentk requests
 	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry, // nolint: contextcheck
@@ -337,7 +340,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient redis.UniversalClient) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient redis.UniversalClient, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
@@ -358,6 +361,7 @@ func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHu
 					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
 				},
 			},
+			dt,
 			gapi.IsCacheableError,
 		),
 	}

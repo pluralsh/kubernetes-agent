@@ -58,6 +58,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	allowedAgentCacheTtl := k8sApi.AllowedAgentCacheTtl.AsDuration()
 	allowedAgentCacheErrorTtl := k8sApi.AllowedAgentCacheErrorTtl.AsDuration()
+	tracer := config.TraceProvider.Tracer(kubernetes_api.ModuleName)
 	m := &module{
 		log: config.Log,
 		proxy: kubernetesApiProxy{
@@ -82,6 +83,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(tokenHash[:])
 					},
 				},
+				tracer,
 				gapi.IsCacheableError,
 			),
 			authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse](
@@ -94,6 +96,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 					ErrMarshaler:  prototool.ProtoErrMarshaler{},
 					KeyToRedisKey: getAuthorizedProxyUserCacheKey(config.Config.Redis.KeyPrefix),
 				},
+				tracer,
 				gapi.IsCacheableError,
 			),
 			requestCounter:       config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),

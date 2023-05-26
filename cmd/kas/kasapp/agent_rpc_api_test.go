@@ -147,10 +147,12 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 	sra.sentryHub = hub
 
 	rpcApi := &serverAgentRpcApi{
-		RpcApi:         sra,
-		Token:          testhelpers.AgentkToken,
-		GitLabClient:   gitLabClient,
-		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](0, 0, errCacher, func(err error) bool { return false }), // no cache!
+		RpcApi:       sra,
+		Token:        testhelpers.AgentkToken,
+		GitLabClient: gitLabClient,
+		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](0, 0, errCacher,
+			trace.NewNoopTracerProvider().Tracer(kasTracerName),
+			func(err error) bool { return false }), // no cache!
 	}
 	return ctx, log, hub, rpcApi, traceId
 }

@@ -45,15 +45,15 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 }
 
 func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) *server {
-	gitops := config.Config.Agent.Gitops
+	gitopsCfg := config.Config.Agent.Gitops
 	return &server{
 		serverApi:  serverApi,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient: config.GitLabClient,
 			ProjectInfoCache: cache.NewWithError[projectInfoCacheKey, *api.ProjectInfo](
-				gitops.ProjectInfoCacheTtl.AsDuration(),
-				gitops.ProjectInfoCacheErrorTtl.AsDuration(),
+				gitopsCfg.ProjectInfoCacheTtl.AsDuration(),
+				gitopsCfg.ProjectInfoCacheErrorTtl.AsDuration(),
 				&redistool.ErrCacher[projectInfoCacheKey]{
 					Log:          config.Log,
 					ErrRep:       modshared.ApiToErrReporter(config.Api),
@@ -69,20 +69,21 @@ func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalCl
 						return result.String()
 					},
 				},
+				config.TraceProvider.Tracer(gitops.ModuleName),
 				gapi.IsCacheableError,
 			),
 		},
 		syncCount: config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
-		getObjectsPollConfig: retry.NewPollConfigFactory(gitops.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
+		getObjectsPollConfig: retry.NewPollConfigFactory(gitopsCfg.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,
 			getObjectsToSynchronizeResetDuration,
 			getObjectsToSynchronizeBackoffFactor,
 			getObjectsToSynchronizeJitter,
 		)),
-		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
-		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
-		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
-		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
+		maxManifestFileSize:      int64(gitopsCfg.MaxManifestFileSize),
+		maxTotalManifestFileSize: int64(gitopsCfg.MaxTotalManifestFileSize),
+		maxNumberOfPaths:         gitopsCfg.MaxNumberOfPaths,
+		maxNumberOfFiles:         gitopsCfg.MaxNumberOfFiles,
 	}
 }

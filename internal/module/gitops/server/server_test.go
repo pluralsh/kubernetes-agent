@@ -681,12 +681,13 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	config.Agent.Gitops.ProjectInfoCacheTtl = durationpb.New(0)
 	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
 	s := newServerFromConfig(&modserver.Config{
-		Log:          zaptest.NewLogger(t),
-		Config:       config,
-		GitLabClient: mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
-		Registerer:   prometheus.NewPedanticRegistry(),
-		UsageTracker: usageTracker,
-		Gitaly:       gitalyPool,
+		Log:           zaptest.NewLogger(t),
+		Config:        config,
+		GitLabClient:  mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
+		Registerer:    prometheus.NewPedanticRegistry(),
+		UsageTracker:  usageTracker,
+		Gitaly:        gitalyPool,
+		TraceProvider: trace.NewNoopTracerProvider(),
 	}, client, mockApi)
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }
