@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -221,7 +222,8 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 		// 3. Wait for the other kas to say it's ready to start streaming i.e. has a suitable tunnel to an agent
 		err = f.gatewayKasVisitor.Visit(kasStream,
 			grpctool.WithCallback(noTunnelFieldNumber, func(noTunnel *GatewayKasResponse_NoTunnel) error {
-				if !noTunnelSent { // send only once
+				trace.SpanFromContext(kasStream.Context()).AddEvent("No tunnel") // nolint: contextcheck
+				if !noTunnelSent {                                               // send only once
 					noTunnelSent = true
 					// Let Find() know there is no tunnel available from that kas instantaneously.
 					// A tunnel may still be found when a suitable agent connects later, but none available immediately.
@@ -233,6 +235,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 				return nil
 			}),
 			grpctool.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
+				trace.SpanFromContext(kasStream.Context()).AddEvent("Ready")
 				return tunnelReadySentinelError
 			}),
 			grpctool.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
