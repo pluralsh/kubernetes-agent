@@ -88,12 +88,6 @@ const (
 	authSecretLength = 32
 
 	kasName = "gitlab-kas"
-
-	kasRoutingDurationMetricName      = "k8s_api_proxy_routing_duration_seconds"
-	kasRoutingTimeoutMetricName       = "k8s_api_proxy_routing_timeout_total"
-	kasRoutingStatusLabelName         = "status"
-	kasRoutingStatusSuccessLabelValue = "success"
-	kasRoutingStatusAbortedLabelValue = "aborted"
 )
 
 type ConfiguredApp struct {
@@ -213,13 +207,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		routingJitter,
 	))
 	tunnelQuerier := tracker.NewAggregatingQuerier(a.Log, tunnelTracker, srvApi, pollConfig, routingCachePeriod)
-	kasToAgentRouter, err := a.constructKasToAgentRouter(
+	kasToAgentRouter, err := newRouter(
+		privateApiSrv.kasPool,
 		tunnelQuerier,
 		tunnelRegistry,
 		a.OwnPrivateApiUrl,
 		internalSrv.server,
 		privateApiSrv,
-		privateApiSrv.kasPool,
 		pollConfig,
 		reg)
 	if err != nil {
@@ -367,34 +361,6 @@ func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHu
 		),
 	}
 	return f.New, fAgent.New
-}
-
-func (a *ConfiguredApp) constructKasToAgentRouter(tunnelQuerier tracker.PollingQuerier, tunnelFinder reverse_tunnel.TunnelFinder,
-	ownPrivateApiUrl string, internalServer, privateApiServer grpc.ServiceRegistrar, kasPool grpctool.PoolInterface,
-	pollConfig retry.PollConfigFactory, registerer prometheus.Registerer) (kasRouter, error) {
-	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
-	if err != nil {
-		return nil, err
-	}
-	routingDuration, timeoutCounter := constructKasRoutingMetrics()
-	err = metric.Register(registerer, routingDuration, timeoutCounter)
-	if err != nil {
-		return nil, err
-	}
-	return &router{
-		kasPool:                   kasPool,
-		tunnelQuerier:             tunnelQuerier,
-		tunnelFinder:              tunnelFinder,
-		ownPrivateApiUrl:          ownPrivateApiUrl,
-		pollConfig:                pollConfig,
-		internalServer:            internalServer,
-		privateApiServer:          privateApiServer,
-		gatewayKasVisitor:         gatewayKasVisitor,
-		kasRoutingDurationSuccess: routingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
-		kasRoutingDurationAborted: routingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
-		kasRoutingDurationTimeout: timeoutCounter,
-		tunnelFindTimeout:         routingTunnelFindTimeout,
-	}, nil
 }
 
 func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient redis.UniversalClient) agent_tracker.Tracker {
@@ -727,19 +693,6 @@ func startModules(stage stager.Stage, modules []modserver.Module) {
 			return nil
 		})
 	}
-}
-
-func constructKasRoutingMetrics() (*prometheus.HistogramVec, prometheus.Counter) {
-	hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    kasRoutingDurationMetricName,
-		Help:    "The time it takes the routing kas to find a suitable tunnel in seconds",
-		Buckets: prometheus.ExponentialBuckets(time.Millisecond.Seconds(), 4, 8), // 8 buckets: 0.001s,0.004s,0.016s,0.064s,0.256s,1.024s,4.096s,16.384s, implicit: +Infs
-	}, []string{kasRoutingStatusLabelName})
-	timeoutCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: kasRoutingTimeoutMetricName,
-		Help: "The total number of times routing timed out i.e. didn't find a suitable agent connection within allocated time",
-	})
-	return hist, timeoutCounter
 }
 
 func constructRedisReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
