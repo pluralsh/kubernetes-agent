@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -23,6 +24,8 @@ const (
 	kasRoutingStatusLabelName         = "status"
 	kasRoutingStatusSuccessLabelValue = "success"
 	kasRoutingStatusAbortedLabelValue = "aborted"
+
+	routerTracerName = "tunnel-router"
 )
 
 type kasRouter interface {
@@ -44,6 +47,7 @@ type router struct {
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	privateApiServer          grpc.ServiceRegistrar
 	gatewayKasVisitor         *grpctool.StreamVisitor
+	tracer                    trace.Tracer
 	kasRoutingDurationSuccess prometheus.Observer
 	kasRoutingDurationAborted prometheus.Observer
 	kasRoutingDurationTimeout prometheus.Counter
@@ -53,7 +57,7 @@ type router struct {
 func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
 	tunnelFinder reverse_tunnel.TunnelFinder, ownPrivateApiUrl string,
 	internalServer, privateApiServer grpc.ServiceRegistrar,
-	pollConfig retry.PollConfigFactory, registerer prometheus.Registerer) (*router, error) {
+	pollConfig retry.PollConfigFactory, tp trace.TracerProvider, registerer prometheus.Registerer) (*router, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
@@ -72,6 +76,7 @@ func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuer
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
 		gatewayKasVisitor:         gatewayKasVisitor,
+		tracer:                    tp.Tracer(routerTracerName),
 		kasRoutingDurationSuccess: routingDuration.WithLabelValues(kasRoutingStatusSuccessLabelValue),
 		kasRoutingDurationAborted: routingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
 		kasRoutingDurationTimeout: timeoutCounter,

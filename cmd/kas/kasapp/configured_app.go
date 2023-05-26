@@ -215,6 +215,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		internalSrv.server,
 		privateApiSrv,
 		pollConfig,
+		tp,
 		reg)
 	if err != nil {
 		return err
