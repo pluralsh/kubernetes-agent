@@ -98,11 +98,21 @@ func MetaToValuesMap(meta metadata.MD) map[string]*prototool.Values {
 }
 
 func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
+	if len(vals) == 0 {
+		return nil
+	}
 	result := make(metadata.MD, len(vals))
+	keysLen := 0
+	for _, v := range vals {
+		keysLen += len(v.Value)
+	}
+	keys := make([]string, 0, keysLen) // allocate backing array for all elements in one go
 	for k, v := range vals {
-		val := make([]string, len(v.Value))
-		copy(val, v.Value) // metadata may be mutated, so copy
-		result[k] = val
+		keys = append(keys, v.Value...)
+		// set capacity to length to protect against potential append overwriting next value
+		lk := len(keys)
+		result[k] = keys[:lk:lk]
+		keys = keys[lk:]
 	}
 	return result
 }
