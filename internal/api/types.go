@@ -4,6 +4,12 @@ import (
 	"crypto/sha256"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	"go.opentelemetry.io/otel/attribute"
+)
+
+const (
+	// TraceAgentIdAttr is tracing attribute that holds an agent id.
+	TraceAgentIdAttr attribute.Key = "agent_id"
 )
 
 // AgentToken is agentk's bearer access token.

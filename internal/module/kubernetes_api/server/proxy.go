@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/rpc"
@@ -220,6 +221,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(r *http.Request) 
 		}
 	}
 	log = log.With(logz.AgentId(agentId))
+	trace.SpanFromContext(ctx).SetAttributes(api.TraceAgentIdAttr.Int64(agentId))
 
 	var (
 		userId    int64
