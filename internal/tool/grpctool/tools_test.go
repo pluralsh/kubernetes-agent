@@ -8,9 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -148,4 +151,75 @@ func TestStatusErrorFromContext(t *testing.T) {
 			assert.EqualError(t, err, tc.expectedMsg)
 		})
 	}
+}
+
+func TestValuesMapToMeta(t *testing.T) {
+	tests := []struct {
+		input          map[string]*prototool.Values
+		expectedOutput metadata.MD
+	}{
+		{
+			input:          nil,
+			expectedOutput: nil,
+		},
+		{
+			input:          map[string]*prototool.Values{},
+			expectedOutput: nil,
+		},
+		{
+			input: map[string]*prototool.Values{
+				"key1": {
+					Value: []string{"s1", "s2"},
+				},
+				"key2": {
+					Value: []string{},
+				},
+				"key3": {
+					Value: []string{"s3", "s4"},
+				},
+			},
+			expectedOutput: metadata.MD{
+				"key1": []string{"s1", "s2"},
+				"key2": []string{},
+				"key3": []string{"s3", "s4"},
+			},
+		},
+	}
+	for i, tc := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			meta := grpctool.ValuesMapToMeta(tc.input)
+			assert.Empty(t, cmp.Diff(tc.expectedOutput, meta))
+		})
+	}
+}
+
+func BenchmarkValuesMapToMeta(b *testing.B) {
+	input := map[string]*prototool.Values{
+		"key1": {
+			Value: []string{"s1", "s2"},
+		},
+		"key2": {
+			Value: []string{},
+		},
+		"key3": {
+			Value: []string{"s3", "s4"},
+		},
+		"key4": {
+			Value: []string{"s3", "s4"},
+		},
+		"key5": {
+			Value: []string{"s3", "s4"},
+		},
+		"key6": {
+			Value: []string{"s3", "s4"},
+		},
+	}
+	var sink metadata.MD
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sink = grpctool.ValuesMapToMeta(input)
+	}
+	_ = sink
 }
