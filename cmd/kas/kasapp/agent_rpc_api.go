@@ -3,6 +3,7 @@ package kasapp
 import (
 	"context"
 	"errors"
+	"sync"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -11,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,9 +20,10 @@ import (
 
 type serverAgentRpcApi struct {
 	modserver.RpcApi
-	Token          api.AgentToken
-	GitLabClient   gitlab.ClientInterface
-	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
+	Token           api.AgentToken
+	GitLabClient    gitlab.ClientInterface
+	AgentInfoCache  *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
+	agentIdAttrOnce sync.Once
 }
 
 func (a *serverAgentRpcApi) AgentToken() api.AgentToken {
@@ -31,6 +34,9 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 	agentInfo, err := a.getAgentInfoCached(ctx)
 	switch {
 	case err == nil:
+		a.agentIdAttrOnce.Do(func() {
+			trace.SpanFromContext(ctx).SetAttributes(api.TraceAgentIdAttr.Int64(agentInfo.Id))
+		})
 		return agentInfo, nil
 	case errors.Is(err, context.Canceled):
 		err = status.Error(codes.Canceled, err.Error())
