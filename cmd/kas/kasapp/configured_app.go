@@ -404,7 +404,7 @@ func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*se
 	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:         s.Dsn, // empty DSN disables Sentry transport
 		SampleRate:  1,     // no sampling
-		Release:     fmt.Sprintf("%s/%s", cmd.Version, cmd.Commit),
+		Release:     cmd.Version,
 		Environment: s.Environment,
 		HTTPTransport: otelhttp.NewTransport(
 			&http.Transport{
