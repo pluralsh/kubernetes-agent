@@ -29,7 +29,7 @@ go_library(
         "//internal/tool/grpctool/automata",
         "//internal/tool/prototool",
         "@com_github_envoyproxy_protoc_gen_validate//validate",
-        "@org_golang_google_genproto//googleapis/rpc/status",
+        "@org_golang_google_genproto_googleapis_rpc//status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",
@@ -46,6 +46,6 @@ go_custom_test(
     embed = [":rpc"],
     deps = [
         "//internal/tool/testing/testhelpers",
-        "@org_golang_google_genproto//googleapis/rpc/status",
+        "@org_golang_google_genproto_googleapis_rpc//status",
     ],
 )
