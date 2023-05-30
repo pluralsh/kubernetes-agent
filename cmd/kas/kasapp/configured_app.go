@@ -59,9 +59,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	otelmetric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
@@ -105,7 +105,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	mp := global.MeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
+	mp := otel.GetMeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	ssh := metric.ServerStatsHandler()
 	csh := metric.ClientStatsHandler()
 	goCollector := collectors.NewGoCollector()

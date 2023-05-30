@@ -105,8 +105,8 @@ go_repository(
     ],  # keep
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel",
-    sum = "h1:3Iwq3lfRByPaws0f6bU3naAqOR1n5IeDWd9390kWHa8=",
-    version = "v1.15.1",
+    sum = "h1:Z7GVAX/UkAXPKsy94IU+i6thsQS4nb7LviLpnaNeW8s=",
+    version = "v1.16.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -118,8 +118,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
-    sum = "h1:tyoeaUh8REKay72DVYsSEBYV18+fGONe+YYPaOxgLoE=",
-    version = "v1.15.1",
+    sum = "h1:cbsD4cUcviQGXdw8+bo5x2wazq10SKz8hEbtCRPcU78=",
+    version = "v1.16.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -130,8 +130,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable_global",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
-    sum = "h1:pnJfHmVcCEBcH5lkM+npJF8cTAjV/d+9cXVNCs5P/ao=",
-    version = "v1.15.1",
+    sum = "h1:iqjq9LAB8aK++sKVcELezzn655JnBNdsDhghU4G/So8=",
+    version = "v1.16.0",
 )
 
 # Copied from rules_go to keep patches in place

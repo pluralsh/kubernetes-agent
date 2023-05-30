@@ -229,7 +229,7 @@ agentk:
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
 	go list \
-		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
+		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' -m all
 
 .PHONY: delete-generated-files
 delete-generated-files:
