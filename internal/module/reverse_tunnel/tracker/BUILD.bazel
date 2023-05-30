@@ -15,7 +15,7 @@ go_library(
         "//internal/tool/redistool",
         "//internal/tool/retry",
         "//internal/tool/syncz",
-        "@com_github_redis_go_redis_v9//:go-redis",
+        "@com_github_redis_rueidis//:rueidis",
         "@org_uber_go_zap//:zap",
     ],
 )

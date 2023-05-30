@@ -3,14 +3,16 @@ package redistool
 import (
 	"context"
 	"math/rand"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -63,11 +65,9 @@ func TestExpiringHash_GC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
 
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
-	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
-		newExpireIn := 3 * ttl
-		p.PExpire(context.Background(), key, newExpireIn)
-		return nil
-	})
+	newExpireIn := 3 * ttl
+	cmd := client.B().Pexpire().Key(key).Milliseconds(newExpireIn.Milliseconds()).Build()
+	err := client.Do(context.Background(), cmd).Error()
 	require.NoError(t, err)
 	time.Sleep(ttl + time.Second)
 	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
@@ -140,21 +140,16 @@ func TestExpiringHash_Len(t *testing.T) {
 
 func TestExpiringHash_ScanGC(t *testing.T) {
 	client, hash, key, value := setupHash(t)
-	cbCalled := false
 
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
-	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
-		cbCalled = true
-		newExpireIn := 3 * ttl
-		p.PExpire(context.Background(), key, newExpireIn)
-		return nil
-	})
+	newExpireIn := 3 * ttl
+	cmd := client.B().Pexpire().Key(key).Milliseconds(newExpireIn.Milliseconds()).Build()
+	err := client.Do(context.Background(), cmd).Error()
 	require.NoError(t, err)
 	time.Sleep(ttl + time.Second)
 	require.NoError(t, hash.Set(key, 321, value)(context.Background()))
-	assert.True(t, cbCalled)
 
-	cbCalled = false
+	cbCalled := false
 	keysDeleted, err := hash.Scan(context.Background(), key, func(rawHashKey string, v []byte, err error) (bool, error) {
 		cbCalled = true
 		require.NoError(t, err)
@@ -213,12 +208,10 @@ func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	})
 }
 
-func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string, int64], string, []byte) {
+func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
-	t.Cleanup(func() {
-		assert.NoError(t, client.Close())
-	})
+	t.Cleanup(client.Close)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prefix := make([]byte, 32)
 	_, err := r.Read(prefix)
@@ -230,24 +223,40 @@ func setupHash(t *testing.T) (redis.UniversalClient, *ExpiringHash[string, int64
 	return client, hash, key, []byte{1, 2, 3}
 }
 
-func redisClient(t *testing.T) redis.UniversalClient {
+func redisClient(t *testing.T) rueidis.Client {
 	redisURL := os.Getenv(redisURLEnvName)
 	if redisURL == "" {
 		t.Skipf("%s environment variable not set, skipping test", redisURLEnvName)
 	}
 
-	opts, err := redis.ParseURL(redisURL)
+	u, err := url.Parse(redisURL)
 	require.NoError(t, err)
-	return redis.NewClient(opts)
+	var opts rueidis.ClientOption
+	switch u.Scheme {
+	case "unix":
+		opts.DialFn = UnixDialer
+		opts.InitAddress = []string{u.Path}
+	case "redis":
+		opts.InitAddress = []string{u.Host}
+	case "rediss":
+		opts.InitAddress = []string{u.Host}
+		opts.TLSConfig = tlstool.DefaultClientTLSConfig()
+	default:
+		opts.InitAddress = []string{redisURL}
+	}
+	client, err := rueidis.NewClient(opts)
+	require.NoError(t, err)
+	return client
 }
 
-func getHash(t *testing.T, client redis.UniversalClient, key string) map[string]string {
-	reply, err := client.HGetAll(context.Background(), key).Result()
+func getHash(t *testing.T, client rueidis.Client, key string) map[string]string {
+	cmd := client.B().Hgetall().Key(key).Build()
+	reply, err := client.Do(context.Background(), cmd).AsStrMap()
 	require.NoError(t, err)
 	return reply
 }
 
-func equalHash(t *testing.T, client redis.UniversalClient, key string, hashKey int64, value []byte) {
+func equalHash(t *testing.T, client rueidis.Client, key string, hashKey int64, value []byte) {
 	hash := getHash(t, client, key)
 	require.Len(t, hash, 1)
 	connectionIdStr := strconv.FormatInt(hashKey, 10)
@@ -259,7 +268,7 @@ func equalHash(t *testing.T, client redis.UniversalClient, key string, hashKey i
 	assert.Equal(t, value, msg.Value)
 }
 
-func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, expireAfter time.Time) {
+func valuesExpireAfter(t *testing.T, client rueidis.Client, key string, expireAfter time.Time) {
 	hash := getHash(t, client, key)
 	require.NotEmpty(t, hash)
 	for _, val := range hash {

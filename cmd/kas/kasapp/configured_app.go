@@ -17,9 +17,8 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/redis/go-redis/extra/redisotel/v9"
-	"github.com/redis/go-redis/extra/redisprometheus/v9"
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
+	"github.com/redis/rueidis/rueidisotel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
@@ -150,13 +149,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Redis
-	redisClient, err := a.constructRedisClient(tp, mp, reg)
+	redisClient, err := a.constructRedisClient(tp, mp)
 	if err != nil {
 		return err
 	}
+	defer redisClient.Close()
 	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
 
-	srvApi := &serverApi{log: a.Log, Hub: sentryHub, redisClient: redisClient}
+	srvApi := newServerApi(a.Log, sentryHub, redisClient)
 	errRep := modshared.ApiToErrReporter(srvApi)
 
 	// RPC API factory
@@ -340,7 +340,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient redis.UniversalClient, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
@@ -368,7 +368,7 @@ func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHu
 	return f.New, fAgent.New
 }
 
-func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient redis.UniversalClient) agent_tracker.Tracker {
+func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClient rueidis.Client) agent_tracker.Tracker {
 	cfg := a.Configuration
 	return agent_tracker.NewRedisTracker(
 		a.Log,
@@ -381,7 +381,7 @@ func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClie
 	)
 }
 
-func (a *ConfiguredApp) constructTunnelTracker(api modshared.Api, redisClient redis.UniversalClient) tracker.Tracker {
+func (a *ConfiguredApp) constructTunnelTracker(api modshared.Api, redisClient rueidis.Client) tracker.Tracker {
 	cfg := a.Configuration
 	return tracker.NewRedisTracker(
 		a.Log,
@@ -512,13 +512,10 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 	)
 }
 
-func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, registerer prometheus.Registerer) (redis.UniversalClient, error) {
+func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
 	cfg := a.Configuration.Redis
-	poolSize := int(cfg.PoolSize)
 	dialTimeout := cfg.DialTimeout.AsDuration()
-	readTimeout := cfg.ReadTimeout.AsDuration()
 	writeTimeout := cfg.WriteTimeout.AsDuration()
-	idleTimeout := cfg.IdleTimeout.AsDuration()
 	var err error
 	var tlsConfig *tls.Config
 	if cfg.Tls != nil && cfg.Tls.Enabled {
@@ -535,25 +532,27 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		}
 		password = string(passwordBytes)
 	}
-	var client redis.UniversalClient
+	opts := rueidis.ClientOption{
+		Dialer: net.Dialer{
+			Timeout: dialTimeout,
+		},
+		TLSConfig:        tlsConfig,
+		Username:         cfg.Username,
+		Password:         password,
+		ConnWriteTimeout: writeTimeout,
+		MaxFlushDelay:    20 * time.Microsecond,
+	}
+	if cfg.Network == "unix" {
+		opts.DialFn = redistool.UnixDialer
+	}
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
-		if tlsConfig != nil {
-			tlsConfig.ServerName = strings.Split(v.Server.Address, ":")[0]
+		opts.InitAddress = []string{v.Server.Address}
+		if opts.TLSConfig != nil {
+			opts.TLSConfig.ServerName, _, _ = strings.Cut(v.Server.Address, ":")
 		}
-		client = redis.NewClient(&redis.Options{
-			Addr:            v.Server.Address,
-			PoolSize:        poolSize,
-			DialTimeout:     dialTimeout,
-			ReadTimeout:     readTimeout,
-			WriteTimeout:    writeTimeout,
-			Username:        cfg.Username,
-			Password:        password,
-			Network:         cfg.Network,
-			ConnMaxIdleTime: idleTimeout,
-			TLSConfig:       tlsConfig,
-		})
 	case *kascfg.RedisCF_Sentinel:
+		opts.InitAddress = v.Sentinel.Addresses
 		var sentinelPassword string
 		if v.Sentinel.SentinelPasswordFile != "" {
 			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.SentinelPasswordFile) // nolint:govet
@@ -562,40 +561,26 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 			}
 			sentinelPassword = string(sentinelPasswordBytes)
 		}
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:       v.Sentinel.MasterName,
-			SentinelAddrs:    v.Sentinel.Addresses,
-			DialTimeout:      dialTimeout,
-			ReadTimeout:      readTimeout,
-			WriteTimeout:     writeTimeout,
-			PoolSize:         poolSize,
-			Username:         cfg.Username,
-			Password:         password,
-			SentinelPassword: sentinelPassword,
-			ConnMaxIdleTime:  idleTimeout,
-			TLSConfig:        tlsConfig,
-		})
+		opts.Sentinel = rueidis.SentinelOption{
+			Dialer:    opts.Dialer,
+			TLSConfig: opts.TLSConfig,
+			MasterSet: v.Sentinel.MasterName,
+			Username:  cfg.Username,
+			Password:  sentinelPassword,
+		}
 	default:
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
-	if a.isTracingEnabled() {
-		// Instrument Redis client with tracing only if it's configured.
-		if err = redisotel.InstrumentTracing(client, redisotel.WithTracerProvider(tp)); err != nil {
-			return nil, err
-		}
-	}
-
-	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
-	// Enable metrics instrumentation.
-	_ = mp
-	//if err = redisotel.InstrumentMetrics(client, redisotel.WithMeterProvider(mp)); err != nil {
-	//	return nil, err
-	//}
-	if err = registerer.Register(redisprometheus.NewCollector("", "redis", client)); err != nil {
+	redisClient, err := rueidis.NewClient(opts)
+	if err != nil {
 		return nil, err
 	}
-	return client, nil
+	if a.isTracingEnabled() {
+		// Instrument Redis client with tracing only if it's configured.
+		redisClient = rueidisotel.WithClient(redisClient, rueidisotel.WithTracerProvider(tp), rueidisotel.WithMeterProvider(mp))
+	}
+	return redisClient, nil
 }
 
 func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.TracingCF) (tracesdk.SpanExporter, error) {
@@ -700,10 +685,10 @@ func startModules(stage stager.Stage, modules []modserver.Module) {
 	}
 }
 
-func constructRedisReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
+func constructRedisReadinessProbe(redisClient rueidis.Client) observability.Probe {
 	return func(ctx context.Context) error {
-		status := redisClient.Ping(ctx)
-		err := status.Err()
+		pingCmd := redisClient.B().Ping().Build()
+		err := redisClient.Do(ctx, pingCmd).Error()
 		if err != nil {
 			return fmt.Errorf("redis: %w", err)
 		}

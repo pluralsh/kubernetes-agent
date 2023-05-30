@@ -426,11 +426,11 @@ ConfigurationFile represents kas configuration file.
 | ----- | ---- | ----- | ----------- |
 | server | [RedisServerCF](#gitlab-agent-kascfg-RedisServerCF) |  | Single-server Redis. |
 | sentinel | [RedisSentinelCF](#gitlab-agent-kascfg-RedisSentinelCF) |  | Redis with Sentinel setup. See http://redis.io/topics/sentinel. |
-| pool_size | [uint32](#uint32) |  | The max number of connections. |
+| pool_size | [uint32](#uint32) |  | The max number of connections. DEPRECATED, unused. |
 | dial_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Dial timeout. |
-| read_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Read timeout. |
+| read_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Read timeout. DEPRECATED, unused. |
 | write_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Write timeout. |
-| idle_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | How long to keep TCP connections alive before closing. |
+| idle_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | How long to keep TCP connections alive before closing. DEPRECATED, unused. |
 | key_prefix | [string](#string) |  | Key prefix for everything gitlab-kas stores in Redis. |
 | username | [string](#string) |  | Use the specified Username to authenticate the current connection with one of the connections defined in the ACL list when connecting to a Redis 6.0 instance, or greater, that is using the Redis ACL system. |
 | password_file | [string](#string) |  | Optional password. Must match the password specified in the requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower), or the User Password when connecting to a Redis 6.0 instance, or greater, that is using the Redis ACL system. |

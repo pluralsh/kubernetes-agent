@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 )
@@ -45,14 +45,14 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 }
 
 type ExpiringHash[K1 comparable, K2 comparable] struct {
-	client         redis.UniversalClient
+	client         rueidis.Client
 	key1ToRedisKey KeyToRedisKey[K1]
 	key2ToRedisKey KeyToRedisKey[K2]
 	ttl            time.Duration
 	data           map[K1]map[K2]*ExpiringValue // key -> hash key -> value
 }
 
-func NewExpiringHash[K1 comparable, K2 comparable](client redis.UniversalClient, key1ToRedisKey KeyToRedisKey[K1],
+func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1ToRedisKey KeyToRedisKey[K1],
 	key2ToRedisKey KeyToRedisKey[K2], ttl time.Duration) *ExpiringHash[K1, K2] {
 	return &ExpiringHash[K1, K2]{
 		client:         client,
@@ -85,7 +85,8 @@ func (h *ExpiringHash[K1, K2]) Set(key K1, hashKey K2, value []byte) IOFunc {
 func (h *ExpiringHash[K1, K2]) Unset(key K1, hashKey K2) IOFunc {
 	h.unsetData(key, hashKey)
 	return func(ctx context.Context) error {
-		return h.client.HDel(ctx, h.key1ToRedisKey(key), h.key2ToRedisKey(hashKey)).Err()
+		hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
+		return h.client.Do(ctx, hdelCmd).Error()
 	}
 }
 
@@ -94,8 +95,8 @@ func (h *ExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {
 }
 
 func (h *ExpiringHash[K1, K2]) Len(ctx context.Context, key K1) (size int64, retErr error) {
-	redisKey := h.key1ToRedisKey(key)
-	return h.client.HLen(ctx, redisKey).Result()
+	hlenCmd := h.client.B().Hlen().Key(h.key1ToRedisKey(key)).Build()
+	return h.client.Do(ctx, hlenCmd).AsInt64()
 }
 
 func (h *ExpiringHash[K1, K2]) scan(ctx context.Context, key K1, cb func(k, v string) (bool /*done*/, bool /*delete*/, error)) (keysDeleted int, retErr error) {
@@ -105,7 +106,8 @@ func (h *ExpiringHash[K1, K2]) scan(ctx context.Context, key K1, cb func(k, v st
 		if len(keysToDelete) == 0 {
 			return
 		}
-		err := h.client.HDel(ctx, redisKey, keysToDelete...).Err()
+		hdelCmd := h.client.B().Hdel().Key(redisKey).Field(keysToDelete...).Build()
+		err := h.client.Do(ctx, hdelCmd).Error()
 		if err != nil {
 			if retErr == nil {
 				retErr = err
@@ -115,27 +117,31 @@ func (h *ExpiringHash[K1, K2]) scan(ctx context.Context, key K1, cb func(k, v st
 		keysDeleted = len(keysToDelete)
 	}()
 	// Scan keys of a hash. See https://redis.io/commands/scan
-	iter := h.client.HScan(ctx, redisKey, 0, "", 0).Iterator()
-	for iter.Next(ctx) {
-		k := iter.Val()
-		if !iter.Next(ctx) {
-			err := iter.Err()
-			if err != nil {
-				return 0, err
-			}
+	var se rueidis.ScanEntry
+	var err error
+	for more := true; more; more = se.Cursor != 0 {
+		hscanCmd := h.client.B().Hscan().Key(redisKey).Cursor(se.Cursor).Build()
+		se, err = h.client.Do(ctx, hscanCmd).AsScanEntry()
+		if err != nil {
+			return 0, err
+		}
+		if len(se.Elements)%2 != 0 {
 			// This shouldn't happen
 			return 0, errors.New("invalid Redis reply")
 		}
-		v := iter.Val()
-		done, del, err := cb(k, v)
-		if del {
-			keysToDelete = append(keysToDelete, k)
-		}
-		if err != nil || done {
-			return 0, err
+		for i := 0; i < len(se.Elements); i += 2 {
+			k := se.Elements[i]
+			v := se.Elements[i+1]
+			done, del, err := cb(k, v)
+			if del {
+				keysToDelete = append(keysToDelete, k)
+			}
+			if err != nil || done {
+				return 0, err
+			}
 		}
 	}
-	return 0, iter.Err()
+	return 0, nil
 }
 
 func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (keysDeleted int, retErr error) {
@@ -201,23 +207,17 @@ func (h *ExpiringHash[K1, K2]) gcHash(ctx context.Context, key K1) (int, error) 
 func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 	var toDel []string
 	keysDeleted := 0
-	_, err := h.client.Pipelined(ctx, func(p redis.Pipeliner) error {
-		// consider sending commands to Redis in batches to avoid accumulating too much in RAM.
-		for k1, m := range h.data {
-			toDel = toDel[:0] // reuse backing array, but reset length
-			for k2 := range m {
-				toDel = append(toDel, h.key2ToRedisKey(k2))
-			}
-			redisKey := h.key1ToRedisKey(k1)
-			err := p.HDel(ctx, redisKey, toDel...).Err()
-			if err != nil {
-				return err
-			}
-			delete(h.data, k1)
-			keysDeleted += len(toDel)
+	cmds := make([]rueidis.Completed, 0, len(h.data))
+	for k1, m := range h.data {
+		toDel = toDel[:0] // reuse backing array, but reset length
+		for k2 := range m {
+			toDel = append(toDel, h.key2ToRedisKey(k2))
 		}
-		return nil
-	})
+		cmds = append(cmds, h.client.B().Hdel().Key(h.key1ToRedisKey(k1)).Field(toDel...).Build())
+		delete(h.data, k1)
+		keysDeleted += len(toDel)
+	}
+	err := MultiFirstError(h.client.DoMulti(ctx, cmds...))
 	return keysDeleted, err
 }
 
@@ -265,7 +265,9 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 
 func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
 	var marshalErr error
-	hsetArgs := make([]interface{}, 0, 2*len(args))
+	redisKey := h.key1ToRedisKey(key)
+	hsetCmd := h.client.B().Hset().Key(redisKey).FieldValue()
+	empty := true
 	// Iterate indexes to avoid copying the value which has inlined proto message, which shouldn't be copied.
 	for i := range args {
 		redisValue, err := proto.Marshal(&args[i].value)
@@ -276,17 +278,19 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 			}
 			continue // skip this value
 		}
-		hsetArgs = append(hsetArgs, h.key2ToRedisKey(args[i].hashKey), redisValue)
+		hsetCmd.FieldValue(h.key2ToRedisKey(args[i].hashKey), rueidis.BinaryString(redisValue))
+		empty = false
 	}
-	if len(hsetArgs) == 0 {
+	if empty {
 		return nil // nothing to do, all skipped.
 	}
-	redisKey := h.key1ToRedisKey(key)
-	_, err := h.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
-		p.HSet(ctx, redisKey, hsetArgs) // nolint: asasalint
-		p.PExpire(ctx, redisKey, h.ttl)
-		return nil
-	})
+	resp := h.client.DoMulti(ctx,
+		h.client.B().Multi().Build(),
+		hsetCmd.Build(),
+		h.client.B().Pexpire().Key(redisKey).Milliseconds(h.ttl.Milliseconds()).Build(),
+		h.client.B().Exec().Build(),
+	)
+	err := MultiFirstError(resp)
 	if err != nil {
 		return err
 	}

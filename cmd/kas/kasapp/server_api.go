@@ -8,14 +8,16 @@ import (
 	"regexp"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -33,6 +35,13 @@ var (
 )
 
 const (
+	redisAttemptInterval = 50 * time.Millisecond
+	redisInitBackoff     = 100 * time.Millisecond
+	redisMaxBackoff      = 10 * time.Second
+	redisResetDuration   = 20 * time.Second
+	redisBackoffFactor   = 2.0
+	redisJitter          = 1.0
+
 	gitPushEventsRedisChannel = "kas_git_push_events"
 )
 
@@ -43,8 +52,24 @@ type SentryHub interface {
 type serverApi struct {
 	log                       *zap.Logger
 	Hub                       SentryHub
-	redisClient               redis.UniversalClient
+	redisClient               rueidis.Client
 	gitPushEventSubscriptions subscriptions
+	redisPollConfig           retry.PollConfigFactory
+}
+
+func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *serverApi {
+	return &serverApi{
+		log:         log,
+		Hub:         hub,
+		redisClient: redisClient,
+		redisPollConfig: retry.NewPollConfigFactory(redisAttemptInterval, retry.NewExponentialBackoffFactory(
+			redisInitBackoff,
+			redisMaxBackoff,
+			redisResetDuration,
+			redisBackoffFactor,
+			redisJitter,
+		)),
+	}
 }
 
 type subscriptions struct {
@@ -85,8 +110,8 @@ func (a *serverApi) hub() (SentryHub, string) {
 // This is mainly to unblock the redis subscription from the callback execution.
 func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
 	ch := make(chan *modserver.Project)
-	defer a.gitPushEventSubscriptions.remove(ch)
 	a.gitPushEventSubscriptions.add(ch)
+	defer a.gitPushEventSubscriptions.remove(ch)
 
 	done := ctx.Done()
 	for {
@@ -104,30 +129,20 @@ func (a *serverApi) publishGitPushEvent(ctx context.Context, e *modserver.Projec
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
 	}
-	return a.redisClient.Publish(ctx, gitPushEventsRedisChannel, payload).Err()
+	publishCmd := a.redisClient.B().Publish().Channel(gitPushEventsRedisChannel).Message(string(payload)).Build()
+	return a.redisClient.Do(ctx, publishCmd).Error()
 }
 
 // subscribeGitPushEvent subscribes to the Git push event redis channel
 // and will dispatch each event to the registered callbacks.
 func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
-	// go-redis will automatically re-connect on error
-	pubsub := a.redisClient.Subscribe(ctx, gitPushEventsRedisChannel)
-	defer func() {
-		if err := pubsub.Close(); err != nil {
-			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("failed to close channel %q after subscribing", gitPushEventsRedisChannel), err)
-		}
-	}()
-	ch := pubsub.Channel()
-	done := ctx.Done()
-	for {
-		select {
-		case <-done:
-			return
-		case message := <-ch:
-			protoMessage, err := redisProtoUnmarshal(message.Payload)
+	_ = retry.PollWithBackoff(ctx, a.redisPollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+		subCmd := a.redisClient.B().Subscribe().Channel(gitPushEventsRedisChannel).Build()
+		err := a.redisClient.Receive(ctx, subCmd, func(msg rueidis.PubSubMessage) {
+			protoMessage, err := redisProtoUnmarshal(msg.Message)
 			if err != nil {
 				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", gitPushEventsRedisChannel), err)
-				continue
+				return
 			}
 
 			switch m := (protoMessage).(type) {
@@ -141,8 +156,15 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 					"GitOps: unable to handle received git push event",
 					fmt.Errorf("failed to cast proto message of type %T to concrete type", m))
 			}
+		})
+		switch err { // nolint:errorlint
+		case nil, context.Canceled, context.DeadlineExceeded:
+			return nil, retry.ContinueImmediately
+		default:
+			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, "Error handling Redis SUBSCRIBE", err)
+			return nil, retry.Backoff
 		}
-	}
+	})
 }
 
 // dispatchGitPushEvent dispatches the given `project` which is the message of the Git push event

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
@@ -60,7 +60,7 @@ type RedisTracker struct {
 	connectedAgents        redistool.ExpiringHashInterface[int64, int64] // hash name -> agentId -> ""
 }
 
-func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
+func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Client, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
 	return &RedisTracker{
 		log:                    log,
 		errRep:                 errRep,

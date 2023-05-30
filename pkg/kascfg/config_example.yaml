@@ -88,11 +88,8 @@ private_api:
 redis:
   server:
     address: "localhost:6380" # required
-  pool_size: 5
   dial_timeout: "5s"
-  read_timeout: "3s"
   write_timeout: "3s"
-  idle_timeout: "50s"
   key_prefix: gitlab-kas
   password_file: /some/file
   network: "tcp"

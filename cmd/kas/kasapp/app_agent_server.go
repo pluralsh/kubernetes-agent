@@ -8,7 +8,7 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -42,7 +42,7 @@ type agentServer struct {
 }
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	redisClient redis.UniversalClient, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
+	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
 	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
