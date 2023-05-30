@@ -70,7 +70,15 @@ func (h *ExpiringHash[K1, K2]) Set(key K1, hashKey K2, value []byte) IOFunc {
 	}
 	h.setData(key, hashKey, ev)
 	return func(ctx context.Context) error {
-		return h.refreshKey(ctx, key, []interface{}{hashKey, ev})
+		return h.refreshKey(ctx, key, []refreshKey[K2]{
+			{
+				hashKey: hashKey,
+				value: ExpiringValue{ // cannot copy ev directly
+					ExpiresAt: ev.ExpiresAt,
+					Value:     ev.Value,
+				},
+			},
+		})
 	}
 }
 
@@ -214,7 +222,7 @@ func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 }
 
 func (h *ExpiringHash[K1, K2]) Refresh(nextRefresh time.Time) IOFunc {
-	argsMap := make(map[K1][]interface{}, len(h.data))
+	argsMap := make(map[K1][]refreshKey[K2], len(h.data))
 	for key, hashData := range h.data {
 		args := h.prepareRefreshKey(hashData, nextRefresh)
 		if len(args) == 0 {
@@ -236,8 +244,8 @@ func (h *ExpiringHash[K1, K2]) Refresh(nextRefresh time.Time) IOFunc {
 	}
 }
 
-func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []interface{} {
-	args := make([]interface{}, 0, len(hashData)*2)
+func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
+	args := make([]refreshKey[K2], 0, len(hashData))
 	expiresAt := time.Now().Add(h.ttl).Unix()
 	nextRefreshUnix := nextRefresh.Unix()
 	for hashKey, value := range hashData {
@@ -246,18 +254,21 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 			continue
 		}
 		value.ExpiresAt = expiresAt
-		// Copy to decouple from the mutable instance in hashData. That way it's safe for concurrent access.
-		valueCopy := &ExpiringValue{ExpiresAt: value.ExpiresAt, Value: value.Value}
-		args = append(args, hashKey, valueCopy)
+		// Copy value to decouple from the mutable instance in hashData. That way it's safe for concurrent access.
+		args = append(args, refreshKey[K2]{
+			hashKey: hashKey,
+			value:   ExpiringValue{ExpiresAt: value.ExpiresAt, Value: value.Value},
+		})
 	}
 	return args
 }
 
-func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []interface{}) error {
+func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
 	var marshalErr error
-	hsetArgs := make([]interface{}, 0, len(args))
-	for i := 0; i < len(args); i += 2 {
-		redisValue, err := proto.Marshal(args[i+1].(*ExpiringValue))
+	hsetArgs := make([]interface{}, 0, 2*len(args))
+	// Iterate indexes to avoid copying the value which has inlined proto message, which shouldn't be copied.
+	for i := range args {
+		redisValue, err := proto.Marshal(&args[i].value)
 		if err != nil {
 			// This should never happen
 			if marshalErr == nil {
@@ -265,7 +276,7 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []in
 			}
 			continue // skip this value
 		}
-		hsetArgs = append(hsetArgs, args[i], redisValue)
+		hsetArgs = append(hsetArgs, h.key2ToRedisKey(args[i].hashKey), redisValue)
 	}
 	if len(hsetArgs) == 0 {
 		return nil // nothing to do, all skipped.
@@ -297,6 +308,11 @@ func (h *ExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
 	if len(nm) == 0 {
 		delete(h.data, key)
 	}
+}
+
+type refreshKey[K2 any] struct {
+	hashKey K2
+	value   ExpiringValue
 }
 
 func PrefixedInt64Key(prefix string, key int64) string {
