@@ -263,14 +263,17 @@ message RedisCF {
     RedisSentinelCF sentinel = 2 [json_name = "sentinel", (validate.rules).message.required = true];
   }
   // The max number of connections.
+  // DEPRECATED, unused.
   uint32 pool_size = 4 [json_name = "pool_size"];
   // Dial timeout.
   google.protobuf.Duration dial_timeout = 5 [json_name = "dial_timeout", (validate.rules).duration = {gt: {}}];
   // Read timeout.
+  // DEPRECATED, unused.
   google.protobuf.Duration read_timeout = 6 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
   // Write timeout.
   google.protobuf.Duration write_timeout = 7 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
   // How long to keep TCP connections alive before closing.
+  // DEPRECATED, unused.
   google.protobuf.Duration idle_timeout = 8 [json_name = "idle_timeout", (validate.rules).duration = {gt: {}}];
   // Key prefix for everything gitlab-kas stores in Redis.
   string key_prefix = 9 [json_name = "key_prefix"];

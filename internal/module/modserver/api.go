@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -71,7 +71,7 @@ type Config struct {
 	TraceProvider   trace.TracerProvider
 	TracePropagator propagation.TextMapPropagator
 	MeterProvider   metric.MeterProvider
-	RedisClient     redis.UniversalClient
+	RedisClient     rueidis.Client
 	// KasName is a string "gitlab-kas". Can be used as a user agent, server name, service name, etc.
 	KasName string
 	// Version is gitlab-kas version.

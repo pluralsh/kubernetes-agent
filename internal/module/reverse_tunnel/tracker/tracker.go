@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
@@ -51,7 +51,7 @@ type RedisTracker struct {
 	done                  bool
 }
 
-func NewRedisTracker(log *zap.Logger, api modshared.Api, client redis.UniversalClient, agentKeyPrefix string,
+func NewRedisTracker(log *zap.Logger, api modshared.Api, client rueidis.Client, agentKeyPrefix string,
 	ttl, refreshPeriod, gcPeriod time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
 		log:                   log,

@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
-	"github.com/go-redis/redismock/v9"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/redis/rueidis"
+	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
@@ -20,63 +19,69 @@ const (
 )
 
 func TestTokenLimiterHappyPath(t *testing.T) {
-	ctx, _, mock, limiter, key := setup(t)
+	ctx, _, client, limiter, key := setup(t)
 
-	mock.ExpectGet(key).SetVal("0")
-	mock.ExpectTxPipeline()
-	mock.ExpectIncr(key).SetVal(1)
-	mock.ExpectExpire(key, 59*time.Second).SetVal(true)
-	mock.ExpectTxPipelineExec()
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", key)).
+		Return(rmock.Result(rmock.RedisInt64(0)))
+	client.EXPECT().
+		DoMulti(gomock.Any(),
+			rmock.Match("MULTI"),
+			rmock.Match("INCR", key),
+			rmock.Match("EXPIRE", key, "59"),
+			rmock.Match("EXEC"),
+		)
 
 	require.True(t, limiter.Allow(ctx), "Allow when no token has been consumed")
-
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenLimiterOverLimit(t *testing.T) {
-	ctx, _, mock, limiter, key := setup(t)
+	ctx, _, client, limiter, key := setup(t)
 
-	mock.ExpectGet(key).SetVal("1")
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", key)).
+		Return(rmock.Result(rmock.RedisInt64(1)))
 
 	require.False(t, limiter.Allow(ctx), "Do not allow when a token has been consumed")
-
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenLimiterNotAllowedWhenGetError(t *testing.T) {
-	ctx, rpcApi, mock, limiter, key := setup(t)
+	ctx, rpcApi, client, limiter, key := setup(t)
 	err := errors.New("test connection error")
-	mock.ExpectGet(key).SetErr(err)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", key)).
+		Return(rmock.ErrorResult(err))
 
 	rpcApi.EXPECT().
 		HandleProcessingError("redistool.TokenLimiter: error retrieving minute bucket count", err)
 
 	require.False(t, limiter.Allow(ctx), "Do not allow when there is a connection error")
-
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTokenLimiterNotAllowedWhenIncrError(t *testing.T) {
-	ctx, rpcApi, mock, limiter, key := setup(t)
-
-	mock.ExpectGet(key).SetVal("0")
-	mock.ExpectTxPipeline()
-	mock.ExpectIncr(key).SetVal(1)
 	err := errors.New("test connection error")
-	mock.ExpectExpire(key, 59*time.Second).SetErr(err)
+	ctx, rpcApi, client, limiter, key := setup(t)
 
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", key)).
+		Return(rmock.Result(rmock.RedisInt64(0)))
+	client.EXPECT().
+		DoMulti(gomock.Any(),
+			rmock.Match("MULTI"),
+			rmock.Match("INCR", key),
+			rmock.Match("EXPIRE", key, "59"),
+			rmock.Match("EXEC"),
+		).
+		Return([]rueidis.RedisResult{rmock.ErrorResult(err)})
 	rpcApi.EXPECT().
 		HandleProcessingError("redistool.TokenLimiter: error while incrementing token key count", err)
 
 	require.False(t, limiter.Allow(ctx), "Do not allow when there is a connection error")
-
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func setup(t *testing.T) (context.Context, *MockRpcApi, redismock.ClientMock, *TokenLimiter, string) {
-	client, mock := redismock.NewClientMock()
-	mock.MatchExpectationsInOrder(true)
+func setup(t *testing.T) (context.Context, *MockRpcApi, *rmock.Client, *TokenLimiter, string) {
 	ctrl := gomock.NewController(t)
+	client := rmock.NewClient(ctrl)
 	rpcApi := NewMockRpcApi(ctrl)
 	rpcApi.EXPECT().
 		Log().
@@ -90,5 +95,5 @@ func setup(t *testing.T) (context.Context, *MockRpcApi, redismock.ClientMock, *T
 	})
 	ctx := context.WithValue(context.Background(), ctxKey, testhelpers.AgentkToken) // nolint: staticcheck
 	key := limiter.buildKey(api.AgentToken2key(testhelpers.AgentkToken))
-	return ctx, rpcApi, mock, limiter, key
+	return ctx, rpcApi, client, limiter, key
 }

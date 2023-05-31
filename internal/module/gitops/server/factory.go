@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops"
@@ -44,7 +44,7 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient redis.UniversalClient, serverApi modserver.Api) *server {
+func newServerFromConfig(config *modserver.Config, redisClient rueidis.Client, serverApi modserver.Api) *server {
 	gitopsCfg := config.Config.Agent.Gitops
 	return &server{
 		serverApi:  serverApi,

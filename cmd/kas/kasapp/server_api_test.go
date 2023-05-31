@@ -65,9 +65,7 @@ func setupApi(t *testing.T) (context.Context, *zap.Logger, *MockSentryHub, *serv
 	ctrl := gomock.NewController(t)
 	hub := NewMockSentryHub(ctrl)
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
-	apiObj := &serverApi{
-		Hub: hub,
-	}
+	apiObj := newServerApi(log, hub, nil)
 	return ctx, log, hub, apiObj, traceId
 }
 
@@ -106,7 +104,7 @@ func TestServerApi_GitPushEventDispatchingMultiple(t *testing.T) {
 	var wg wait.Group
 	defer wg.Wait()
 
-	a := serverApi{}
+	a := newServerApi(zaptest.NewLogger(t), nil, nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

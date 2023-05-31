@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-redis/redismock/v9"
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
+	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -665,7 +665,7 @@ func setupServerWithAgentInfo(t *testing.T, handler func(http.ResponseWriter, *h
 
 func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWriter, *http.Request)) (context.Context, *server, *gomock.Controller, *mock_modserver.MockAgentRpcApi, *mock_internalgitaly.MockPoolInterface) {
 	ctrl := gomock.NewController(t)
-	client, _ := redismock.NewClientMock()
+	client := rmock.NewClient(ctrl)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)
 	mockApi := mock_modserver.NewMockApi(ctrl)

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-redis/redismock/v9"
 	"github.com/golang/mock/gomock"
+	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool"
@@ -19,8 +19,10 @@ const (
 )
 
 func TestErrCacher_GetError_ReturnsNilOnClientError(t *testing.T) {
-	ec, mock, rep := setupNormal(t)
-	mock.ExpectGet(errKey).SetErr(errors.New("boom"))
+	ec, client, rep := setupNormal(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", errKey)).
+		Return(rmock.ErrorResult(errors.New("boom")))
 	rep.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to get cached error from Redis", matcher.ErrorEq("boom"))
 	err := ec.GetError(context.Background(), errKey)
@@ -28,15 +30,28 @@ func TestErrCacher_GetError_ReturnsNilOnClientError(t *testing.T) {
 }
 
 func TestErrCacher_GetError_ReturnsNilOnClientNil(t *testing.T) {
-	ec, mock, _ := setupNormal(t)
-	mock.ExpectGet(errKey).SetVal("")
+	ec, client, _ := setupNormal(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", errKey)).
+		Return(rmock.Result(rmock.RedisNil()))
+	err := ec.GetError(context.Background(), errKey)
+	require.NoError(t, err)
+}
+
+func TestErrCacher_GetError_ReturnsNilOnEmptyResponse(t *testing.T) {
+	ec, client, _ := setupNormal(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", errKey)).
+		Return(rmock.Result(rmock.RedisString("")))
 	err := ec.GetError(context.Background(), errKey)
 	require.NoError(t, err)
 }
 
 func TestErrCacher_GetError_ReturnsNilOnUnmarshalFail(t *testing.T) {
-	ec, mock, rep := setupError(t)
-	mock.ExpectGet(errKey).SetVal("boom")
+	ec, client, rep := setupError(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", errKey)).
+		Return(rmock.Result(rmock.RedisString("boom")))
 	rep.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to unmarshal cached error", matcher.ErrorEq("unmarshal error"))
 	err := ec.GetError(context.Background(), errKey)
@@ -44,15 +59,18 @@ func TestErrCacher_GetError_ReturnsNilOnUnmarshalFail(t *testing.T) {
 }
 
 func TestErrCacher_GetError_ReturnsCachedError(t *testing.T) {
-	ec, mock, _ := setupNormal(t)
-	mock.ExpectGet(errKey).SetVal("boom")
+	ec, client, _ := setupNormal(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("GET", errKey)).
+		Return(rmock.Result(rmock.RedisString("boom")))
 	err := ec.GetError(context.Background(), errKey)
 	require.EqualError(t, err, "boom")
 }
 
 func TestErrCacher_CacheError_HappyPath(t *testing.T) {
-	ec, mock, _ := setupNormal(t)
-	mock.ExpectSet(errKey, []byte("boom"), time.Minute).SetVal("")
+	ec, client, _ := setupNormal(t)
+	client.EXPECT().
+		Do(gomock.Any(), rmock.Match("SET", errKey, "boom", "PX", "60000"))
 	ec.CacheError(context.Background(), errKey, errors.New("boom"), time.Minute)
 }
 
@@ -63,9 +81,9 @@ func TestErrCacher_CacheError_MarshalError(t *testing.T) {
 	ec.CacheError(context.Background(), errKey, errors.New("boom"), time.Minute)
 }
 
-func setupNormal(t *testing.T) (*ErrCacher[string], redismock.ClientMock, *mock_tool.MockErrReporter) {
-	client, mock := redismock.NewClientMock()
+func setupNormal(t *testing.T) (*ErrCacher[string], *rmock.Client, *mock_tool.MockErrReporter) {
 	ctrl := gomock.NewController(t)
+	client := rmock.NewClient(ctrl)
 	rep := mock_tool.NewMockErrReporter(ctrl)
 	ec := &ErrCacher[string]{
 		Log:    zaptest.NewLogger(t),
@@ -83,12 +101,12 @@ func setupNormal(t *testing.T) (*ErrCacher[string], redismock.ClientMock, *mock_
 			return key
 		},
 	}
-	return ec, mock, rep
+	return ec, client, rep
 }
 
-func setupError(t *testing.T) (*ErrCacher[string], redismock.ClientMock, *mock_tool.MockErrReporter) {
-	client, mock := redismock.NewClientMock()
+func setupError(t *testing.T) (*ErrCacher[string], *rmock.Client, *mock_tool.MockErrReporter) {
 	ctrl := gomock.NewController(t)
+	client := rmock.NewClient(ctrl)
 	rep := mock_tool.NewMockErrReporter(ctrl)
 	ec := &ErrCacher[string]{
 		Log:    zaptest.NewLogger(t),
@@ -106,7 +124,7 @@ func setupError(t *testing.T) (*ErrCacher[string], redismock.ClientMock, *mock_t
 			return key
 		},
 	}
-	return ec, mock, rep
+	return ec, client, rep
 }
 
 type testErrMarshaler struct {

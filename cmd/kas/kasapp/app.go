@@ -6,12 +6,10 @@ import (
 	"os"
 
 	"github.com/go-logr/zapr"
-	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -56,7 +54,6 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	klog.SetLogger(logrLogger)
 	otel.SetLogger(logrLogger)
 	otel.SetErrorHandler((*metric.OtelErrorHandler)(log))
-	redis.SetLogger((*redistool.ZapLogger)(log.Sugar()))
 	app := ConfiguredApp{
 		Log:               log,
 		Configuration:     cfg,
