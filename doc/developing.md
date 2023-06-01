@@ -99,6 +99,19 @@ Run the test scenario with this command:
 ```shell
 bazel test //internal/module/gitops/server:server_test
 ```
+To run the tests in `internal/tool/redistool` locally, `REDIS_URL` environment variable needs to be set, otherwise they are skipped. So the skip is silent if one does not add `-v` to the test execution.
+Run the tests with verbosity enabled:
+
+```shell
+go test -v internal/tool/redistool
+```
+Run the tests with `REDIS_URL` set:
+
+```shell
+export REDIS_URL=redis://localhost:6379
+# export REDIS_URL=unix:/path/to/socket.sock
+go test internal/tool/redistool
+```
 
 ### Additional resources
 
