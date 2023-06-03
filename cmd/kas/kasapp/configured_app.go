@@ -539,8 +539,10 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		TLSConfig:        tlsConfig,
 		Username:         cfg.Username,
 		Password:         password,
+		ClientName:       kasName,
 		ConnWriteTimeout: writeTimeout,
 		MaxFlushDelay:    20 * time.Microsecond,
+		DisableCache:     true,
 	}
 	if cfg.Network == "unix" {
 		opts.DialFn = redistool.UnixDialer
