@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
@@ -16,11 +17,17 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/util/wait"
+)
+
+const (
+	maxBufferedNotifications = 10
 )
 
 type server struct {
 	rpc.UnimplementedGitLabFluxServer
 	serverApi           modserver.Api
+	droppedCounter      prometheus.Counter
 	pollCfgFactory      retry.PollConfigFactory
 	projectAccessClient *projectAccessClient
 }
@@ -28,47 +35,68 @@ type server struct {
 func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc.GitLabFlux_ReconcileProjectsServer) error {
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
-	agentToken := rpcApi.AgentToken()
-	projects := req.ToProjectSet()
+	log := rpcApi.Log()
+	var agentInfo *api.AgentInfo
+	var err error
 
-	_ = retry.PollWithBackoff(ctx, s.pollCfgFactory(), func(ctx context.Context) (error, retry.AttemptResult) {
-		log := rpcApi.Log()
-		agentInfo, err := rpcApi.AgentInfo(ctx, log)
+	err = rpcApi.PollWithBackoff(s.pollCfgFactory(), func() (error, retry.AttemptResult) {
+		agentInfo, err = rpcApi.AgentInfo(ctx, log)
 		if err != nil {
 			if status.Code(err) == codes.Unavailable {
 				return nil, retry.Backoff
 			}
 			return err, retry.Done // no wrap
 		}
+		return nil, retry.Done
+	})
+	if agentInfo == nil {
+		return err // ctx done, err may be nil but must return
+	}
 
-		log = log.With(logz.AgentId(agentInfo.Id))
-		log.Debug("Started reconcile projects ...")
-		defer log.Debug("Stopped reconcile projects ...")
-		s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, message *modserver.Project) {
-			if _, ok := projects[message.FullPath]; !ok {
-				// NOTE: it's probably not a good idea to log here as we'd get one for every event,
-				// which on GitLab.com is thousands per minute.
-				return
-			}
+	log = log.With(logz.AgentId(agentInfo.Id))
 
-			hasAccess, err := s.verifyProjectAccess(ctx, log, rpcApi, agentInfo.Id, agentToken, message.FullPath)
+	pipe := make(chan *modserver.Project, maxBufferedNotifications)
+	var wg wait.Group
+	defer wg.Wait()
+	defer close(pipe)
+	wg.Start(func() {
+		for project := range pipe {
+			hasAccess, err := s.verifyProjectAccess(ctx, log, rpcApi, agentInfo.Id, project.FullPath)
 			if err != nil {
-				rpcApi.HandleProcessingError(log, agentInfo.Id, fmt.Sprintf("failed to check if project %s is accessible by agent", message.FullPath), err)
-				return
+				rpcApi.HandleProcessingError(log, agentInfo.Id, fmt.Sprintf("Failed to check if project %s is accessible by agent", project.FullPath), err)
+				continue
 			}
 			if !hasAccess {
-				return
+				continue
 			}
 
 			err = server.Send(&rpc.ReconcileProjectsResponse{
-				Project: &rpc.Project{Id: message.FullPath},
+				Project: &rpc.Project{Id: project.FullPath},
 			})
 			if err != nil {
-				_ = rpcApi.HandleIoError(log, fmt.Sprintf("failed to send reconcile message for project %s", message.FullPath), err)
+				_ = rpcApi.HandleIoError(log, fmt.Sprintf("Failed to send reconcile message for project %s", project.FullPath), err)
 			}
-		})
+		}
+	})
 
-		return nil, retry.Done
+	log.Debug("Started reconcile projects ...")
+	defer log.Debug("Stopped reconcile projects ...")
+	projects := req.ToProjectSet()
+	s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, project *modserver.Project) {
+		if _, ok := projects[project.FullPath]; !ok {
+			// NOTE: it's probably not a good idea to log here as we'd get one for every event,
+			// which on GitLab.com is thousands per minute.
+			return
+		}
+
+		select {
+		case pipe <- project:
+		default:
+			s.droppedCounter.Inc()
+			// NOTE: if for whatever reason the other goroutine isn't able to keep up with the events,
+			// we just drop them for now.
+			log.Debug("Dropping Git push event", logz.ProjectId(project.FullPath))
+		}
 	})
 
 	return nil
@@ -77,9 +105,9 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 // verifyProjectAccess verifies if the given agent has access to the given project.
 // If this is not the case `false` is returned, otherwise `true`.
 // If the error has the code Unavailable a caller my retry.
-func (s *server) verifyProjectAccess(ctx context.Context, log *zap.Logger, rpcApi modserver.RpcApi, agentId int64,
-	agentToken api.AgentToken, projectId string) (bool, error) {
-	hasAccess, err := s.projectAccessClient.VerifyProjectAccess(ctx, agentToken, projectId)
+func (s *server) verifyProjectAccess(ctx context.Context, log *zap.Logger, rpcApi modserver.AgentRpcApi, agentId int64,
+	projectId string) (bool, error) {
+	hasAccess, err := s.projectAccessClient.VerifyProjectAccess(ctx, rpcApi.AgentToken(), projectId)
 	switch {
 	case err == nil:
 		return hasAccess, nil

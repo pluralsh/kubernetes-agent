@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux"
@@ -24,14 +25,25 @@ const (
 	reconcileProjectsJitter        = 1.0
 	projectAccessCacheTtl          = 5 * time.Minute
 	projectAccessCacheErrTtl       = 1 * time.Minute
+
+	fluxDroppedNotificationsCounterMetricName = "flux_dropped_git_push_notifications_total"
 )
 
 type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
+	droppedCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: fluxDroppedNotificationsCounterMetricName,
+		Help: "The total number of dropped Git push notifications in Flux module",
+	})
+	err := config.Registerer.Register(droppedCounter)
+	if err != nil {
+		return nil, err
+	}
 	rpc.RegisterGitLabFluxServer(config.AgentServer, &server{
-		serverApi: config.Api,
+		serverApi:      config.Api,
+		droppedCounter: droppedCounter,
 		pollCfgFactory: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			reconcileProjectsInitBackoff, reconcileProjectsMaxBackoff, reconcileProjectsResetDuration, reconcileProjectsBackoffFactor, reconcileProjectsJitter)),
 		projectAccessClient: &projectAccessClient{
