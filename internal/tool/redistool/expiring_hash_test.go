@@ -231,7 +231,10 @@ func redisClient(t *testing.T) rueidis.Client {
 
 	u, err := url.Parse(redisURL)
 	require.NoError(t, err)
-	var opts rueidis.ClientOption
+	opts := rueidis.ClientOption{
+		ClientName:   "gitlab-agent-test",
+		DisableCache: true,
+	}
 	switch u.Scheme {
 	case "unix":
 		opts.DialFn = UnixDialer
