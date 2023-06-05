@@ -36,7 +36,8 @@ func (a *ValueHolder[T]) get(ctx context.Context) (T, error) {
 	case <-a.setC:
 		return a.value, nil
 	case <-ctx.Done():
-		return *new(T), ctx.Err()
+		var t T // nil
+		return t, ctx.Err()
 	}
 }
 
@@ -45,6 +46,7 @@ func (a *ValueHolder[T]) tryGet() (T, bool) {
 	case <-a.setC:
 		return a.value, true
 	default:
-		return *new(T), false
+		var t T // nil
+		return t, false
 	}
 }

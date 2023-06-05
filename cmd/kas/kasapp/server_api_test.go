@@ -99,7 +99,7 @@ func TestRemoveRandomPort(t *testing.T) {
 	}
 }
 
-func TestServerApi_GitPushEventDispatchingMultiple(t *testing.T) {
+func TestServerApi_GitPushEvent_DispatchingMultiple(t *testing.T) {
 	// GIVEN
 	var wg wait.Group
 	defer wg.Wait()
@@ -108,11 +108,18 @@ func TestServerApi_GitPushEventDispatchingMultiple(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	proj := &modserver.Project{}
 	// recorder for callback hits
 	rec1 := make(chan struct{})
 	rec2 := make(chan struct{})
-	subscriber1 := func(_ context.Context, _ *modserver.Project) { close(rec1) }
-	subscriber2 := func(_ context.Context, _ *modserver.Project) { close(rec2) }
+	subscriber1 := func(_ context.Context, p *modserver.Project) {
+		assert.Same(t, proj, p)
+		close(rec1)
+	}
+	subscriber2 := func(_ context.Context, p *modserver.Project) {
+		assert.Same(t, proj, p)
+		close(rec2)
+	}
 
 	// WHEN
 	// starting multiple subscribers
@@ -124,12 +131,44 @@ func TestServerApi_GitPushEventDispatchingMultiple(t *testing.T) {
 	})
 
 	// give the OnGitPushEvent goroutines time to be scheduled and registered
-	time.Sleep(500 * time.Millisecond)
+	assert.Eventually(t, func() bool {
+		a.gitPushEventSubscriptions.mu.Lock()
+		defer a.gitPushEventSubscriptions.mu.Unlock()
+		return len(a.gitPushEventSubscriptions.chs) == 2
+	}, time.Minute, time.Millisecond)
 
 	// dispatch a single git push event
-	a.dispatchGitPushEvent(ctx, &modserver.Project{})
+	a.dispatchGitPushEvent(ctx, proj)
 
 	// THEN
 	<-rec1
 	<-rec2
+}
+
+func TestServerApi_GitPushEventSubscriptions(t *testing.T) {
+	var s subscriptions
+
+	ch1 := make(chan<- *modserver.Project)
+	ch2 := make(chan<- *modserver.Project)
+	ch3 := make(chan<- *modserver.Project)
+
+	s.add(ch1)
+	s.add(ch2)
+	s.add(ch3)
+
+	assert.Equal(t, ch1, s.chs[0])
+	assert.Equal(t, ch2, s.chs[1])
+	assert.Equal(t, ch3, s.chs[2])
+
+	s.remove(ch2)
+
+	assert.Equal(t, ch1, s.chs[0])
+	assert.Equal(t, ch3, s.chs[1])
+	assert.Nil(t, s.chs[:3:3][2])
+
+	s.remove(ch1)
+	s.remove(ch3)
+	assert.Nil(t, s.chs[:3:3][0])
+	assert.Nil(t, s.chs[:3:3][1])
+	assert.Empty(t, s.chs)
 }

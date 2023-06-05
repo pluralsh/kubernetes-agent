@@ -88,7 +88,10 @@ func (s *subscriptions) remove(ch chan<- *modserver.Project) {
 	defer s.mu.Unlock()
 	for i, c := range s.chs {
 		if c == ch {
-			s.chs = append(s.chs[:i], s.chs[i+1:]...)
+			l := len(s.chs)
+			newChs := append(s.chs[:i], s.chs[i+1:]...)
+			s.chs[l-1] = nil // help GC
+			s.chs = newChs
 			break
 		}
 	}
