@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/require"
@@ -87,12 +88,17 @@ func setup(t *testing.T) (context.Context, *MockRpcApi, *rmock.Client, *TokenLim
 		Log().
 		Return(zaptest.NewLogger(t)).
 		AnyTimes()
-	limiter := NewTokenLimiter(client, "key_prefix", 1, func(ctx context.Context) RpcApi {
-		rpcApi.EXPECT().
-			RequestKey().
-			Return(api.AgentToken2key(ctx.Value(ctxKey).(api.AgentToken)))
-		return rpcApi
-	})
+
+	limiter := NewTokenLimiter(client, "key_prefix", 1,
+		prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "test",
+		}),
+		func(ctx context.Context) RpcApi {
+			rpcApi.EXPECT().
+				RequestKey().
+				Return(api.AgentToken2key(ctx.Value(ctxKey).(api.AgentToken)))
+			return rpcApi
+		})
 	ctx := context.WithValue(context.Background(), ctxKey, testhelpers.AgentkToken) // nolint: staticcheck
 	key := limiter.buildKey(api.AgentToken2key(testhelpers.AgentkToken))
 	return ctx, rpcApi, client, limiter, key
