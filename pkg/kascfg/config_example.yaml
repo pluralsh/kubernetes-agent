@@ -15,7 +15,7 @@ agent:
     websocket: false
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
-    connections_per_token_per_minute: 10000
+    connections_per_token_per_minute: 40000
     max_connection_age: "1800s"
     listen_grace_period: "5s"
   configuration:
