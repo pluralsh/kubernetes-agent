@@ -94,9 +94,7 @@ func TestNoErrorOnEofAfterRequestInfo(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -136,9 +134,7 @@ func TestNoErrorOnEofAfterMessage(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -199,9 +195,7 @@ func TestNoTrailerAfterHeaderError(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -232,9 +226,7 @@ func TestTrailerAfterRecvMsgEof(t *testing.T) {
 			Header(),
 		tunnel.EXPECT().
 			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
-				Msg: &rpc.ConnectRequest_Header{
-					Header: &rpc.Header{},
-				},
+				Msg: &rpc.ConnectRequest_Header{Header: &rpc.Header{}},
 			})),
 		clientStream.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -268,9 +260,7 @@ func TestTrailerAfterRecvMsgEof(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -302,9 +292,7 @@ func TestTrailerAndErrorAfterRecvMsgError(t *testing.T) {
 			Header(),
 		tunnel.EXPECT().
 			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
-				Msg: &rpc.ConnectRequest_Header{
-					Header: &rpc.Header{},
-				},
+				Msg: &rpc.ConnectRequest_Header{Header: &rpc.Header{}},
 			})),
 		clientStream.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -346,9 +334,7 @@ func TestTrailerAndErrorAfterRecvMsgError(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -422,9 +408,7 @@ func TestContextIgnoredIfStartedStreaming(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -466,7 +450,7 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 	require.EqualError(t, err, "Send(descriptor): expected err")
 }
 
-func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
+func TestAttemptIsUnblockedOnTunnelRecvMessageError(t *testing.T) {
 	client, conn, tunnel, c := setupConnection(t)
 	ctrl := gomock.NewController(t)
 	clientStream := mock_rpc.NewMockClientStream(ctrl)
@@ -480,9 +464,7 @@ func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
-				Msg: &rpc.ConnectResponse_RequestInfo{
-					RequestInfo: &rpc.RequestInfo{},
-				},
+				Msg: &rpc.ConnectResponse_RequestInfo{RequestInfo: &rpc.RequestInfo{}},
 			})),
 		conn.EXPECT().
 			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -498,7 +480,9 @@ func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
 		clientStream.EXPECT().
 			Header(),
 		tunnel.EXPECT().
-			Send(gomock.Any()),
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Header{Header: &rpc.Header{}},
+			})),
 		clientStream.EXPECT().
 			RecvMsg(gomock.Any()).
 			DoAndReturn(func(m interface{}) error {
@@ -510,6 +494,44 @@ func TestInternalStreamIsUnblockedOnTunnelError(t *testing.T) {
 		tunnel.EXPECT().
 			Send(gomock.Any()).
 			Return(errors.New("expected send error")),
+	)
+
+	err := c.attempt(context.Background())
+	require.EqualError(t, err, "expected recv error")
+}
+
+func TestAttemptIsUnblockedOnTunnelHeaderSendError(t *testing.T) {
+	client, conn, tunnel, c := setupConnection(t)
+	ctrl := gomock.NewController(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any(), gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()), // ConnectRequest_Descriptor_
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(errors.New("expected recv error")),
+	)
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header(),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Header{Header: &rpc.Header{}},
+			})).
+			Return(io.EOF),
 	)
 
 	err := c.attempt(context.Background())
