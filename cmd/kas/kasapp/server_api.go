@@ -105,12 +105,6 @@ func (a *serverApi) hub() (SentryHub, string) {
 	return a.Hub, ""
 }
 
-// OnGitPushEvent runs the given callback function for a received Git push event.
-// The Git push event may come from any GitLab project and as such it's up to the
-// callback to filter out the events that it's interested in.
-// This particular implementation registers an unbuffered channel for the callback
-// which receives the actual event from a redis subscription.
-// This is mainly to unblock the redis subscription from the callback execution.
 func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
 	ch := make(chan *modserver.Project)
 	a.gitPushEventSubscriptions.add(ch)
@@ -172,24 +166,17 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 
 // dispatchGitPushEvent dispatches the given `project` which is the message of the Git push event
 // to all registered subscriptions registered by OnGitPushEvent.
-// This particular implementation will drop events per registered callback if their
-// registered channel is blocked, e.g. when the callback is too slow to handle the produced events.
-// This is suboptimal, but will decouple and unblock the redis subscription from callback function's performance.
 func (a *serverApi) dispatchGitPushEvent(ctx context.Context, project *modserver.Project) {
+	done := ctx.Done()
+
 	a.gitPushEventSubscriptions.mu.Lock()
 	defer a.gitPushEventSubscriptions.mu.Unlock()
 
-	done := ctx.Done()
 	for _, ch := range a.gitPushEventSubscriptions.chs {
 		select {
 		case <-done:
 			return
 		case ch <- project:
-		default:
-			// NOTE: if for whatever reason the subscriber isn't able to keep up with the events,
-			// we just drop them for now.
-			a.log.Debug("Dropping Git push event", logz.ProjectId(project.FullPath))
-			continue
 		}
 	}
 }

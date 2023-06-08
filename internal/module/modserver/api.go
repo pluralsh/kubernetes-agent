@@ -87,6 +87,11 @@ type GitPushEventCallback func(ctx context.Context, project *Project)
 // Api provides the API for the module to use.
 type Api interface {
 	modshared.Api
+	// OnGitPushEvent runs the given callback function for a received Git push event.
+	// The Git push event may come from any GitLab project and as such it's up to the
+	// callback to filter out the events that it's interested in.
+	// The callback MUST NOT block i.e. perform I/O or acquire contended locks. Perform those operations
+	// asynchronously in a separate goroutine when required.
 	OnGitPushEvent(ctx context.Context, callback GitPushEventCallback)
 }
 
