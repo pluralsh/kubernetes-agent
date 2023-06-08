@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
@@ -22,16 +23,18 @@ type TokenLimiter struct {
 	redisClient    rueidis.Client
 	keyPrefix      string
 	limitPerMinute uint64
+	limitExceeded  prometheus.Counter
 	getApi         func(context.Context) RpcApi
 }
 
 // NewTokenLimiter returns a new TokenLimiter
 func NewTokenLimiter(redisClient rueidis.Client, keyPrefix string,
-	limitPerMinute uint64, getApi func(context.Context) RpcApi) *TokenLimiter {
+	limitPerMinute uint64, limitExceeded prometheus.Counter, getApi func(context.Context) RpcApi) *TokenLimiter {
 	return &TokenLimiter{
 		redisClient:    redisClient,
 		keyPrefix:      keyPrefix,
 		limitPerMinute: limitPerMinute,
+		limitExceeded:  limitExceeded,
 		getApi:         getApi,
 	}
 }
@@ -51,6 +54,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 		count = 0
 	}
 	if count >= l.limitPerMinute {
+		l.limitExceeded.Inc()
 		api.Log().Debug("redistool.TokenLimiter: rate limit exceeded",
 			logz.RedisKey([]byte(key)), logz.U64Count(count), logz.TokenLimit(l.limitPerMinute))
 		return false

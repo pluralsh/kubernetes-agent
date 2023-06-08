@@ -28,7 +28,7 @@ const (
 
 	defaultAgentListenNetwork                      = "tcp"
 	defaultAgentListenAddress                      = "127.0.0.1:8150"
-	defaultAgentListenConnectionsPerTokenPerMinute = 10000
+	defaultAgentListenConnectionsPerTokenPerMinute = 40000
 	defaultAgentListenMaxConnectionAge             = 30 * time.Minute
 
 	defaultGitalyGlobalApiRefillRate    = 30.0

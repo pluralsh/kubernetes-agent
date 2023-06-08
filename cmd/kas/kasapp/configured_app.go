@@ -164,7 +164,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Server for handling agentk requests
 	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry, // nolint: contextcheck
-		streamProm, unaryProm)
+		reg, streamProm, unaryProm)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}

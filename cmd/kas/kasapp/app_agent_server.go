@@ -8,6 +8,7 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
@@ -29,7 +30,8 @@ import (
 )
 
 const (
-	defaultMaxMessageSize = 10 * 1024 * 1024
+	defaultMaxMessageSize                 = 10 * 1024 * 1024
+	agentConnectionRateExceededMetricName = "agent_server_rate_exceeded_total"
 )
 
 type agentServer struct {
@@ -43,9 +45,18 @@ type agentServer struct {
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
-	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*agentServer, error) {
+	probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry, streamProm grpc.StreamServerInterceptor,
+	unaryProm grpc.UnaryServerInterceptor) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+	rateExceededCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: agentConnectionRateExceededMetricName,
+		Help: "The total number of times configured rate limit of new agent connections was exceeded",
+	})
+	err = reg.Register(rateExceededCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +64,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 		redisClient,
 		cfg.Redis.KeyPrefix+":agent_limit",
 		uint64(listenCfg.ConnectionsPerTokenPerMinute),
+		rateExceededCounter,
 		func(ctx context.Context) redistool.RpcApi {
 			return &tokenLimiterApi{
 				rpcApi: modserver.AgentRpcApiFromContext(ctx),
