@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
 	apiextensionsv1api "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -48,36 +49,24 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 		return nil
 	}
 
-	var wg wait.Group
-	defer wg.Wait()
-
-	var configCtx context.Context
-	var cancel func()
-	maybeCancel := func() {
-		if cancel != nil {
-			cancel()
-		}
-	}
-	defer maybeCancel()
+	wh := syncz.NewProtoWorkerHolder[*agentcfg.FluxCF](
+		func(config *agentcfg.FluxCF) syncz.Worker {
+			return syncz.WorkerFunc(func(ctx context.Context) {
+				if err := m.run(ctx, config); err != nil {
+					m.log.Error("Failed to run module", logz.Error(err))
+				}
+			})
+		},
+	)
+	defer wh.StopAndWait()
 
 	for config := range cfg {
-		// stop previous runs if any
-		maybeCancel()
-		wg.Wait()
-
-		// create new context for module run with a specific configuration
-		configCtx, cancel = context.WithCancel(ctx) // nolint:govet
-
-		wg.Start(func() {
-			if err := m.run(configCtx, config); err != nil {
-				m.log.Error("failed to run module", logz.Error(err))
-			}
-		})
+		wh.ApplyConfig(ctx, config.Flux)
 	}
-	return nil // nolint:govet
+	return nil
 }
 
-func (m *module) run(ctx context.Context, cfg *agentcfg.AgentConfiguration) error {
+func (m *module) run(ctx context.Context, cfg *agentcfg.FluxCF) error {
 	var wg wait.Group
 	defer wg.Wait()
 
@@ -86,7 +75,7 @@ func (m *module) run(ctx context.Context, cfg *agentcfg.AgentConfiguration) erro
 
 	gitRepositoryInformer, receiverInformer, receiverIndexer := m.informersFactory()
 
-	cl, err := m.clientFactory(runCtx, cfg.Flux.WebhookReceiverUrl, receiverIndexer)
+	cl, err := m.clientFactory(runCtx, cfg.WebhookReceiverUrl, receiverIndexer)
 	if err != nil {
 		return fmt.Errorf("unable to create receiver: %w", err)
 	}
