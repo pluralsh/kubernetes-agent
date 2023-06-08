@@ -52,7 +52,7 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
-	go generate -x -v \
+	PATH="${PATH}:$(shell pwd)/build" go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/agentk/agentkapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent" \
