@@ -13,10 +13,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -37,7 +37,6 @@ type client struct {
 	receiverIndexer                cache.Indexer
 	reconcileTrigger               reconcileTrigger
 	updateProjectsToReconcileC     chan []string
-	reconcilingProjectCache        []string
 	reconciliationDebounceDuration time.Duration
 }
 
@@ -115,18 +114,18 @@ func addProjectIndex(receiverIndexer cache.Indexer) error {
 // before starting a new reconciliation for received projects.
 func (c *client) RunProjectReconciliation(ctx context.Context) {
 	done := ctx.Done()
-	var currentListenCtx context.Context
-	var cancel func()
-	maybeCancel := func() {
-		if cancel != nil {
-			cancel()
-		}
-	}
-	var wg wait.Group
-	defer wg.Wait()
-	defer maybeCancel()
 
-	debounceTimer := time.NewTimer(c.reconciliationDebounceDuration)
+	wh := syncz.NewWorkerHolder[[]string](
+		func(projectsToReconcile []string) syncz.Worker {
+			return syncz.WorkerFunc(func(ctx context.Context) {
+				c.reconcileProjects(ctx, projectsToReconcile)
+			})
+		},
+		isEqualProjectSets,
+	)
+	defer wh.StopAndWait()
+
+	debounceTimer := time.NewTimer(time.Hour)
 	debounceTimer.Stop()
 	defer debounceTimer.Stop()
 
@@ -147,26 +146,7 @@ func (c *client) RunProjectReconciliation(ctx context.Context) {
 			}
 			debounceTimer.Reset(c.reconciliationDebounceDuration)
 		case <-debounceTimer.C:
-			if !c.isReconcileUpdateRequired(lastProjects) {
-				// NOTE: projects are the same as before even after the debounce,
-				// so we don't need to bother to update
-				continue
-			}
-			c.reconcilingProjectCache = lastProjects
-
-			// Stop previous listen and wait for it to end
-			maybeCancel()
-			wg.Wait()
-
-			// start a new listen
-			currentListenCtx, cancel = context.WithCancel(ctx) // nolint:govet
-
-			// NOTE: since we use these projects in a goroutine `-race` would
-			// detect a race condition - so we just copy the projects
-			projectsToReconcile := lastProjects
-			wg.Start(func() {
-				c.reconcileProjects(currentListenCtx, projectsToReconcile)
-			})
+			wh.ApplyConfig(ctx, lastProjects)
 		}
 	}
 }
@@ -185,9 +165,9 @@ func (c *client) ReconcileIndexedProjects(ctx context.Context) {
 	}
 }
 
-// isReconcileUpdateRequired returns true if the given projects and the cached projects
-// do not contain the same projects. The order and possible duplicates don't matter.
-func (c *client) isReconcileUpdateRequired(projects []string) bool {
+// isEqualProjectSets returns true if the given project sets are equal.
+// The order and possible duplicates don't matter.
+func isEqualProjectSets(projects1, projects2 []string) bool {
 	uniqueProjects := func(ps []string) map[string]struct{} {
 		us := make(map[string]struct{}, len(ps))
 		for _, p := range ps {
@@ -195,9 +175,9 @@ func (c *client) isReconcileUpdateRequired(projects []string) bool {
 		}
 		return us
 	}
-	ux := uniqueProjects(projects)
-	uy := uniqueProjects(c.reconcilingProjectCache)
-	return !reflect.DeepEqual(ux, uy)
+	ux := uniqueProjects(projects1)
+	uy := uniqueProjects(projects2)
+	return reflect.DeepEqual(ux, uy)
 }
 
 // reconcileProjects makes an API call to the server to wait for reconciliation updates of a set of projects.

@@ -24,6 +24,7 @@ go_library(
         "//internal/tool/logz",
         "//internal/tool/prototool",
         "//internal/tool/retry",
+        "//internal/tool/syncz",
         "//pkg/agentcfg",
         "@com_github_fluxcd_notification_controller_api//v1:api",
         "@com_github_fluxcd_pkg_apis_meta//:meta",
