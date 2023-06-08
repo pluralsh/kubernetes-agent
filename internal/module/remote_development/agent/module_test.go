@@ -87,7 +87,7 @@ func TestConfigChange(t *testing.T) {
 			mod := module{
 				log: zaptest.NewLogger(t),
 				api: newMockApi(t),
-				reconcilerFactory: func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error) {
+				reconcilerFactory: func(ctx context.Context) (remoteDevReconciler, error) {
 					return mock, nil
 				},
 			}

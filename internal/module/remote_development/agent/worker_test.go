@@ -8,15 +8,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func TestFullSyncExecution(t *testing.T) {
-	partialSyncInterval := durationpb.New(30 * time.Millisecond)
-	fullSyncInterval := durationpb.New(70 * time.Millisecond)
-
 	// the test will be configured to run for a target number of full sync cycles
 	// and the number of intermittent partial syncs will be compared to an expected value
 	targetFullSyncCount := uint32(3)
@@ -32,10 +27,12 @@ func TestFullSyncExecution(t *testing.T) {
 	mock := &mockReconciler{}
 
 	w := &worker{
-		log: zaptest.NewLogger(t),
-		api: newMockApi(t),
-		reconcilerFactory: func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error) {
-			fullSyncCallCounter += 1
+		log:                 zaptest.NewLogger(t),
+		api:                 newMockApi(t),
+		partialSyncInterval: 30 * time.Millisecond,
+		fullSyncInterval:    70 * time.Millisecond,
+		reconcilerFactory: func(ctx context.Context) (remoteDevReconciler, error) {
+			fullSyncCallCounter++
 
 			if fullSyncCallCounter == targetFullSyncCount {
 				cancel()
@@ -45,14 +42,7 @@ func TestFullSyncExecution(t *testing.T) {
 		},
 	}
 
-	cfg := &agentcfg.RemoteCF{
-		Enabled:             true,
-		DnsZone:             "",
-		PartialSyncInterval: partialSyncInterval,
-		FullSyncInterval:    fullSyncInterval,
-	}
-
-	err := w.StartReconciliation(ctx, cfg)
+	err := w.Run(ctx)
 	require.NoError(t, err)
 
 	// mock reconciler will be invoked for every full sync cycle

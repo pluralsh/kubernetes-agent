@@ -5,33 +5,31 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
 )
 
 // worker is responsible for coordinating and executing full and
 // partial syncs by managing the lifecycle of a reconciler
 type worker struct {
-	log               *zap.Logger
-	api               modagent.Api
-	reconcilerFactory func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error)
+	log                 *zap.Logger
+	api                 modagent.Api
+	fullSyncInterval    time.Duration
+	partialSyncInterval time.Duration
+	reconcilerFactory   func(ctx context.Context) (remoteDevReconciler, error)
 }
 
-func (w *worker) StartReconciliation(ctx context.Context, cfg *agentcfg.RemoteCF) error {
+func (w *worker) Run(ctx context.Context) error {
 	agentId, err := w.api.GetAgentId(ctx)
 	if err != nil {
 		return err
 	}
-
-	fullSyncInterval := cfg.GetFullSyncInterval().AsDuration()
-	partialSyncInterval := cfg.GetPartialSyncInterval().AsDuration()
 
 	// full sync should be started immediately
 	// upon module start/restart
 	fullSyncTimer := time.NewTimer(0)
 	defer fullSyncTimer.Stop()
 
-	partialSyncTimer := time.NewTimer(partialSyncInterval)
+	partialSyncTimer := time.NewTimer(w.partialSyncInterval)
 	defer partialSyncTimer.Stop()
 
 	var (
@@ -46,12 +44,13 @@ func (w *worker) StartReconciliation(ctx context.Context, cfg *agentcfg.RemoteCF
 		}
 	}()
 
+	done := ctx.Done()
 	for {
 		select {
 		// this check allows the goroutine to immediately exit
 		// if the context cancellation is invoked while waiting on
 		// either of the timers
-		case <-ctx.Done():
+		case <-done:
 			return nil
 
 		case <-fullSyncTimer.C:
@@ -75,7 +74,7 @@ func (w *worker) StartReconciliation(ctx context.Context, cfg *agentcfg.RemoteCF
 			//		mishandling of internal state, for example memory leaks that may occur due to bugs in
 			//		reconciliation logic. The current approach will be able to deal with these as the core logic
 			// 		requires teardown of the active reconciler and creation of a new one
-			activeReconciler, err = w.reconcilerFactory(ctx, cfg)
+			activeReconciler, err = w.reconcilerFactory(ctx)
 			if err != nil {
 				return err
 			}
@@ -91,7 +90,7 @@ func (w *worker) StartReconciliation(ctx context.Context, cfg *agentcfg.RemoteCF
 			// If the timer were reset before reconciliation is executed, there may be a scenario
 			// where the next timer tick occurs immediately after the reconciler finishes its
 			// execution (because Run() takes too long for some reason)
-			fullSyncTimer.Reset(fullSyncInterval)
+			fullSyncTimer.Reset(w.fullSyncInterval)
 
 		case <-partialSyncTimer.C:
 			w.log.Info("starting partial update")
@@ -107,7 +106,7 @@ func (w *worker) StartReconciliation(ctx context.Context, cfg *agentcfg.RemoteCF
 			// If the timer were reset before reconciler is executed, there may be a scenario
 			// where the next timer tick occurs immediately after the reconciler finishes its
 			// execution (because Run() takes too long for some reason)
-			partialSyncTimer.Reset(partialSyncInterval)
+			partialSyncTimer.Reset(w.partialSyncInterval)
 		}
 	}
 }

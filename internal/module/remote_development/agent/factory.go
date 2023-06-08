@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -68,7 +67,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	return &module{
 		log: config.Log,
 		api: config.Api,
-		reconcilerFactory: func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error) {
+		reconcilerFactory: func(ctx context.Context) (remoteDevReconciler, error) {
 			agentId, err := config.Api.GetAgentId(ctx)
 			if err != nil {
 				return nil, err
@@ -92,7 +91,6 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
 				informer:           inf,
 				k8sClient:          k8sClient,
-				config:             cfg,
 			}
 
 			err = r.informer.Start(ctx)
