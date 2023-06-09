@@ -50,7 +50,7 @@ func (c *ErrCacher[K]) CacheError(ctx context.Context, key K, err error, errTtl 
 		c.ErrRep.HandleProcessingError(ctx, c.Log, "Failed to marshal error for caching", err)
 		return
 	}
-	setCmd := c.Client.B().Set().Key(c.KeyToRedisKey(key)).Value(rueidis.BinaryString(data)).PxMilliseconds(errTtl.Milliseconds()).Build()
+	setCmd := c.Client.B().Set().Key(c.KeyToRedisKey(key)).Value(rueidis.BinaryString(data)).Px(errTtl).Build()
 	err = c.Client.Do(ctx, setCmd).Error()
 	if err != nil {
 		c.ErrRep.HandleProcessingError(ctx, c.Log, "Failed to cache error in Redis", err)
