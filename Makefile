@@ -203,7 +203,8 @@ release-commit:
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
 gdk-install:
-	bazel run //cmd/kas:extract_kas_race -- '$(TARGET_DIRECTORY)'
+	bazel run //cmd/kas:extract_kas_race
+	mv 'cmd/kas/kas_race' '$(TARGET_DIRECTORY)'
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 # Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.

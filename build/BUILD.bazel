@@ -4,12 +4,6 @@ exports_files([
     "buildozer_commands.txt",
 ])
 
-sh_binary(
-    name = "copy_absolute",
-    srcs = ["copy_absolute.sh"],
-    visibility = ["//visibility:public"],
-)
-
 multirun(
     name = "extract_generated_proto",
     commands = [
