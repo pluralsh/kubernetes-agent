@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"go.uber.org/zap/zaptest"
@@ -22,7 +23,7 @@ import (
 	"k8s.io/utils/clock"
 )
 
-func TestClient_isReconcileUpdateRequired(t *testing.T) {
+func TestClient_isEqualProjectSets(t *testing.T) {
 	testcases := []struct {
 		name                     string
 		projects                 []string
@@ -33,57 +34,52 @@ func TestClient_isReconcileUpdateRequired(t *testing.T) {
 			name:                     "no projects",
 			projects:                 []string{},
 			cachedProjects:           []string{},
-			expectedIsUpdateRequired: false,
+			expectedIsUpdateRequired: true,
 		},
 		{
 			name:                     "new projects on empty cache",
 			projects:                 []string{"foo"},
 			cachedProjects:           []string{},
-			expectedIsUpdateRequired: true,
+			expectedIsUpdateRequired: false,
 		},
 		{
 			name:                     "removed project on existing cache",
 			projects:                 []string{},
 			cachedProjects:           []string{"foo"},
-			expectedIsUpdateRequired: true,
+			expectedIsUpdateRequired: false,
 		},
 		{
 			name:                     "same projects in same order",
 			projects:                 []string{"foo", "bar"},
 			cachedProjects:           []string{"foo", "bar"},
-			expectedIsUpdateRequired: false,
+			expectedIsUpdateRequired: true,
 		},
 		{
 			name:                     "same projects in different order",
 			projects:                 []string{"foo", "bar"},
 			cachedProjects:           []string{"bar", "foo"},
-			expectedIsUpdateRequired: false,
+			expectedIsUpdateRequired: true,
 		},
 		{
 			name:                     "with duplicates",
 			projects:                 []string{"foo", "foo", "bar"},
 			cachedProjects:           []string{"foo", "bar"},
-			expectedIsUpdateRequired: false,
+			expectedIsUpdateRequired: true,
 		},
 		{
 			name:                     "with duplicates in cache",
 			projects:                 []string{"foo", "bar"},
 			cachedProjects:           []string{"foo", "foo", "bar"},
-			expectedIsUpdateRequired: false,
+			expectedIsUpdateRequired: true,
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			// GIVEN
-			c := client{
-				reconcilingProjectCache: tc.cachedProjects,
-			}
-
 			// WHEN
-			actualIsUpdateRequired := c.isReconcileUpdateRequired(tc.projects)
+			actualIsEqual := isEqualProjectSets(tc.cachedProjects, tc.projects)
 
 			// THEN
-			assert.Equal(t, tc.expectedIsUpdateRequired, actualIsUpdateRequired)
+			assert.Equal(t, tc.expectedIsUpdateRequired, actualIsEqual)
 		})
 	}
 }
@@ -142,37 +138,60 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 				agentApi:                       mockAgentApi,
 				receiverIndexer:                mockReceiverIndexer,
 				fluxGitLabClient:               mockGitLabFluxClient,
-				reconcilingProjectCache:        tc.cachedProjects,
 				updateProjectsToReconcileC:     ch,
 				pollCfgFactory:                 retry.NewPollConfigFactory(1*time.Hour, func() retry.BackoffManager { return &fakeBackoff{1 * time.Hour} }),
 				reconciliationDebounceDuration: 0,
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			// setup mock expectations
-			mockReceiverIndexer.EXPECT().ListIndexFuncValues(projectReceiverIndex).Return(tc.projects)
+			gomock.InOrder(
+				mockReceiverIndexer.EXPECT().
+					ListIndexFuncValues(projectReceiverIndex).
+					Return(tc.cachedProjects),
+				mockReceiverIndexer.EXPECT().
+					ListIndexFuncValues(projectReceiverIndex).
+					Return(tc.projects),
+			)
+
+			next := make(chan struct{})
+			done := make(chan struct{})
+
+			c1 := mockGitLabFluxClient.EXPECT().
+				ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.cachedProjects)})).
+				DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
+					close(next)
+					return nil, errors.New("just for testing, it's okay")
+				})
+			c2 := mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			calls := []*gomock.Call{c1, c2}
 
 			// we need this to abort the PollWithBackoff in reconcileProjects eventually
 			if tc.expectedIsUpdateRequired {
-				mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-				mockGitLabFluxClient.EXPECT().
-					ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)}).
-					DoAndReturn(func(_, _ interface{}, _ ...interface{}) (interface{}, error) {
-						cancel()
+				c3 := mockGitLabFluxClient.EXPECT().
+					ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)})).
+					DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
+						close(done)
 						return nil, errors.New("just for testing, it's okay")
 					})
+				c4 := mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				calls = append(calls, c3, c4)
 			}
+			gomock.InOrder(calls...)
 
 			// start reconciliation ...
 			wg.StartWithContext(ctx, c.RunProjectReconciliation)
 
 			// WHEN
 			c.ReconcileIndexedProjects(ctx)
-
+			<-next
+			c.ReconcileIndexedProjects(ctx)
 			// THEN
 			if tc.expectedIsUpdateRequired {
-				<-ctx.Done()
+				<-done
+			} else {
+				time.Sleep(100 * time.Millisecond) // wait a bit to ensure there are no unexpected calls.
 			}
 		})
 	}
@@ -219,7 +238,7 @@ func TestClient_RestartsProjectReconciliationOnProjectsUpdate(t *testing.T) {
 		Return(nil, errors.New("just for testing, it's okay"))
 	mockGitLabFluxClient.EXPECT().
 		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(secondProjects)}).
-		DoAndReturn(func(_, _ interface{}, _ ...interface{}) (interface{}, error) {
+		DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 			cancel()
 			return nil, errors.New("just for testing, it's okay")
 		})

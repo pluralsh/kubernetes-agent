@@ -15,7 +15,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -44,7 +43,6 @@ type reconciler struct {
 	stateTracker *persistedStateTracker
 	informer     informer
 	k8sClient    k8s.Client
-	config       *agentcfg.RemoteCF
 
 	// This is used to determine whether the reconciliation cycle corresponds to
 	// a full or partial sync. When a reconciler runs for the first time, this will be false

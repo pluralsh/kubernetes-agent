@@ -9,9 +9,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -32,7 +32,7 @@ type remoteDevReconciler interface {
 type module struct {
 	log               *zap.Logger
 	api               modagent.Api
-	reconcilerFactory func(ctx context.Context, cfg *agentcfg.RemoteCF) (remoteDevReconciler, error)
+	reconcilerFactory func(ctx context.Context) (remoteDevReconciler, error)
 }
 
 func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
@@ -40,45 +40,32 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	var activeTask stoppableTask
-	defer func() {
-		if activeTask != nil {
-			activeTask.StopAndWait()
-		}
-	}()
-	var latestConfig *agentcfg.RemoteCF
+	wh := syncz.NewProtoWorkerHolder[*agentcfg.RemoteCF](
+		func(config *agentcfg.RemoteCF) syncz.Worker {
+			return syncz.WorkerFunc(func(ctx context.Context) {
+				m.log.Debug("Remote Development - starting reconciler run")
+				defer m.log.Debug("Remote Development - reconciler run ended")
 
+				w := &worker{
+					log:                 m.log,
+					api:                 m.api,
+					fullSyncInterval:    config.GetFullSyncInterval().AsDuration(),
+					partialSyncInterval: config.GetPartialSyncInterval().AsDuration(),
+					reconcilerFactory:   m.reconcilerFactory,
+				}
+
+				err := w.Run(ctx)
+				if err != nil && !errz.ContextDone(err) {
+					m.log.Error("Error running reconciler", logz.Error(err))
+				}
+			})
+		},
+	)
+	defer wh.StopAndWait()
+
+	// This loop reacts to configuration changes stopping and starting workers.
 	for config := range cfg {
-		// This loop reacts to configuration changes stopping and starting workers.
-
-		// If the config has not changed don't do anything
-		if proto.Equal(config.RemoteDevelopment, latestConfig) {
-			continue
-		}
-
-		if activeTask != nil {
-			activeTask.StopAndWait()
-			activeTask = nil
-			latestConfig = nil
-		}
-
-		latestConfig = config.RemoteDevelopment
-
-		activeTask = newStoppableTask(ctx, func(moduleCtx context.Context) {
-			m.log.Debug("Remote Development - starting reconciler run")
-
-			w := &worker{
-				log:               m.log,
-				api:               m.api,
-				reconcilerFactory: m.reconcilerFactory,
-			}
-
-			err := w.StartReconciliation(moduleCtx, latestConfig)
-			if err != nil && !errz.ContextDone(err) {
-				m.log.Error("Error running reconciler", logz.Error(err))
-			}
-			m.log.Debug("Remote Development - reconciler run ended")
-		})
+		wh.ApplyConfig(ctx, config.RemoteDevelopment)
 	}
 	return nil
 }
