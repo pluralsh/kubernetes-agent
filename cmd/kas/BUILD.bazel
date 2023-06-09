@@ -1,6 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_file")
 load("//cmd:cmd.bzl", "define_command_targets")
-load("//build:build.bzl", "copy_absolute")
 
 go_library(
     name = "kas_lib",
@@ -20,14 +20,22 @@ define_command_targets(
     binary_embed = [":kas_lib"],
 )
 
-copy_absolute(
+write_source_file(
     name = "extract_kas",
-    file_to_copy = "kas",
-    label = ":kas",
+    diff_test = False,
+    executable = True,
+    in_file = ":kas",
+    out_file = "kas",
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
 )
 
-copy_absolute(
+write_source_file(
     name = "extract_kas_race",
-    file_to_copy = "kas_race",
-    label = ":kas_race",
+    diff_test = False,
+    executable = True,
+    in_file = ":kas_race",
+    out_file = "kas_race",
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
 )
