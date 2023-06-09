@@ -75,6 +75,8 @@ test:
   extends: .bazel_build
   services:
     - redis
+  tags:
+    - saas-linux-large-amd64
   script:
     - echo 'test --test_env=REDIS_URL=redis://redis:6379' >> .bazelrc
     - make test-ci
@@ -106,12 +108,16 @@ test-fips:
 verify:
   stage: test
   extends: .bazel_build
+  tags:
+    - saas-linux-large-amd64
   script:
     - make verify-ci
 
 lint:
   image: golangci/golangci-lint:v1.52.2-alpine
   stage: test
+  tags:
+    - saas-linux-large-amd64
   script:
     # Write the code coverage report to gl-code-quality-report.json
     # and print linting issues to stdout in the format: path/to/file:line description
