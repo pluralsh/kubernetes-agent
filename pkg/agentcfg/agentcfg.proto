@@ -246,6 +246,7 @@ message UserAccessAsUserCF {
 message ContainerScanningCF {
   VulnerabilityReport vulnerability_report = 1 [json_name = "vulnerability_report"];
   string cadence = 2 [json_name = "cadence", (validate.rules).string.min_bytes = 1];
+  ResourceRequirements resource_requirements = 3 [json_name = "resource_requirements"];
 }
 
 message VulnerabilityReport {
@@ -258,6 +259,16 @@ message ContainerScanningFilter {
   repeated string resources = 2 [json_name = "resources"];
   repeated string containers = 3 [json_name = "containers"];
   repeated string kinds = 4 [json_name = "kinds"];
+}
+
+message ResourceRequirements {
+  Resource limits = 1 [json_name = "limits"];
+  Resource requests = 2 [json_name = "requests"];
+}
+
+message Resource {
+  string cpu = 1 [json_name = "cpu"];
+  string memory = 2 [json_name = "memory"];
 }
 
 // ConfigurationFile represents user-facing configuration file.

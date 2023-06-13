@@ -30,6 +30,8 @@
     - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
     - [PathCF](#gitlab-agent-agentcfg-PathCF)
     - [RemoteCF](#gitlab-agent-agentcfg-RemoteCF)
+    - [Resource](#gitlab-agent-agentcfg-Resource)
+    - [ResourceRequirements](#gitlab-agent-agentcfg-ResourceRequirements)
     - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
     - [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF)
     - [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF)
@@ -318,6 +320,7 @@ ConfigurationFile represents user-facing configuration file.
 | ----- | ---- | ----- | ----------- |
 | vulnerability_report | [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport) |  |  |
 | cadence | [string](#string) |  |  |
+| resource_requirements | [ResourceRequirements](#gitlab-agent-agentcfg-ResourceRequirements) |  |  |
 
 
 
@@ -488,6 +491,38 @@ Project with Kubernetes object manifests.
 | dns_zone | [string](#string) |  |  |
 | partial_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
 | full_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-Resource"></a>
+
+### Resource
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| cpu | [string](#string) |  |  |
+| memory | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-ResourceRequirements"></a>
+
+### ResourceRequirements
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| limits | [Resource](#gitlab-agent-agentcfg-Resource) |  |  |
+| requests | [Resource](#gitlab-agent-agentcfg-Resource) |  |  |
 
 
 

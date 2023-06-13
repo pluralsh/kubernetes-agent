@@ -253,3 +253,19 @@ func K8sGroup(groupName string) zap.Field {
 func K8sResource(resourceName string) zap.Field {
 	return zap.String("k8s_resource", resourceName)
 }
+
+func TrivyResourceRequestCPU(trivyResourceRequestCPU string) zap.Field {
+	return zap.String("trivy_resource_request_cpu", trivyResourceRequestCPU)
+}
+
+func TrivyResourceLimitCPU(trivyResourceLimitCPU string) zap.Field {
+	return zap.String("trivy_resource_limit_cpu", trivyResourceLimitCPU)
+}
+
+func TrivyResourceRequestMemory(trivyResourceRequestMemory string) zap.Field {
+	return zap.String("trivy_resource_request_memory", trivyResourceRequestMemory)
+}
+
+func TrivyResourceLimitMemory(trivyResourceLimitMemory string) zap.Field {
+	return zap.String("trivy_resource_limit_memory", trivyResourceLimitMemory)
+}
