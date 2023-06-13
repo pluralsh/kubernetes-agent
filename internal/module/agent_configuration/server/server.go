@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -31,6 +32,7 @@ import (
 
 type server struct {
 	rpc.UnimplementedAgentConfigurationServer
+	serverApi                  modserver.Api
 	gitaly                     gitaly.PoolInterface
 	gitLabClient               gitlab.ClientInterface
 	agentRegisterer            agent_tracker.Registerer
@@ -49,8 +51,25 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
 	defer s.maybeUnregisterAgent(log, rpcApi, connectedAgentInfo)
+
+	pollCfg := s.getConfigurationPollConfig()
+
+	wh := syncz.NewComparableWorkerHolder[string](
+		func(projectId string) syncz.Worker {
+			return syncz.WorkerFunc(func(ctx context.Context) {
+				s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, message *modserver.Project) {
+					// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
+					if message.FullPath == projectId {
+						pollCfg.Poke()
+					}
+				})
+			})
+		},
+	)
+	defer wh.StopAndWait()
+
 	lastProcessedCommitId := req.CommitId
-	return rpcApi.PollWithBackoff(s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
+	return rpcApi.PollWithBackoff(pollCfg, func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
@@ -61,6 +80,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 			}
 			return err, retry.Done
 		}
+		wh.ApplyConfig(ctx, agentInfo.Repository.GlProjectPath)
 		// re-define log to avoid accidentally using the old one
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
 		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo)

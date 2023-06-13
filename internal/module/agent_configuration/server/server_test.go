@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -310,7 +311,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 }
 
 func TestGetConfiguration_GetAgentInfo_Error(t *testing.T) {
-	s, _, _, resp, mockRpcApi, _ := setupServerBare(t, 1)
+	s, _, _, resp, mockRpcApi, _, _ := setupServerBare(t, 1)
 	mockRpcApi.EXPECT().
 		AgentInfo(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.PermissionDenied, "expected err")) // code doesn't matter, we test that we return on error
@@ -321,7 +322,7 @@ func TestGetConfiguration_GetAgentInfo_Error(t *testing.T) {
 }
 
 func TestGetConfiguration_GetAgentInfo_RetriableError(t *testing.T) {
-	s, _, _, resp, mockRpcApi, _ := setupServerBare(t, 2)
+	s, _, _, resp, mockRpcApi, _, _ := setupServerBare(t, 2)
 	gomock.InOrder(
 		mockRpcApi.EXPECT().
 			AgentInfo(gomock.Any(), gomock.Any()).
@@ -336,15 +337,17 @@ func TestGetConfiguration_GetAgentInfo_RetriableError(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
 }
 
-func setupServerBare(t *testing.T, pollTimes int) (*server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi, *mock_agent_tracker.MockTracker) {
+func setupServerBare(t *testing.T, pollTimes int) (*server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi, *mock_modserver.MockApi, *mock_agent_tracker.MockTracker) {
 	ctrl := gomock.NewController(t)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, pollTimes)
+	mockApi := mock_modserver.NewMockApi(ctrl)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentConfigurationApiPath, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	s := &server{
+		serverApi:                  mockApi,
 		agentRegisterer:            agentTracker,
 		gitaly:                     gitalyPool,
 		gitLabClient:               gitLabClient,
@@ -356,11 +359,11 @@ func setupServerBare(t *testing.T, pollTimes int) (*server, *gomock.Controller, 
 		Context().
 		Return(mock_modserver.IncomingAgentCtx(t, mockRpcApi)).
 		MinTimes(1)
-	return s, ctrl, gitalyPool, resp, mockRpcApi, agentTracker
+	return s, ctrl, gitalyPool, resp, mockRpcApi, mockApi, agentTracker
 }
 
 func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_rpc.MockAgentConfiguration_GetConfigurationServer, *mock_modserver.MockAgentRpcApi) {
-	s, ctrl, gitalyPool, resp, mockRpcApi, agentTracker := setupServerBare(t, 1)
+	s, ctrl, gitalyPool, resp, mockRpcApi, mockApi, agentTracker := setupServerBare(t, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
 		AgentMeta: agentMeta(),
@@ -374,6 +377,11 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 		agentTracker.EXPECT().
 			RegisterConnection(gomock.Any(), connMatcher),
 	)
+	mockApi.EXPECT().
+		OnGitPushEvent(gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, callback modserver.GitPushEventCallback) {
+			<-ctx.Done()
+		})
 	agentTracker.EXPECT().
 		UnregisterConnection(gomock.Any(), connMatcher)
 	return s, agentInfo, ctrl, gitalyPool, resp, mockRpcApi

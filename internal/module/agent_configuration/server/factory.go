@@ -24,13 +24,14 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	agent := config.Config.Agent
+	agentCfg := config.Config.Agent.Configuration
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, &server{
+		serverApi:                config.Api,
 		gitaly:                   config.Gitaly,
 		gitLabClient:             config.GitLabClient,
 		agentRegisterer:          f.AgentRegisterer,
-		maxConfigurationFileSize: int64(agent.Configuration.MaxConfigurationFileSize),
-		getConfigurationPollConfig: retry.NewPollConfigFactory(agent.Configuration.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
+		maxConfigurationFileSize: int64(agentCfg.MaxConfigurationFileSize),
+		getConfigurationPollConfig: retry.NewPollConfigFactory(agentCfg.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getConfigurationInitBackoff,
 			getConfigurationMaxBackoff,
 			getConfigurationResetDuration,

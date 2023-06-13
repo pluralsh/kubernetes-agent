@@ -26,6 +26,7 @@ go_library(
         "//internal/tool/mathz",
         "//internal/tool/prototool",
         "//internal/tool/retry",
+        "//internal/tool/syncz",
         "//pkg/agentcfg",
         "//pkg/kascfg",
         "@io_k8s_apimachinery//pkg/util/wait",
