@@ -93,7 +93,7 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 		if tlsConfig == nil { // transport.TLSConfigFor() can return nil
 			tlsConfig = tlstool.DefaultClientTLSConfig()
 		}
-		tlsConfig.NextProtos = []string{"http/1.1"} // HTTP Upgrade doesn't work over HTTP/2, so enforce HTTP/1.1
+		tlsConfig.NextProtos = []string{httpz.TLSNextProtoH1} // HTTP Upgrade doesn't work over HTTP/2, so enforce HTTP/1.1
 		dialer := &net.Dialer{
 			Timeout: 30 * time.Second,
 		}

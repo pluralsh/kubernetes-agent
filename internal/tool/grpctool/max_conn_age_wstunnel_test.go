@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/wstunnel"
-	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -206,7 +206,7 @@ func TestWSTunnel_TLS(t *testing.T) {
 	certFile, keyFile := testhelpers.GenerateCert(t, "srv", caCert, caKey)
 	tlsConfig, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
 	require.NoError(t, err)
-	tlsConfig.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
+	tlsConfig.NextProtos = []string{httpz.TLSNextProtoH2, httpz.TLSNextProtoH1}
 
 	clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(caCertFile)
 	require.NoError(t, err)

@@ -38,6 +38,14 @@ const (
 	VaryHeader                          = "Vary"                             // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary
 	OriginHeader                        = "Origin"                           // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin
 	RequestIdHeader                     = "X-Request-Id"
+
+	// TLSNextProtoH2 is the NPN/ALPN protocol negotiated during HTTP/2's TLS setup.
+	TLSNextProtoH2 = "h2"
+	TLSNextProtoH1 = "http/1.1"
+
+	// H2ClientPreface is the string that must be sent by new
+	// connections from clients.
+	H2ClientPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 )
 
 // RemoveConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.

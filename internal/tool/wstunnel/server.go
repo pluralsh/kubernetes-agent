@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
-	"golang.org/x/net/http2"
 	"nhooyr.io/websocket"
 )
 
@@ -310,7 +309,7 @@ func isTlsHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (net.Co
 			return nil, false, err
 		}
 	}
-	return conn, tlsConn.ConnectionState().NegotiatedProtocol == http2.NextProtoTLS, nil
+	return conn, tlsConn.ConnectionState().NegotiatedProtocol == httpz.TLSNextProtoH2, nil
 }
 
 func isCleartextHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (net.Conn, bool /* isHttp2 */, error) {
@@ -320,7 +319,7 @@ func isCleartextHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (
 			return nil, false, err
 		}
 	}
-	preface := make([]byte, len(http2.ClientPreface))
+	preface := make([]byte, len(httpz.H2ClientPreface))
 	_, err := io.ReadFull(conn, preface)
 	if err != nil {
 		return nil, false, err
@@ -335,7 +334,7 @@ func isCleartextHttp2Connection(conn net.Conn, handshakeTimeout time.Duration) (
 		Conn: conn,
 		r:    io.MultiReader(bytes.NewReader(preface), conn),
 	}
-	return conn, string(preface) == http2.ClientPreface, nil
+	return conn, string(preface) == httpz.H2ClientPreface, nil
 }
 
 // readerConn uses a reader instead of the net.Conn's Read() method.
