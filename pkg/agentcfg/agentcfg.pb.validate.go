@@ -4343,6 +4343,35 @@ func (m *ContainerScanningCF) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	if all {
+		switch v := interface{}(m.GetResourceRequirements()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ContainerScanningCFValidationError{
+					field:  "ResourceRequirements",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ContainerScanningCFValidationError{
+					field:  "ResourceRequirements",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResourceRequirements()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ContainerScanningCFValidationError{
+				field:  "ResourceRequirements",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return ContainerScanningCFMultiError(errors)
 	}
@@ -4660,6 +4689,269 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ContainerScanningFilterValidationError{}
+
+// Validate checks the field values on ResourceRequirements with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ResourceRequirements) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ResourceRequirements with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ResourceRequirementsMultiError, or nil if none found.
+func (m *ResourceRequirements) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ResourceRequirements) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetLimits()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ResourceRequirementsValidationError{
+					field:  "Limits",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ResourceRequirementsValidationError{
+					field:  "Limits",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLimits()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ResourceRequirementsValidationError{
+				field:  "Limits",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetRequests()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ResourceRequirementsValidationError{
+					field:  "Requests",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ResourceRequirementsValidationError{
+					field:  "Requests",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRequests()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ResourceRequirementsValidationError{
+				field:  "Requests",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return ResourceRequirementsMultiError(errors)
+	}
+
+	return nil
+}
+
+// ResourceRequirementsMultiError is an error wrapping multiple validation
+// errors returned by ResourceRequirements.ValidateAll() if the designated
+// constraints aren't met.
+type ResourceRequirementsMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ResourceRequirementsMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ResourceRequirementsMultiError) AllErrors() []error { return m }
+
+// ResourceRequirementsValidationError is the validation error returned by
+// ResourceRequirements.Validate if the designated constraints aren't met.
+type ResourceRequirementsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ResourceRequirementsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ResourceRequirementsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ResourceRequirementsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ResourceRequirementsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ResourceRequirementsValidationError) ErrorName() string {
+	return "ResourceRequirementsValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ResourceRequirementsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sResourceRequirements.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ResourceRequirementsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ResourceRequirementsValidationError{}
+
+// Validate checks the field values on Resource with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Resource) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Resource with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ResourceMultiError, or nil
+// if none found.
+func (m *Resource) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Resource) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Cpu
+
+	// no validation rules for Memory
+
+	if len(errors) > 0 {
+		return ResourceMultiError(errors)
+	}
+
+	return nil
+}
+
+// ResourceMultiError is an error wrapping multiple validation errors returned
+// by Resource.ValidateAll() if the designated constraints aren't met.
+type ResourceMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ResourceMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ResourceMultiError) AllErrors() []error { return m }
+
+// ResourceValidationError is the validation error returned by
+// Resource.Validate if the designated constraints aren't met.
+type ResourceValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ResourceValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ResourceValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ResourceValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ResourceValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ResourceValidationError) ErrorName() string { return "ResourceValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ResourceValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sResource.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ResourceValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ResourceValidationError{}
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, the
