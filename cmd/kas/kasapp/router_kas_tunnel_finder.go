@@ -119,7 +119,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 		if f.tryNextKas(kasUrls) { // nolint: contextcheck
 			// Connected to an instance.
 			needToTryNewKas = false
-			t = time.NewTimer(tryNewKasInterval)
+			t.Reset(tryNewKasInterval)
 		} else {
 			// Couldn't find a kas instance we haven't connected to already.
 			needToTryNewKas = true
@@ -145,7 +145,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 			f.stopAllConnectionAttempts()
 			return readyTunnel{}, ctx.Err()
 		case <-f.noTunnel:
-			t.Stop()
+			stopAndDrain(t)
 			tryNextKasWhenTimerNotRunning()
 		case kasUrls = <-kasUrlsC:
 			if !needToTryNewKas {
@@ -154,8 +154,8 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 			if f.tryNextKas(kasUrls) { // nolint: contextcheck
 				// Connected to a new kas instance.
 				needToTryNewKas = false
-				t.Stop()
-				t = time.NewTimer(tryNewKasInterval)
+				stopAndDrain(t)
+				t.Reset(tryNewKasInterval)
 			}
 		case <-t.C:
 			tryNextKasWhenTimerNotRunning()
@@ -297,5 +297,14 @@ func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
 func (f *tunnelFinder) stopAllConnectionAttempts() {
 	for _, c := range f.connections {
 		c.cancel()
+	}
+}
+
+func stopAndDrain(t *time.Timer) {
+	if !t.Stop() {
+		select {
+		case <-t.C:
+		default:
+		}
 	}
 }
