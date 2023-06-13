@@ -292,42 +292,58 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 
 func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 	tests := []struct {
-		authorizeProxyUserHttpStatus int
-		expectedHttpStatus           int
-		message                      string
-		captureErr                   bool
+		authorizeProxyUserHttpStatus    int
+		authorizeProxyUserContentType   string
+		authorizeProxyUserFailureReason []byte
+		expectedHttpStatus              int
+		expectedErrReason               string
+		message                         string
+		captureErr                      bool
 	}{
 		{
-			authorizeProxyUserHttpStatus: http.StatusUnauthorized, // invalid credentials
-			expectedHttpStatus:           http.StatusUnauthorized,
-			message:                      "GitLab Agent Server: Unauthorized",
+			authorizeProxyUserHttpStatus:    http.StatusUnauthorized, // invalid credentials
+			authorizeProxyUserContentType:   "application/json",
+			authorizeProxyUserFailureReason: []byte(`{"message": "unauthorized"}`),
+			expectedHttpStatus:              http.StatusUnauthorized,
+			expectedErrReason:               "unauthorized",
+			message:                         "GitLab Agent Server: Unauthorized",
 		},
 		{
-			authorizeProxyUserHttpStatus: http.StatusForbidden, // user has no access to agent
-			expectedHttpStatus:           http.StatusUnauthorized,
-			message:                      "GitLab Agent Server: Unauthorized",
+			authorizeProxyUserHttpStatus:    http.StatusForbidden, // user has no access to agent
+			authorizeProxyUserContentType:   "application/json",
+			authorizeProxyUserFailureReason: []byte(`{"message": "forbidden"}`),
+			expectedHttpStatus:              http.StatusUnauthorized,
+			expectedErrReason:               "forbidden",
+			message:                         "GitLab Agent Server: Unauthorized",
 		},
 		{
-			authorizeProxyUserHttpStatus: http.StatusNotFound, // user or agent not found
-			expectedHttpStatus:           http.StatusUnauthorized,
-			message:                      "GitLab Agent Server: Unauthorized",
+			authorizeProxyUserHttpStatus:    http.StatusNotFound, // user or agent not found
+			authorizeProxyUserContentType:   "application/json",
+			authorizeProxyUserFailureReason: []byte(`{"message": "not found"}`),
+			expectedHttpStatus:              http.StatusUnauthorized,
+			expectedErrReason:               "not found",
+			message:                         "GitLab Agent Server: Unauthorized",
 		},
 		{
-			authorizeProxyUserHttpStatus: http.StatusBadGateway, // some weird error
-			expectedHttpStatus:           http.StatusInternalServerError,
-			message:                      "GitLab Agent Server: Failed to authorize user session",
-			captureErr:                   true,
+			authorizeProxyUserHttpStatus:  http.StatusBadGateway, // some weird error
+			authorizeProxyUserContentType: "text/plain",
+			expectedHttpStatus:            http.StatusInternalServerError,
+			expectedErrReason:             "<unknown reason: expected application/json content type, but got text/plain>",
+			message:                       "GitLab Agent Server: Failed to authorize user session",
+			captureErr:                    true,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(strconv.Itoa(tc.authorizeProxyUserHttpStatus), func(t *testing.T) {
 			api, _, client, req, _, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(httpz.ContentTypeHeader, tc.authorizeProxyUserContentType)
 				w.WriteHeader(tc.authorizeProxyUserHttpStatus)
+				w.Write(tc.authorizeProxyUserFailureReason)
 			})
 			if tc.captureErr {
 				api.EXPECT().
 					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
-						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/internal/kubernetes/authorize_proxy_user", tc.authorizeProxyUserHttpStatus)))
+						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/internal/kubernetes/authorize_proxy_user with reason %s", tc.authorizeProxyUserHttpStatus, tc.expectedErrReason)))
 			}
 			setExpectedSessionCookieParams(req)
 			resp, err := client.Do(req)

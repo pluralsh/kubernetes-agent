@@ -16,6 +16,8 @@ type ResponseHandlerStruct struct {
 	HandleFunc   func(*http.Response, error) error
 }
 
+type ErrHandler func(resp *http.Response) error
+
 func (r ResponseHandlerStruct) Handle(resp *http.Response, err error) error {
 	return r.HandleFunc(resp, err)
 }
@@ -44,11 +46,23 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 				return fmt.Errorf("json.Unmarshal: %w", err)
 			}
 			return nil
+		}, func(resp *http.Response) error {
+			return defaultErrorHandler(resp)
 		}),
 	}
 }
 
 func ProtoJsonResponseHandler(response ValidatableMessage) ResponseHandler {
+	return ProtoJsonResponseHandlerWithErr(response, func(resp *http.Response) error {
+		return defaultErrorHandler(resp)
+	})
+}
+
+func ProtoJsonResponseHandlerWithStructuredErrReason(response ValidatableMessage) ResponseHandler {
+	return ProtoJsonResponseHandlerWithErr(response, defaultErrorHandlerWithReason)
+}
+
+func ProtoJsonResponseHandlerWithErr(response ValidatableMessage, errHandler ErrHandler) ResponseHandler {
 	return ResponseHandlerStruct{
 		AcceptHeader: "application/json",
 		HandleFunc: handleOkResponse(func(body []byte) error { // nolint:bodyclose
@@ -62,11 +76,57 @@ func ProtoJsonResponseHandler(response ValidatableMessage) ResponseHandler {
 				return fmt.Errorf("ValidateAll: %w", err)
 			}
 			return nil
-		}),
+		}, errHandler),
 	}
 }
 
-func handleOkResponse(h func(body []byte) error) func(*http.Response, error) error {
+func defaultErrorHandler(resp *http.Response) *ClientError {
+	path := ""
+	if resp.Request != nil && resp.Request.URL != nil {
+		path = resp.Request.URL.Path
+	}
+
+	return &ClientError{
+		StatusCode: int32(resp.StatusCode),
+		Path:       path,
+	}
+}
+
+// defaultErrorHandlerWithReason tries to add an error reason from the response body.
+// If no reason can be found, none is added to the response
+func defaultErrorHandlerWithReason(resp *http.Response) error {
+	e := defaultErrorHandler(resp)
+
+	contentTypes := resp.Header[httpz.ContentTypeHeader]
+	if len(contentTypes) == 0 {
+		e.Reason = "<unknown reason: missing content type header to read reason>"
+		return e
+	}
+
+	contentType := contentTypes[0]
+	if !httpz.IsContentType(contentType, "application/json") {
+		e.Reason = fmt.Sprintf("<unknown reason: expected application/json content type, but got %s>", contentType)
+		return e
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		e.Reason = fmt.Sprintf("<unknown reason: unable to read response body: %s>", err)
+		return e
+	}
+
+	var message DefaultApiError
+	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(body, &message)
+	if err != nil {
+		e.Reason = fmt.Sprintf("<unknown reason: %s>", err)
+		return e
+	}
+
+	e.Reason = message.Message
+	return e
+}
+
+func handleOkResponse(h func(body []byte) error, errHandler ErrHandler) func(*http.Response, error) error {
 	return func(resp *http.Response, err error) (retErr error) {
 		if err != nil {
 			return err
@@ -84,14 +144,7 @@ func handleOkResponse(h func(body []byte) error) func(*http.Response, error) err
 			}
 			return h(body)
 		default: // Unexpected status
-			path := ""
-			if resp.Request != nil && resp.Request.URL != nil {
-				path = resp.Request.URL.Path
-			}
-			return &ClientError{
-				StatusCode: int32(resp.StatusCode),
-				Path:       path,
-			}
+			return errHandler(resp)
 		}
 	}
 }
