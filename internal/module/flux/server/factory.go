@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
@@ -26,6 +27,7 @@ const (
 	projectAccessCacheTtl          = 5 * time.Minute
 	projectAccessCacheErrTtl       = 1 * time.Minute
 
+	fluxNotifiedCounterMetricName             = "flux_git_push_notifications_total"
 	fluxDroppedNotificationsCounterMetricName = "flux_dropped_git_push_notifications_total"
 )
 
@@ -33,17 +35,21 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	droppedCounter := prometheus.NewCounter(prometheus.CounterOpts{
+	promNotifiedCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: fluxNotifiedCounterMetricName,
+		Help: "The total number of sent Git Push notifications to agentks in Flux module",
+	})
+	promDroppedCounter := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: fluxDroppedNotificationsCounterMetricName,
 		Help: "The total number of dropped Git push notifications in Flux module",
 	})
-	err := config.Registerer.Register(droppedCounter)
-	if err != nil {
+	if err := metric.Register(config.Registerer, promNotifiedCounter, promDroppedCounter); err != nil {
 		return nil, err
 	}
 	rpc.RegisterGitLabFluxServer(config.AgentServer, &server{
-		serverApi:      config.Api,
-		droppedCounter: droppedCounter,
+		serverApi:       config.Api,
+		notifiedCounter: metric.NewMultiCounter(promNotifiedCounter, config.UsageTracker.RegisterCounter(fluxNotifiedCounterMetricName)),
+		droppedCounter:  promDroppedCounter,
 		pollCfgFactory: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			reconcileProjectsInitBackoff, reconcileProjectsMaxBackoff, reconcileProjectsResetDuration, reconcileProjectsBackoffFactor, reconcileProjectsJitter)),
 		projectAccessClient: &projectAccessClient{
