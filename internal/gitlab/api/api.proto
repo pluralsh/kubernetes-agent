@@ -60,7 +60,7 @@ message GetAgentInfoResponse {
   string agent_name = 3 [json_name = "agent_name", (validate.rules).string.min_bytes = 1];
   GitalyInfo gitaly_info = 4 [json_name = "gitaly_info", (validate.rules).message.required = true];
   GitalyRepository gitaly_repository = 5 [json_name = "gitaly_repository", (validate.rules).message.required = true];
-  string DefaultBranch = 6 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
+  string default_branch = 6 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
 }
 
 message GitalyInfo {
