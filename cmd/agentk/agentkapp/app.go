@@ -40,6 +40,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -88,7 +89,7 @@ type App struct {
 	Log               *zap.Logger
 	LogLevel          zap.AtomicLevel
 	GrpcLogLevel      zap.AtomicLevel
-	AgentMeta         *modshared.AgentMeta
+	AgentMeta         *entity.AgentMeta
 	AgentId           *ValueHolder[int64]
 	GitLabExternalUrl *ValueHolder[url.URL]
 	// KasAddress specifies the address of kas.
@@ -397,7 +398,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 func NewCommand() *cobra.Command {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	a := App{
-		AgentMeta: &modshared.AgentMeta{
+		AgentMeta: &entity.AgentMeta{
 			Version:  cmd.Version,
 			CommitId: cmd.Commit,
 		},

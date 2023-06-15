@@ -1,24 +1,25 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@rules_proto_grpc//ruby:defs.bzl", "ruby_proto_compile")
 load("//build:proto_def.bzl", "ruby_grpc_compile")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 PROTO = [
-    "modshared",
-    "modserver",
-    "agent_tracker",
+    "pkg/entity",
+    "internal/module/modserver",
+    "internal/module/agent_tracker",
 ]
 
 RPC = [
-    "agent_tracker",
-    "configuration_project",
-    "notifications",
+    "internal/module/agent_tracker",
+    "internal/module/configuration_project",
+    "internal/module/notifications",
 ]
 
 [
     ruby_proto_compile(
-        name = "%s_proto" % name,
+        name = "%s_proto" % paths.basename(name),
         protos = [
-            "//internal/module/%s:proto" % name,
+            "//%s:proto" % name,
         ],
         tags = ["manual"],
     )
@@ -27,9 +28,9 @@ RPC = [
 
 [
     ruby_proto_compile(
-        name = "%s_rpc_proto" % name,
+        name = "%s_rpc_proto" % paths.basename(name),
         protos = [
-            "//internal/module/%s/rpc:proto" % name,
+            "//%s/rpc:proto" % name,
         ],
         tags = ["manual"],
     )
@@ -38,9 +39,9 @@ RPC = [
 
 [
     ruby_grpc_compile(
-        name = "%s_services_proto" % name,
+        name = "%s_services_proto" % paths.basename(name),
         protos = [
-            "//internal/module/%s/rpc:proto" % name,
+            "//%s/rpc:proto" % name,
         ],
         tags = ["manual"],
     )
@@ -51,13 +52,16 @@ write_source_files(
     name = "extract_generated",
     diff_test = False,
     files = {
-        "lib/internal/module/%s/%s_pb.rb" % (name, name): ":%s_proto" % name
+        "lib/%s/%s_pb.rb" % (
+            name,
+            paths.basename(name),
+        ): ":%s_proto" % paths.basename(name)
         for name in PROTO
     } | {
-        "lib/internal/module/%s/rpc/rpc_pb.rb" % name: ":%s_rpc_proto" % name
+        "lib/%s/rpc/rpc_pb.rb" % name: ":%s_rpc_proto" % paths.basename(name)
         for name in RPC
     } | {
-        "lib/internal/module/%s/rpc/rpc_services_pb.rb" % name: ":%s_services_proto" % name
+        "lib/%s/rpc/rpc_services_pb.rb" % name: ":%s_services_proto" % paths.basename(name)
         for name in RPC
     },
     tags = ["manual"],

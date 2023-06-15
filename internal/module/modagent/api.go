@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"k8s.io/kubectl/pkg/cmd/util"
@@ -29,7 +30,7 @@ type Config struct {
 	// Log can be used for logging from the module.
 	// It should not be used for logging from gRPC API methods. Use grpctool.LoggerFromContext(ctx) instead.
 	Log       *zap.Logger
-	AgentMeta *modshared.AgentMeta
+	AgentMeta *entity.AgentMeta
 	Api       Api
 	// K8sUtilFactory provides means to interact with the Kubernetes cluster agentk is running in.
 	K8sUtilFactory util.Factory

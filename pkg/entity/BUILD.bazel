@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:proto.bzl", "go_proto_generate")
+
+go_proto_generate(
+    src = "entity.proto",
+)
+
+go_library(
+    name = "entity",
+    srcs = ["entity.pb.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

@@ -7,7 +7,7 @@ package gitlab.agent.agent_configuration.rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc";
 
 import "pkg/agentcfg/agentcfg.proto";
-import "internal/module/modshared/modshared.proto";
+import "pkg/entity/entity.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 
@@ -18,7 +18,7 @@ message ConfigurationRequest {
   // the stream without sending the same data again.
   string commit_id = 1;
   // Information about the agent.
-  modshared.AgentMeta agent_meta = 2;
+  entity.AgentMeta agent_meta = 2;
 }
 
 message ConfigurationResponse {

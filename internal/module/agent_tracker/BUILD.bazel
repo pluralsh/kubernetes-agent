@@ -5,7 +5,7 @@ load("//build:proto.bzl", "go_proto_generate")
 go_proto_generate(
     src = "agent_tracker.proto",
     deps = [
-        "//internal/module/modshared:proto",
+        "//pkg/entity:proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
@@ -20,11 +20,11 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/module/modshared",
         "//internal/tool/errz",
         "//internal/tool/logz",
         "//internal/tool/redistool",
         "//internal/tool/syncz",
+        "//pkg/entity",
         "@com_github_redis_rueidis//:rueidis",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",
@@ -43,12 +43,12 @@ go_custom_test(
     ],
     embed = [":agent_tracker"],
     deps = [
-        "//internal/module/modshared",
         "//internal/tool/redistool",
         "//internal/tool/syncz",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_redis",
         "//internal/tool/testing/mock_tool",
+        "//pkg/entity",
         "@com_github_golang_mock//gomock",
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",

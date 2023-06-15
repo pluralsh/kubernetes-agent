@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package gitlab.agent.modshared;
+package gitlab.agent.entity;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity";
 
 // AgentMeta contains information about agentk.
 message AgentMeta {
