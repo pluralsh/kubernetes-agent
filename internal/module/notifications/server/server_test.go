@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +38,9 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 
 	// WHEN
 	_, err := s.GitPushEvent(ctx, &rpc.GitPushEventRequest{
-		Project: &rpc.Project{Id: 42, FullPath: "foo/bar"},
+		Event: &event.GitPushEvent{
+			Project: &event.Project{Id: 42, FullPath: "foo/bar"},
+		},
 	})
 
 	// THEN
@@ -64,7 +67,9 @@ func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 
 	// WHEN
 	_, err := s.GitPushEvent(ctx, &rpc.GitPushEventRequest{
-		Project: &rpc.Project{Id: 42, FullPath: "foo/bar"},
+		Event: &event.GitPushEvent{
+			Project: &event.Project{Id: 42, FullPath: "foo/bar"},
+		},
 	})
 
 	// THEN

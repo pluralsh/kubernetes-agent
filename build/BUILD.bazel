@@ -30,6 +30,7 @@ multirun(
         "//internal/tool/redistool:extract_generated",
         "//pkg/agentcfg:extract_generated",
         "//pkg/entity:extract_generated",
+        "//pkg/event:extract_generated",
         "//pkg/kascfg:extract_generated",
         "//pkg/ruby:extract_generated",
     ],

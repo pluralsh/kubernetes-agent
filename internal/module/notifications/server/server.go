@@ -25,8 +25,8 @@ type server struct {
 
 func (s *server) GitPushEvent(ctx context.Context, req *rpc.GitPushEventRequest) (*rpc.GitPushEventResponse, error) {
 	err := s.gitPushPublisher(ctx, &modserver.Project{
-		Id:       req.Project.Id,
-		FullPath: req.Project.FullPath,
+		Id:       req.Event.Project.Id,
+		FullPath: req.Event.Project.FullPath,
 	})
 	if err != nil {
 		rpcApi := modserver.RpcApiFromContext(ctx)

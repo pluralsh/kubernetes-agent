@@ -5,6 +5,7 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 PROTO = [
     "pkg/entity",
+    "pkg/event",
     "internal/module/agent_tracker",
 ]
 
