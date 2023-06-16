@@ -18,7 +18,6 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/api",
         "//internal/gitaly/vendored/gitalypb",
         "@com_github_envoyproxy_protoc_gen_validate//validate",
         "@org_golang_google_protobuf//reflect/protoreflect",

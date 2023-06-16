@@ -248,7 +248,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -257,7 +257,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
@@ -298,7 +298,7 @@ func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
@@ -361,7 +361,7 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 	p.EXPECT().Poll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(manifestRevision), []byte("."), true, gomock.Any()).
@@ -436,7 +436,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -445,7 +445,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("path"), false, gomock.Any()).
@@ -483,7 +483,7 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
@@ -552,7 +552,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 			gomock.InOrder(
 				gitalyPool.EXPECT().
-					Poller(gomock.Any(), &projInfo.GitalyInfo).
+					Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 					Return(p, nil),
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -561,7 +561,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
-					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+					PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 					Return(pf, nil),
 				pf.EXPECT().
 					Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
@@ -588,7 +588,7 @@ func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -631,7 +631,7 @@ func projectInfo() *api.ProjectInfo {
 	rest := projectInfoRest()
 	return &api.ProjectInfo{
 		ProjectId:     rest.ProjectId,
-		GitalyInfo:    rest.GitalyInfo.ToApiGitalyInfo(),
+		GitalyInfo:    rest.GitalyInfo,
 		Repository:    rest.GitalyRepository.ToGitalyProtoRepository(),
 		DefaultBranch: rest.DefaultBranch,
 	}

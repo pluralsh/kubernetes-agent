@@ -9,9 +9,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	gitalypb "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	entity "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 )
 
 // MockPoolInterface is a mock of PoolInterface interface.
@@ -38,7 +38,7 @@ func (m *MockPoolInterface) EXPECT() *MockPoolInterfaceMockRecorder {
 }
 
 // PathFetcher mocks base method.
-func (m *MockPoolInterface) PathFetcher(arg0 context.Context, arg1 *api.GitalyInfo) (gitaly.PathFetcherInterface, error) {
+func (m *MockPoolInterface) PathFetcher(arg0 context.Context, arg1 *entity.GitalyInfo) (gitaly.PathFetcherInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PathFetcher", arg0, arg1)
 	ret0, _ := ret[0].(gitaly.PathFetcherInterface)
@@ -53,7 +53,7 @@ func (mr *MockPoolInterfaceMockRecorder) PathFetcher(arg0, arg1 interface{}) *go
 }
 
 // Poller mocks base method.
-func (m *MockPoolInterface) Poller(arg0 context.Context, arg1 *api.GitalyInfo) (gitaly.PollerInterface, error) {
+func (m *MockPoolInterface) Poller(arg0 context.Context, arg1 *entity.GitalyInfo) (gitaly.PollerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Poller", arg0, arg1)
 	ret0, _ := ret[0].(gitaly.PollerInterface)

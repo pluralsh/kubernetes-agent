@@ -9,7 +9,7 @@ func (a *GetAgentInfoResponse) ToApiAgentInfo() *api.AgentInfo {
 		Id:            a.AgentId,
 		ProjectId:     a.ProjectId,
 		Name:          a.AgentName,
-		GitalyInfo:    a.GitalyInfo.ToApiGitalyInfo(),
+		GitalyInfo:    a.GitalyInfo,
 		Repository:    a.GitalyRepository.ToGitalyProtoRepository(),
 		DefaultBranch: a.DefaultBranch,
 	}
@@ -18,7 +18,7 @@ func (a *GetAgentInfoResponse) ToApiAgentInfo() *api.AgentInfo {
 func (p *GetProjectInfoResponse) ToApiProjectInfo() *api.ProjectInfo {
 	return &api.ProjectInfo{
 		ProjectId:     p.ProjectId,
-		GitalyInfo:    p.GitalyInfo.ToApiGitalyInfo(),
+		GitalyInfo:    p.GitalyInfo,
 		Repository:    p.GitalyRepository.ToGitalyProtoRepository(),
 		DefaultBranch: p.DefaultBranch,
 	}

@@ -3,8 +3,8 @@ package gitaly
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"google.golang.org/grpc"
 )
 
@@ -13,8 +13,8 @@ var (
 )
 
 type PoolInterface interface {
-	Poller(context.Context, *api.GitalyInfo) (PollerInterface, error)
-	PathFetcher(context.Context, *api.GitalyInfo) (PathFetcherInterface, error)
+	Poller(context.Context, *entity.GitalyInfo) (PollerInterface, error)
+	PathFetcher(context.Context, *entity.GitalyInfo) (PathFetcherInterface, error)
 }
 
 // ClientPool abstracts gitlab.com/gitlab-org/gitaly/client.Pool.
@@ -26,7 +26,7 @@ type Pool struct {
 	ClientPool ClientPool
 }
 
-func (p *Pool) commitServiceClient(ctx context.Context, info *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
+func (p *Pool) commitServiceClient(ctx context.Context, info *entity.GitalyInfo) (gitalypb.CommitServiceClient, error) {
 	conn, err := p.ClientPool.Dial(ctx, info.Address, info.Token)
 	if err != nil {
 		return nil, err // don't wrap
@@ -34,7 +34,7 @@ func (p *Pool) commitServiceClient(ctx context.Context, info *api.GitalyInfo) (g
 	return gitalypb.NewCommitServiceClient(conn), nil
 }
 
-func (p *Pool) smartHTTPServiceClient(ctx context.Context, info *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
+func (p *Pool) smartHTTPServiceClient(ctx context.Context, info *entity.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
 	conn, err := p.ClientPool.Dial(ctx, info.Address, info.Token)
 	if err != nil {
 		return nil, err // don't wrap
@@ -42,7 +42,7 @@ func (p *Pool) smartHTTPServiceClient(ctx context.Context, info *api.GitalyInfo)
 	return gitalypb.NewSmartHTTPServiceClient(conn), nil
 }
 
-func (p *Pool) PathFetcher(ctx context.Context, info *api.GitalyInfo) (PathFetcherInterface, error) {
+func (p *Pool) PathFetcher(ctx context.Context, info *entity.GitalyInfo) (PathFetcherInterface, error) {
 	client, err := p.commitServiceClient(ctx, info)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (p *Pool) PathFetcher(ctx context.Context, info *api.GitalyInfo) (PathFetch
 	}, nil
 }
 
-func (p *Pool) Poller(ctx context.Context, info *api.GitalyInfo) (PollerInterface, error) {
+func (p *Pool) Poller(ctx context.Context, info *entity.GitalyInfo) (PollerInterface, error) {
 	client, err := p.smartHTTPServiceClient(ctx, info)
 	if err != nil {
 		return nil, err

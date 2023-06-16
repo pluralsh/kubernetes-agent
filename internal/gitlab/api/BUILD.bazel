@@ -54,7 +54,6 @@ go_custom_test(
     ],
     embed = [":api"],
     deps = [
-        "//internal/api",
         "//internal/gitaly/vendored/gitalypb",
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/testhelpers",

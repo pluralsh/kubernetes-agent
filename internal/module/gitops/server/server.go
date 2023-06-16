@@ -164,7 +164,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 }
 
 func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId string, fullRefName string) (*gitaly.PollInfo, error) {
-	p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
+	p, err := s.gitalyPool.Poller(ctx, projectInfo.GitalyInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (s *server) sendObjectsToSynchronizeBody(
 	commitId string,
 ) (uint32 /* files visited */, uint32 /* files sent */, error) {
 	ctx := server.Context()
-	pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
+	pf, err := s.gitalyPool.PathFetcher(ctx, projectInfo.GitalyInfo)
 	if err != nil {
 		rpcApi.HandleProcessingError(log, agentId, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")

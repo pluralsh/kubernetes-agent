@@ -137,7 +137,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 }
 
 func (s *server) poll(ctx context.Context, agentInfo *api.AgentInfo, lastProcessedCommitId string) (*gitaly.PollInfo, error) {
-	p, err := s.gitaly.Poller(ctx, &agentInfo.GitalyInfo)
+	p, err := s.gitaly.Poller(ctx, agentInfo.GitalyInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (s *server) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurati
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, commitId string) (*agentcfg.ConfigurationFile, error) {
-	pf, err := s.gitaly.PathFetcher(ctx, &agentInfo.GitalyInfo)
+	pf, err := s.gitaly.PathFetcher(ctx, agentInfo.GitalyInfo)
 	if err != nil {
 		return nil, fmt.Errorf("PathFetcher: %w", err) // wrap
 	}
