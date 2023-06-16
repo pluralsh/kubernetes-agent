@@ -6,11 +6,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type gitPushPublisherFunc func(ctx context.Context, e *modserver.Project) error
+type gitPushPublisherFunc func(ctx context.Context, e *event.GitPushEvent) error
 
 func newServer(gitPushPublisher gitPushPublisherFunc) *server {
 	return &server{
@@ -24,10 +25,7 @@ type server struct {
 }
 
 func (s *server) GitPushEvent(ctx context.Context, req *rpc.GitPushEventRequest) (*rpc.GitPushEventResponse, error) {
-	err := s.gitPushPublisher(ctx, &modserver.Project{
-		Id:       req.Event.Project.Id,
-		FullPath: req.Event.Project.FullPath,
-	})
+	err := s.gitPushPublisher(ctx, req.Event)
 	if err != nil {
 		rpcApi := modserver.RpcApiFromContext(ctx)
 		rpcApi.HandleProcessingError(rpcApi.Log(), modshared.NoAgentId, "failed to publish received git push event", err)

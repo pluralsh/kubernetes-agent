@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -42,7 +43,7 @@ const (
 	redisBackoffFactor   = 2.0
 	redisJitter          = 1.0
 
-	gitPushEventsRedisChannel = "kas_git_push_events"
+	gitPushEventsRedisChannel = "kas_git_push_events2"
 )
 
 type SentryHub interface {
@@ -74,16 +75,16 @@ func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *s
 
 type subscriptions struct {
 	mu  sync.Mutex
-	chs []chan<- *modserver.Project
+	chs []chan<- *event.GitPushEvent
 }
 
-func (s *subscriptions) add(ch chan<- *modserver.Project) {
+func (s *subscriptions) add(ch chan<- *event.GitPushEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.chs = append(s.chs, ch)
 }
 
-func (s *subscriptions) remove(ch chan<- *modserver.Project) {
+func (s *subscriptions) remove(ch chan<- *event.GitPushEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, c := range s.chs {
@@ -106,7 +107,7 @@ func (a *serverApi) hub() (SentryHub, string) {
 }
 
 func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
-	ch := make(chan *modserver.Project)
+	ch := make(chan *event.GitPushEvent)
 	a.gitPushEventSubscriptions.add(ch)
 	defer a.gitPushEventSubscriptions.remove(ch)
 
@@ -121,7 +122,7 @@ func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPu
 	}
 }
 
-func (a *serverApi) publishGitPushEvent(ctx context.Context, e *modserver.Project) error {
+func (a *serverApi) publishGitPushEvent(ctx context.Context, e *event.GitPushEvent) error {
 	payload, err := redisProtoMarshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
@@ -142,16 +143,16 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 				return
 			}
 
-			switch m := (protoMessage).(type) {
-			case *modserver.Project:
-				a.dispatchGitPushEvent(ctx, m)
+			switch e := (protoMessage).(type) {
+			case *event.GitPushEvent:
+				a.dispatchGitPushEvent(ctx, e)
 			default:
 				a.HandleProcessingError(
 					ctx,
 					a.log,
 					modshared.NoAgentId,
 					"GitOps: unable to handle received git push event",
-					fmt.Errorf("failed to cast proto message of type %T to concrete type", m))
+					fmt.Errorf("failed to cast proto message of type %T to concrete type", e))
 			}
 		})
 		switch err { // nolint:errorlint
@@ -166,7 +167,7 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 
 // dispatchGitPushEvent dispatches the given `project` which is the message of the Git push event
 // to all registered subscriptions registered by OnGitPushEvent.
-func (a *serverApi) dispatchGitPushEvent(ctx context.Context, project *modserver.Project) {
+func (a *serverApi) dispatchGitPushEvent(ctx context.Context, e *event.GitPushEvent) {
 	done := ctx.Done()
 
 	a.gitPushEventSubscriptions.mu.Lock()
@@ -176,7 +177,7 @@ func (a *serverApi) dispatchGitPushEvent(ctx context.Context, project *modserver
 		select {
 		case <-done:
 			return
-		case ch <- project:
+		case ch <- e:
 		}
 	}
 }
@@ -220,12 +221,12 @@ func logAndCapture(ctx context.Context, hub SentryHub, transaction string, log *
 
 	errStr := removeRandomPort(err.Error())
 
-	event := sentry.NewEvent()
+	e := sentry.NewEvent()
 	if agentId != modshared.NoAgentId {
-		event.User.ID = strconv.FormatInt(agentId, 10)
+		e.User.ID = strconv.FormatInt(agentId, 10)
 	}
-	event.Level = sentry.LevelError
-	event.Exception = []sentry.Exception{
+	e.Level = sentry.LevelError
+	e.Exception = []sentry.Exception{
 		{
 			Type:       reflect.TypeOf(err).String(),
 			Value:      fmt.Sprintf("%s: %s", msg, errStr),
@@ -235,15 +236,15 @@ func logAndCapture(ctx context.Context, hub SentryHub, transaction string, log *
 	tc := trace.SpanContextFromContext(ctx)
 	traceId := tc.TraceID()
 	if traceId.IsValid() {
-		event.Tags[modserver.SentryFieldTraceId] = traceId.String()
+		e.Tags[modserver.SentryFieldTraceId] = traceId.String()
 		sampled := "false"
 		if tc.IsSampled() {
 			sampled = "true"
 		}
-		event.Tags[modserver.SentryFieldTraceSampled] = sampled
+		e.Tags[modserver.SentryFieldTraceSampled] = sampled
 	}
-	event.Transaction = transaction
-	hub.CaptureEvent(event)
+	e.Transaction = transaction
+	hub.CaptureEvent(e)
 }
 
 func removeRandomPort(err string) string {

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,7 +56,7 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 
 	log = log.With(logz.AgentId(agentInfo.Id))
 
-	pipe := make(chan *modserver.Project, maxBufferedNotifications)
+	pipe := make(chan *event.Project, maxBufferedNotifications)
 	var wg wait.Group
 	defer wg.Wait()
 	defer close(pipe)
@@ -82,20 +83,20 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 	log.Debug("Started reconcile projects ...")
 	defer log.Debug("Stopped reconcile projects ...")
 	projects := req.ToProjectSet()
-	s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, project *modserver.Project) {
-		if _, ok := projects[project.FullPath]; !ok {
+	s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, e *event.GitPushEvent) {
+		if _, ok := projects[e.Project.FullPath]; !ok {
 			// NOTE: it's probably not a good idea to log here as we'd get one for every event,
 			// which on GitLab.com is thousands per minute.
 			return
 		}
 
 		select {
-		case pipe <- project:
+		case pipe <- e.Project:
 		default:
 			s.droppedCounter.Inc()
 			// NOTE: if for whatever reason the other goroutine isn't able to keep up with the events,
 			// we just drop them for now.
-			log.Debug("Dropping Git push event", logz.ProjectId(project.FullPath))
+			log.Debug("Dropping Git push event", logz.ProjectId(e.Project.FullPath))
 		}
 	})
 

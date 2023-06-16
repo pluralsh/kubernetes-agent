@@ -28,6 +28,7 @@ go_library(
         "//internal/tool/retry",
         "//internal/tool/syncz",
         "//pkg/agentcfg",
+        "//pkg/event",
         "//pkg/kascfg",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_sigs_yaml//:yaml",

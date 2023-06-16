@@ -1,20 +1,10 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("//build:proto.bzl", "go_proto_generate")
-
-go_proto_generate(
-    src = "modserver.proto",
-    deps = [
-        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
-    ],
-)
 
 go_library(
     name = "modserver",
     srcs = [
         "agent_rpc_api.go",
         "api.go",
-        "modserver.pb.go",
-        "modserver.pb.validate.go",
         "rpc_api.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver",
@@ -43,8 +33,8 @@ go_library(
         "//internal/module/modshared",
         "//internal/module/observability",
         "//internal/module/usage_metrics",
+        "//pkg/event",
         "//pkg/kascfg",
-        "@com_github_envoyproxy_protoc_gen_validate//validate",
         "@com_github_grpc_ecosystem_go_grpc_middleware_v2//:go-grpc-middleware",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_redis_rueidis//:rueidis",
@@ -52,9 +42,6 @@ go_library(
         "@io_opentelemetry_go_otel_metric//:metric",
         "@io_opentelemetry_go_otel_trace//:trace",
         "@org_golang_google_grpc//:grpc",
-        "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//runtime/protoimpl",
-        "@org_golang_google_protobuf//types/known/anypb",
         "@org_uber_go_zap//:zap",
     ],
 )

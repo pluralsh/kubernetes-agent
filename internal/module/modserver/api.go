@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -82,7 +83,7 @@ type Config struct {
 	ProbeRegistry *observability.ProbeRegistry
 }
 
-type GitPushEventCallback func(ctx context.Context, project *Project)
+type GitPushEventCallback func(ctx context.Context, e *event.GitPushEvent)
 
 // Api provides the API for the module to use.
 type Api interface {

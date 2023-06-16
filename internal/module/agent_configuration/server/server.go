@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -57,9 +58,9 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	wh := syncz.NewComparableWorkerHolder[string](
 		func(projectId string) syncz.Worker {
 			return syncz.WorkerFunc(func(ctx context.Context) {
-				s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, message *modserver.Project) {
+				s.serverApi.OnGitPushEvent(ctx, func(ctx context.Context, e *event.GitPushEvent) {
 					// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
-					if message.FullPath == projectId {
+					if e.Project.FullPath == projectId {
 						pollCfg.Poke()
 					}
 				})
