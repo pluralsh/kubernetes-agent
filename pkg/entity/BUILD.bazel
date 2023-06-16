@@ -3,15 +3,26 @@ load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
     src = "entity.proto",
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
 )
 
 go_library(
     name = "entity",
-    srcs = ["entity.pb.go"],
+    srcs = [
+        "entity.pb.go",
+        "entity.pb.validate.go",
+        "entity_extra.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity",
     visibility = ["//visibility:public"],
     deps = [
+        "//internal/api",
+        "//internal/gitaly/vendored/gitalypb",
+        "@com_github_envoyproxy_protoc_gen_validate//validate",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )

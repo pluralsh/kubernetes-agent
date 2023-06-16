@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 )
 
 func TestGetAgentInfo(t *testing.T) {
@@ -16,14 +17,14 @@ func TestGetAgentInfo(t *testing.T) {
 		ProjectId: 234,
 		AgentId:   555,
 		AgentName: "agent-x",
-		GitalyInfo: &GitalyInfo{
+		GitalyInfo: &entity.GitalyInfo{
 			Address: "example.com",
 			Token:   "123123",
 			Features: map[string]string{
 				"a": "b",
 			},
 		},
-		GitalyRepository: &GitalyRepository{
+		GitalyRepository: &entity.GitalyRepository{
 			StorageName:   "234",
 			RelativePath:  "123",
 			GlRepository:  "254634",

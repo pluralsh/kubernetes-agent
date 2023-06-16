@@ -27,6 +27,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap/zaptest"
@@ -609,14 +610,14 @@ func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
 func projectInfoRest() *gapi.GetProjectInfoResponse {
 	return &gapi.GetProjectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: &gapi.GitalyInfo{
+		GitalyInfo: &entity.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
 			Features: map[string]string{
 				"bla": "false",
 			},
 		},
-		GitalyRepository: &gapi.GitalyRepository{
+		GitalyRepository: &entity.GitalyRepository{
 			StorageName:   "StorageName1",
 			RelativePath:  "RelativePath1",
 			GlRepository:  "GlRepository1",

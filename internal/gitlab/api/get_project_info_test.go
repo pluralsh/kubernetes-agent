@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 )
 
 func TestGetProjectInfo(t *testing.T) {
@@ -17,14 +18,14 @@ func TestGetProjectInfo(t *testing.T) {
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	response := &GetProjectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: &GitalyInfo{
+		GitalyInfo: &entity.GitalyInfo{
 			Address: "example.com",
 			Token:   "123123",
 			Features: map[string]string{
 				"a": "b",
 			},
 		},
-		GitalyRepository: &GitalyRepository{
+		GitalyRepository: &entity.GitalyRepository{
 			StorageName:   "234",
 			RelativePath:  "123",
 			GlRepository:  "254634",
