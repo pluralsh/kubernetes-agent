@@ -5,11 +5,12 @@ require 'google/protobuf'
 
 require 'validate/validate_pb'
 require 'internal/module/modserver/modserver_pb'
+require 'pkg/entity/entity_pb'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/configuration_project/rpc/rpc.proto", :syntax => :proto3) do
     add_message "gitlab.agent.configuration_project.rpc.ListAgentConfigFilesRequest" do
-      optional :repository, :message, 1, "gitlab.agent.modserver.Repository", json_name: "repository"
+      optional :repository, :message, 1, "gitlab.agent.entity.GitalyRepository", json_name: "repository"
       optional :gitaly_address, :message, 2, "gitlab.agent.modserver.GitalyAddress", json_name: "gitalyAddress"
       optional :default_branch, :string, 3, json_name: "defaultBranch"
     end

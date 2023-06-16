@@ -13,6 +13,8 @@ import (
 func AssertGitalyRepository(t *testing.T, gitalyRepository *entity.GitalyRepository, apiGitalyRepository *gitalypb.Repository) {
 	assert.Equal(t, gitalyRepository.StorageName, apiGitalyRepository.StorageName)
 	assert.Equal(t, gitalyRepository.RelativePath, apiGitalyRepository.RelativePath)
+	assert.Equal(t, gitalyRepository.GitObjectDirectory, apiGitalyRepository.GitObjectDirectory)
+	assert.Equal(t, gitalyRepository.GitAlternateObjectDirectories, apiGitalyRepository.GitAlternateObjectDirectories)
 	assert.Equal(t, gitalyRepository.GlRepository, apiGitalyRepository.GlRepository)
 	assert.Equal(t, gitalyRepository.GlProjectPath, apiGitalyRepository.GlProjectPath)
 }

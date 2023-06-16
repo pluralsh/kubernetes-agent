@@ -26,10 +26,12 @@ func TestGetProjectInfo(t *testing.T) {
 			},
 		},
 		GitalyRepository: &entity.GitalyRepository{
-			StorageName:   "234",
-			RelativePath:  "123",
-			GlRepository:  "254634",
-			GlProjectPath: "64662",
+			StorageName:                   "234",
+			RelativePath:                  "123",
+			GitObjectDirectory:            "sfasdf",
+			GitAlternateObjectDirectories: []string{"a", "b"},
+			GlRepository:                  "254634",
+			GlProjectPath:                 "64662",
 		},
 		DefaultBranch: "main",
 	}

@@ -19,10 +19,12 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       map :features, :string, :string, 3
     end
     add_message "gitlab.agent.entity.GitalyRepository" do
-      optional :storage_name, :string, 1, json_name: "storage_name"
-      optional :relative_path, :string, 2, json_name: "relative_path"
-      optional :gl_repository, :string, 3, json_name: "gl_repository"
-      optional :gl_project_path, :string, 4, json_name: "gl_project_path"
+      optional :storage_name, :string, 2, json_name: "storage_name"
+      optional :relative_path, :string, 3, json_name: "relative_path"
+      optional :git_object_directory, :string, 4, json_name: "git_object_directory"
+      repeated :git_alternate_object_directories, :string, 5, json_name: "git_alternate_object_directories"
+      optional :gl_repository, :string, 6, json_name: "gl_repository"
+      optional :gl_project_path, :string, 8, json_name: "gl_project_path"
     end
   end
 end

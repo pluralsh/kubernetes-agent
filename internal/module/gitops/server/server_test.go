@@ -618,10 +618,12 @@ func projectInfoRest() *gapi.GetProjectInfoResponse {
 			},
 		},
 		GitalyRepository: &entity.GitalyRepository{
-			StorageName:   "StorageName1",
-			RelativePath:  "RelativePath1",
-			GlRepository:  "GlRepository1",
-			GlProjectPath: "GlProjectPath1",
+			StorageName:                   "234",
+			RelativePath:                  "123",
+			GitObjectDirectory:            "sfasdf",
+			GitAlternateObjectDirectories: []string{"a", "b"},
+			GlRepository:                  "254634",
+			GlProjectPath:                 "64662",
 		},
 		DefaultBranch: "main",
 	}

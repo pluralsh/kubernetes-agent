@@ -6,9 +6,11 @@ import (
 
 func (r *GitalyRepository) ToGitalyProtoRepository() *gitalypb.Repository {
 	return &gitalypb.Repository{
-		StorageName:   r.StorageName,
-		RelativePath:  r.RelativePath,
-		GlRepository:  r.GlRepository,
-		GlProjectPath: r.GlProjectPath,
+		StorageName:                   r.StorageName,
+		RelativePath:                  r.RelativePath,
+		GitObjectDirectory:            r.GitObjectDirectory,
+		GitAlternateObjectDirectories: r.GitAlternateObjectDirectories,
+		GlRepository:                  r.GlRepository,
+		GlProjectPath:                 r.GlProjectPath,
 	}
 }

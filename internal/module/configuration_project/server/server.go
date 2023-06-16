@@ -47,17 +47,9 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 		rpcApi.HandleProcessingError(rpcApi.Log(), modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}
-	r := &gitalypb.Repository{
-		StorageName:                   req.Repository.StorageName,
-		RelativePath:                  req.Repository.RelativePath,
-		GitObjectDirectory:            req.Repository.GitObjectDirectory,
-		GitAlternateObjectDirectories: req.Repository.GitAlternateObjectDirectories,
-		GlRepository:                  req.Repository.GlRepository,
-		GlProjectPath:                 req.Repository.GlProjectPath,
-	}
 	v := &configVisitor{}
 	ref := git.ExplicitRefOrHead(req.DefaultBranch)
-	err = pf.Visit(ctx, r, []byte(ref), []byte(agent_configuration.Directory), true, v)
+	err = pf.Visit(ctx, req.Repository.ToGitalyProtoRepository(), []byte(ref), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
 		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
 		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)

@@ -300,6 +300,8 @@ func (m *GitalyRepository) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	// no validation rules for GitObjectDirectory
+
 	if len(m.GetGlRepository()) < 1 {
 		err := GitalyRepositoryValidationError{
 			field:  "GlRepository",
