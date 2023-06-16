@@ -44,7 +44,7 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 	}
 	v := &configVisitor{}
 	ref := git.ExplicitRefOrHead(req.DefaultBranch)
-	err = pf.Visit(ctx, req.Repository.ToGitalyProtoRepository(), []byte(ref), []byte(agent_configuration.Directory), true, v)
+	err = pf.Visit(ctx, req.Repository.ToGitalyRepository(), []byte(ref), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
 		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
 		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)

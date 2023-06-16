@@ -634,7 +634,7 @@ func projectInfo() *api.ProjectInfo {
 	return &api.ProjectInfo{
 		ProjectId:     rest.ProjectId,
 		GitalyInfo:    rest.GitalyInfo,
-		Repository:    rest.GitalyRepository.ToGitalyProtoRepository(),
+		Repository:    rest.GitalyRepository.ToGitalyRepository(),
 		DefaultBranch: rest.DefaultBranch,
 	}
 }
