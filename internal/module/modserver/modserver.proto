@@ -8,11 +8,6 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/
 
 import "validate/validate.proto";
 
-message GitalyAddress {
-  string address = 1;
-  string token = 2;
-}
-
 message Project {
   int64 id = 1 [(validate.rules).int64.gt = 0];
   string full_path = 2 [(validate.rules).string.min_bytes = 1];

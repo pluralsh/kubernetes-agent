@@ -20,7 +20,6 @@ go_library(
         "//internal/module/modshared",
         "//internal/tool/git",
         "//internal/tool/logz",
-        "//pkg/entity",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
     ],

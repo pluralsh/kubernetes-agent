@@ -102,10 +102,7 @@ func TestAsClient(t *testing.T) {
 			GlRepository:                  agentInfo.Repository.GlRepository,
 			GlProjectPath:                 agentInfo.Repository.GlProjectPath,
 		},
-		GitalyAddress: &modserver.GitalyAddress{
-			Address: agentInfo.GitalyInfo.Address,
-			Token:   agentInfo.GitalyInfo.Token,
-		},
+		GitalyInfo: agentInfo.GitalyInfo,
 	})
 	require.NoError(t, err)
 	data, err := protojson.MarshalOptions{

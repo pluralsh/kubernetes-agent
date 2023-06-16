@@ -7,10 +7,6 @@ require 'validate/validate_pb'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/modserver/modserver.proto", :syntax => :proto3) do
-    add_message "gitlab.agent.modserver.GitalyAddress" do
-      optional :address, :string, 1, json_name: "address"
-      optional :token, :string, 2, json_name: "token"
-    end
     add_message "gitlab.agent.modserver.Project" do
       optional :id, :int64, 1, json_name: "id"
       optional :full_path, :string, 2, json_name: "fullPath"
@@ -21,7 +17,6 @@ end
 module Gitlab
   module Agent
     module Modserver
-      GitalyAddress = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.modserver.GitalyAddress").msgclass
       Project = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.modserver.Project").msgclass
     end
   end
