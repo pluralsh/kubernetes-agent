@@ -5,7 +5,6 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 
 PROTO = [
     "pkg/entity",
-    "internal/module/modserver",
     "internal/module/agent_tracker",
 ]
 
