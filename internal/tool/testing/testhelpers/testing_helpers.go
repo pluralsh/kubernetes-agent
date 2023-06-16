@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -132,7 +133,7 @@ func AgentInfoObj() *api.AgentInfo {
 		Id:        AgentId,
 		ProjectId: ProjectId,
 		Name:      "agent1",
-		GitalyInfo: api.GitalyInfo{
+		GitalyInfo: &entity.GitalyInfo{
 			Address: "127.0.0.1:123123",
 			Token:   "abc",
 			Features: map[string]string{

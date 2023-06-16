@@ -4,15 +4,12 @@
 require 'google/protobuf'
 
 require 'validate/validate_pb'
+require 'pkg/event/event_pb'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/notifications/rpc/rpc.proto", :syntax => :proto3) do
     add_message "gitlab.agent.notifications.rpc.GitPushEventRequest" do
-      optional :project, :message, 1, "gitlab.agent.notifications.rpc.Project", json_name: "project"
-    end
-    add_message "gitlab.agent.notifications.rpc.Project" do
-      optional :id, :int64, 1, json_name: "id"
-      optional :full_path, :string, 2, json_name: "fullPath"
+      optional :event, :message, 1, "gitlab.agent.event.GitPushEvent", json_name: "event"
     end
     add_message "gitlab.agent.notifications.rpc.GitPushEventResponse" do
     end
@@ -24,7 +21,6 @@ module Gitlab
     module Notifications
       module Rpc
         GitPushEventRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.notifications.rpc.GitPushEventRequest").msgclass
-        Project = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.notifications.rpc.Project").msgclass
         GitPushEventResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.notifications.rpc.GitPushEventResponse").msgclass
       end
     end

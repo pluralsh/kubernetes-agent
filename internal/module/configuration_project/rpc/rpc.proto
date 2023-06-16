@@ -8,11 +8,11 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/
 
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
-import "internal/module/modserver/modserver.proto";
+import "pkg/entity/entity.proto";
 
 message ListAgentConfigFilesRequest {
-  modserver.Repository repository = 1 [(validate.rules).message.required = true];
-  modserver.GitalyAddress gitaly_address = 2 [(validate.rules).message.required = true];
+  entity.GitalyRepository repository = 1 [(validate.rules).message.required = true];
+  entity.GitalyInfo gitaly_info = 2 [(validate.rules).message.required = true];
   string default_branch = 3;
 }
 

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -108,16 +109,16 @@ func TestServerApi_GitPushEvent_DispatchingMultiple(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	proj := &modserver.Project{}
+	ev := &event.GitPushEvent{}
 	// recorder for callback hits
 	rec1 := make(chan struct{})
 	rec2 := make(chan struct{})
-	subscriber1 := func(_ context.Context, p *modserver.Project) {
-		assert.Same(t, proj, p)
+	subscriber1 := func(_ context.Context, e *event.GitPushEvent) {
+		assert.Same(t, ev, e)
 		close(rec1)
 	}
-	subscriber2 := func(_ context.Context, p *modserver.Project) {
-		assert.Same(t, proj, p)
+	subscriber2 := func(_ context.Context, e *event.GitPushEvent) {
+		assert.Same(t, ev, e)
 		close(rec2)
 	}
 
@@ -138,7 +139,7 @@ func TestServerApi_GitPushEvent_DispatchingMultiple(t *testing.T) {
 	}, time.Minute, time.Millisecond)
 
 	// dispatch a single git push event
-	a.dispatchGitPushEvent(ctx, proj)
+	a.dispatchGitPushEvent(ctx, ev)
 
 	// THEN
 	<-rec1
@@ -148,9 +149,9 @@ func TestServerApi_GitPushEvent_DispatchingMultiple(t *testing.T) {
 func TestServerApi_GitPushEventSubscriptions(t *testing.T) {
 	var s subscriptions
 
-	ch1 := make(chan<- *modserver.Project)
-	ch2 := make(chan<- *modserver.Project)
-	ch3 := make(chan<- *modserver.Project)
+	ch1 := make(chan<- *event.GitPushEvent)
+	ch2 := make(chan<- *event.GitPushEvent)
+	ch3 := make(chan<- *event.GitPushEvent)
 
 	s.add(ch1)
 	s.add(ch2)

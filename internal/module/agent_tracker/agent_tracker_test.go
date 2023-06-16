@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestConnectedAgentInfoSize(t *testing.T) {
 	infoBytes, err := proto.Marshal(&ConnectedAgentInfo{
-		AgentMeta: &modshared.AgentMeta{
+		AgentMeta: &entity.AgentMeta{
 			Version:      "v1.0.0",
 			CommitId:     "f500e3e",
 			PodNamespace: "gitlab-agent",

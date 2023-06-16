@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -71,9 +72,9 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		defer cancel()
 
 		wg.Start(func() {
-			s.serverApi.OnGitPushEvent(pollingDoneCtx, func(ctx context.Context, message *modserver.Project) {
+			s.serverApi.OnGitPushEvent(pollingDoneCtx, func(ctx context.Context, e *event.GitPushEvent) {
 				// NOTE: yes, the req.ProjectId is NOT a project id, but a full project path ...
-				if message.FullPath == req.ProjectId {
+				if e.Project.FullPath == req.ProjectId {
 					pollCfg.Poke()
 				}
 			})
@@ -164,7 +165,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 }
 
 func (s *server) poll(ctx context.Context, projectInfo *api.ProjectInfo, commitId string, fullRefName string) (*gitaly.PollInfo, error) {
-	p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
+	p, err := s.gitalyPool.Poller(ctx, projectInfo.GitalyInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +203,7 @@ func (s *server) sendObjectsToSynchronizeBody(
 	commitId string,
 ) (uint32 /* files visited */, uint32 /* files sent */, error) {
 	ctx := server.Context()
-	pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
+	pf, err := s.gitalyPool.PathFetcher(ctx, projectInfo.GitalyInfo)
 	if err != nil {
 		rpcApi.HandleProcessingError(log, agentId, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")

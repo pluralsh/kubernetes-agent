@@ -97,9 +97,9 @@ func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 		}
 	}
 
-	if m.GetGitalyAddress() == nil {
+	if m.GetGitalyInfo() == nil {
 		err := ListAgentConfigFilesRequestValidationError{
-			field:  "GitalyAddress",
+			field:  "GitalyInfo",
 			reason: "value is required",
 		}
 		if !all {
@@ -109,11 +109,11 @@ func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetGitalyAddress()).(type) {
+		switch v := interface{}(m.GetGitalyInfo()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, ListAgentConfigFilesRequestValidationError{
-					field:  "GitalyAddress",
+					field:  "GitalyInfo",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -121,16 +121,16 @@ func (m *ListAgentConfigFilesRequest) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, ListAgentConfigFilesRequestValidationError{
-					field:  "GitalyAddress",
+					field:  "GitalyInfo",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetGitalyAddress()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetGitalyInfo()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ListAgentConfigFilesRequestValidationError{
-				field:  "GitalyAddress",
+				field:  "GitalyInfo",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

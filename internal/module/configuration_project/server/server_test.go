@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -93,7 +94,7 @@ func TestAsClient(t *testing.T) {
 
 	kasC := rpc.NewConfigurationProjectClient(conn)
 	configFiles, err := kasC.ListAgentConfigFiles(context.Background(), &rpc.ListAgentConfigFilesRequest{
-		Repository: &modserver.Repository{
+		Repository: &entity.GitalyRepository{
 			StorageName:                   agentInfo.Repository.StorageName,
 			RelativePath:                  agentInfo.Repository.RelativePath,
 			GitObjectDirectory:            agentInfo.Repository.GitObjectDirectory,
@@ -101,10 +102,7 @@ func TestAsClient(t *testing.T) {
 			GlRepository:                  agentInfo.Repository.GlRepository,
 			GlProjectPath:                 agentInfo.Repository.GlProjectPath,
 		},
-		GitalyAddress: &modserver.GitalyAddress{
-			Address: agentInfo.GitalyInfo.Address,
-			Token:   agentInfo.GitalyInfo.Token,
-		},
+		GitalyInfo: agentInfo.GitalyInfo,
 	})
 	require.NoError(t, err)
 	data, err := protojson.MarshalOptions{

@@ -15,10 +15,10 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/api",
         "//internal/gitaly/vendored/gitalypb",
         "//internal/gitaly/vendored/stats",
         "//internal/tool/ioz",
+        "//pkg/entity",
         "@com_github_bmatcuk_doublestar_v2//:doublestar",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

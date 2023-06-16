@@ -4,11 +4,11 @@ import (
 	"context"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +26,7 @@ type ConfigurationWatcherInterface interface {
 
 type ConfigurationWatcher struct {
 	Log                *zap.Logger
-	AgentMeta          *modshared.AgentMeta
+	AgentMeta          *entity.AgentMeta
 	Client             AgentConfigurationClient
 	PollConfig         retry.PollConfigFactory
 	ConfigPreProcessor func(ConfigurationData) error

@@ -19,7 +19,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab"
@@ -28,6 +27,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -156,7 +156,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 	configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
@@ -165,7 +165,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
@@ -182,7 +182,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, branchPrefix+agentInfo.DefaultBranch).
@@ -203,7 +203,7 @@ func TestGetConfiguration_RefNotFound(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
@@ -231,7 +231,7 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 	configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
@@ -240,7 +240,7 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
@@ -257,7 +257,7 @@ func TestGetConfiguration_EmptyRepository(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
@@ -284,7 +284,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 			configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
 			gomock.InOrder(
 				gitalyPool.EXPECT().
-					Poller(gomock.Any(), &agentInfo.GitalyInfo).
+					Poller(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 					Return(p, nil),
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", branchPrefix+agentInfo.DefaultBranch).
@@ -293,7 +293,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
-					PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+					PathFetcher(gomock.Any(), matcher.ProtoEq(nil, agentInfo.GitalyInfo)).
 					Return(pf, nil),
 				pf.EXPECT().
 					FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
@@ -407,8 +407,8 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func agentMeta() *modshared.AgentMeta {
-	return &modshared.AgentMeta{
+func agentMeta() *entity.AgentMeta {
+	return &entity.AgentMeta{
 		Version:      "v1.2.3",
 		CommitId:     "32452345",
 		PodNamespace: "ns1",

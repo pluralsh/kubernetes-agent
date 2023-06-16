@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -15,12 +16,6 @@ const (
 // AgentToken is agentk's bearer access token.
 type AgentToken string
 
-type GitalyInfo struct {
-	Address  string
-	Token    string
-	Features map[string]string
-}
-
 // AgentInfo contains information about an agentk.
 type AgentInfo struct {
 	// Id is the agent's id in the database.
@@ -31,7 +26,7 @@ type AgentInfo struct {
 	// Name is the agent's name.
 	// Can contain only /a-z\d-/
 	Name       string
-	GitalyInfo GitalyInfo
+	GitalyInfo *entity.GitalyInfo
 	Repository *gitalypb.Repository
 	// DefaultBranch is the name of the default branch in the agent's configuration repository.
 	DefaultBranch string
@@ -39,7 +34,7 @@ type AgentInfo struct {
 
 type ProjectInfo struct {
 	ProjectId  int64
-	GitalyInfo GitalyInfo
+	GitalyInfo *entity.GitalyInfo
 	Repository *gitalypb.Repository
 	// DefaultBranch is the name of the default branch in a repository.
 	DefaultBranch string

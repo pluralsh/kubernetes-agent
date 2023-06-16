@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration"
@@ -38,26 +37,14 @@ type server struct {
 
 func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentConfigFilesRequest) (*rpc.ListAgentConfigFilesResponse, error) {
 	rpcApi := modserver.RpcApiFromContext(ctx)
-	pf, err := s.gitaly.PathFetcher(ctx, &api.GitalyInfo{
-		Address: req.GitalyAddress.Address,
-		Token:   req.GitalyAddress.Token,
-		//Features: nil, // TODO
-	})
+	pf, err := s.gitaly.PathFetcher(ctx, req.GitalyInfo)
 	if err != nil {
 		rpcApi.HandleProcessingError(rpcApi.Log(), modshared.NoAgentId, "PathFetcher", err)
 		return nil, status.Error(codes.Unavailable, "Unavailable")
 	}
-	r := &gitalypb.Repository{
-		StorageName:                   req.Repository.StorageName,
-		RelativePath:                  req.Repository.RelativePath,
-		GitObjectDirectory:            req.Repository.GitObjectDirectory,
-		GitAlternateObjectDirectories: req.Repository.GitAlternateObjectDirectories,
-		GlRepository:                  req.Repository.GlRepository,
-		GlProjectPath:                 req.Repository.GlProjectPath,
-	}
 	v := &configVisitor{}
 	ref := git.ExplicitRefOrHead(req.DefaultBranch)
-	err = pf.Visit(ctx, r, []byte(ref), []byte(agent_configuration.Directory), true, v)
+	err = pf.Visit(ctx, req.Repository.ToGitalyRepository(), []byte(ref), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
 		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
 		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)

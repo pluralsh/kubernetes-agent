@@ -4,7 +4,7 @@ load("//build:proto.bzl", "go_grpc_generate")
 go_grpc_generate(
     src = "rpc.proto",
     deps = [
-        "//internal/module/modserver:proto",
+        "//pkg/entity:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )
@@ -19,7 +19,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/configuration_project/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/module/modserver",
+        "//pkg/entity",
         "@com_github_envoyproxy_protoc_gen_validate//validate",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

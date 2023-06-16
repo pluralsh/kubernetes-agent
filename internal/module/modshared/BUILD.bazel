@@ -1,15 +1,9 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("//build:proto.bzl", "go_proto_generate")
-
-go_proto_generate(
-    src = "modshared.proto",
-)
 
 go_library(
     name = "modshared",
     srcs = [
         "api.go",
-        "modshared.pb.go",
         "rpc_api_stub.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared",
@@ -50,8 +44,6 @@ go_library(
         "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//internal/tool/retry",
-        "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//runtime/protoimpl",
         "@org_uber_go_zap//:zap",
     ],
 )

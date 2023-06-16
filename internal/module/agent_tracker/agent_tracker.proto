@@ -7,12 +7,12 @@ package gitlab.agent.agent_tracker;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker";
 
 import "google/protobuf/timestamp.proto";
-import "internal/module/modshared/modshared.proto";
+import "pkg/entity/entity.proto";
 
 // ConnectedAgentInfo contains information about a connected agentk.
 message ConnectedAgentInfo {
   // Information about the agent sent by the agent.
-  modshared.AgentMeta agent_meta = 1 [json_name = "agent_meta"];
+  entity.AgentMeta agent_meta = 1 [json_name = "agent_meta"];
   // When the connection was established.
   google.protobuf.Timestamp connected_at = 2 [json_name = "connected_at"];
   // Uniquely identifies a particular agentk->kas connection.

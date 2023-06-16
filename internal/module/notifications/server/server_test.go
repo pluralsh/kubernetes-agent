@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
 )
 
@@ -28,22 +29,24 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	ctx := modserver.InjectRpcApi(context.Background(), rpcApi)
 
-	var proj *modserver.Project
+	var ev *event.GitPushEvent
 	// setup server under test
-	s := newServer(func(ctx context.Context, e *modserver.Project) error {
-		proj = e
+	s := newServer(func(ctx context.Context, e *event.GitPushEvent) error {
+		ev = e
 		return nil
 	})
 
 	// WHEN
 	_, err := s.GitPushEvent(ctx, &rpc.GitPushEventRequest{
-		Project: &rpc.Project{Id: 42, FullPath: "foo/bar"},
+		Event: &event.GitPushEvent{
+			Project: &event.Project{Id: 42, FullPath: "foo/bar"},
+		},
 	})
 
 	// THEN
 	require.NoError(t, err)
-	assert.EqualValues(t, 42, proj.Id)
-	assert.EqualValues(t, "foo/bar", proj.FullPath)
+	assert.EqualValues(t, 42, ev.Project.Id)
+	assert.EqualValues(t, "foo/bar", ev.Project.FullPath)
 }
 
 func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
@@ -58,13 +61,15 @@ func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 		HandleProcessingError(gomock.Any(), modshared.NoAgentId, gomock.Any(), givenErr)
 
 	// setup server under test
-	s := newServer(func(ctx context.Context, e *modserver.Project) error {
+	s := newServer(func(ctx context.Context, e *event.GitPushEvent) error {
 		return givenErr
 	})
 
 	// WHEN
 	_, err := s.GitPushEvent(ctx, &rpc.GitPushEventRequest{
-		Project: &rpc.Project{Id: 42, FullPath: "foo/bar"},
+		Event: &event.GitPushEvent{
+			Project: &event.Project{Id: 42, FullPath: "foo/bar"},
+		},
 	})
 
 	// THEN

@@ -27,6 +27,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap/zaptest"
@@ -247,7 +248,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -256,7 +257,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
@@ -297,7 +298,7 @@ func TestGetObjectsToSynchronize_EmptyRepository(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
@@ -360,7 +361,7 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 	p.EXPECT().Poll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(manifestRevision), []byte("."), true, gomock.Any()).
@@ -435,7 +436,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -444,7 +445,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 				UpdateAvailable: true,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("path"), false, gomock.Any()).
@@ -482,7 +483,7 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, "HEAD").
@@ -551,7 +552,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 			gomock.InOrder(
 				gitalyPool.EXPECT().
-					Poller(gomock.Any(), &projInfo.GitalyInfo).
+					Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 					Return(p, nil),
 				p.EXPECT().
 					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -560,7 +561,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 						UpdateAvailable: true,
 					}, nil),
 				gitalyPool.EXPECT().
-					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+					PathFetcher(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 					Return(pf, nil),
 				pf.EXPECT().
 					Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
@@ -587,7 +588,7 @@ func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Poller(gomock.Any(), matcher.ProtoEq(nil, projInfo.GitalyInfo)).
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", "HEAD").
@@ -609,18 +610,20 @@ func TestGetObjectsToSynchronize_RefNotFound(t *testing.T) {
 func projectInfoRest() *gapi.GetProjectInfoResponse {
 	return &gapi.GetProjectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: &gapi.GitalyInfo{
+		GitalyInfo: &entity.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
 			Features: map[string]string{
 				"bla": "false",
 			},
 		},
-		GitalyRepository: &gapi.GitalyRepository{
-			StorageName:   "StorageName1",
-			RelativePath:  "RelativePath1",
-			GlRepository:  "GlRepository1",
-			GlProjectPath: "GlProjectPath1",
+		GitalyRepository: &entity.GitalyRepository{
+			StorageName:                   "234",
+			RelativePath:                  "123",
+			GitObjectDirectory:            "sfasdf",
+			GitAlternateObjectDirectories: []string{"a", "b"},
+			GlRepository:                  "254634",
+			GlProjectPath:                 "64662",
 		},
 		DefaultBranch: "main",
 	}
@@ -630,8 +633,8 @@ func projectInfo() *api.ProjectInfo {
 	rest := projectInfoRest()
 	return &api.ProjectInfo{
 		ProjectId:     rest.ProjectId,
-		GitalyInfo:    rest.GitalyInfo.ToApiGitalyInfo(),
-		Repository:    rest.GitalyRepository.ToGitalyProtoRepository(),
+		GitalyInfo:    rest.GitalyInfo,
+		Repository:    rest.GitalyRepository.ToGitalyRepository(),
 		DefaultBranch: rest.DefaultBranch,
 	}
 }
