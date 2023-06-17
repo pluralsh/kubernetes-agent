@@ -15,6 +15,10 @@ func (x *ClientError) Error() string {
 	if p == "" {
 		p = "<unknown>"
 	}
+	r := x.Reason
+	if r != "" {
+		return fmt.Sprintf("HTTP status code: %d for path %s with reason %s", x.StatusCode, p, r)
+	}
 	return fmt.Sprintf("HTTP status code: %d for path %s", x.StatusCode, p)
 }
 

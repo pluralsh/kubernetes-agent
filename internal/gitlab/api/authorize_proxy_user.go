@@ -24,7 +24,7 @@ func AuthorizeProxyUser(ctx context.Context, client gitlab.ClientInterface, agen
 				AccessKey:  accessKey,
 				CsrfToken:  csrfToken,
 			}),
-			gitlab.WithResponseHandler(gitlab.ProtoJsonResponseHandler(auth)),
+			gitlab.WithResponseHandler(gitlab.ProtoJsonResponseHandlerWithStructuredErrReason(auth)),
 		)...,
 	)
 	if err != nil {
