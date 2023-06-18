@@ -7,26 +7,31 @@ import (
 
 type EventCallback[E any] func(ctx context.Context, e E)
 
+type sub[E any] struct {
+	done <-chan struct{}
+	ch   chan<- E
+}
+
 type Subscriptions[E any] struct {
-	mu  sync.Mutex
-	chs []chan<- E
+	mu   sync.Mutex
+	subs []sub[E]
 }
 
-func (s *Subscriptions[E]) add(ch chan<- E) {
+func (s *Subscriptions[E]) add(sb sub[E]) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.chs = append(s.chs, ch)
+	s.subs = append(s.subs, sb)
 }
 
-func (s *Subscriptions[E]) remove(ch chan<- E) {
+func (s *Subscriptions[E]) remove(sb sub[E]) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, c := range s.chs {
-		if c == ch {
-			l := len(s.chs)
-			newChs := append(s.chs[:i], s.chs[i+1:]...)
-			s.chs[l-1] = nil // help GC
-			s.chs = newChs
+	for i, c := range s.subs {
+		if c == sb {
+			l := len(s.subs)
+			newChs := append(s.subs[:i], s.subs[i+1:]...)
+			s.subs[l-1] = sub[E]{} // help GC
+			s.subs = newChs
 			break
 		}
 	}
@@ -34,10 +39,14 @@ func (s *Subscriptions[E]) remove(ch chan<- E) {
 
 func (s *Subscriptions[E]) On(ctx context.Context, cb EventCallback[E]) {
 	ch := make(chan E)
-	s.add(ch)
-	defer s.remove(ch)
-
 	done := ctx.Done()
+	sb := sub[E]{
+		done: done,
+		ch:   ch,
+	}
+	s.add(sb)
+	defer s.remove(sb)
+
 	for {
 		select {
 		case <-done:
@@ -55,11 +64,13 @@ func (s *Subscriptions[E]) Dispatch(ctx context.Context, e E) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, ch := range s.chs {
+	for _, sb := range s.subs {
 		select {
 		case <-done:
 			return
-		case ch <- e:
+		case <-sb.done:
+			// It doesn't want the events anymore.
+		case sb.ch <- e:
 		}
 	}
 }
