@@ -90,7 +90,7 @@ func (a *serverApi) publishGitPushEvent(ctx context.Context, e *event.GitPushEve
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
 	}
-	publishCmd := a.redisClient.B().Publish().Channel(gitPushEventsRedisChannel).Message(string(payload)).Build()
+	publishCmd := a.redisClient.B().Publish().Channel(gitPushEventsRedisChannel).Message(rueidis.BinaryString(payload)).Build()
 	return a.redisClient.Do(ctx, publishCmd).Error()
 }
 
