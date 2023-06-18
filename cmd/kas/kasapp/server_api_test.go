@@ -8,14 +8,18 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
@@ -95,4 +99,18 @@ func TestRemoveRandomPort(t *testing.T) {
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
+}
+
+func TestRedisMarshalAndUnmarshal(t *testing.T) {
+	mIn := &GatewayKasResponse_Header{
+		Meta: map[string]*prototool.Values{
+			"key": {Value: []string{"1", "2"}},
+		},
+	}
+	msg, err := redisProtoMarshal(mIn)
+	require.NoError(t, err)
+	mOut, err := redisProtoUnmarshal(string(msg))
+	require.NoError(t, err)
+
+	assert.Empty(t, cmp.Diff(mIn, mOut, protocmp.Transform()))
 }

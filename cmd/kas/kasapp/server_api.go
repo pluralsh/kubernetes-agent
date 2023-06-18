@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+	"unsafe"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/redis/rueidis"
@@ -138,7 +139,9 @@ func redisProtoMarshal(m proto.Message) ([]byte, error) {
 
 func redisProtoUnmarshal(payload string) (proto.Message, error) {
 	var a anypb.Any
-	err := proto.Unmarshal([]byte(payload), &a)
+	// Avoid creating a temporary copy
+	payloadBytes := *(*[]byte)(unsafe.Pointer(&payload)) // nolint: gosec
+	err := proto.Unmarshal(payloadBytes, &a)
 	if err != nil {
 		return nil, err
 	}

@@ -152,6 +152,7 @@ go_custom_test(
         "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//internal/tool/grpctool/test",
+        "//internal/tool/prototool",
         "//internal/tool/testing/mock_cache",
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_modserver",
