@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -51,11 +51,11 @@ type SentryHub interface {
 }
 
 type serverApi struct {
-	log                       *zap.Logger
-	Hub                       SentryHub
-	redisClient               rueidis.Client
-	gitPushEventSubscriptions subscriptions
-	redisPollConfig           retry.PollConfigFactory
+	log             *zap.Logger
+	Hub             SentryHub
+	redisClient     rueidis.Client
+	gitPushEvent    syncz.Subscriptions[*event.GitPushEvent]
+	redisPollConfig retry.PollConfigFactory
 }
 
 func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *serverApi {
@@ -73,31 +73,6 @@ func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *s
 	}
 }
 
-type subscriptions struct {
-	mu  sync.Mutex
-	chs []chan<- *event.GitPushEvent
-}
-
-func (s *subscriptions) add(ch chan<- *event.GitPushEvent) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.chs = append(s.chs, ch)
-}
-
-func (s *subscriptions) remove(ch chan<- *event.GitPushEvent) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for i, c := range s.chs {
-		if c == ch {
-			l := len(s.chs)
-			newChs := append(s.chs[:i], s.chs[i+1:]...)
-			s.chs[l-1] = nil // help GC
-			s.chs = newChs
-			break
-		}
-	}
-}
-
 func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	handleProcessingError(ctx, a.hub, log, agentId, msg, err)
 }
@@ -106,20 +81,8 @@ func (a *serverApi) hub() (SentryHub, string) {
 	return a.Hub, ""
 }
 
-func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
-	ch := make(chan *event.GitPushEvent)
-	a.gitPushEventSubscriptions.add(ch)
-	defer a.gitPushEventSubscriptions.remove(ch)
-
-	done := ctx.Done()
-	for {
-		select {
-		case <-done:
-			return
-		case m := <-ch:
-			callback(ctx, m)
-		}
-	}
+func (a *serverApi) OnGitPushEvent(ctx context.Context, cb syncz.EventCallback[*event.GitPushEvent]) {
+	a.gitPushEvent.On(ctx, cb)
 }
 
 func (a *serverApi) publishGitPushEvent(ctx context.Context, e *event.GitPushEvent) error {
@@ -145,7 +108,7 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 
 			switch e := (protoMessage).(type) {
 			case *event.GitPushEvent:
-				a.dispatchGitPushEvent(ctx, e)
+				a.gitPushEvent.Dispatch(ctx, e)
 			default:
 				a.HandleProcessingError(
 					ctx,
@@ -163,23 +126,6 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 			return nil, retry.Backoff
 		}
 	})
-}
-
-// dispatchGitPushEvent dispatches the given `project` which is the message of the Git push event
-// to all registered subscriptions registered by OnGitPushEvent.
-func (a *serverApi) dispatchGitPushEvent(ctx context.Context, e *event.GitPushEvent) {
-	done := ctx.Done()
-
-	a.gitPushEventSubscriptions.mu.Lock()
-	defer a.gitPushEventSubscriptions.mu.Unlock()
-
-	for _, ch := range a.gitPushEventSubscriptions.chs {
-		select {
-		case <-done:
-			return
-		case ch <- e:
-		}
-	}
 }
 
 func redisProtoMarshal(m proto.Message) ([]byte, error) {
