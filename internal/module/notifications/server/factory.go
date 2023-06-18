@@ -8,15 +8,15 @@ import (
 )
 
 type Factory struct {
-	// GitPushPublisher provides a `Publish` interface to emit notifications about Git push events.
-	GitPushPublisher  gitPushPublisherFunc
-	GitPushSubscriber gitPushSubscriberFunc
+	// PublishEvent provides a `Publish` interface to emit events.
+	PublishEvent      PublishEvent
+	SubscribeToEvents SubscribeToEvents
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	rpc.RegisterNotificationsServer(config.ApiServer, newServer(f.GitPushPublisher))
+	rpc.RegisterNotificationsServer(config.ApiServer, newServer(f.PublishEvent))
 	return &module{
-		gitPushSubscriber: f.GitPushSubscriber,
+		subscribeToEvents: f.SubscribeToEvents,
 	}, nil
 }
 

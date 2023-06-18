@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
@@ -14,6 +15,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
@@ -29,24 +32,24 @@ func TestServer_GitPushEvent_SuccessfulPublish(t *testing.T) {
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	ctx := modserver.InjectRpcApi(context.Background(), rpcApi)
 
-	var ev *event.GitPushEvent
+	var gotEvent proto.Message
 	// setup server under test
-	s := newServer(func(ctx context.Context, e *event.GitPushEvent) error {
-		ev = e
+	s := newServer(func(ctx context.Context, e proto.Message) error {
+		gotEvent = e
 		return nil
 	})
 
 	// WHEN
+	gitPushEvent := &event.GitPushEvent{
+		Project: &event.Project{Id: 42, FullPath: "foo/bar"},
+	}
 	_, err := s.GitPushEvent(ctx, &rpc.GitPushEventRequest{
-		Event: &event.GitPushEvent{
-			Project: &event.Project{Id: 42, FullPath: "foo/bar"},
-		},
+		Event: gitPushEvent,
 	})
 
 	// THEN
 	require.NoError(t, err)
-	assert.EqualValues(t, 42, ev.Project.Id)
-	assert.EqualValues(t, "foo/bar", ev.Project.FullPath)
+	assert.Empty(t, cmp.Diff(gotEvent, gitPushEvent, protocmp.Transform()))
 }
 
 func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
@@ -61,7 +64,7 @@ func TestServer_GitPushEvent_FailedPublish(t *testing.T) {
 		HandleProcessingError(gomock.Any(), modshared.NoAgentId, gomock.Any(), givenErr)
 
 	// setup server under test
-	s := newServer(func(ctx context.Context, e *event.GitPushEvent) error {
+	s := newServer(func(ctx context.Context, e proto.Message) error {
 		return givenErr
 	})
 

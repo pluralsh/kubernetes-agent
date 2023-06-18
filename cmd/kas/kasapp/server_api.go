@@ -44,7 +44,7 @@ const (
 	redisBackoffFactor   = 2.0
 	redisJitter          = 1.0
 
-	gitPushEventsRedisChannel = "kas_git_push_events2"
+	eventsRedisChannel = "kas_events"
 )
 
 type SentryHub interface {
@@ -86,24 +86,24 @@ func (a *serverApi) OnGitPushEvent(ctx context.Context, cb syncz.EventCallback[*
 	a.gitPushEvent.On(ctx, cb)
 }
 
-func (a *serverApi) publishGitPushEvent(ctx context.Context, e *event.GitPushEvent) error {
+func (a *serverApi) publishEvent(ctx context.Context, e proto.Message) error {
 	payload, err := redisProtoMarshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
 	}
-	publishCmd := a.redisClient.B().Publish().Channel(gitPushEventsRedisChannel).Message(rueidis.BinaryString(payload)).Build()
+	publishCmd := a.redisClient.B().Publish().Channel(eventsRedisChannel).Message(rueidis.BinaryString(payload)).Build()
 	return a.redisClient.Do(ctx, publishCmd).Error()
 }
 
-// subscribeGitPushEvent subscribes to the Git push event redis channel
+// subscribeToEvents subscribes to the events Redis channel
 // and will dispatch each event to the registered callbacks.
-func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
+func (a *serverApi) subscribeToEvents(ctx context.Context) {
 	_ = retry.PollWithBackoff(ctx, a.redisPollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		subCmd := a.redisClient.B().Subscribe().Channel(gitPushEventsRedisChannel).Build()
+		subCmd := a.redisClient.B().Subscribe().Channel(eventsRedisChannel).Build()
 		err := a.redisClient.Receive(ctx, subCmd, func(msg rueidis.PubSubMessage) {
 			protoMessage, err := redisProtoUnmarshal(msg.Message)
 			if err != nil {
-				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", gitPushEventsRedisChannel), err)
+				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", eventsRedisChannel), err)
 				return
 			}
 
@@ -115,7 +115,7 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 					ctx,
 					a.log,
 					modshared.NoAgentId,
-					"GitOps: unable to handle received git push event",
+					"Unable to handle received event",
 					fmt.Errorf("failed to cast proto message of type %T to concrete type", e))
 			}
 		})
