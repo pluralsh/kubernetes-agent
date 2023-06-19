@@ -165,7 +165,19 @@ func (p *kubernetesApiProxy) isOriginAllowed(origin string) bool {
 }
 
 func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Request) (*zap.Logger, int64 /* agentId */, *grpctool.ErrResp) {
-	log, agentId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(r)
+	ctx := r.Context()
+	log := p.log.With(logz.TraceIdFromContext(ctx))
+
+	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
+		msg := "Bad request: URL does not start with expected prefix"
+		log.Debug(msg, logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
+		return log, modshared.NoAgentId, &grpctool.ErrResp{
+			StatusCode: http.StatusBadRequest,
+			Msg:        msg,
+		}
+	}
+
+	log, agentId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
 	if eResp != nil {
 		// If GitLab doesn't authorize the proxy user to make the call,
 		// we send an extra header to indicate that, so that the client
@@ -177,19 +189,9 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		return log, agentId, eResp
 	}
 
-	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
-		msg := "Bad request: URL does not start with expected prefix"
-		log.Debug(msg, logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
-		return log, agentId, &grpctool.ErrResp{
-			StatusCode: http.StatusBadRequest,
-			Msg:        msg,
-		}
-	}
-
 	p.requestCounter.Inc() // Count only authenticated and authorized requests
 	p.ciTunnelUsersCounter.Add(userId)
 
-	ctx := r.Context()
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
 	if err != nil {
@@ -206,10 +208,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 	return log, agentId, nil
 }
 
-func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(r *http.Request) (*zap.Logger, int64 /* agentId */, int64 /* userId */, *rpc.ImpersonationConfig, *grpctool.ErrResp) {
-	ctx := r.Context()
-	log := p.log.With(logz.TraceIdFromContext(ctx))
-
+func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Context, log *zap.Logger, r *http.Request) (*zap.Logger, int64 /* agentId */, int64 /* userId */, *rpc.ImpersonationConfig, *grpctool.ErrResp) {
 	agentId, creds, err := getAuthorizationInfoFromRequest(r)
 	if err != nil {
 		msg := "Unauthorized"
