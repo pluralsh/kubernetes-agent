@@ -708,7 +708,7 @@ func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), urlPat
 	_, k8sClient, client, req, requestCount, ciTunnelUsageSet := setupProxyWithHandler(t, urlPathPrefix, handler)
 	prepareRequest(req)
 	requestCount.EXPECT().Inc()
-	ciTunnelUsageSet.EXPECT().Add(testhelpers.AgentId)
+	ciTunnelUsageSet.EXPECT().Add(testhelpers.UserId)
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
 	mrCall := k8sClient.EXPECT().
 		MakeRequest(gomock.Any()).
@@ -927,7 +927,7 @@ func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *
 				},
 			},
 			User: &gapi.User{
-				Id:       testhelpers.AgentId,
+				Id:       testhelpers.UserId,
 				Username: "testuser",
 			},
 			Environment: env,

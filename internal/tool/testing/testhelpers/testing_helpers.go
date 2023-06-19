@@ -35,6 +35,7 @@ const (
 
 	AgentId   int64 = 123
 	ProjectId int64 = 321
+	UserId    int64 = 456
 )
 
 // RespondWithJSON marshals response into JSON and writes it into w.
