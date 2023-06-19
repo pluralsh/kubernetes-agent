@@ -6,14 +6,14 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications"
 )
 
-type gitPushSubscriberFunc func(ctx context.Context)
+type SubscribeToEvents func(ctx context.Context)
 
 type module struct {
-	gitPushSubscriber gitPushSubscriberFunc
+	subscribeToEvents SubscribeToEvents
 }
 
 func (m *module) Run(ctx context.Context) error {
-	m.gitPushSubscriber(ctx)
+	m.subscribeToEvents(ctx)
 	return nil
 }
 

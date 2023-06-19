@@ -5,20 +5,21 @@ import (
 	"errors"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
-	"k8s.io/apimachinery/pkg/util/wait"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
@@ -100,76 +101,16 @@ func TestRemoveRandomPort(t *testing.T) {
 	}
 }
 
-func TestServerApi_GitPushEvent_DispatchingMultiple(t *testing.T) {
-	// GIVEN
-	var wg wait.Group
-	defer wg.Wait()
-
-	a := newServerApi(zaptest.NewLogger(t), nil, nil)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	ev := &event.GitPushEvent{}
-	// recorder for callback hits
-	rec1 := make(chan struct{})
-	rec2 := make(chan struct{})
-	subscriber1 := func(_ context.Context, e *event.GitPushEvent) {
-		assert.Same(t, ev, e)
-		close(rec1)
+func TestRedisMarshalAndUnmarshal(t *testing.T) {
+	mIn := &GatewayKasResponse_Header{
+		Meta: map[string]*prototool.Values{
+			"key": {Value: []string{"1", "2"}},
+		},
 	}
-	subscriber2 := func(_ context.Context, e *event.GitPushEvent) {
-		assert.Same(t, ev, e)
-		close(rec2)
-	}
+	msg, err := redisProtoMarshal(mIn)
+	require.NoError(t, err)
+	mOut, err := redisProtoUnmarshal(string(msg))
+	require.NoError(t, err)
 
-	// WHEN
-	// starting multiple subscribers
-	wg.Start(func() {
-		a.OnGitPushEvent(ctx, subscriber1)
-	})
-	wg.Start(func() {
-		a.OnGitPushEvent(ctx, subscriber2)
-	})
-
-	// give the OnGitPushEvent goroutines time to be scheduled and registered
-	assert.Eventually(t, func() bool {
-		a.gitPushEventSubscriptions.mu.Lock()
-		defer a.gitPushEventSubscriptions.mu.Unlock()
-		return len(a.gitPushEventSubscriptions.chs) == 2
-	}, time.Minute, time.Millisecond)
-
-	// dispatch a single git push event
-	a.dispatchGitPushEvent(ctx, ev)
-
-	// THEN
-	<-rec1
-	<-rec2
-}
-
-func TestServerApi_GitPushEventSubscriptions(t *testing.T) {
-	var s subscriptions
-
-	ch1 := make(chan<- *event.GitPushEvent)
-	ch2 := make(chan<- *event.GitPushEvent)
-	ch3 := make(chan<- *event.GitPushEvent)
-
-	s.add(ch1)
-	s.add(ch2)
-	s.add(ch3)
-
-	assert.Equal(t, ch1, s.chs[0])
-	assert.Equal(t, ch2, s.chs[1])
-	assert.Equal(t, ch3, s.chs[2])
-
-	s.remove(ch2)
-
-	assert.Equal(t, ch1, s.chs[0])
-	assert.Equal(t, ch3, s.chs[1])
-	assert.Nil(t, s.chs[:3:3][2])
-
-	s.remove(ch1)
-	s.remove(ch3)
-	assert.Nil(t, s.chs[:3:3][0])
-	assert.Nil(t, s.chs[:3:3][1])
-	assert.Empty(t, s.chs)
+	assert.Empty(t, cmp.Diff(mIn, mOut, protocmp.Transform()))
 }

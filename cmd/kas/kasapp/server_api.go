@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/redis/rueidis"
@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -43,7 +44,7 @@ const (
 	redisBackoffFactor   = 2.0
 	redisJitter          = 1.0
 
-	gitPushEventsRedisChannel = "kas_git_push_events2"
+	eventsRedisChannel = "kas_events"
 )
 
 type SentryHub interface {
@@ -51,11 +52,11 @@ type SentryHub interface {
 }
 
 type serverApi struct {
-	log                       *zap.Logger
-	Hub                       SentryHub
-	redisClient               rueidis.Client
-	gitPushEventSubscriptions subscriptions
-	redisPollConfig           retry.PollConfigFactory
+	log             *zap.Logger
+	Hub             SentryHub
+	redisClient     rueidis.Client
+	gitPushEvent    syncz.Subscriptions[*event.GitPushEvent]
+	redisPollConfig retry.PollConfigFactory
 }
 
 func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *serverApi {
@@ -73,31 +74,6 @@ func newServerApi(log *zap.Logger, hub SentryHub, redisClient rueidis.Client) *s
 	}
 }
 
-type subscriptions struct {
-	mu  sync.Mutex
-	chs []chan<- *event.GitPushEvent
-}
-
-func (s *subscriptions) add(ch chan<- *event.GitPushEvent) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.chs = append(s.chs, ch)
-}
-
-func (s *subscriptions) remove(ch chan<- *event.GitPushEvent) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for i, c := range s.chs {
-		if c == ch {
-			l := len(s.chs)
-			newChs := append(s.chs[:i], s.chs[i+1:]...)
-			s.chs[l-1] = nil // help GC
-			s.chs = newChs
-			break
-		}
-	}
-}
-
 func (a *serverApi) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	handleProcessingError(ctx, a.hub, log, agentId, msg, err)
 }
@@ -106,52 +82,40 @@ func (a *serverApi) hub() (SentryHub, string) {
 	return a.Hub, ""
 }
 
-func (a *serverApi) OnGitPushEvent(ctx context.Context, callback modserver.GitPushEventCallback) {
-	ch := make(chan *event.GitPushEvent)
-	a.gitPushEventSubscriptions.add(ch)
-	defer a.gitPushEventSubscriptions.remove(ch)
-
-	done := ctx.Done()
-	for {
-		select {
-		case <-done:
-			return
-		case m := <-ch:
-			callback(ctx, m)
-		}
-	}
+func (a *serverApi) OnGitPushEvent(ctx context.Context, cb syncz.EventCallback[*event.GitPushEvent]) {
+	a.gitPushEvent.On(ctx, cb)
 }
 
-func (a *serverApi) publishGitPushEvent(ctx context.Context, e *event.GitPushEvent) error {
+func (a *serverApi) publishEvent(ctx context.Context, e proto.Message) error {
 	payload, err := redisProtoMarshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
 	}
-	publishCmd := a.redisClient.B().Publish().Channel(gitPushEventsRedisChannel).Message(string(payload)).Build()
+	publishCmd := a.redisClient.B().Publish().Channel(eventsRedisChannel).Message(rueidis.BinaryString(payload)).Build()
 	return a.redisClient.Do(ctx, publishCmd).Error()
 }
 
-// subscribeGitPushEvent subscribes to the Git push event redis channel
+// subscribeToEvents subscribes to the events Redis channel
 // and will dispatch each event to the registered callbacks.
-func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
+func (a *serverApi) subscribeToEvents(ctx context.Context) {
 	_ = retry.PollWithBackoff(ctx, a.redisPollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		subCmd := a.redisClient.B().Subscribe().Channel(gitPushEventsRedisChannel).Build()
+		subCmd := a.redisClient.B().Subscribe().Channel(eventsRedisChannel).Build()
 		err := a.redisClient.Receive(ctx, subCmd, func(msg rueidis.PubSubMessage) {
 			protoMessage, err := redisProtoUnmarshal(msg.Message)
 			if err != nil {
-				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", gitPushEventsRedisChannel), err)
+				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", eventsRedisChannel), err)
 				return
 			}
 
 			switch e := (protoMessage).(type) {
 			case *event.GitPushEvent:
-				a.dispatchGitPushEvent(ctx, e)
+				a.gitPushEvent.Dispatch(ctx, e)
 			default:
 				a.HandleProcessingError(
 					ctx,
 					a.log,
 					modshared.NoAgentId,
-					"GitOps: unable to handle received git push event",
+					"Unable to handle received event",
 					fmt.Errorf("failed to cast proto message of type %T to concrete type", e))
 			}
 		})
@@ -165,23 +129,6 @@ func (a *serverApi) subscribeGitPushEvent(ctx context.Context) {
 	})
 }
 
-// dispatchGitPushEvent dispatches the given `project` which is the message of the Git push event
-// to all registered subscriptions registered by OnGitPushEvent.
-func (a *serverApi) dispatchGitPushEvent(ctx context.Context, e *event.GitPushEvent) {
-	done := ctx.Done()
-
-	a.gitPushEventSubscriptions.mu.Lock()
-	defer a.gitPushEventSubscriptions.mu.Unlock()
-
-	for _, ch := range a.gitPushEventSubscriptions.chs {
-		select {
-		case <-done:
-			return
-		case ch <- e:
-		}
-	}
-}
-
 func redisProtoMarshal(m proto.Message) ([]byte, error) {
 	a, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in redisProtoUnmarshal()
 	if err != nil {
@@ -192,7 +139,9 @@ func redisProtoMarshal(m proto.Message) ([]byte, error) {
 
 func redisProtoUnmarshal(payload string) (proto.Message, error) {
 	var a anypb.Any
-	err := proto.Unmarshal([]byte(payload), &a)
+	// Avoid creating a temporary copy
+	payloadBytes := *(*[]byte)(unsafe.Pointer(&payload)) // nolint: gosec
+	err := proto.Unmarshal(payloadBytes, &a)
 	if err != nil {
 		return nil, err
 	}

@@ -245,8 +245,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&configuration_project_server.Factory{},
 		&notifications_server.Factory{
-			GitPushPublisher:  srvApi.publishGitPushEvent,
-			GitPushSubscriber: srvApi.subscribeGitPushEvent,
+			PublishEvent:      srvApi.publishEvent,
+			SubscribeToEvents: srvApi.subscribeToEvents,
 		},
 		&flux_server.Factory{},
 		&gitops_server.Factory{},

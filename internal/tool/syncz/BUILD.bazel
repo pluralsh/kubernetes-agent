@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "mutex.go",
         "rwmutex.go",
+        "subscriptions.go",
         "synz.go",
         "worker.go",
     ],
@@ -19,7 +20,13 @@ go_library(
 
 go_custom_test(
     name = "syncz_test",
-    srcs = ["worker_test.go"],
+    srcs = [
+        "subscriptions_test.go",
+        "worker_test.go",
+    ],
     embed = [":syncz"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@io_k8s_apimachinery//pkg/util/wait",
+    ],
 )

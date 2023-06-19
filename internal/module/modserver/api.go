@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/metric"
@@ -83,8 +84,6 @@ type Config struct {
 	ProbeRegistry *observability.ProbeRegistry
 }
 
-type GitPushEventCallback func(ctx context.Context, e *event.GitPushEvent)
-
 // Api provides the API for the module to use.
 type Api interface {
 	modshared.Api
@@ -93,7 +92,7 @@ type Api interface {
 	// callback to filter out the events that it's interested in.
 	// The callback MUST NOT block i.e. perform I/O or acquire contended locks. Perform those operations
 	// asynchronously in a separate goroutine when required.
-	OnGitPushEvent(ctx context.Context, callback GitPushEventCallback)
+	OnGitPushEvent(ctx context.Context, cb syncz.EventCallback[*event.GitPushEvent])
 }
 
 type Factory interface {

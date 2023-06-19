@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"reflect"
 	"strconv"
 	"unsafe"
 )
@@ -86,9 +85,7 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 	// We have at least 4 bytes available so we can decode the 4-hex digit
 	// length prefix of the packet line.
 	lenSlice := data[:4]
-	lenSliceHdr := (*reflect.SliceHeader)(unsafe.Pointer(&lenSlice)) // nolint: gosec
-	lenSliceStrHdr := reflect.StringHeader{Data: lenSliceHdr.Data, Len: lenSliceHdr.Len}
-	lenSliceStr := *(*string)(unsafe.Pointer(&lenSliceStrHdr)) // nolint: gosec, govet
+	lenSliceStr := *(*string)(unsafe.Pointer(&lenSlice)) // nolint: gosec
 
 	pktLength64, err := strconv.ParseUint(lenSliceStr, 16, 0)
 	if err != nil {
