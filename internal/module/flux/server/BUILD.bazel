@@ -19,6 +19,7 @@ go_library(
         "//internal/module/modshared",
         "//internal/tool/cache",
         "//internal/tool/logz",
+        "//internal/tool/metric",
         "//internal/tool/prototool",
         "//internal/tool/redistool",
         "//internal/tool/retry",

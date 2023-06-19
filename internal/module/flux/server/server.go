@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
@@ -13,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/zap"
@@ -28,7 +28,8 @@ const (
 type server struct {
 	rpc.UnimplementedGitLabFluxServer
 	serverApi           modserver.Api
-	droppedCounter      prometheus.Counter
+	notifiedCounter     metric.Counter
+	droppedCounter      metric.Counter
 	pollCfgFactory      retry.PollConfigFactory
 	projectAccessClient *projectAccessClient
 }
@@ -70,6 +71,9 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 			if !hasAccess {
 				continue
 			}
+
+			// increase Flux Git push event notification counter
+			s.notifiedCounter.Inc()
 
 			err = server.Send(&rpc.ReconcileProjectsResponse{
 				Project: &rpc.Project{Id: project.FullPath},
