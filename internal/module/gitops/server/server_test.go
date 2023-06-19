@@ -685,13 +685,15 @@ func setupServerBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
 	s := newServerFromConfig(&modserver.Config{
 		Log:           zaptest.NewLogger(t),
+		Api:           mockApi,
 		Config:        config,
 		GitLabClient:  mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
 		Registerer:    prometheus.NewPedanticRegistry(),
 		UsageTracker:  usageTracker,
 		Gitaly:        gitalyPool,
 		TraceProvider: trace.NewNoopTracerProvider(),
-	}, client, mockApi)
+		RedisClient:   client,
+	})
 	return ctx, s, ctrl, mockRpcApi, gitalyPool
 }
 

@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops"
@@ -31,7 +30,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	s := newServerFromConfig(config, config.RedisClient, config.Api)
+	s := newServerFromConfig(config)
 	rpc.RegisterGitopsServer(config.AgentServer, s)
 	return &module{}, nil
 }
@@ -44,10 +43,10 @@ func (f *Factory) StartStopPhase() modshared.ModuleStartStopPhase {
 	return modshared.ModuleStartBeforeServers
 }
 
-func newServerFromConfig(config *modserver.Config, redisClient rueidis.Client, serverApi modserver.Api) *server {
+func newServerFromConfig(config *modserver.Config) *server {
 	gitopsCfg := config.Config.Agent.Gitops
 	return &server{
-		serverApi:  serverApi,
+		serverApi:  config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
 			GitLabClient: config.GitLabClient,
@@ -57,7 +56,7 @@ func newServerFromConfig(config *modserver.Config, redisClient rueidis.Client, s
 				&redistool.ErrCacher[projectInfoCacheKey]{
 					Log:          config.Log,
 					ErrRep:       modshared.ApiToErrReporter(config.Api),
-					Client:       redisClient,
+					Client:       config.RedisClient,
 					ErrMarshaler: prototool.ProtoErrMarshaler{},
 					KeyToRedisKey: func(cacheKey projectInfoCacheKey) string {
 						var result strings.Builder
