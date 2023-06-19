@@ -78,21 +78,27 @@ type proxyUserCacheKey struct {
 }
 
 type kubernetesApiProxy struct {
-	log                     *zap.Logger
-	api                     modserver.Api
-	kubernetesApiClient     rpc.KubernetesApiClient
-	gitLabClient            gitlab.ClientInterface
-	allowedOriginUrls       []string
-	allowedAgentsCache      *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
-	authorizeProxyUserCache *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]
-	requestCounter          usage_metrics.Counter
-	ciTunnelUsersCounter    usage_metrics.UniqueCounter
-	responseSerializer      runtime.NegotiatedSerializer
-	traceProvider           trace.TracerProvider
-	tracePropagator         propagation.TextMapPropagator
-	meterProvider           metric.MeterProvider
-	serverName              string
-	serverVia               string
+	log                      *zap.Logger
+	api                      modserver.Api
+	kubernetesApiClient      rpc.KubernetesApiClient
+	gitLabClient             gitlab.ClientInterface
+	allowedOriginUrls        []string
+	allowedAgentsCache       *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
+	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]
+	requestCounter           usage_metrics.Counter
+	ciTunnelUsersCounter     usage_metrics.UniqueCounter
+	ciAccessRequestCounter   usage_metrics.Counter
+	ciAccessUsersCounter     usage_metrics.UniqueCounter
+	ciAccessAgentsCounter    usage_metrics.UniqueCounter
+	userAccessRequestCounter usage_metrics.Counter
+	userAccessUsersCounter   usage_metrics.UniqueCounter
+	userAccessAgentsCounter  usage_metrics.UniqueCounter
+	responseSerializer       runtime.NegotiatedSerializer
+	traceProvider            trace.TracerProvider
+	tracePropagator          propagation.TextMapPropagator
+	meterProvider            metric.MeterProvider
+	serverName               string
+	serverVia                string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix       string
 	listenerGracePeriod time.Duration
@@ -255,6 +261,11 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 				Err:        err,
 			}
 		}
+
+		// update usage metrics for `ci_access` requests using the CI tunnel
+		p.ciAccessRequestCounter.Inc()
+		p.ciAccessUsersCounter.Add(userId)
+		p.ciAccessAgentsCounter.Add(agentId)
 	case sessionCookieAuthn:
 		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "session_cookie", c.encryptedPublicSessionId, c.csrfToken)
 		if eResp != nil {
@@ -271,6 +282,11 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 				Err:        err,
 			}
 		}
+
+		// update usage metrics for `user_access` requests using the CI tunnel
+		p.userAccessRequestCounter.Inc()
+		p.userAccessUsersCounter.Add(userId)
+		p.userAccessAgentsCounter.Add(agentId)
 	default: // This should never happen
 		msg := "Invalid authorization type"
 		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
