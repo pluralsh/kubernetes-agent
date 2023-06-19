@@ -43,7 +43,7 @@ func TestSubscriptions_DispatchingMultiple(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		return len(s.chs) == 2
+		return len(s.subs) == 2
 	}, time.Minute, time.Millisecond)
 
 	// dispatch a single event
@@ -57,27 +57,46 @@ func TestSubscriptions_DispatchingMultiple(t *testing.T) {
 func TestSubscriptions_AddRemove(t *testing.T) {
 	var s Subscriptions[int]
 
-	ch1 := make(chan<- int)
-	ch2 := make(chan<- int)
-	ch3 := make(chan<- int)
+	sb1 := sub[int]{ch: make(chan<- int)}
+	sb2 := sub[int]{ch: make(chan<- int)}
+	sb3 := sub[int]{ch: make(chan<- int)}
 
-	s.add(ch1)
-	s.add(ch2)
-	s.add(ch3)
+	s.add(sb1)
+	s.add(sb2)
+	s.add(sb3)
 
-	assert.Equal(t, ch1, s.chs[0])
-	assert.Equal(t, ch2, s.chs[1])
-	assert.Equal(t, ch3, s.chs[2])
+	assert.Equal(t, sb1, s.subs[0])
+	assert.Equal(t, sb2, s.subs[1])
+	assert.Equal(t, sb3, s.subs[2])
 
-	s.remove(ch2)
+	s.remove(sb2)
 
-	assert.Equal(t, ch1, s.chs[0])
-	assert.Equal(t, ch3, s.chs[1])
-	assert.Nil(t, s.chs[:3:3][2])
+	assert.Equal(t, sb1, s.subs[0])
+	assert.Equal(t, sb3, s.subs[1])
+	assert.Equal(t, sub[int]{}, s.subs[:3:3][2])
 
-	s.remove(ch1)
-	s.remove(ch3)
-	assert.Nil(t, s.chs[:3:3][0])
-	assert.Nil(t, s.chs[:3:3][1])
-	assert.Empty(t, s.chs)
+	s.remove(sb1)
+	s.remove(sb3)
+	assert.Equal(t, sub[int]{}, s.subs[:3:3][0])
+	assert.Equal(t, sub[int]{}, s.subs[:3:3][1])
+	assert.Empty(t, s.subs)
+}
+
+func TestSubscriptions_ConcurrentCancel(t *testing.T) {
+	var s Subscriptions[int]
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancelled right here
+
+	var wg wait.Group
+	defer wg.Wait()
+
+	for i := 0; i < 10; i++ {
+		wg.Start(func() {
+			s.On(ctx, func(ctx context.Context, e int) {})
+		})
+		wg.Start(func() {
+			s.Dispatch(context.Background(), 42)
+		})
+	}
 }
