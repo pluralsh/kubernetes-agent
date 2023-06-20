@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = 'kas-grpc'
-  spec.version       = '0.1.0'
+  spec.version       = '0.2.0'
   spec.homepage      = 'https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent'
 
   spec.summary       = 'Auto-generated gRPC client for KAS'
