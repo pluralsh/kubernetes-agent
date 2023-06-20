@@ -22,7 +22,7 @@ type workerFactory struct {
 
 func (f *workerFactory) New(agentId int64, source modagent.WorkSource[*agentcfg.ChartCF]) modagent.Worker {
 	chartCfg := source.Configuration()
-	l := f.log.With(logz.WorkerId(source.ID()), logz.AgentId(agentId))
+	l := f.log.With(logz.WorkerId(source.ID()))
 	return &worker{
 		log:               l,
 		chartCfg:          chartCfg,
