@@ -44,7 +44,7 @@ func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool 
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	if !m.isFluxInstalled(ctx) {
-		m.log.Debug("Flux is not installed, skipping module")
+		m.log.Debug("Flux is not installed, skipping module. A restart is required for this to be checked again")
 		<-ctx.Done()
 		return nil
 	}
