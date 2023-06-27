@@ -179,27 +179,28 @@ func TestLR_RunLeaderNotLeaderLeaderStop(t *testing.T) {
 	wgStop.Add(1)
 	callStop := make(chan struct{})
 
-	gomock.InOrder(
-		elector.EXPECT().
-			Run(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
-				onStartedLeading()
-				wgStart.Wait()
-				onStoppedLeading()
-			}),
-		elector.EXPECT().
-			Run(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
-				wgStop.Wait()
-				wgStart.Add(1)
-				wgStop.Add(1)
-				onStartedLeading()
-				wgStart.Wait()
-				close(callStop)
-				<-ctx.Done()
-				onStoppedLeading()
-			}),
-	)
+	elector.EXPECT().
+		Run(gomock.Any(), gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
+			// first leading
+			onStartedLeading()
+			wgStart.Wait()
+			onStoppedLeading()
+			wgStop.Wait()
+
+			// setup for second leading
+			wgStart.Add(1)
+			wgStop.Add(1)
+
+			// second leading
+			onStartedLeading()
+			wgStart.Wait()
+			close(callStop)
+			<-ctx.Done()
+			onStoppedLeading()
+			wgStop.Wait()
+		})
+
 	var wg wait.Group
 	defer wg.Wait()
 	defer cancel()

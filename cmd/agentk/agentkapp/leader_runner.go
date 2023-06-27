@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -52,7 +53,6 @@ type leaderRunner struct {
 	onStartedLeading chan struct{}
 	onStoppedLeading chan struct{}
 	funcs            map[int32]*funcHolder
-	electorCancel    context.CancelFunc
 	idxCounter       int32
 	status           electorStatus
 }
@@ -96,7 +96,26 @@ func (r *leaderRunner) RunWhenLeader(f func(context.Context)) func() {
 	return <-stopResp
 }
 
+// Run starts the leader election process and starts and stops the modules depending on if it is the leader or not.
 func (r *leaderRunner) Run(ctx context.Context) {
+	if r.status != notRunning {
+		panic(fmt.Errorf("the leader runner can only be started once; status is %d", r.status))
+	}
+	defer func() {
+		r.status = notRunning
+	}()
+
+	r.status = runningButNotLeader
+
+	var wg wait.Group
+	defer wg.Wait()
+	wg.Start(func() {
+		r.leaderElector.Run(ctx,
+			func() { r.onStartedLeading <- struct{}{} },
+			func() { r.onStoppedLeading <- struct{}{} },
+		)
+	})
+
 	done := ctx.Done()
 	for {
 		select {
@@ -106,17 +125,20 @@ func (r *leaderRunner) Run(ctx context.Context) {
 				// All funcs must be stopped before the context can signal done.
 				panic(fmt.Errorf("%d functions still want to run; status is %d", len(r.funcs), r.status))
 			}
+
 			switch r.status {
-			case notRunning:
 			case stopping:
 				<-r.onStoppedLeading // wait for elector to fully stop
+			case notRunning:
+				fallthrough
 			case runningButNotLeader:
 				fallthrough
 			case runningAndLeader:
 				fallthrough
 			default:
-				panic(fmt.Errorf("unexpected status: %d. Expecteding stopping (%d) or notRunning (%d)", r.status, stopping, notRunning))
+				panic(fmt.Errorf("unexpected status: %d. Expecting stopping (%d)", r.status, stopping))
 			}
+
 			return
 		case add := <-r.addFunc:
 			idx := r.idxCounter
@@ -127,17 +149,20 @@ func (r *leaderRunner) Run(ctx context.Context) {
 				wait:   func() {},
 			}
 			switch r.status {
-			case notRunning: // elector is not running, should be started as we are adding the first func.
-				r.startElector() // nolint: contextcheck
-			case runningButNotLeader:
-				// Nothing to do.
 			case runningAndLeader:
 				holder.start() // nolint: contextcheck
+			case runningButNotLeader:
+				// Nothing to do right now
+				// The holder function will be started when elected as leader and
+				// leader runner transitions to runningAndLeader
 			case stopping:
-				// Nothing to do right now, but this holder/function should be started after elector transitions to
-				// notRunning. This is done in onStoppedLeading case.
+				// Nothing to do right now
+				// The holder function will be started when elected as leader and
+				// leader runner transitions to runningAndLeader
+			case notRunning:
+				fallthrough
 			default:
-				panic(fmt.Errorf("unknown status: %d", r.status))
+				panic(fmt.Errorf("unexpected status: %d", r.status))
 			}
 			r.funcs[idx] = holder
 			add.stopResp <- func() {
@@ -156,8 +181,6 @@ func (r *leaderRunner) Run(ctx context.Context) {
 				delete(r.funcs, stop.idx)
 				stopFunc = holder.wait
 				if len(r.funcs) == 0 { // removed last function
-					r.electorCancel()
-					r.electorCancel = nil
 					r.status = stopping
 				}
 			} else { // stop() called more than once
@@ -169,9 +192,6 @@ func (r *leaderRunner) Run(ctx context.Context) {
 			// Because of that there is no ordering guarantee on when this is triggered. To mitigate the race
 			// we have to check the current state and only act on the notification if it is expected.
 			switch r.status {
-			case notRunning:
-				// Elector was stopped and then finally the onStartedLeading() callback executed.
-				// Nothing to do here.
 			case runningButNotLeader:
 				r.status = runningAndLeader
 				for _, holder := range r.funcs {
@@ -184,13 +204,13 @@ func (r *leaderRunner) Run(ctx context.Context) {
 			case stopping:
 				// Elected as leader then quickly stopped. Callback executed after elector has stopped.
 				// Nothing to do here.
+			case notRunning:
+				fallthrough
 			default:
-				panic(fmt.Errorf("unknown status: %d", r.status))
+				panic(fmt.Errorf("unexpected status: %d", r.status))
 			}
 		case <-r.onStoppedLeading:
 			switch r.status {
-			case notRunning:
-				panic(fmt.Errorf("unexpected status: %d", r.status))
 			case runningButNotLeader:
 				// onStoppedLeading() is called even if wasn't the leader.
 				// Nothing to do here.
@@ -208,28 +228,16 @@ func (r *leaderRunner) Run(ctx context.Context) {
 			case stopping:
 				// This happens when last function was stopped.
 				// Nothing to do here.
+			case notRunning:
+				fallthrough
 			default:
-				panic(fmt.Errorf("unknown status: %d", r.status))
+				panic(fmt.Errorf("unexpected status: %d", r.status))
 			}
-			if len(r.funcs) > 0 {
-				// Some funcs were added while elector was stopping OR we've lost an election. Start it up again!
-				r.startElector() // nolint: contextcheck
-			} else {
-				r.status = notRunning
-				r.electorCancel = nil // cleanup
-			}
+
+			// We are not leading anymore.
+			r.status = runningButNotLeader
 		}
 	}
-}
-
-func (r *leaderRunner) startElector() {
-	r.status = runningButNotLeader
-	var electorCtx context.Context
-	electorCtx, r.electorCancel = context.WithCancel(context.Background())
-	go r.leaderElector.Run(electorCtx,
-		func() { r.onStartedLeading <- struct{}{} },
-		func() { r.onStoppedLeading <- struct{}{} },
-	)
 }
 
 type leaseLeaderElector struct {
@@ -277,5 +285,5 @@ func (l *leaseLeaderElector) Run(ctx context.Context, onStartedLeading, onStoppe
 		// This can only happen if config is incorrect. It is hard-coded here, so should never happen.
 		panic(err)
 	}
-	elector.Run(ctx)
+	wait.UntilWithContext(ctx, elector.Run, time.Second)
 }
