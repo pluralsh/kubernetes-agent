@@ -89,8 +89,8 @@ go_custom_test(
     srcs = [
         "api_test.go",
         "app_test.go",
+        "leader_election_test.go",
         "leader_module_wrapper_test.go",
-        "leader_runner_test.go",
         "mock_for_test.go",
         "module_runner_test.go",
         "value_holder_test.go",

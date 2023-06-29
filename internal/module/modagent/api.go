@@ -99,7 +99,8 @@ type LeaderModule interface {
 	// The passed context signals done when the module should fully shut down, including when the lock is lost,
 	// or when IsRunnableConfiguration() returns false.
 	// cfg keeps supplying configuration while IsRunnableConfiguration() is returning true for new values.
-	// Same module instance is used for multiple RunLeader() calls.
+	// The module must not return on its own, but only when it is asked by either the leader runner via
+	// closing of the cfg channel or ctx cancellation.
 	// Otherwise, this API works exactly as Module.Run.
 	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 }

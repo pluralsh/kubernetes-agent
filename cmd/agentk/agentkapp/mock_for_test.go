@@ -35,17 +35,18 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 }
 
 // RunWhenLeader mocks base method.
-func (m *MockRunner) RunWhenLeader(arg0 func(context.Context)) func() {
+func (m *MockRunner) RunWhenLeader(arg0 context.Context, arg1 ModuleStartFunc, arg2 ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunWhenLeader", arg0)
-	ret0, _ := ret[0].(func())
-	return ret0
+	ret := m.ctrl.Call(m, "RunWhenLeader", arg0, arg1, arg2)
+	ret0, _ := ret[0].(CancelRunWhenLeaderFunc)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RunWhenLeader indicates an expected call of RunWhenLeader.
-func (mr *MockRunnerMockRecorder) RunWhenLeader(arg0 interface{}) *gomock.Call {
+func (mr *MockRunnerMockRecorder) RunWhenLeader(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWhenLeader", reflect.TypeOf((*MockRunner)(nil).RunWhenLeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWhenLeader", reflect.TypeOf((*MockRunner)(nil).RunWhenLeader), arg0, arg1, arg2)
 }
 
 // MockLeaderElector is a mock of LeaderElector interface.
