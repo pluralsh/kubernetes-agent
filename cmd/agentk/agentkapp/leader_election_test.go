@@ -37,7 +37,7 @@ func TestLeaderElection_NotLeader_NoModule_Shutdown(t *testing.T) {
 
 func TestLeaderElection_NotLeader_OneModule_Shutdown(t *testing.T) {
 	// GIVEN
-	lr, lmw, mockElector, mockModule := setup(t)
+	lr, lmw, mockElector, _ := setup(t)
 
 	// contexts
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -56,12 +56,6 @@ func TestLeaderElection_NotLeader_OneModule_Shutdown(t *testing.T) {
 			<-ctx.Done()
 			onStoppedLeading()
 		})
-	mockModule.EXPECT().IsRunnableConfiguration(gomock.Any()).
-		DoAndReturn(func(_ *agentcfg.AgentConfiguration) bool {
-			// shut down the module
-			close(cfg)
-			return true
-		})
 
 	// WHEN
 	wg.StartWithContext(ctx, lr.Run)
@@ -73,7 +67,17 @@ func TestLeaderElection_NotLeader_OneModule_Shutdown(t *testing.T) {
 	// THEN
 	// we need to give the leader module wrapper some time to register the module etc.
 	// and we don't currently have a way to properly wait for that, so we are just going to sleep a little bit ...
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
+
+	// ASSERT: the fact that no mock call to Module.Run was missing, means that the module wasn't started.
+
+	// shutdown the leader module wrapper
+	close(cfg)
+
+	// we need to give the lmw some time to unregister properly before we shut down the leader runner Run
+	time.Sleep(200 * time.Millisecond)
+
+	// shutdown the leader runner
 	cancel()
 }
 
@@ -133,8 +137,6 @@ func TestLeaderElection_Leader_OneModule_Shutdown(t *testing.T) {
 			<-ctx.Done()
 			onStoppedLeading()
 		})
-	mockModule.EXPECT().IsRunnableConfiguration(gomock.Any()).
-		Return(true)
 	mockModule.EXPECT().Run(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, _ <-chan *agentcfg.AgentConfiguration) error {
 			// shut down the module
@@ -157,7 +159,7 @@ func TestLeaderElection_Leader_OneModule_Shutdown(t *testing.T) {
 	case <-complete:
 		// we need to give the leader runner some time to unregister the module,
 		// and we don't currently have a way to properly wait for that, so we are just going to sleep a little bit ...
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 	cancel()
 }
@@ -232,8 +234,6 @@ func TestLeaderElection_LeaderNotLeaderLeader_OneModule_Shutdown(t *testing.T) {
 		})
 
 	gomock.InOrder(
-		mockModule.EXPECT().IsRunnableConfiguration(gomock.Any()).
-			Return(true),
 		mockModule.EXPECT().Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c1 := <-cfgm
@@ -269,12 +269,12 @@ func TestLeaderElection_LeaderNotLeaderLeader_OneModule_Shutdown(t *testing.T) {
 	case <-complete:
 		// we need to give the leader runner some time to unregister the module,
 		// and we don't currently have a way to properly wait for that, so we are just going to sleep a little bit ...
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 	cancel()
 }
 
-func TestLeaderElection_Leader_OneModule_RunnableNotRunnableRunnable_Shutdown(t *testing.T) {
+func TestLeaderElection_NotLeader_OneModule_NewConfig_Shutdown(t *testing.T) {
 	// GIVEN
 	lr, lmw, mockElector, mockModule := setup(t)
 
@@ -286,37 +286,23 @@ func TestLeaderElection_Leader_OneModule_RunnableNotRunnableRunnable_Shutdown(t 
 	cfg := make(chan *agentcfg.AgentConfiguration)
 	firstRunnableCfg := &agentcfg.AgentConfiguration{}
 	secondRunnableCfg := &agentcfg.AgentConfiguration{}
-	notRunnableCfg := &agentcfg.AgentConfiguration{}
 
 	var wg wait.Group
 	defer wg.Wait()
 
-	consumedFirstCfg := make(chan struct{})
+	startLeading := make(chan struct{})
 	complete := make(chan struct{})
 
 	// setup mock expectations
 	mockElector.EXPECT().
 		Run(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
+			<-startLeading
 			onStartedLeading()
 			<-ctx.Done()
 			onStoppedLeading()
 		})
 	gomock.InOrder(
-		mockModule.EXPECT().IsRunnableConfiguration(firstRunnableCfg).
-			Return(true),
-		mockModule.EXPECT().Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
-				c := <-cfgm
-				assert.Same(t, firstRunnableCfg, c)
-				close(consumedFirstCfg)
-				<-cfgm
-				return nil
-			}),
-		mockModule.EXPECT().IsRunnableConfiguration(notRunnableCfg).
-			Return(false),
-		mockModule.EXPECT().IsRunnableConfiguration(secondRunnableCfg).
-			Return(true),
 		mockModule.EXPECT().Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c := <-cfgm
@@ -336,9 +322,13 @@ func TestLeaderElection_Leader_OneModule_RunnableNotRunnableRunnable_Shutdown(t 
 	})
 
 	cfg <- firstRunnableCfg
-	<-consumedFirstCfg
-	cfg <- notRunnableCfg
+	// give some time to process the first config
+	time.Sleep(200 * time.Millisecond)
 	cfg <- secondRunnableCfg
+	// give some time to process the second config
+	time.Sleep(200 * time.Millisecond)
+	// start leading ...
+	close(startLeading)
 
 	// THEN
 	select {
@@ -347,88 +337,15 @@ func TestLeaderElection_Leader_OneModule_RunnableNotRunnableRunnable_Shutdown(t 
 	case <-complete:
 		// we need to give the leader runner some time to unregister the module,
 		// and we don't currently have a way to properly wait for that, so we are just going to sleep a little bit ...
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 	cancel()
 }
 
-func TestLeaderElection_NotLeaderRunnableRunnableLeader_OneModule_Shutdown(t *testing.T) {
-	// GIVEN
-	lr, lmw, mockElector, mockModule := setup(t)
-
-	// contexts
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	moduleCtx, moduleCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer moduleCancel()
-
-	cfg := make(chan *agentcfg.AgentConfiguration)
-	firstRunnableCfg := &agentcfg.AgentConfiguration{}
-	secondRunnableCfg := &agentcfg.AgentConfiguration{}
-
-	var wg wait.Group
-	defer wg.Wait()
-
-	validatedSecondCfg := make(chan struct{})
-	complete := make(chan struct{})
-
-	// setup mock expectations
-	mockElector.EXPECT().
-		Run(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
-			<-validatedSecondCfg
-			// Give the leader module wrapper some time to register the module with the second runnable config
-			// before getting the leadership
-			time.Sleep(500 * time.Millisecond)
-
-			onStartedLeading()
-			<-ctx.Done()
-			onStoppedLeading()
-		})
-	gomock.InOrder(
-		mockModule.EXPECT().IsRunnableConfiguration(firstRunnableCfg).
-			Return(true),
-		mockModule.EXPECT().IsRunnableConfiguration(secondRunnableCfg).
-			DoAndReturn(func(_ *agentcfg.AgentConfiguration) bool {
-				close(validatedSecondCfg)
-				return true
-			}),
-		mockModule.EXPECT().Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
-				c := <-cfgm
-				assert.Same(t, secondRunnableCfg, c)
-
-				// shut down the module
-				close(cfg)
-				close(complete)
-				return nil
-			}),
-	)
-
-	// WHEN
-	wg.StartWithContext(ctx, lr.Run)
-	wg.Start(func() {
-		lmw.Run(moduleCtx, cfg)
-	})
-
-	cfg <- firstRunnableCfg
-	cfg <- secondRunnableCfg
-
-	// THEN
-	select {
-	case <-ctx.Done():
-		require.FailNow(t, ctx.Err().Error())
-	case <-complete:
-		// we need to give the leader runner some time to unregister the module,
-		// and we don't currently have a way to properly wait for that, so we are just going to sleep a little bit ...
-		time.Sleep(500 * time.Millisecond)
-	}
-	cancel()
-}
-
-func setup(t *testing.T) (*leaderRunner, *leaderModuleWrapper, *MockLeaderElector, *mock_modagent.MockLeaderModule) {
+func setup(t *testing.T) (*leaderRunner, *leaderModuleWrapper, *MockLeaderElector, *mock_modagent.MockModule) {
 	ctrl := gomock.NewController(t)
 
-	mockModule := mock_modagent.NewMockLeaderModule(ctrl)
+	mockModule := mock_modagent.NewMockModule(ctrl)
 	mockElector := NewMockLeaderElector(ctrl)
 	lr := newLeaderRunner(mockElector)
 	lmw := newLeaderModuleWrapper(mockModule, lr)

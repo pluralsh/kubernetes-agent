@@ -6,9 +6,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apimachinery/pkg/util/wait"
+)
+
+var (
+	_ modagent.Module = &module{}
 )
 
 type mockReconciler struct {

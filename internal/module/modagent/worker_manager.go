@@ -99,6 +99,7 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 	for _, holder := range workersToStop {
 		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.sourceId))
 		holder.wg.Wait()
+		m.log.Info("Stopped worker", logz.WorkerId(holder.sourceId))
 	}
 
 	// Start new workers for new sources or because of updated configuration.

@@ -15,6 +15,10 @@ import (
 type Factory struct {
 }
 
+func (f *Factory) IsProducingLeaderModules() bool {
+	return false
+}
+
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	restConfig, err := config.K8sUtilFactory.ToRESTConfig()
 	if err != nil {

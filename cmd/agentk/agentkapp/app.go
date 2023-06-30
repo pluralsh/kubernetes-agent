@@ -286,7 +286,9 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		if err != nil {
 			return nil, nil, err
 		}
-		module = lr.MaybeWrapModule(module)
+		if f.IsProducingLeaderModules() {
+			module = lr.WrapModule(module)
+		}
 		phase := f.StartStopPhase()
 		switch phase {
 		case modshared.ModuleStartBeforeServers:

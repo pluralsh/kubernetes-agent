@@ -26,7 +26,7 @@ type Runner interface {
 }
 
 type leaderModuleWrapper struct {
-	module modagent.LeaderModule
+	module modagent.Module
 	runner Runner
 
 	// cfg2module is a bridge channels for agent configurations that is opened once the leader runner actually
@@ -48,7 +48,7 @@ type leaderModuleWrapper struct {
 	cancelRunWhenLeaderFunc CancelRunWhenLeaderFunc
 }
 
-func newLeaderModuleWrapper(module modagent.LeaderModule, runner Runner) *leaderModuleWrapper {
+func newLeaderModuleWrapper(module modagent.Module, runner Runner) *leaderModuleWrapper {
 	return &leaderModuleWrapper{
 		module:  module,
 		runner:  runner,
@@ -135,20 +135,6 @@ func (w *leaderModuleWrapper) Run(ctx context.Context, cfg <-chan *agentcfg.Agen
 				// Closing the `cfg` channel means that we need to shut down.
 				// The deferred function will take care of properly stopping and unregistering the module
 				return nil
-			}
-
-			// Check if the new config is valid to run.
-			if !w.module.IsRunnableConfiguration(c) {
-				// If the module is not valid to run we have to shut it down and unregister it from the leader runner,
-				// so that it won't restart it.
-				w.unregisterAsRunnableLeaderModule()
-
-				err := w.stop()
-				if err != nil {
-					return err
-				}
-				nilableCfg = nil // disable case #2
-				continue
 			}
 
 			// If the config is valid and the module is already running, we enable case #4,

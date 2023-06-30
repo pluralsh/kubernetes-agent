@@ -36,6 +36,7 @@ go_custom_test(
     srcs = [
         "connection_manager_test.go",
         "connection_test.go",
+        "module_test.go",
     ],
     embed = [":agent"],
     deps = [

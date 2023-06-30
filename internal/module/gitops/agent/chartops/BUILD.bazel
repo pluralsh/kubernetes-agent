@@ -48,6 +48,7 @@ go_custom_test(
     name = "chartops_test",
     srcs = [
         "mock_for_test.go",
+        "module_test.go",
         "worker_test.go",
     ],
     embed = [":chartops"],

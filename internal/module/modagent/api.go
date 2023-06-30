@@ -69,18 +69,23 @@ type RpcApi interface {
 
 type Factory interface {
 	modshared.Factory
+	// IsProducingLeaderModules returns if the modules that this Factory produces are leader modules or not.
+	// A leader module must only be run once across all agent replicas.
+	IsProducingLeaderModules() bool
 	// New creates a new instance of a Module.
 	New(*Config) (Module, error)
 }
 
 type Module interface {
 	// Run runs the module.
-	// Run can block until the context signals done or return if there is nothing to do or if there was an error.
+	// Run must block until the context signals done or the cfg channel is closed. Run must not return before that.
 	// cfg is a channel that gets configuration updates sent to it. It's closed when the module should shut down.
 	// cfg sends configuration objects that are shared and must not be mutated.
 	// Module should make a copy if it needs to mutate the object.
 	// Applying configuration may take time, the provided context may signal done if module should shut down.
 	// cfg only provides the latest available configuration, intermediate configuration states are discarded.
+	// Run is responsible that it acts according to the received configuration, even if that is just to wait for
+	// a new one.
 	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 	// DefaultAndValidateConfiguration applies defaults and validates the passed configuration.
 	// It is called each time on configuration update before sending it via the channel passed to Run().
@@ -88,21 +93,6 @@ type Module interface {
 	DefaultAndValidateConfiguration(cfg *agentcfg.AgentConfiguration) error
 	// Name returns module's name.
 	Name() string
-}
-
-type LeaderModule interface {
-	Module
-	IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool
-	// Run runs the module. It is invoked when both conditions are satisfied:
-	// - agentk acquires the leader lock.
-	// - IsRunnableConfiguration() returns true for a configuration.
-	// The passed context signals done when the module should fully shut down, including when the lock is lost,
-	// or when IsRunnableConfiguration() returns false.
-	// cfg keeps supplying configuration while IsRunnableConfiguration() is returning true for new values.
-	// The module must not return on its own, but only when it is asked by either the leader runner via
-	// closing of the cfg channel or ctx cancellation.
-	// Otherwise, this API works exactly as Module.Run.
-	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 }
 
 type GitLabRequestConfig struct {

@@ -38,6 +38,10 @@ const (
 type Factory struct {
 }
 
+func (f *Factory) IsProducingLeaderModules() bool {
+	return true
+}
+
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	clientset, err := config.K8sUtilFactory.KubernetesClientSet()
 	if err != nil {

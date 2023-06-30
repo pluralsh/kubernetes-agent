@@ -8,12 +8,17 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	apiextensionsv1api "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+var (
+	_ modagent.Module = &module{}
 )
 
 func TestModule_DefaultAndValidateConfiguration_WithoutFluxConfig(t *testing.T) {
