@@ -370,7 +370,8 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 					return http.ErrUseLastResponse
 				},
 			},
-			HTTPHeader: kasHeaders,
+			HTTPHeader:      kasHeaders,
+			CompressionMode: websocket.CompressionDisabled,
 		})))
 	case "grpc":
 		addressToDial = grpcHostWithPort(u)
