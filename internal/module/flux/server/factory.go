@@ -29,6 +29,7 @@ const (
 
 	fluxNotifiedCounterMetricName             = "flux_git_push_notifications_total"
 	fluxDroppedNotificationsCounterMetricName = "flux_dropped_git_push_notifications_total"
+	fluxNotifiedProjectsCounterMetricName     = "flux_git_push_notified_unique_projects"
 )
 
 type Factory struct {
@@ -47,9 +48,10 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		return nil, err
 	}
 	rpc.RegisterGitLabFluxServer(config.AgentServer, &server{
-		serverApi:       config.Api,
-		notifiedCounter: metric.NewMultiCounter(promNotifiedCounter, config.UsageTracker.RegisterCounter(fluxNotifiedCounterMetricName)),
-		droppedCounter:  promDroppedCounter,
+		serverApi:               config.Api,
+		notifiedCounter:         metric.NewMultiCounter(promNotifiedCounter, config.UsageTracker.RegisterCounter(fluxNotifiedCounterMetricName)),
+		notifiedProjectsCounter: config.UsageTracker.RegisterUniqueCounter(fluxNotifiedProjectsCounterMetricName),
+		droppedCounter:          promDroppedCounter,
 		pollCfgFactory: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			reconcileProjectsInitBackoff, reconcileProjectsMaxBackoff, reconcileProjectsResetDuration, reconcileProjectsBackoffFactor, reconcileProjectsJitter)),
 		projectAccessClient: &projectAccessClient{
