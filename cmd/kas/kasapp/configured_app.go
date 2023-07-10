@@ -543,6 +543,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		ConnWriteTimeout: writeTimeout,
 		MaxFlushDelay:    20 * time.Microsecond,
 		DisableCache:     true,
+		SelectDB:         int(cfg.DatabaseIndex),
 	}
 	if cfg.Network == "unix" {
 		opts.DialFn = redistool.UnixDialer

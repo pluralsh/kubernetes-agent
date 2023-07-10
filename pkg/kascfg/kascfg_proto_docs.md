@@ -436,6 +436,7 @@ ConfigurationFile represents kas configuration file.
 | password_file | [string](#string) |  | Optional password. Must match the password specified in the requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower), or the User Password when connecting to a Redis 6.0 instance, or greater, that is using the Redis ACL system. |
 | network | [string](#string) |  | The network type, either tcp or unix. Default is tcp. |
 | tls | [RedisTLSCF](#gitlab-agent-kascfg-RedisTLSCF) |  |  |
+| database_index | [int32](#int32) |  | The logical zero-based numeric database index. |
 
 
 

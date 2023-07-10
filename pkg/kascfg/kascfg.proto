@@ -291,6 +291,8 @@ message RedisCF {
   string network = 12 [json_name = "network", (validate.rules).string = {in: "", in: "tcp", in: "unix"}];
 
   RedisTLSCF tls = 13 [json_name = "tls"];
+  // The logical zero-based numeric database index.
+  int32 database_index = 14 [json_name = "database_index", (validate.rules).int32.gte = 0];
 }
 
 message RedisTLSCF {
