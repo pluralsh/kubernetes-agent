@@ -106,17 +106,11 @@ func TestMissingTrailingFlushFails(t *testing.T) {
 	require.Error(t, err)
 }
 
-func cloneSlice(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
-}
-
 func accumulateRefs(refs *[]Reference) ReferenceCb {
 	return func(ref Reference) bool {
 		*refs = append(*refs, Reference{
-			Oid:  cloneSlice(ref.Oid),
-			Name: cloneSlice(ref.Name),
+			Oid:  bytes.Clone(ref.Oid),
+			Name: bytes.Clone(ref.Name),
 		})
 		return false
 	}

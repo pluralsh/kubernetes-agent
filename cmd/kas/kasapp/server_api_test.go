@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -113,4 +114,9 @@ func TestRedisMarshalAndUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, cmp.Diff(mIn, mOut, protocmp.Transform()))
+}
+
+func TestRedisUnmarshalErr(t *testing.T) {
+	_, err := redisProtoUnmarshal("")
+	assert.True(t, errors.Is(err, proto.Error))
 }

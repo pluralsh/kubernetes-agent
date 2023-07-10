@@ -2,7 +2,7 @@ package redistool
 
 import (
 	"context"
-	"math/rand"
+	"crypto/rand"
 	"net/url"
 	"os"
 	"strconv"
@@ -212,9 +212,8 @@ func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], stri
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(client.Close)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prefix := make([]byte, 32)
-	_, err := r.Read(prefix)
+	_, err := rand.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
 	hash := NewExpiringHash[string, int64](client, func(key string) string {

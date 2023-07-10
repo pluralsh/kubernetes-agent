@@ -2,10 +2,10 @@ package wstunnel
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"hash/fnv"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
 	"sync"
@@ -79,7 +79,7 @@ func testEcho(t *testing.T, writeSize, writeCount int, stuff *testStuff) {
 		defer clientWg.Done()
 		toRead := int64(writeSize * writeCount)
 		netConn := websocket.NetConn(stuff.ctx, conn, websocket.MessageBinary)
-		copied, err := io.Copy(readHash, io.LimitReader(netConn, toRead))
+		copied, err := io.Copy(readHash, io.LimitReader(netConn, toRead)) // nolint:govet
 		if assert.NoError(t, err) {
 			assert.Equal(t, toRead, copied)
 		}
@@ -89,7 +89,8 @@ func testEcho(t *testing.T, writeSize, writeCount int, stuff *testStuff) {
 	writeHash := fnv.New128()
 	buf := make([]byte, writeSize)
 	for i := 0; i < writeCount; i++ {
-		rand.Read(buf)
+		_, err = rand.Read(buf)
+		require.NoError(t, err)
 		writeHash.Write(buf)
 		connErr := conn.Write(stuff.ctx, websocket.MessageBinary, buf)
 		if !assert.NoError(t, connErr) {
