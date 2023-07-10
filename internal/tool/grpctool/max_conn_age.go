@@ -38,7 +38,13 @@ const (
 	// gRPC applies +/- 10% jitter to MaxConnectionAge parameter.
 	// https://github.com/grpc/grpc-go/blob/v1.39.0/internal/transport/http2_server.go#L1339-L1347
 	maxConnectionAgeGrpcJitterPercent = 10
-	maxConnectionAgeGracePercent      = 20
+	// High fraction of connection time as grace time makes agentk reopen TCP connections more frequently i.e.
+	// after 100-5-10-50=35% of max connection age time has elapsed. That leaves 50% of time for the long-running
+	// connections to wrap up if such a connection was established close to the 35% time boundary.
+	maxConnectionAgeGracePercent = 50
+
+	// This is a compile-time test that ensures that the sum of all of the above does not exceed 100%.
+	_ uint = 100 - maxConnectionAgeGracePercent - maxConnectionAgeGrpcJitterPercent - maxConnectionAgeJitterPercent
 )
 
 func MaxConnectionAge2GrpcKeepalive(auxCtx context.Context, maxConnectionAge time.Duration) (grpc.ServerOption, stats.Handler) {
