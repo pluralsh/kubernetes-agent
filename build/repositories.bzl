@@ -2365,8 +2365,8 @@ def go_repositories():
         name = "com_github_redis_rueidis",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/redis/rueidis",
-        sum = "h1:Vh6aUUcqZNcBsIMu8IytoOvc5lAxsztL75pj82JFxzw=",
-        version = "v1.0.7-go1.19",
+        sum = "h1:1V7BucjgK5oKtJ22VtfqvL5jzJC75RApV0Fb58HXyu4=",
+        version = "v1.0.7",
     )
     go_repository(
         name = "com_github_robfig_cron_v3",
