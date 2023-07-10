@@ -17,6 +17,7 @@ go_library(
         "//internal/module/flux/rpc",
         "//internal/module/modserver",
         "//internal/module/modshared",
+        "//internal/module/usage_metrics",
         "//internal/tool/cache",
         "//internal/tool/logz",
         "//internal/tool/metric",

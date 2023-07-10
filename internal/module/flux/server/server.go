@@ -10,6 +10,7 @@ import (
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
@@ -27,11 +28,12 @@ const (
 
 type server struct {
 	rpc.UnimplementedGitLabFluxServer
-	serverApi           modserver.Api
-	notifiedCounter     metric.Counter
-	droppedCounter      metric.Counter
-	pollCfgFactory      retry.PollConfigFactory
-	projectAccessClient *projectAccessClient
+	serverApi               modserver.Api
+	notifiedCounter         metric.Counter
+	notifiedProjectsCounter usage_metrics.UniqueCounter
+	droppedCounter          metric.Counter
+	pollCfgFactory          retry.PollConfigFactory
+	projectAccessClient     *projectAccessClient
 }
 
 func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc.GitLabFlux_ReconcileProjectsServer) error {
@@ -74,6 +76,7 @@ func (s *server) ReconcileProjects(req *rpc.ReconcileProjectsRequest, server rpc
 
 			// increase Flux Git push event notification counter
 			s.notifiedCounter.Inc()
+			s.notifiedProjectsCounter.Add(project.Id)
 
 			err = server.Send(&rpc.ReconcileProjectsResponse{
 				Project: &rpc.Project{Id: project.FullPath},
