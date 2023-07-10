@@ -18,10 +18,7 @@ go_library(
 
 go_custom_test(
     name = "wstunnel_test",
-    srcs = [
-        "main_test.go",
-        "server_test.go",
-    ],
+    srcs = ["server_test.go"],
     embed = [":wstunnel"],
     deps = [
         "@com_github_stretchr_testify//assert",

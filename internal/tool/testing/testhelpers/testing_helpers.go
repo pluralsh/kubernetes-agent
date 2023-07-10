@@ -2,8 +2,8 @@ package testhelpers
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"reflect"
 	"testing"
