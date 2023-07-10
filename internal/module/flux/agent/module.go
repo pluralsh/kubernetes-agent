@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	requiredFluxCrds = [...]schema.GroupResource{
-		sourcev1.GroupVersion.WithResource("gitrepositories").GroupResource(),
-		notificationv1.GroupVersion.WithResource("receivers").GroupResource(),
+	requiredFluxCrds = [...]schema.GroupVersionResource{
+		sourcev1.GroupVersion.WithResource("gitrepositories"),
+		notificationv1.GroupVersion.WithResource("receivers"),
 	}
 )
 
@@ -110,15 +110,15 @@ func (m *module) isFluxInstalled(ctx context.Context) bool {
 			return false
 		}
 		if !ok {
-			m.log.Debug("Required Flux CRD is not established", logz.K8sResource(crd.Resource))
+			m.log.Debug("Required Flux CRD is not established", logz.K8sResource(crd.String()))
 			return false
 		}
 	}
 	return true
 }
 
-func checkCRDExistsAndEstablished(ctx context.Context, client apiextensionsv1client.ApiextensionsV1Interface, crd schema.GroupResource) (bool, error) {
-	obj, err := client.CustomResourceDefinitions().Get(ctx, crd.String(), metav1.GetOptions{})
+func checkCRDExistsAndEstablished(ctx context.Context, client apiextensionsv1client.ApiextensionsV1Interface, crd schema.GroupVersionResource) (bool, error) {
+	obj, err := client.CustomResourceDefinitions().Get(ctx, crd.GroupResource().String(), metav1.GetOptions{})
 	if err != nil {
 		if kubeerrors.IsNotFound(err) {
 			return false, nil
@@ -126,16 +126,34 @@ func checkCRDExistsAndEstablished(ctx context.Context, client apiextensionsv1cli
 		return false, fmt.Errorf("unable to get CRD %s: %w", crd.String(), err)
 	}
 
-	established := false
+	if !isCRDVersionServed(obj, crd.Version) {
+		return false, nil
+	}
+
+	return isCRDEstablished(obj), nil
+}
+
+func isCRDVersionServed(obj *apiextensionsv1api.CustomResourceDefinition, version string) bool {
+	// Check if the appropriate API version of the CRD is served.
+	for _, v := range obj.Spec.Versions {
+		if v.Served && v.Name == version {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isCRDEstablished(obj *apiextensionsv1api.CustomResourceDefinition) bool {
 	for _, cond := range obj.Status.Conditions {
 		switch cond.Type { // nolint:exhaustive
 		case apiextensionsv1api.Established:
 			if cond.Status == apiextensionsv1api.ConditionTrue {
-				established = true
+				return true
 			}
 			// we don't really care about any other conditions for now, because we don't own this CRD
 			// and expect the owner to make sure it becomes established.
 		}
 	}
-	return established, nil
+	return false
 }
