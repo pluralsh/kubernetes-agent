@@ -3410,6 +3410,17 @@ func (m *RedisCF) validate(all bool) error {
 		}
 	}
 
+	if m.GetDatabaseIndex() < 0 {
+		err := RedisCFValidationError{
+			field:  "DatabaseIndex",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	oneofRedisConfigPresent := false
 	switch v := m.RedisConfig.(type) {
 	case *RedisCF_Server:
