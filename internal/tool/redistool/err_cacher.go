@@ -26,7 +26,7 @@ type ErrCacher[K any] struct {
 
 func (c *ErrCacher[K]) GetError(ctx context.Context, key K) error {
 	getCmd := c.Client.B().Get().Key(c.KeyToRedisKey(key)).Build()
-	result, err := c.Client.Do(ctx, getCmd).ToString() // TODO use AsBytes() when have updated to Go 1.20
+	result, err := c.Client.Do(ctx, getCmd).AsBytes()
 	if err != nil {
 		if err != rueidis.Nil { // nolint:errorlint
 			c.ErrRep.HandleProcessingError(ctx, c.Log, "Failed to get cached error from Redis", err)
@@ -36,7 +36,7 @@ func (c *ErrCacher[K]) GetError(ctx context.Context, key K) error {
 	if len(result) == 0 {
 		return nil
 	}
-	e, err := c.ErrMarshaler.Unmarshal([]byte(result))
+	e, err := c.ErrMarshaler.Unmarshal(result)
 	if err != nil {
 		c.ErrRep.HandleProcessingError(ctx, c.Log, "Failed to unmarshal cached error", err)
 		return nil // Returns nil according to the interface contract.
