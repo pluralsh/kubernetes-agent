@@ -1,6 +1,7 @@
 package gitaly
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -135,13 +136,7 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository, cb st
 
 func cloneReference(ref stats.Reference) *stats.Reference {
 	return &stats.Reference{
-		Oid:  cloneSlice(ref.Oid),
-		Name: cloneSlice(ref.Name),
+		Oid:  bytes.Clone(ref.Oid),
+		Name: bytes.Clone(ref.Name),
 	}
-}
-
-func cloneSlice(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
 }
