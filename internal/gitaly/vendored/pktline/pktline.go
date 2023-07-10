@@ -83,9 +83,8 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 	}
 
 	// We have at least 4 bytes available so we can decode the 4-hex digit
-	// length prefix of the packet line.
-	lenSlice := data[:4]
-	lenSliceStr := *(*string)(unsafe.Pointer(&lenSlice)) // nolint: gosec
+	// length prefix of the packet line. Avoid allocating memory for parsing.
+	lenSliceStr := unsafe.String(unsafe.SliceData(data), 4)
 
 	pktLength64, err := strconv.ParseUint(lenSliceStr, 16, 0)
 	if err != nil {

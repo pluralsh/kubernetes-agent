@@ -140,7 +140,7 @@ func redisProtoMarshal(m proto.Message) ([]byte, error) {
 func redisProtoUnmarshal(payload string) (proto.Message, error) {
 	var a anypb.Any
 	// Avoid creating a temporary copy
-	payloadBytes := *(*[]byte)(unsafe.Pointer(&payload)) // nolint: gosec
+	payloadBytes := unsafe.Slice(unsafe.StringData(payload), len(payload))
 	err := proto.Unmarshal(payloadBytes, &a)
 	if err != nil {
 		return nil, err
