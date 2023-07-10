@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
@@ -51,27 +50,26 @@ func TestLMW_Run_NotRunnableConfig(t *testing.T) {
 }
 
 func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	c2 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	gomock.InOrder(
 		m.EXPECT().
 			IsRunnableConfiguration(c1).
 			Return(true),
 		r.EXPECT().
-			RunWhenLeader(gomock.Any()).
-			DoAndReturn(func(f func(context.Context)) func() {
-				var wg wait.Group
-				ctx, cancel := context.WithCancel(context.Background())
-				wg.StartWithContext(ctx, f)
-				return func() {
-					cancel()
-					wg.Wait()
-					stopCalled = true
-				}
+			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+				// we cannot block the caller, because it wouldn't be able to receive the start function.
+				go startFn()
+				return func() {}, nil
 			}),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
@@ -82,36 +80,47 @@ func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
 				close(cfg)
 				_, ok := <-cfgm
 				assert.False(t, ok)
+
+				close(complete)
 				return nil
 			}),
 		m.EXPECT().
 			IsRunnableConfiguration(c2).
 			Return(false),
 	)
-	err := w.Run(context.Background(), cfg)
+
+	// WHEN
+	cfg <- c1
+	err := w.Run(ctx, cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	require.NoError(t, err)
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func TestLMW_Run_RunnableThenNotRunnableThenRunnableConfig(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	c2 := &agentcfg.AgentConfiguration{}
 	c3 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	r.EXPECT().
-		RunWhenLeader(gomock.Any()).
-		DoAndReturn(func(f func(context.Context)) func() {
-			var wg wait.Group
-			ctx, cancel := context.WithCancel(context.Background())
-			wg.StartWithContext(ctx, f)
-			return func() {
-				cancel()
-				wg.Wait()
-				stopCalled = true
-			}
+		RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+			// we cannot block the caller, because it wouldn't be able to receive the start function.
+			go startFn()
+			return func() {}, nil
 		}).Times(2)
 	gomock.InOrder(
 		m.EXPECT().
@@ -144,36 +153,47 @@ func TestLMW_Run_RunnableThenNotRunnableThenRunnableConfig(t *testing.T) {
 				close(cfg)
 				_, ok := <-cfgm
 				assert.False(t, ok)
+
+				close(complete)
 				return nil
 			}),
 	)
-	err := w.Run(context.Background(), cfg)
+
+	// WHEN
+	cfg <- c1
+	err := w.Run(ctx, cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	require.NoError(t, err)
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func TestLMW_Run_RunnableThenNotRunnableStopError(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	c2 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	gomock.InOrder(
 		m.EXPECT().
 			IsRunnableConfiguration(c1).
 			Return(true),
 		r.EXPECT().
-			RunWhenLeader(gomock.Any()).
-			DoAndReturn(func(f func(context.Context)) func() {
-				var wg wait.Group
-				ctx, cancel := context.WithCancel(context.Background())
-				wg.StartWithContext(ctx, f)
-				return func() {
-					cancel()
-					wg.Wait()
-					stopCalled = true
-				}
+			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+				// we cannot block the caller, because it wouldn't be able to receive the start function.
+				go startFn()
+				return func() {}, nil
 			}),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
@@ -183,77 +203,50 @@ func TestLMW_Run_RunnableThenNotRunnableStopError(t *testing.T) {
 				cfg <- c2
 				_, ok := <-cfgm
 				assert.False(t, ok)
+
+				close(complete)
 				return errors.New("boom")
 			}),
 		m.EXPECT().
 			IsRunnableConfiguration(c2).
 			Return(false),
 	)
-	err := w.Run(context.Background(), cfg)
+
+	// WHEN
+	cfg <- c1
+	err := w.Run(ctx, cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	assert.EqualError(t, err, "boom")
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func TestLMW_Run_EarlyReturnNoError(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	gomock.InOrder(
 		m.EXPECT().
 			IsRunnableConfiguration(c1).
 			Return(true),
 		r.EXPECT().
-			RunWhenLeader(gomock.Any()).
-			DoAndReturn(func(f func(context.Context)) func() {
-				var wg wait.Group
-				ctx, cancel := context.WithCancel(context.Background())
-				wg.StartWithContext(ctx, f)
-				return func() {
-					cancel()
-					wg.Wait()
-					stopCalled = true
-				}
-			}),
-		m.EXPECT().
-			Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
-				close(cfg)
-				return nil
-			}),
-	)
-	err := w.Run(context.Background(), cfg)
-	require.NoError(t, err)
-	assert.True(t, stopCalled)
-}
-
-func TestLMW_Run_EarlyReturnNoErrorSameConfig(t *testing.T) {
-	w, r, m := setupLMW(t)
-	c1 := &agentcfg.AgentConfiguration{}
-	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
-	r.EXPECT().
-		RunWhenLeader(gomock.Any()).
-		DoAndReturn(func(f func(context.Context)) func() {
-			var wg wait.Group
-			ctx, cancel := context.WithCancel(context.Background())
-			wg.StartWithContext(ctx, f)
-			return func() {
-				cancel()
-				wg.Wait()
-				stopCalled = true
-			}
-		}).Times(2)
-	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
-		m.EXPECT().
-			Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
-				return nil
+			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+				// we cannot block the caller, because it wouldn't be able to receive the start function.
+				go startFn()
+				return func() {}, nil
 			}),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
@@ -261,34 +254,43 @@ func TestLMW_Run_EarlyReturnNoErrorSameConfig(t *testing.T) {
 				c1m := <-cfgm
 				assert.Same(t, c1, c1m)
 				close(cfg)
-				_, ok := <-cfgm
-				assert.False(t, ok)
+				close(complete)
 				return nil
 			}),
 	)
-	err := w.Run(context.Background(), cfg)
+
+	// WHEN
+	cfg <- c1
+	err := w.Run(ctx, cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	require.NoError(t, err)
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func TestLMW_Run_EarlyReturnNoErrorMoreConfig(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	c2 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	r.EXPECT().
-		RunWhenLeader(gomock.Any()).
-		DoAndReturn(func(f func(context.Context)) func() {
-			var wg wait.Group
-			ctx, cancel := context.WithCancel(context.Background())
-			wg.StartWithContext(ctx, f)
-			return func() {
-				cancel()
-				wg.Wait()
-				stopCalled = true
-			}
+		RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+			// we cannot block the caller, because it wouldn't be able to receive the start function.
+			go startFn()
+			return func() {}, nil
 		}).Times(2)
 	gomock.InOrder(
 		m.EXPECT().
@@ -316,45 +318,68 @@ func TestLMW_Run_EarlyReturnNoErrorMoreConfig(t *testing.T) {
 				close(cfg)
 				_, ok := <-cfgm
 				assert.False(t, ok)
+
+				close(complete)
 				return nil
 			}),
 	)
+
+	// WHEN
+	cfg <- c1
 	err := w.Run(context.Background(), cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	require.NoError(t, err)
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func TestLMW_Run_EarlyReturnError(t *testing.T) {
+	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c1
-	stopCalled := false
+
+	complete := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// setup mock expectations
 	gomock.InOrder(
 		m.EXPECT().
 			IsRunnableConfiguration(c1).
 			Return(true),
 		r.EXPECT().
-			RunWhenLeader(gomock.Any()).
-			DoAndReturn(func(f func(context.Context)) func() {
-				var wg wait.Group
-				ctx, cancel := context.WithCancel(context.Background())
-				wg.StartWithContext(ctx, f)
-				return func() {
-					cancel()
-					wg.Wait()
-					stopCalled = true
-				}
+			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+				// we cannot block the caller, because it wouldn't be able to receive the start function.
+				go startFn()
+				return func() {}, nil
 			}),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
+				close(complete)
 				return errors.New("boom")
 			}),
 	)
-	err := w.Run(context.Background(), cfg)
+
+	// WHEN
+	cfg <- c1
+	err := w.Run(ctx, cfg)
+
+	// THEN
+	select {
+	case <-ctx.Done():
+		require.FailNow(t, ctx.Err().Error())
+	case <-complete:
+	}
 	assert.EqualError(t, err, "boom")
-	assert.True(t, stopCalled)
+	assert.False(t, w.isRunning())
 }
 
 func setupLMW(t *testing.T) (*leaderModuleWrapper, *MockRunner, *mock_modagent.MockLeaderModule) {
