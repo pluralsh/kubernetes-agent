@@ -8,18 +8,18 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "51dc53293afe317d2696d4d6433a4c33feedb7748a9e352072e2ec3c0dafd2c6",
+    sha256 = "278b7ff5a826f3dc10f04feaf0b70d48b68748ccd512d7f98bf442077f043fe3",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.40.1/rules_go-v0.40.1.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.40.1/rules_go-v0.40.1.zip",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.41.0/rules_go-v0.41.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.41.0/rules_go-v0.41.0.zip",
     ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "b8b6d75de6e4bf7c41b7737b183523085f56283f6db929b86c5e7e1f09cf59c9",
+    sha256 = "29218f8e0cebe583643cbf93cae6f971be8a2484cdcfa1e45057658df8d54002",
     urls = [
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.31.1/bazel-gazelle-v0.31.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.32.0/bazel-gazelle-v0.32.0.tar.gz",
     ],
 )
 
@@ -92,6 +92,18 @@ http_archive(
     sha256 = "e3151d87910f69cf1fc88755392d7c878034a69d6499b287bcfc00b1cf9bb415",
     strip_prefix = "bazel-lib-1.32.1",
     url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.32.1/bazel-lib-v1.32.1.tar.gz",
+)
+
+# Required for proto files. Needs to be compatible with generated code in org_golang_google_genproto.
+# See https://github.com/googleapis/googleapis and https://github.com/googleapis/go-genproto.
+# See https://github.com/bazelbuild/bazel-gazelle/releases/tag/v0.32.0
+http_archive(
+    name = "go_googleapis",
+    sha256 = "b54f92060bf2a65c2671491d8c1cb8ad6aa466a29b58f08a907eb170e99cc7ec",
+    strip_prefix = "googleapis-64d54ff78cfe7cdc2f4b95717dc9afa3ef32a29a",
+    urls = [
+        "https://github.com/googleapis/googleapis/archive/64d54ff78cfe7cdc2f4b95717dc9afa3ef32a29a.zip",
+    ],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -185,6 +197,7 @@ load("@rules_oci//oci:dependencies.bzl", "rules_oci_dependencies")
 load("@rules_oci//oci:repositories.bzl", "LATEST_CRANE_VERSION", "oci_register_toolchains")
 load("@rules_oci//oci:pull.bzl", "oci_pull")
 load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
+load("@go_googleapis//:repository_rules.bzl", "switched_rules_by_language")
 
 rules_proto_dependencies()
 
@@ -218,6 +231,11 @@ grpc_deps()
 aspect_bazel_lib_dependencies()
 
 rules_pkg_dependencies()
+
+switched_rules_by_language(
+    name = "com_google_googleapis_imports",
+    go = True,
+)
 
 # Images are managed by https://gitlab.com/gitlab-org/frontend/renovate-gitlab-bot/-/tree/main/renovate/projects/gitlab-agent.config.js
 # DO NOT EDIT ================ START
