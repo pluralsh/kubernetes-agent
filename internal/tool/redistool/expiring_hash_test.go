@@ -208,6 +208,16 @@ func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	})
 }
 
+func BenchmarkPrefixedInt64Key(b *testing.B) {
+	b.ReportAllocs()
+	const prefix = "pref"
+	var sink string
+	for i := 0; i < b.N; i++ {
+		sink = PrefixedInt64Key(prefix, int64(i))
+	}
+	_ = sink
+}
+
 func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)

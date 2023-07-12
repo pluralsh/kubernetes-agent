@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/redis/rueidis"
 	"golang.org/x/sync/errgroup"
@@ -320,10 +320,9 @@ type refreshKey[K2 any] struct {
 }
 
 func PrefixedInt64Key(prefix string, key int64) string {
-	var b strings.Builder
-	b.WriteString(prefix)
-	id := make([]byte, 8)
-	binary.LittleEndian.PutUint64(id, uint64(key))
-	b.Write(id)
-	return b.String()
+	b := make([]byte, 0, len(prefix)+8)
+	b = append(b, prefix...)
+	b = binary.LittleEndian.AppendUint64(b, uint64(key))
+
+	return unsafe.String(unsafe.SliceData(b), len(b))
 }

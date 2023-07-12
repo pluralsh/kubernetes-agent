@@ -19,6 +19,17 @@ const (
 	ctxKey = 23124
 )
 
+func BenchmarkBuildTokenLimiterKey(b *testing.B) {
+	b.ReportAllocs()
+	const prefix = "pref"
+	var sink string
+	requestKey := []byte{1, 2, 3, 4}
+	for i := 0; i < b.N; i++ {
+		sink = buildTokenLimiterKey(prefix, requestKey)
+	}
+	_ = sink
+}
+
 func TestTokenLimiterHappyPath(t *testing.T) {
 	ctx, _, client, limiter, key := setup(t)
 
@@ -100,6 +111,6 @@ func setup(t *testing.T) (context.Context, *MockRpcApi, *rmock.Client, *TokenLim
 			return rpcApi
 		})
 	ctx := context.WithValue(context.Background(), ctxKey, testhelpers.AgentkToken) // nolint: staticcheck
-	key := limiter.buildKey(api.AgentToken2key(testhelpers.AgentkToken))
+	key := buildTokenLimiterKey(limiter.keyPrefix, api.AgentToken2key(testhelpers.AgentkToken))
 	return ctx, rpcApi, client, limiter, key
 }
