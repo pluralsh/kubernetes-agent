@@ -3,16 +3,20 @@ package redistool
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	rmock "github.com/redis/rueidis/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
+	clock_testing "k8s.io/utils/clock/testing"
 )
 
 const (
@@ -22,10 +26,11 @@ const (
 func BenchmarkBuildTokenLimiterKey(b *testing.B) {
 	b.ReportAllocs()
 	const prefix = "pref"
+	const currentMinute = 42
 	var sink string
 	requestKey := []byte{1, 2, 3, 4}
 	for i := 0; i < b.N; i++ {
-		sink = buildTokenLimiterKey(prefix, requestKey)
+		sink = buildTokenLimiterKey(prefix, requestKey, currentMinute)
 	}
 	_ = sink
 }
@@ -110,7 +115,8 @@ func setup(t *testing.T) (context.Context, *MockRpcApi, *rmock.Client, *TokenLim
 				Return(api.AgentToken2key(ctx.Value(ctxKey).(api.AgentToken)))
 			return rpcApi
 		})
+	limiter.clock = clock_testing.NewFakePassiveClock(time.Unix(100, 0))
 	ctx := context.WithValue(context.Background(), ctxKey, testhelpers.AgentkToken) // nolint: staticcheck
-	key := buildTokenLimiterKey(limiter.keyPrefix, api.AgentToken2key(testhelpers.AgentkToken))
+	key := buildTokenLimiterKey(limiter.keyPrefix, api.AgentToken2key(testhelpers.AgentkToken), byte(limiter.clock.Now().UTC().Minute()))
 	return ctx, rpcApi, client, limiter, key
 }
