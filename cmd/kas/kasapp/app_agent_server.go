@@ -27,6 +27,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -129,6 +130,9 @@ func (s *agentServer) Start(stage stager.Stage) {
 				return nil, err
 			}
 			wsWrapper := wstunnel.ListenerWrapper{
+				AcceptOptions: websocket.AcceptOptions{
+					CompressionMode: websocket.CompressionDisabled,
+				},
 				// TODO set timeouts
 				ReadLimit:  defaultMaxMessageSize,
 				ServerName: kasServerName(),

@@ -95,6 +95,7 @@ go_library(
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_klog_v2//:klog",
         "@io_k8s_sigs_yaml//:yaml",
+        "@io_nhooyr_websocket//:websocket",
         "@io_opentelemetry_go_contrib_instrumentation_google_golang_org_grpc_otelgrpc//:otelgrpc",
         "@io_opentelemetry_go_contrib_instrumentation_net_http_otelhttp//:otelhttp",
         "@io_opentelemetry_go_otel//:otel",
