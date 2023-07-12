@@ -218,6 +218,13 @@ func BenchmarkPrefixedInt64Key(b *testing.B) {
 	_ = sink
 }
 
+func TestPrefixedInt64Key(t *testing.T) {
+	const prefix = "pref"
+	key := PrefixedInt64Key(prefix, 0x1122334455667788)
+
+	assert.Equal(t, prefix+"\x88\x77\x66\x55\x44\x33\x22\x11", key)
+}
+
 func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)

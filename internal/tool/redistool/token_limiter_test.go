@@ -35,6 +35,15 @@ func BenchmarkBuildTokenLimiterKey(b *testing.B) {
 	_ = sink
 }
 
+func TestBuildTokenLimiterKey(t *testing.T) {
+	const prefix = "pref"
+	const currentMinute = 42
+	requestKey := []byte{1, 2, 3, 4}
+	key := buildTokenLimiterKey(prefix, requestKey, currentMinute)
+
+	assert.Equal(t, fmt.Sprintf("%s:%s:%c", prefix, requestKey, currentMinute), key)
+}
+
 func TestTokenLimiterHappyPath(t *testing.T) {
 	ctx, _, client, limiter, key := setup(t)
 
