@@ -2,14 +2,13 @@ package redistool
 
 import (
 	"context"
-	"encoding/binary"
-	"strings"
-	"time"
+	"unsafe"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
+	"k8s.io/utils/clock"
 )
 
 type RpcApi interface {
@@ -21,6 +20,7 @@ type RpcApi interface {
 // TokenLimiter is a redis-based rate limiter implementing the algorithm in https://redislabs.com/redis-best-practices/basic-rate-limiting/
 type TokenLimiter struct {
 	redisClient    rueidis.Client
+	clock          clock.PassiveClock
 	keyPrefix      string
 	limitPerMinute uint64
 	limitExceeded  prometheus.Counter
@@ -32,6 +32,7 @@ func NewTokenLimiter(redisClient rueidis.Client, keyPrefix string,
 	limitPerMinute uint64, limitExceeded prometheus.Counter, getApi func(context.Context) RpcApi) *TokenLimiter {
 	return &TokenLimiter{
 		redisClient:    redisClient,
+		clock:          clock.RealClock{},
 		keyPrefix:      keyPrefix,
 		limitPerMinute: limitPerMinute,
 		limitExceeded:  limitExceeded,
@@ -42,7 +43,7 @@ func NewTokenLimiter(redisClient rueidis.Client, keyPrefix string,
 // Allow consumes one limitable event from the token in the context
 func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	api := l.getApi(ctx)
-	key := l.buildKey(api.RequestKey())
+	key := buildTokenLimiterKey(l.keyPrefix, api.RequestKey(), byte(l.clock.Now().UTC().Minute()))
 	getCmd := l.redisClient.B().Get().Key(key).Build()
 
 	count, err := l.redisClient.Do(ctx, getCmd).AsUint64()
@@ -75,17 +76,12 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	return true
 }
 
-func (l *TokenLimiter) buildKey(requestKey []byte) string {
-	currentMinute := time.Now().UTC().Minute()
+func buildTokenLimiterKey(keyPrefix string, requestKey []byte, currentMinute byte) string {
+	result := make([]byte, 0, len(keyPrefix)+1+len(requestKey)+1+1)
+	result = append(result, keyPrefix...)
+	result = append(result, ':')
+	result = append(result, requestKey...)
+	result = append(result, ':', currentMinute)
 
-	var result strings.Builder
-	result.WriteString(l.keyPrefix)
-	result.WriteByte(':')
-	result.Write(requestKey)
-	result.WriteByte(':')
-	minuteBytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(minuteBytes, uint16(currentMinute))
-	result.Write(minuteBytes)
-
-	return result.String()
+	return unsafe.String(unsafe.SliceData(result), len(result))
 }
