@@ -1,3 +1,4 @@
+load("//build:build.bzl", "go_custom_test")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
@@ -20,4 +21,11 @@ go_library(
         "@com_github_prometheus_client_golang//prometheus",
         "@org_uber_go_zap//:zap",
     ],
+)
+
+go_custom_test(
+    name = "agent_test",
+    srcs = ["module_test.go"],
+    embed = [":agent"],
+    deps = ["//internal/module/modagent"],
 )

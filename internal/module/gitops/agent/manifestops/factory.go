@@ -36,6 +36,10 @@ const (
 type Factory struct {
 }
 
+func (f *Factory) IsProducingLeaderModules() bool {
+	return true
+}
+
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	invClient, err := inventory.ClusterClientFactory{
 		StatusPolicy: inventory.StatusPolicyNone,

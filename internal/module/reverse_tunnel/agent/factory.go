@@ -31,6 +31,10 @@ type Factory struct {
 	InternalServerConn grpc.ClientConnInterface
 }
 
+func (f *Factory) IsProducingLeaderModules() bool {
+	return false
+}
+
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	sv, err := grpctool.NewStreamVisitor(&rpc.ConnectResponse{})
 	if err != nil {

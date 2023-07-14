@@ -28,7 +28,10 @@ go_library(
 
 go_custom_test(
     name = "agent_test",
-    srcs = ["server_test.go"],
+    srcs = [
+        "module_test.go",
+        "server_test.go",
+    ],
     embed = [":agent"],
     deps = [
         "//internal/module/kubernetes_api/rpc",

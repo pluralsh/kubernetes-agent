@@ -63,12 +63,8 @@ func newLeaderRunner(leaderElector LeaderElector) *leaderRunner {
 	}
 }
 
-func (r *leaderRunner) MaybeWrapModule(m modagent.Module) modagent.Module {
-	lm, ok := m.(modagent.LeaderModule)
-	if !ok {
-		return m
-	}
-	return newLeaderModuleWrapper(lm, r)
+func (r *leaderRunner) WrapModule(m modagent.Module) modagent.Module {
+	return newLeaderModuleWrapper(m, r)
 }
 
 // RunWhenLeader registers a module start and stop function with the leader runner.

@@ -19,11 +19,6 @@ const (
 	defaultPartialSyncInterval = 10 * time.Second
 )
 
-// remote dev module is expected to only run on the leader agentk replica
-// as such module is expected to implement modagent.LeaderModule and
-// the following has been added to ensure this compliance
-var _ modagent.LeaderModule = (*module)(nil)
-
 type remoteDevReconciler interface {
 	Run(context.Context) error
 	Stop()
@@ -35,13 +30,15 @@ type module struct {
 	reconcilerFactory func(ctx context.Context) (remoteDevReconciler, error)
 }
 
-func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
-	return cfg.RemoteDevelopment.Enabled
-}
-
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	wh := syncz.NewProtoWorkerHolder[*agentcfg.RemoteCF](
 		func(config *agentcfg.RemoteCF) syncz.Worker {
+			if !config.Enabled {
+				return syncz.WorkerFunc(func(ctx context.Context) {
+					// nop worker
+				})
+			}
+
 			return syncz.WorkerFunc(func(ctx context.Context) {
 				m.log.Debug("Remote Development - starting reconciler run")
 				defer m.log.Debug("Remote Development - reconciler run ended")

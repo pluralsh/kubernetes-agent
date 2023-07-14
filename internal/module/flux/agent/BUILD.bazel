@@ -67,6 +67,7 @@ go_custom_test(
     embed = [":agent"],
     deps = [
         "//internal/module/flux/rpc",
+        "//internal/module/modagent",
         "//internal/tool/retry",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_k8s",

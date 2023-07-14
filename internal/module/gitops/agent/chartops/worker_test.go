@@ -38,7 +38,6 @@ var (
 
 var (
 	_ Helm                                      = (*HelmActions)(nil)
-	_ modagent.LeaderModule                     = (*module)(nil)
 	_ modagent.Factory                          = (*Factory)(nil)
 	_ modagent.Worker                           = (*worker)(nil)
 	_ modagent.WorkerFactory[*agentcfg.ChartCF] = (*workerFactory)(nil)

@@ -99,6 +99,7 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 	for _, holder := range workersToStop {
 		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.sourceId))
 		holder.wg.Wait()
+		m.log.Info("Stopped worker", logz.WorkerId(holder.sourceId))
 	}
 
 	// Start new workers for new sources or because of updated configuration.
@@ -111,11 +112,16 @@ func (m *WorkerManager[C]) ApplyConfiguration(agentId int64, cfg *agentcfg.Agent
 func (m *WorkerManager[C]) StopAllWorkers() {
 	// Tell all workers to stop
 	for _, holder := range m.workers {
+		m.log.Info("Stopping worker", logz.WorkerId(holder.sourceId))
 		holder.stop()
 	}
 	// Wait for all workers to stop
-	for _, holder := range m.workers {
+	for k, holder := range m.workers {
+		m.log.Info("Waiting for worker to stop", logz.WorkerId(holder.sourceId))
 		holder.wg.Wait()
+		// we clear the workers map to allow for a proper restart of the workers.
+		delete(m.workers, k)
+		m.log.Info("Stopped worker", logz.WorkerId(holder.sourceId))
 	}
 }
 

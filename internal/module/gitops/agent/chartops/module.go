@@ -26,10 +26,6 @@ type module struct {
 	workerFactory *workerFactory
 }
 
-func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
-	return cfg.Gitops != nil && len(cfg.Gitops.Charts) > 0
-}
-
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	wm := modagent.NewWorkerManager[*agentcfg.ChartCF](m.log, m.workerFactory)
 	defer wm.StopAllWorkers()

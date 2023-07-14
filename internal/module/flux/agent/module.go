@@ -37,11 +37,6 @@ type module struct {
 	controllerFactory controllerFactory
 }
 
-func (m *module) IsRunnableConfiguration(cfg *agentcfg.AgentConfiguration) bool {
-	// NOTE: always running Flux module for now, but check in `Run()` if Flux is installed
-	return true
-}
-
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	if !m.isFluxInstalled(ctx) {
 		m.log.Debug("Flux is not installed, skipping module. A restart is required for this to be checked again")

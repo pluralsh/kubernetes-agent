@@ -26,6 +26,10 @@ type Factory struct {
 	KeyFile             string
 }
 
+func (f *Factory) IsProducingLeaderModules() bool {
+	return false
+}
+
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(f.CertFile, f.KeyFile)
 	if err != nil {

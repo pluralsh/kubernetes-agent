@@ -51,6 +51,7 @@ go_custom_test(
     name = "manifestops_test",
     srcs = [
         "mock_for_test.go",
+        "module_test.go",
         "retry_pipeline_test.go",
         "sync_decoder_test.go",
         "worker_test.go",

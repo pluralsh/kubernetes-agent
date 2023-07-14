@@ -36,24 +36,10 @@ func TestLMW_Name_IsDelegated(t *testing.T) {
 	assert.Equal(t, "name1", w.Name())
 }
 
-func TestLMW_Run_NotRunnableConfig(t *testing.T) {
-	w, _, m := setupLMW(t)
-	c := &agentcfg.AgentConfiguration{}
-	m.EXPECT().
-		IsRunnableConfiguration(c).
-		Return(false)
-	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	cfg <- c
-	close(cfg)
-	err := w.Run(context.Background(), cfg)
-	require.NoError(t, err)
-}
-
-func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
+func TestLMW_Run_StartWithConfig(t *testing.T) {
 	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
-	c2 := &agentcfg.AgentConfiguration{}
 	cfg := make(chan *agentcfg.AgentConfiguration, 1)
 	complete := make(chan struct{})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -61,9 +47,6 @@ func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
 
 	// setup mock expectations
 	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
 		r.EXPECT().
 			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
@@ -76,17 +59,11 @@ func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c1m := <-cfgm
 				assert.Same(t, c1, c1m)
-				cfg <- c2
-				close(cfg)
-				_, ok := <-cfgm
-				assert.False(t, ok)
 
+				close(cfg)
 				close(complete)
 				return nil
 			}),
-		m.EXPECT().
-			IsRunnableConfiguration(c2).
-			Return(false),
 	)
 
 	// WHEN
@@ -103,7 +80,7 @@ func TestLMW_Run_RunnableThenNotRunnableConfig(t *testing.T) {
 	assert.False(t, w.isRunning())
 }
 
-func TestLMW_Run_RunnableThenNotRunnableThenRunnableConfig(t *testing.T) {
+func TestLMW_Run_ReceiveNewConfigs(t *testing.T) {
 	// GIVEN
 	w, r, m := setupLMW(t)
 	c1 := &agentcfg.AgentConfiguration{}
@@ -115,45 +92,29 @@ func TestLMW_Run_RunnableThenNotRunnableThenRunnableConfig(t *testing.T) {
 	defer cancel()
 
 	// setup mock expectations
-	r.EXPECT().
-		RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
-			// we cannot block the caller, because it wouldn't be able to receive the start function.
-			go startFn()
-			return func() {}, nil
-		}).Times(2)
 	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
+		r.EXPECT().
+			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
+				// we cannot block the caller, because it wouldn't be able to receive the start function.
+				go startFn()
+				return func() {}, nil
+			}),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c1m := <-cfgm
 				assert.Same(t, c1, c1m)
+
 				cfg <- c2
-				_, ok := <-cfgm
-				assert.False(t, ok)
-				return nil
-			}),
-		m.EXPECT().
-			IsRunnableConfiguration(c2).
-			DoAndReturn(func(_ *agentcfg.AgentConfiguration) bool {
+				c2m := <-cfgm
+				assert.Same(t, c2, c2m)
+
 				cfg <- c3
-				return false
-			}),
-		m.EXPECT().
-			IsRunnableConfiguration(c3).
-			Return(true),
-		m.EXPECT().
-			Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c3m := <-cfgm
 				assert.Same(t, c3, c3m)
-				close(cfg)
-				_, ok := <-cfgm
-				assert.False(t, ok)
 
+				close(cfg)
 				close(complete)
 				return nil
 			}),
@@ -170,59 +131,6 @@ func TestLMW_Run_RunnableThenNotRunnableThenRunnableConfig(t *testing.T) {
 	case <-complete:
 	}
 	require.NoError(t, err)
-	assert.False(t, w.isRunning())
-}
-
-func TestLMW_Run_RunnableThenNotRunnableStopError(t *testing.T) {
-	// GIVEN
-	w, r, m := setupLMW(t)
-	c1 := &agentcfg.AgentConfiguration{}
-	c2 := &agentcfg.AgentConfiguration{}
-	cfg := make(chan *agentcfg.AgentConfiguration, 1)
-	complete := make(chan struct{})
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// setup mock expectations
-	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
-		r.EXPECT().
-			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
-				// we cannot block the caller, because it wouldn't be able to receive the start function.
-				go startFn()
-				return func() {}, nil
-			}),
-		m.EXPECT().
-			Run(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
-				c1m := <-cfgm
-				assert.Same(t, c1, c1m)
-				cfg <- c2
-				_, ok := <-cfgm
-				assert.False(t, ok)
-
-				close(complete)
-				return errors.New("boom")
-			}),
-		m.EXPECT().
-			IsRunnableConfiguration(c2).
-			Return(false),
-	)
-
-	// WHEN
-	cfg <- c1
-	err := w.Run(ctx, cfg)
-
-	// THEN
-	select {
-	case <-ctx.Done():
-		require.FailNow(t, ctx.Err().Error())
-	case <-complete:
-	}
-	assert.EqualError(t, err, "boom")
 	assert.False(t, w.isRunning())
 }
 
@@ -238,9 +146,6 @@ func TestLMW_Run_EarlyReturnNoError(t *testing.T) {
 
 	// setup mock expectations
 	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
 		r.EXPECT().
 			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
@@ -294,9 +199,6 @@ func TestLMW_Run_EarlyReturnNoErrorMoreConfig(t *testing.T) {
 		}).Times(2)
 	gomock.InOrder(
 		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
-		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
 				c1m := <-cfgm
@@ -307,9 +209,6 @@ func TestLMW_Run_EarlyReturnNoErrorMoreConfig(t *testing.T) {
 				}()
 				return nil
 			}),
-		m.EXPECT().
-			IsRunnableConfiguration(c2).
-			Return(true),
 		m.EXPECT().
 			Run(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, cfgm <-chan *agentcfg.AgentConfiguration) error {
@@ -350,9 +249,6 @@ func TestLMW_Run_EarlyReturnError(t *testing.T) {
 
 	// setup mock expectations
 	gomock.InOrder(
-		m.EXPECT().
-			IsRunnableConfiguration(c1).
-			Return(true),
 		r.EXPECT().
 			RunWhenLeader(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, startFn ModuleStartFunc, stopFn ModuleStopFunc) (CancelRunWhenLeaderFunc, error) {
@@ -382,9 +278,9 @@ func TestLMW_Run_EarlyReturnError(t *testing.T) {
 	assert.False(t, w.isRunning())
 }
 
-func setupLMW(t *testing.T) (*leaderModuleWrapper, *MockRunner, *mock_modagent.MockLeaderModule) {
+func setupLMW(t *testing.T) (*leaderModuleWrapper, *MockRunner, *mock_modagent.MockModule) {
 	ctrl := gomock.NewController(t)
-	m := mock_modagent.NewMockLeaderModule(ctrl)
+	m := mock_modagent.NewMockModule(ctrl)
 	r := NewMockRunner(ctrl)
 	w := newLeaderModuleWrapper(m, r)
 	return w, r, m

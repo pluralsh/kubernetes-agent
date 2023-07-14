@@ -40,7 +40,6 @@ const (
 var (
 	projectId = "bla123/bla-1"
 
-	_ modagent.LeaderModule                               = &module{}
 	_ modagent.Factory                                    = &Factory{}
 	_ modagent.Worker                                     = &worker{}
 	_ modagent.WorkerFactory[*agentcfg.ManifestProjectCF] = &workerFactory{}
