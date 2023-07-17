@@ -1102,6 +1102,13 @@ def go_repositories():
         version = "v1.7.0-rc.1.0.20220812172401-5b455625bd2c",
     )
     go_repository(
+        name = "org_uber_go_mock",
+        build_file_proto_mode = "disable_global",
+        importpath = "go.uber.org/mock",
+        sum = "h1:TaP3xedm7JaAgScZO7tlvlKrqT0p7I6OsdGB5YNSMDU=",
+        version = "v0.2.0",
+    )
+    go_repository(
         name = "com_github_golang_protobuf",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/golang/protobuf",
@@ -2373,8 +2380,8 @@ def go_repositories():
         name = "com_github_redis_rueidis",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/redis/rueidis",
-        sum = "h1:UG26K6xpDZBKGbhgDqFVY2j5r8WtpO1jDd33FyAliec=",
-        version = "v1.0.11",
+        sum = "h1:LEEctBLb4Y0VzmUZC8ObMOij7jdjfga5/OyrNzRLYuk=",
+        version = "v1.0.12",
     )
     go_repository(
         name = "com_github_robfig_cron_v3",
