@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )
 

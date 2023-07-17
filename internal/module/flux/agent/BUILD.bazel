@@ -76,7 +76,6 @@ go_custom_test(
         "//pkg/agentcfg",
         "@com_github_fluxcd_notification_controller_api//v1:api",
         "@com_github_fluxcd_source_controller_api//v1:api",
-        "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@io_k8s_apiextensions_apiserver//pkg/apis/apiextensions/v1:apiextensions",
@@ -89,6 +88,7 @@ go_custom_test(
         "@io_k8s_utils//clock",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//metadata",
+        "@org_uber_go_mock//gomock",
         "@org_uber_go_zap//zaptest",
     ],
 )

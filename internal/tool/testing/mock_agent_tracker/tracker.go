@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	agent_tracker "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTracker is a mock of Tracker interface.

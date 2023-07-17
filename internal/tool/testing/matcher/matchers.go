@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -149,7 +149,7 @@ type doMatch[V any] struct {
 // lambda function to detect if actual value matches
 // some arbitrary criteria.
 // Lambda matcher implements gomock customer matcher
-// interface https://github.com/golang/mock/blob/5b455625bd2c8ffbcc0de6a0873f864ba3820904/gomock/matchers.go#L25.
+// interface https://github.com/uber/mock/blob/5b455625bd2c8ffbcc0de6a0873f864ba3820904/gomock/matchers.go#L25.
 // Sample of usage:
 //
 // mock.EXPECT().Foo(gomock.All(

@@ -3,8 +3,8 @@ package mock_rpc
 import (
 	"io"
 
-	"github.com/golang/mock/gomock"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/proto"
 )
 

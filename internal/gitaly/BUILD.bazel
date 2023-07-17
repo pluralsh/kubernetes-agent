@@ -42,10 +42,10 @@ go_custom_test(
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitaly",
         "//internal/tool/testing/mock_internalgitaly",
-        "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_uber_go_mock//gomock",
     ],
 )

@@ -65,7 +65,6 @@ go_custom_test(
         "//internal/tool/testing/testhelpers",
         "//pkg/entity",
         "//pkg/kascfg",
-        "@com_github_golang_mock//gomock",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_redis_rueidis//mock",
         "@com_github_stretchr_testify//assert",
@@ -77,6 +76,7 @@ go_custom_test(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_uber_go_mock//gomock",
         "@org_uber_go_zap//zaptest",
     ],
 )

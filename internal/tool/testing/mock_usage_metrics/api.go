@@ -7,8 +7,8 @@ package mock_usage_metrics
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	usage_metrics "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockUsageTrackerInterface is a mock of UsageTrackerInterface interface.
