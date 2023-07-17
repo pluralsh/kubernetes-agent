@@ -67,7 +67,7 @@ Modules that implement server and agent-side functionality.
 ### `internal/tool`
 
 Various building blocks. `internal/tool/testing` contains mocks and helpers
-for testing. Mocks are generated with [`gomock`](https://pkg.go.dev/github.com/golang/mock).
+for testing. Mocks are generated with [`gomock`](https://pkg.go.dev/go.uber.org/mock).
 
 ## `pkg`
 

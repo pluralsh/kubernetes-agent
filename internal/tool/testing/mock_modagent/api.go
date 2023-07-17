@@ -9,10 +9,10 @@ import (
 	url "net/url"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )
 

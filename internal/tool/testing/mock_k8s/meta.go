@@ -7,7 +7,7 @@ package mock_k8s
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )

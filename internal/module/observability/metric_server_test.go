@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 )
 

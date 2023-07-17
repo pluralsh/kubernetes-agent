@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 	time "time"
 
-	gomock "github.com/golang/mock/gomock"
 	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockExpiringHashInterface is a mock of ExpiringHashInterface interface.

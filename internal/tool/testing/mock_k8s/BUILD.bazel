@@ -16,7 +16,6 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_k8s",
     visibility = ["//:__subpackages__"],
     deps = [
-        "@com_github_golang_mock//gomock",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apiextensions_apiserver//pkg/apis/apiextensions/v1:apiextensions",
         "@io_k8s_apiextensions_apiserver//pkg/client/clientset/clientset/typed/apiextensions/v1:apiextensions",
@@ -34,5 +33,6 @@ go_library(
         "@io_k8s_client_go//kubernetes/typed/core/v1:core",
         "@io_k8s_client_go//rest",
         "@io_k8s_client_go//tools/cache",
+        "@org_uber_go_mock//gomock",
     ],
 )

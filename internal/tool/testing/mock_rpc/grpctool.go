@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 )

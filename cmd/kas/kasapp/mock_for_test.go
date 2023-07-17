@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	sentry "github.com/getsentry/sentry-go"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockSentryHub is a mock of SentryHub interface.

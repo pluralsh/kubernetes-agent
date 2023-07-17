@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	tracker "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRegisterer is a mock of Registerer interface.

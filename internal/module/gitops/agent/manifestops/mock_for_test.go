@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	apply "sigs.k8s.io/cli-utils/pkg/apply"
 	event "sigs.k8s.io/cli-utils/pkg/apply/event"
 	inventory "sigs.k8s.io/cli-utils/pkg/inventory"

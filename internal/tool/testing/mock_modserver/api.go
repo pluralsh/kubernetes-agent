@@ -8,11 +8,11 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	modserver "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	syncz "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	event "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
+	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )
 

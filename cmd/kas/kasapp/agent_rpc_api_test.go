@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
@@ -20,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"

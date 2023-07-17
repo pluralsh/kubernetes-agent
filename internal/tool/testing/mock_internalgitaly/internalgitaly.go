@@ -8,10 +8,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	gitalypb "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 	entity "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockPoolInterface is a mock of PoolInterface interface.

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +29,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

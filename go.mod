@@ -13,8 +13,6 @@ require (
 	github.com/getsentry/sentry-go v0.22.0
 	github.com/go-logr/zapr v1.2.4
 	github.com/golang-jwt/jwt/v5 v5.0.0
-	// Make sure to update build/genmock.sh when updating
-	github.com/golang/mock v1.7.0-rc.1.0.20220812172401-5b455625bd2c
 	github.com/google/go-cmp v0.5.9
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
@@ -34,6 +32,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
+	// Make sure to update build/mockgen.sh when updating
+	go.uber.org/mock v0.2.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sync v0.3.0
@@ -176,7 +176,6 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/mock v0.2.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/oauth2 v0.9.0 // indirect
