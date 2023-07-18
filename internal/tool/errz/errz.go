@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
 	"go.uber.org/zap"
 )
 
@@ -17,6 +18,14 @@ type ErrReporter interface {
 
 func ContextDone(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
+func DiscardAndClose(r io.ReadCloser, e *error) {
+	defer SafeClose(r, e)
+	err := ioz.DiscardData(r)
+	if *e == nil {
+		*e = err
+	}
 }
 
 func SafeClose(toClose io.Closer, err *error) {

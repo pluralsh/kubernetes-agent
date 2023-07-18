@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -57,12 +56,7 @@ func (t *gitrepositoryReconcileTrigger) reconcile(ctx context.Context, webhookPa
 	if err != nil {
 		return err
 	}
-	defer errz.SafeClose(resp.Body, &retErr)
-	// draining response body so that the underlying transport can reuse the connection,
-	// see https://pkg.go.dev/net/http#Response
-	if _, err = io.Copy(io.Discard, io.LimitReader(resp.Body, 8*1024)); err != nil {
-		return fmt.Errorf("failed to drain response body to reconciliation trigger request: %w", err)
-	}
+	defer errz.DiscardAndClose(resp.Body, &retErr)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("trigger to %q returned status %q", u.String(), resp.Status)

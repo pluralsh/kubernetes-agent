@@ -131,7 +131,7 @@ func handleOkResponse(h func(body []byte) error, errHandler ErrHandler) func(*ht
 		if err != nil {
 			return err
 		}
-		defer errz.SafeClose(resp.Body, &retErr)
+		defer errz.DiscardAndClose(resp.Body, &retErr)
 		switch resp.StatusCode {
 		case http.StatusOK, http.StatusCreated:
 			contentType := resp.Header.Get(httpz.ContentTypeHeader)
@@ -156,15 +156,10 @@ func NoContentResponseHandler() ResponseHandler {
 			if err != nil {
 				return err
 			}
-			defer errz.SafeClose(resp.Body, &retErr)
+			defer errz.DiscardAndClose(resp.Body, &retErr)
 			switch resp.StatusCode {
 			case http.StatusOK, http.StatusNoContent:
-				const maxBodySlurpSize = 8 * 1024
-				_, err = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
-				if err == io.EOF { // nolint:errorlint
-					err = nil
-				}
-				return err
+				return nil
 			default: // Unexpected status
 				path := ""
 				if resp.Request != nil && resp.Request.URL != nil {

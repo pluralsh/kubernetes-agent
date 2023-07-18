@@ -7,6 +7,17 @@ import (
 	"os"
 )
 
+// DiscardData discards up to 8KiB of data from r.
+// Function can be used to drain HTTP client response body.
+// See https://pkg.go.dev/net/http#Response.
+func DiscardData(r io.Reader) error {
+	_, err := io.Copy(io.Discard, io.LimitReader(r, 8*1024))
+	if err != nil {
+		return fmt.Errorf("failed to read data: %w", err)
+	}
+	return nil
+}
+
 func LoadBase64Secret(filename string) ([]byte, error) {
 	encodedAuthSecret, err := os.ReadFile(filename) // nolint: gosec
 	if err != nil {
