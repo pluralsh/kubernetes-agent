@@ -24,6 +24,7 @@ go_library(
         "//internal/module/remote_development/agent/k8s",
         "//internal/tool/errz",
         "//internal/tool/httpz",
+        "//internal/tool/ioz",
         "//internal/tool/logz",
         "//internal/tool/prototool",
         "//internal/tool/retry",

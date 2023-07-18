@@ -248,7 +248,7 @@ func (w *worker) pollValuesUrlSource(ctx context.Context, src *agentcfg.ChartVal
 	if err != nil {
 		return nil, err
 	}
-	defer errz.SafeClose(resp.Body, &retErr)
+	defer errz.DiscardAndClose(resp.Body, &retErr)
 	// 3. Check HTTP status code of the response.
 	switch resp.StatusCode {
 	case http.StatusOK:

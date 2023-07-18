@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"go.uber.org/zap"
@@ -251,6 +252,7 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 
 	defer errz.SafeClose(resp.Body, &retError)
 	if resp.StatusCode != http.StatusCreated {
+		_ = ioz.DiscardData(resp.Body)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
