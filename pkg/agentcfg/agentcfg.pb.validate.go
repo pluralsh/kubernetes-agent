@@ -5542,22 +5542,232 @@ var _ interface {
 	ErrorName() string
 } = AgentConfigurationValidationError{}
 
-// Validate checks the field values on RemoteCF with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *RemoteCF) Validate() error {
+// Validate checks the field values on GitLabWorkspacesProxy with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *GitLabWorkspacesProxy) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on RemoteCF with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in RemoteCFMultiError, or nil
-// if none found.
-func (m *RemoteCF) ValidateAll() error {
+// ValidateAll checks the field values on GitLabWorkspacesProxy with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GitLabWorkspacesProxyMultiError, or nil if none found.
+func (m *GitLabWorkspacesProxy) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *RemoteCF) validate(all bool) error {
+func (m *GitLabWorkspacesProxy) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Namespace
+
+	if len(errors) > 0 {
+		return GitLabWorkspacesProxyMultiError(errors)
+	}
+
+	return nil
+}
+
+// GitLabWorkspacesProxyMultiError is an error wrapping multiple validation
+// errors returned by GitLabWorkspacesProxy.ValidateAll() if the designated
+// constraints aren't met.
+type GitLabWorkspacesProxyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitLabWorkspacesProxyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitLabWorkspacesProxyMultiError) AllErrors() []error { return m }
+
+// GitLabWorkspacesProxyValidationError is the validation error returned by
+// GitLabWorkspacesProxy.Validate if the designated constraints aren't met.
+type GitLabWorkspacesProxyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GitLabWorkspacesProxyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GitLabWorkspacesProxyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GitLabWorkspacesProxyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GitLabWorkspacesProxyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GitLabWorkspacesProxyValidationError) ErrorName() string {
+	return "GitLabWorkspacesProxyValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GitLabWorkspacesProxyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGitLabWorkspacesProxy.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GitLabWorkspacesProxyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GitLabWorkspacesProxyValidationError{}
+
+// Validate checks the field values on WorkspaceNetworkPolicy with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *WorkspaceNetworkPolicy) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on WorkspaceNetworkPolicy with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// WorkspaceNetworkPolicyMultiError, or nil if none found.
+func (m *WorkspaceNetworkPolicy) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *WorkspaceNetworkPolicy) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.Enabled != nil {
+		// no validation rules for Enabled
+	}
+
+	if len(errors) > 0 {
+		return WorkspaceNetworkPolicyMultiError(errors)
+	}
+
+	return nil
+}
+
+// WorkspaceNetworkPolicyMultiError is an error wrapping multiple validation
+// errors returned by WorkspaceNetworkPolicy.ValidateAll() if the designated
+// constraints aren't met.
+type WorkspaceNetworkPolicyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m WorkspaceNetworkPolicyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m WorkspaceNetworkPolicyMultiError) AllErrors() []error { return m }
+
+// WorkspaceNetworkPolicyValidationError is the validation error returned by
+// WorkspaceNetworkPolicy.Validate if the designated constraints aren't met.
+type WorkspaceNetworkPolicyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e WorkspaceNetworkPolicyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e WorkspaceNetworkPolicyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e WorkspaceNetworkPolicyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e WorkspaceNetworkPolicyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e WorkspaceNetworkPolicyValidationError) ErrorName() string {
+	return "WorkspaceNetworkPolicyValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e WorkspaceNetworkPolicyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sWorkspaceNetworkPolicy.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = WorkspaceNetworkPolicyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = WorkspaceNetworkPolicyValidationError{}
+
+// Validate checks the field values on RemoteDevelopmentCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *RemoteDevelopmentCF) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RemoteDevelopmentCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// RemoteDevelopmentCFMultiError, or nil if none found.
+func (m *RemoteDevelopmentCF) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RemoteDevelopmentCF) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -5571,7 +5781,7 @@ func (m *RemoteCF) validate(all bool) error {
 	if d := m.GetPartialSyncInterval(); d != nil {
 		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			err = RemoteCFValidationError{
+			err = RemoteDevelopmentCFValidationError{
 				field:  "PartialSyncInterval",
 				reason: "value is not a valid duration",
 				cause:  err,
@@ -5585,7 +5795,7 @@ func (m *RemoteCF) validate(all bool) error {
 			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
 
 			if dur <= gt {
-				err := RemoteCFValidationError{
+				err := RemoteDevelopmentCFValidationError{
 					field:  "PartialSyncInterval",
 					reason: "value must be greater than 0s",
 				}
@@ -5601,7 +5811,7 @@ func (m *RemoteCF) validate(all bool) error {
 	if d := m.GetFullSyncInterval(); d != nil {
 		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			err = RemoteCFValidationError{
+			err = RemoteDevelopmentCFValidationError{
 				field:  "FullSyncInterval",
 				reason: "value is not a valid duration",
 				cause:  err,
@@ -5615,7 +5825,7 @@ func (m *RemoteCF) validate(all bool) error {
 			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
 
 			if dur <= gt {
-				err := RemoteCFValidationError{
+				err := RemoteDevelopmentCFValidationError{
 					field:  "FullSyncInterval",
 					reason: "value must be greater than 0s",
 				}
@@ -5628,19 +5838,78 @@ func (m *RemoteCF) validate(all bool) error {
 		}
 	}
 
+	if all {
+		switch v := interface{}(m.GetGitlabWorkspacesProxy()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RemoteDevelopmentCFValidationError{
+					field:  "GitlabWorkspacesProxy",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RemoteDevelopmentCFValidationError{
+					field:  "GitlabWorkspacesProxy",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGitlabWorkspacesProxy()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RemoteDevelopmentCFValidationError{
+				field:  "GitlabWorkspacesProxy",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetNetworkPolicy()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RemoteDevelopmentCFValidationError{
+					field:  "NetworkPolicy",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RemoteDevelopmentCFValidationError{
+					field:  "NetworkPolicy",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetNetworkPolicy()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RemoteDevelopmentCFValidationError{
+				field:  "NetworkPolicy",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
-		return RemoteCFMultiError(errors)
+		return RemoteDevelopmentCFMultiError(errors)
 	}
 
 	return nil
 }
 
-// RemoteCFMultiError is an error wrapping multiple validation errors returned
-// by RemoteCF.ValidateAll() if the designated constraints aren't met.
-type RemoteCFMultiError []error
+// RemoteDevelopmentCFMultiError is an error wrapping multiple validation
+// errors returned by RemoteDevelopmentCF.ValidateAll() if the designated
+// constraints aren't met.
+type RemoteDevelopmentCFMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m RemoteCFMultiError) Error() string {
+func (m RemoteDevelopmentCFMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -5649,11 +5918,11 @@ func (m RemoteCFMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m RemoteCFMultiError) AllErrors() []error { return m }
+func (m RemoteDevelopmentCFMultiError) AllErrors() []error { return m }
 
-// RemoteCFValidationError is the validation error returned by
-// RemoteCF.Validate if the designated constraints aren't met.
-type RemoteCFValidationError struct {
+// RemoteDevelopmentCFValidationError is the validation error returned by
+// RemoteDevelopmentCF.Validate if the designated constraints aren't met.
+type RemoteDevelopmentCFValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -5661,22 +5930,24 @@ type RemoteCFValidationError struct {
 }
 
 // Field function returns field value.
-func (e RemoteCFValidationError) Field() string { return e.field }
+func (e RemoteDevelopmentCFValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e RemoteCFValidationError) Reason() string { return e.reason }
+func (e RemoteDevelopmentCFValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e RemoteCFValidationError) Cause() error { return e.cause }
+func (e RemoteDevelopmentCFValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e RemoteCFValidationError) Key() bool { return e.key }
+func (e RemoteDevelopmentCFValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e RemoteCFValidationError) ErrorName() string { return "RemoteCFValidationError" }
+func (e RemoteDevelopmentCFValidationError) ErrorName() string {
+	return "RemoteDevelopmentCFValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e RemoteCFValidationError) Error() string {
+func (e RemoteDevelopmentCFValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -5688,14 +5959,14 @@ func (e RemoteCFValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sRemoteCF.%s: %s%s",
+		"invalid %sRemoteDevelopmentCF.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = RemoteCFValidationError{}
+var _ error = RemoteDevelopmentCFValidationError{}
 
 var _ interface {
 	Field() string
@@ -5703,7 +5974,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = RemoteCFValidationError{}
+} = RemoteDevelopmentCFValidationError{}
 
 // Validate checks the field values on FluxCF with the rules defined in the
 // proto definition for this message. If any rules are violated, the first

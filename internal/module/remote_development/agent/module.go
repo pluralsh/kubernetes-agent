@@ -31,8 +31,8 @@ type module struct {
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	wh := syncz.NewProtoWorkerHolder[*agentcfg.RemoteCF](
-		func(config *agentcfg.RemoteCF) syncz.Worker {
+	wh := syncz.NewProtoWorkerHolder[*agentcfg.RemoteDevelopmentCF](
+		func(config *agentcfg.RemoteDevelopmentCF) syncz.Worker {
 			if !config.Enabled {
 				return syncz.WorkerFunc(func(ctx context.Context) {
 					// nop worker

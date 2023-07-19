@@ -40,7 +40,7 @@ func TestConfigChange(t *testing.T) {
 			timesCalled: 1,
 			configs: []*agentcfg.AgentConfiguration{
 				{
-					RemoteDevelopment: &agentcfg.RemoteCF{
+					RemoteDevelopment: &agentcfg.RemoteDevelopmentCF{
 						Enabled: true,
 					},
 				},
@@ -51,13 +51,13 @@ func TestConfigChange(t *testing.T) {
 			timesCalled: 2,
 			configs: []*agentcfg.AgentConfiguration{
 				{
-					RemoteDevelopment: &agentcfg.RemoteCF{
+					RemoteDevelopment: &agentcfg.RemoteDevelopmentCF{
 						Enabled: true,
 						DnsZone: "one",
 					},
 				},
 				{
-					RemoteDevelopment: &agentcfg.RemoteCF{
+					RemoteDevelopment: &agentcfg.RemoteDevelopmentCF{
 						Enabled: true,
 						DnsZone: "two",
 					},
@@ -69,13 +69,13 @@ func TestConfigChange(t *testing.T) {
 			timesCalled: 1,
 			configs: []*agentcfg.AgentConfiguration{
 				{
-					RemoteDevelopment: &agentcfg.RemoteCF{
+					RemoteDevelopment: &agentcfg.RemoteDevelopmentCF{
 						Enabled: true,
 						DnsZone: "one",
 					},
 				},
 				{
-					RemoteDevelopment: &agentcfg.RemoteCF{
+					RemoteDevelopment: &agentcfg.RemoteDevelopmentCF{
 						Enabled: true,
 						DnsZone: "one",
 					},

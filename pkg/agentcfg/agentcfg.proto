@@ -281,7 +281,7 @@ message ConfigurationFile {
   CiAccessCF ci_access = 4 [json_name = "ci_access"];
   ContainerScanningCF container_scanning = 5 [json_name = "container_scanning"];
   UserAccessCF user_access = 6 [json_name = "user_access"];
-  RemoteCF remote_development = 7 [json_name = "remote_development"];
+  RemoteDevelopmentCF remote_development = 7 [json_name = "remote_development"];
   FluxCF flux = 8 [json_name = "flux"];
 }
 
@@ -301,16 +301,28 @@ message AgentConfiguration {
   ContainerScanningCF container_scanning = 7;
   // Path of the configuration project
   string project_path = 8;
-  RemoteCF remote_development = 9;
+  RemoteDevelopmentCF remote_development = 9;
   FluxCF flux = 10;
   string gitlab_external_url = 11;
 }
 
-message RemoteCF {
+// GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
+message GitLabWorkspacesProxy {
+  string namespace = 1 [json_name = "namespace"];
+}
+
+// WorkspaceNetworkPolicy represents the firewall configuration for the remote development workspaces
+message WorkspaceNetworkPolicy {
+  optional bool enabled = 1 [json_name = "enabled"];
+}
+
+message RemoteDevelopmentCF {
   bool enabled = 1 [json_name = "enabled"];
   string dns_zone = 2 [json_name = "dns_zone"];
   google.protobuf.Duration partial_sync_interval = 3 [json_name = "partial_sync_interval", (validate.rules).duration = {gt: {}}];
   google.protobuf.Duration full_sync_interval = 4 [json_name = "full_sync_interval", (validate.rules).duration = {gt: {}}];
+  GitLabWorkspacesProxy gitlab_workspaces_proxy = 5 [json_name = "gitlab_workspaces_proxy"];
+  WorkspaceNetworkPolicy network_policy = 6 [json_name = "network_policy"];
 }
 
 message FluxCF {
