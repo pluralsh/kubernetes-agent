@@ -148,7 +148,9 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	now := time.Now().Unix()
 	var msg ExpiringValue
 	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
-		err := proto.Unmarshal([]byte(v), &msg)
+		// Avoid creating a temporary copy
+		vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
+		err := proto.Unmarshal(vBytes, &msg)
 		if err != nil {
 			done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
 			return done, false, cbErr
@@ -187,9 +189,11 @@ func (h *ExpiringHash[K1, K2]) gcHash(ctx context.Context, key K1) (int, error) 
 	var msg ExpiringValueTimestamp
 	var firstErr error
 	deleted, err := h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+		// Avoid creating a temporary copy
+		vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
 		err := proto.UnmarshalOptions{
 			DiscardUnknown: true, // We know there is one more field, but we don't need it
-		}.Unmarshal([]byte(v), &msg)
+		}.Unmarshal(vBytes, &msg)
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
