@@ -31,18 +31,18 @@ func (ProtoErrMarshaler) Unmarshal(data []byte) (error, error) {
 }
 
 func protoMarshal(m proto.Message) ([]byte, error) {
-	any, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in protoUnmarshal()
+	a, err := anypb.New(m) // use Any to capture type information so that a value can be instantiated in protoUnmarshal()
 	if err != nil {
 		return nil, err
 	}
-	return proto.Marshal(any)
+	return proto.Marshal(a)
 }
 
 func protoUnmarshal(data []byte) (proto.Message, error) {
-	var any anypb.Any
-	err := proto.Unmarshal(data, &any)
+	var a anypb.Any
+	err := proto.Unmarshal(data, &a)
 	if err != nil {
 		return nil, err
 	}
-	return any.UnmarshalNew()
+	return a.UnmarshalNew()
 }
