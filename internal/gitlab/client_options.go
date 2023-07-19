@@ -74,7 +74,7 @@ type ClientOption func(*clientConfig)
 
 func applyClientOptions(opts []ClientOption) clientConfig {
 	dialer := &net.Dialer{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 	config := clientConfig{
 		retryConfig: RetryConfig{
