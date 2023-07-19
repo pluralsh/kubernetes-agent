@@ -1,8 +1,9 @@
 package k8s
 
 import (
-	"bytes"
 	"context"
+	"io"
+	"strings"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
@@ -82,7 +83,7 @@ func (k *K8sClient) DeleteNamespace(ctx context.Context, name string) error {
 }
 
 func (k *K8sClient) Apply(ctx context.Context, namespace string, config string) error {
-	objs, err := k.decode([]byte(config))
+	objs, err := k.decode(strings.NewReader(config))
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func (k *K8sClient) Apply(ctx context.Context, namespace string, config string) 
 	return nil
 }
 
-func (k *K8sClient) decode(data []byte) ([]*unstructured.Unstructured, error) {
+func (k *K8sClient) decode(data io.Reader) ([]*unstructured.Unstructured, error) {
 	// 1. parse in local mode to retrieve objects.
 	builder := resource.NewBuilder(k.factory).
 		ContinueOnError().
@@ -127,7 +128,7 @@ func (k *K8sClient) decode(data []byte) ([]*unstructured.Unstructured, error) {
 		Unstructured().
 		Local()
 
-	builder.Stream(bytes.NewReader(data), "main")
+	builder.Stream(data, "main")
 
 	result := builder.Do()
 	var objs []*unstructured.Unstructured
