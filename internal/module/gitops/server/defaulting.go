@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultGitopsPollPeriod               = 20 * time.Second
+	defaultGitopsPollPeriod               = 5 * time.Minute
 	defaultGitopsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitopsProjectInfoCacheErrorTTL = 1 * time.Minute
 	defaultGitopsMaxManifestFileSize      = 5 * 1024 * 1024
