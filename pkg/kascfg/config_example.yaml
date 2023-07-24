@@ -19,10 +19,10 @@ agent:
     max_connection_age: "7200s"
     listen_grace_period: "5s"
   configuration:
-    poll_period: "20s"
+    poll_period: "300s"
     max_configuration_file_size: 131072
   gitops:
-    poll_period: "20s"
+    poll_period: "300s"
     project_info_cache_ttl: "300s"
     project_info_cache_error_ttl: "60s"
     max_manifest_file_size: 5242880

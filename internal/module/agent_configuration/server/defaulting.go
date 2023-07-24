@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultAgentConfigurationPollPeriod               = 20 * time.Second
+	defaultAgentConfigurationPollPeriod               = 5 * time.Minute
 	defaultAgentConfigurationMaxConfigurationFileSize = 128 * 1024
 )
 
