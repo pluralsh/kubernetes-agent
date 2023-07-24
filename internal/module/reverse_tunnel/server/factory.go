@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	getAgentInfoInitBackoff   = 10 * time.Second
-	getAgentInfoMaxBackoff    = 5 * time.Minute
-	getAgentInfoResetDuration = 10 * time.Minute
+	getAgentInfoInitBackoff   = 20 * time.Millisecond
+	getAgentInfoMaxBackoff    = 100 * time.Millisecond
+	getAgentInfoResetDuration = 10 * time.Second
 	getAgentInfoBackoffFactor = 2.0
 	getAgentInfoJitter        = 1.0
 )
