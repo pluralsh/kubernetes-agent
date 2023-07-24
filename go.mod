@@ -20,7 +20,7 @@ require (
 	github.com/imdario/mergo v0.3.16
 	github.com/piotrkowalczuk/promgrpc/v4 v4.1.0
 	github.com/prometheus/client_golang v1.16.0
-	github.com/redis/rueidis v1.0.12
+	github.com/redis/rueidis v1.0.13
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
