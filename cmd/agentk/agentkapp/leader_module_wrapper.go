@@ -75,6 +75,17 @@ func (w *leaderModuleWrapper) Run(ctx context.Context, cfg <-chan *agentcfg.Agen
 	// This channel is used to initiate a stop of a previously started module.
 	requestStopCh := make(chan chan struct{})
 
+	// safeStop should be used to safely stop the module and also nil the
+	// configuration proxy channel so that nothing (config or nil) isn't attempted
+	// to be sent to an already closed channel. The nilableCfg channel
+	// will be reassigned an open module config channel when the module
+	// is started again.
+	safeStop := func() error {
+		err := w.stop()
+		nilableCfg = nil
+		return err
+	}
+
 	// Implementation Details:
 	// The for-select block below is the main loop of the leader module wrapper, with the following responsibilities:
 	// case #1:
@@ -128,7 +139,7 @@ func (w *leaderModuleWrapper) Run(ctx context.Context, cfg <-chan *agentcfg.Agen
 			config = initialCfg
 			nilableCfg = w.cfg2module
 		case stopped := <-requestStopCh: // case #2
-			w.stop() // nolint:errcheck,gosec
+			safeStop() // nolint:errcheck,gosec
 			close(stopped)
 		case c, ok := <-cfg: // case #3
 			if !ok {
@@ -162,7 +173,7 @@ func (w *leaderModuleWrapper) Run(ctx context.Context, cfg <-chan *agentcfg.Agen
 			// The module returned without an explicit stop,
 			// so we first ensure that the module is properly stopped and things are cleaned up for the next start
 			// We can safely ignore the return value here, because it was already consumed by this very case.
-			_ = w.stop()
+			_ = safeStop()
 
 			// If there actually was an error, we abort the run here and let the module runner handle it
 			if err != nil {
