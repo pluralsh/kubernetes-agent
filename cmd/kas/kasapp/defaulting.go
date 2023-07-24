@@ -43,11 +43,12 @@ const (
 
 	defaultApiListenNetwork          = "tcp"
 	defaultApiListenAddress          = "127.0.0.1:8153"
-	defaultApiListenMaxConnectionAge = 30 * time.Minute
+	defaultApiListenMaxConnectionAge = 2 * time.Hour
 
-	defaultPrivateApiListenNetwork          = "tcp"
-	defaultPrivateApiListenAddress          = "127.0.0.1:8155"
-	defaultPrivateApiListenMaxConnectionAge = 30 * time.Minute
+	defaultPrivateApiListenNetwork = "tcp"
+	defaultPrivateApiListenAddress = "127.0.0.1:8155"
+	// Should be equal to the defaultAgentListenMaxConnectionAge as agent's tunnel requests go via private API server.
+	defaultPrivateApiListenMaxConnectionAge = defaultAgentListenMaxConnectionAge
 )
 
 var (

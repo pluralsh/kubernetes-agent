@@ -83,7 +83,7 @@ private_api:
     network: tcp
     address: 127.0.0.1:8155
     authentication_secret_file: /some/file
-    max_connection_age: 1800s
+    max_connection_age: 7200s
     listen_grace_period: "5s"
 redis:
   server:
@@ -100,5 +100,5 @@ api:
     authentication_secret_file: /some/file # required
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
-    max_connection_age: "1800s"
+    max_connection_age: "7200s"
     listen_grace_period: "5s"
