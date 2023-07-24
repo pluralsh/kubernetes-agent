@@ -39,9 +39,9 @@ const (
 	// https://github.com/grpc/grpc-go/blob/v1.39.0/internal/transport/http2_server.go#L1339-L1347
 	maxConnectionAgeGrpcJitterPercent = 10
 	// High fraction of connection time as grace time makes agentk reopen TCP connections more frequently i.e.
-	// after 100-5-10-50=35% of max connection age time has elapsed. That leaves 50% of time for the long-running
-	// connections to wrap up if such a connection was established close to the 35% time boundary.
-	maxConnectionAgeGracePercent = 50
+	// after 100-5-10-65=20% of max connection age time has elapsed. That leaves 65% of time for the long-running
+	// connections to wrap up if such a connection was established close to the 20% time boundary.
+	maxConnectionAgeGracePercent = 65
 
 	// This is a compile-time test that ensures that the sum of all of the above does not exceed 100%.
 	_ uint = 100 - maxConnectionAgeGracePercent - maxConnectionAgeGrpcJitterPercent - maxConnectionAgeJitterPercent
