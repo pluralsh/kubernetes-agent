@@ -23,13 +23,14 @@
     - [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter)
     - [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF)
     - [FluxCF](#gitlab-agent-agentcfg-FluxCF)
+    - [GitLabWorkspacesProxy](#gitlab-agent-agentcfg-GitLabWorkspacesProxy)
     - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
     - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
     - [LoggingCF](#gitlab-agent-agentcfg-LoggingCF)
     - [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF)
     - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
     - [PathCF](#gitlab-agent-agentcfg-PathCF)
-    - [RemoteCF](#gitlab-agent-agentcfg-RemoteCF)
+    - [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF)
     - [Resource](#gitlab-agent-agentcfg-Resource)
     - [ResourceRequirements](#gitlab-agent-agentcfg-ResourceRequirements)
     - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
@@ -39,6 +40,7 @@
     - [UserAccessGroupCF](#gitlab-agent-agentcfg-UserAccessGroupCF)
     - [UserAccessProjectCF](#gitlab-agent-agentcfg-UserAccessProjectCF)
     - [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport)
+    - [WorkspaceNetworkPolicy](#gitlab-agent-agentcfg-WorkspaceNetworkPolicy)
   
     - [log_level_enum](#gitlab-agent-agentcfg-log_level_enum)
   
@@ -71,7 +73,7 @@ additional config for kas.
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
 | container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | project_path | [string](#string) |  | Path of the configuration project |
-| remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
+| remote_development | [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF) |  |  |
 | flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
 | gitlab_external_url | [string](#string) |  |  |
 
@@ -302,7 +304,7 @@ ConfigurationFile represents user-facing configuration file.
 | ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
 | container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
 | user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
-| remote_development | [RemoteCF](#gitlab-agent-agentcfg-RemoteCF) |  |  |
+| remote_development | [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF) |  |  |
 | flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
 
 
@@ -370,6 +372,21 @@ ConfigurationFile represents user-facing configuration file.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | webhook_receiver_url | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-GitLabWorkspacesProxy"></a>
+
+### GitLabWorkspacesProxy
+GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| namespace | [string](#string) |  |  |
 
 
 
@@ -479,9 +496,9 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-RemoteCF"></a>
+<a name="gitlab-agent-agentcfg-RemoteDevelopmentCF"></a>
 
-### RemoteCF
+### RemoteDevelopmentCF
 
 
 
@@ -491,6 +508,8 @@ Project with Kubernetes object manifests.
 | dns_zone | [string](#string) |  |  |
 | partial_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
 | full_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
+| gitlab_workspaces_proxy | [GitLabWorkspacesProxy](#gitlab-agent-agentcfg-GitLabWorkspacesProxy) |  |  |
+| network_policy | [WorkspaceNetworkPolicy](#gitlab-agent-agentcfg-WorkspaceNetworkPolicy) |  |  |
 
 
 
@@ -622,6 +641,21 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | ----- | ---- | ----- | ----------- |
 | namespaces | [string](#string) | repeated |  |
 | filters | [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter) | repeated |  |
+
+
+
+
+
+
+<a name="gitlab-agent-agentcfg-WorkspaceNetworkPolicy"></a>
+
+### WorkspaceNetworkPolicy
+WorkspaceNetworkPolicy represents the firewall configuration for the remote development workspaces
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| enabled | [bool](#bool) | optional |  |
 
 
 

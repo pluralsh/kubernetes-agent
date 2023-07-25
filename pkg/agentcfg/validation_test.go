@@ -81,12 +81,12 @@ func TestValidation_Valid(t *testing.T) {
 			},
 		},
 		{
-			Name:  "minimal RemoteCF",
-			Valid: &RemoteCF{},
+			Name:  "minimal RemoteDevelopmentCF",
+			Valid: &RemoteDevelopmentCF{},
 		},
 		{
-			Name: "RemoteCF with valid intervals",
-			Valid: &RemoteCF{
+			Name: "RemoteDevelopmentCF with valid intervals",
+			Valid: &RemoteDevelopmentCF{
 				PartialSyncInterval: durationpb.New(1 * time.Second),
 				FullSyncInterval:    durationpb.New(1 * time.Second),
 			},
@@ -176,8 +176,8 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid:   &ChartValuesUrlCF{},
 		},
 		{
-			ErrString: "invalid RemoteCF.PartialSyncInterval: value must be greater than 0s; invalid RemoteCF.FullSyncInterval: value must be greater than 0s",
-			Invalid: &RemoteCF{
+			ErrString: "invalid RemoteDevelopmentCF.PartialSyncInterval: value must be greater than 0s; invalid RemoteDevelopmentCF.FullSyncInterval: value must be greater than 0s",
+			Invalid: &RemoteDevelopmentCF{
 				PartialSyncInterval: durationpb.New(0),
 				FullSyncInterval:    durationpb.New(0),
 			},
