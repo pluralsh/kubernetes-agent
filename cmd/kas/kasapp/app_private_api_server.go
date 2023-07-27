@@ -46,7 +46,8 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 	p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
 	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
-	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*privateApiServer, error) {
+	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor,
+	grpcServerErrorReporter grpctool.ServerErrorReporter) (*privateApiServer, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -65,7 +66,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost, streamProm, unaryProm)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
@@ -115,7 +116,8 @@ func (s *privateApiServer) RegisterService(desc *grpc.ServiceDesc, impl interfac
 
 func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory,
-	ownPrivateApiHost string, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*grpc.Server, *grpc.Server, error) {
+	ownPrivateApiHost string, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
+	grpcServerErrorReporter grpctool.ServerErrorReporter) (*grpc.Server, *grpc.Server, error) {
 	listenCfg := cfg.PrivateApi.Listen
 	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -140,6 +142,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
+			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),                         // nolint:contextcheck
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
@@ -147,6 +150,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
