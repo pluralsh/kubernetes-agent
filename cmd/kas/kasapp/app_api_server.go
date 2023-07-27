@@ -33,7 +33,8 @@ type apiServer struct {
 
 func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
-	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*apiServer, error) {
+	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
+	grpcServerErrorReporter grpctool.ServerErrorReporter) (*apiServer, error) {
 	listenCfg := cfg.Api.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -59,6 +60,7 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
+			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
@@ -66,6 +68,7 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
 			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
 			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,

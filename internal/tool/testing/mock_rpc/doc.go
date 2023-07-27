@@ -9,4 +9,4 @@ package mock_rpc
 
 //go:generate mockgen.sh -destination "gitlab_access.go" -package "mock_rpc" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc" "GitlabAccess_MakeRequestServer"
 
-//go:generate mockgen.sh -destination "grpctool.go" -package "mock_rpc" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool" "InboundGrpcToOutboundHttpStream,PoolConn,PoolInterface"
+//go:generate mockgen.sh -destination "grpctool.go" -package "mock_rpc" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool" "InboundGrpcToOutboundHttpStream,PoolConn,PoolInterface,ServerErrorReporter"

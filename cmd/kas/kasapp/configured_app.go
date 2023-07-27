@@ -158,20 +158,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	srvApi := newServerApi(a.Log, sentryHub, redisClient)
 	errRep := modshared.ApiToErrReporter(srvApi)
+	grpcServerErrorReporter := &serverErrorReporter{log: a.Log, errReporter: errRep}
 
 	// RPC API factory
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling agentk requests
 	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry, // nolint: contextcheck
-		reg, streamProm, unaryProm)
+		reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
 	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
-		streamProm, unaryProm)
+		streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
@@ -179,13 +180,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Server for handling API requests from other kas instances
 	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
 		a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry,
-		streamProm, unaryProm, streamClientProm, unaryClientProm)
+		streamProm, unaryProm, streamClientProm, unaryClientProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(tp, p, rpcApiFactory, probeRegistry) // nolint: contextcheck
+	internalSrv, err := newInternalServer(tp, p, rpcApiFactory, probeRegistry, grpcServerErrorReporter) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
@@ -757,4 +758,21 @@ func (a *tokenLimiterApi) HandleProcessingError(msg string, err error) {
 
 func (a *tokenLimiterApi) RequestKey() []byte {
 	return api.AgentToken2key(a.rpcApi.AgentToken())
+}
+
+var (
+	_ grpctool.ServerErrorReporter = (*serverErrorReporter)(nil)
+)
+
+// serverErrorReporter implements the grpctool.ServerErrorReporter interface
+// in order to report unknown grpc status code errors.
+// In this case the errz.ErrReporter is used as a proxy for the modserver.RpcApi
+// which logs and captures errors in Sentry.
+type serverErrorReporter struct {
+	log         *zap.Logger
+	errReporter errz.ErrReporter
+}
+
+func (r *serverErrorReporter) Report(ctx context.Context, fullMethod string, err error) {
+	r.errReporter.HandleProcessingError(ctx, r.log, fmt.Sprintf("Unknown gRPC error in %q", fullMethod), err)
 }

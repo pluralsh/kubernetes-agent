@@ -47,7 +47,7 @@ type agentServer struct {
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
 	probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry, streamProm grpc.StreamServerInterceptor,
-	unaryProm grpc.UnaryServerInterceptor) (*agentServer, error) {
+	unaryProm grpc.UnaryServerInterceptor, grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -84,6 +84,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 			modserver.StreamAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
 			grpc_validator.StreamServerInterceptor(),                                                                      // x. wrap with validator
 			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
+			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
@@ -91,6 +92,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 			modserver.UnaryAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
 			grpc_validator.UnaryServerInterceptor(),                                                                      // x. wrap with validator
 			grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter),
+			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,

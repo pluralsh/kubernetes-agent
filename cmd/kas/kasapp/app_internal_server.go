@@ -23,7 +23,8 @@ type internalServer struct {
 }
 
 func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
-	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry) (*internalServer, error) {
+	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry,
+	grpcServerErrorReporter grpctool.ServerErrorReporter) (*internalServer, error) {
 
 	// In-memory gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
@@ -50,10 +51,12 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 			grpc.ChainStreamInterceptor(
 				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
 				modserver.StreamRpcApiInterceptor(factory),                                                     // 2. inject RPC API
+				grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ChainUnaryInterceptor(
 				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
 				modserver.UnaryRpcApiInterceptor(factory),                                                     // 2. inject RPC API
+				grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ForceServerCodec(grpctool.RawCodec{}),
 		),
