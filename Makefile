@@ -197,8 +197,8 @@ release-tag-fips-manifest:
 # This only works on a linux machine
 .PHONY: release-commit
 release-commit:
-	bazel run //cmd:push-commit
-	build/push_multiarch_agentk.sh '$(GIT_COMMIT)'
+	bazel run //cmd/agentk:push -- --repository='$(OCI_REPO)' --tag='$(GIT_COMMIT)'
+	bazel run //cmd/agentk:push_debug -- --repository='$(OCI_REPO)' --tag='$(GIT_COMMIT)-debug'
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
