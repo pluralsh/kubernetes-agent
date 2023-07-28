@@ -153,10 +153,9 @@ func (t *RedisTracker) stop() {
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	refresh := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
-		return t.tunnelsByAgentId.Refresh(nextRefresh)
-	})
-	return refresh(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error) {

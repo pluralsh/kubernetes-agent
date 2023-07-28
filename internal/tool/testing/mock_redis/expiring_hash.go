@@ -93,17 +93,17 @@ func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Len(ctx, key interface{
 }
 
 // Refresh mocks base method.
-func (m *MockExpiringHashInterface[K1, K2]) Refresh(nextRefresh time.Time) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Refresh", nextRefresh)
-	ret0, _ := ret[0].(redistool.IOFunc)
+	ret := m.ctrl.Call(m, "Refresh", ctx, nextRefresh)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Refresh(nextRefresh interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Refresh(ctx, nextRefresh interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Refresh), nextRefresh)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Refresh), ctx, nextRefresh)
 }
 
 // Scan mocks base method.

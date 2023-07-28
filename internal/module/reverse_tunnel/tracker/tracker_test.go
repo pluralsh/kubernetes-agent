@@ -178,8 +178,7 @@ func TestRefreshRegistrations(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
-		Refresh(gomock.Any()).
-		Return(nopIOFunc)
+		Refresh(gomock.Any(), gomock.Any())
 	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
 }
 

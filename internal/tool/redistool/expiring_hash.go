@@ -41,7 +41,8 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	GC() func(context.Context) (int /* keysDeleted */, error)
 	// Clear clears all data in this hash and deletes it from the backing store.
 	Clear(context.Context) (int, error)
-	Refresh(nextRefresh time.Time) IOFunc
+	// Refresh refreshes data in the backing store to prevent it from expiring.
+	Refresh(ctx context.Context, nextRefresh time.Time) error
 }
 
 type ExpiringHash[K1 comparable, K2 comparable] struct {
@@ -73,10 +74,7 @@ func (h *ExpiringHash[K1, K2]) Set(key K1, hashKey K2, value []byte) IOFunc {
 		return h.refreshKey(ctx, key, []refreshKey[K2]{
 			{
 				hashKey: hashKey,
-				value: ExpiringValue{ // cannot copy ev directly
-					ExpiresAt: ev.ExpiresAt,
-					Value:     ev.Value,
-				},
+				value:   ev,
 			},
 		})
 	}
@@ -225,27 +223,21 @@ func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 	return keysDeleted, err
 }
 
-func (h *ExpiringHash[K1, K2]) Refresh(nextRefresh time.Time) IOFunc {
-	argsMap := make(map[K1][]refreshKey[K2], len(h.data))
+func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
+	var wg errgroup.Group
 	for key, hashData := range h.data {
-		args := h.prepareRefreshKey(hashData, nextRefresh)
-		if len(args) == 0 {
-			// Nothing to do for this key.
-			continue
-		}
-		argsMap[key] = args
+		key := key
+		hashData := hashData
+		wg.Go(func() error {
+			args := h.prepareRefreshKey(hashData, nextRefresh)
+			if len(args) == 0 {
+				// Nothing to do for this key.
+				return nil
+			}
+			return h.refreshKey(ctx, key, args)
+		})
 	}
-	return func(ctx context.Context) error {
-		var wg errgroup.Group
-		for key, args := range argsMap {
-			key := key
-			args := args
-			wg.Go(func() error {
-				return h.refreshKey(ctx, key, args)
-			})
-		}
-		return wg.Wait()
-	}
+	return wg.Wait()
 }
 
 func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
@@ -258,10 +250,9 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 			continue
 		}
 		value.ExpiresAt = expiresAt
-		// Copy value to decouple from the mutable instance in hashData. That way it's safe for concurrent access.
 		args = append(args, refreshKey[K2]{
 			hashKey: hashKey,
-			value:   ExpiringValue{ExpiresAt: value.ExpiresAt, Value: value.Value},
+			value:   value,
 		})
 	}
 	return args
@@ -274,7 +265,7 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 	empty := true
 	// Iterate indexes to avoid copying the value which has inlined proto message, which shouldn't be copied.
 	for i := range args {
-		redisValue, err := proto.Marshal(&args[i].value)
+		redisValue, err := proto.Marshal(args[i].value)
 		if err != nil {
 			// This should never happen
 			if marshalErr == nil {
@@ -320,7 +311,7 @@ func (h *ExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
 
 type refreshKey[K2 any] struct {
 	hashKey K2
-	value   ExpiringValue
+	value   *ExpiringValue
 }
 
 func PrefixedInt64Key(prefix string, key int64) string {

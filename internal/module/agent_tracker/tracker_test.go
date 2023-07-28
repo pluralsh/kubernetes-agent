@@ -253,75 +253,40 @@ func TestGC_AllCalledOnError(t *testing.T) {
 func TestRefresh_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _, _ := setupTracker(t)
 
-	wasCalled1 := false
-	wasCalled2 := false
-	wasCalled3 := false
-
 	connectedAgents.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled1 = true
-			return nil
-		})
+		Refresh(gomock.Any(), gomock.Any())
 	byAgentId.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled2 = true
-			return nil
-		})
+		Refresh(gomock.Any(), gomock.Any())
 	byProjectId.EXPECT().
-		Refresh(gomock.Any()).
-		Return(func(ctx context.Context) error {
-			wasCalled3 = true
-			return nil
-		})
+		Refresh(gomock.Any(), gomock.Any())
 	r.refreshRegistrations(context.Background(), time.Now())
-	assert.True(t, wasCalled1)
-	assert.True(t, wasCalled2)
-	assert.True(t, wasCalled3)
 }
 
 func TestRefresh_AllCalledOnError(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, rep, _ := setupTracker(t)
 
-	wasCalled1 := false
-	wasCalled2 := false
-	wasCalled3 := false
-
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Refresh(gomock.Any()).
-			Return(func(ctx context.Context) error {
-				wasCalled1 = true
-				return errors.New("err3")
-			}),
+			Refresh(gomock.Any(), gomock.Any()).
+			Return(errors.New("err3")),
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err3")),
 	)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Refresh(gomock.Any()).
-			Return(func(ctx context.Context) error {
-				wasCalled2 = true
-				return errors.New("err1")
-			}),
+			Refresh(gomock.Any(), gomock.Any()).
+			Return(errors.New("err1")),
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err1")),
 	)
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Refresh(gomock.Any()).
-			Return(func(ctx context.Context) error {
-				wasCalled3 = true
-				return errors.New("err2")
-			}),
+			Refresh(gomock.Any(), gomock.Any()).
+			Return(errors.New("err2")),
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to refresh hash data in Redis", matcher.ErrorEq("err2")),
 	)
 	r.refreshRegistrations(context.Background(), time.Now())
-	assert.True(t, wasCalled1)
-	assert.True(t, wasCalled2)
-	assert.True(t, wasCalled3)
 }
 
 func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {

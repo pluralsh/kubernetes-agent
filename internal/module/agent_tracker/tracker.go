@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -140,26 +141,23 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 		return
 	}
 	defer t.refreshMu.Unlock()
-	refreshFuncs := syncz.RunWithMutex(&t.mu, func() []redistool.IOFunc {
-		return []redistool.IOFunc{
-			t.connectionsByProjectId.Refresh(nextRefresh),
-			t.connectionsByAgentId.Refresh(nextRefresh),
-			t.connectedAgents.Refresh(nextRefresh),
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	// Run refreshes concurrently to release mu ASAP.
+	var wg wait.Group
+	t.refreshHash(ctx, &wg, t.connectionsByProjectId, nextRefresh)
+	t.refreshHash(ctx, &wg, t.connectionsByAgentId, nextRefresh)
+	t.refreshHash(ctx, &wg, t.connectedAgents, nextRefresh)
+	wg.Wait()
+}
+
+func (t *RedisTracker) refreshHash(ctx context.Context, wg *wait.Group, h redistool.ExpiringHashInterface[int64, int64], nextRefresh time.Time) {
+	wg.Start(func() {
+		err := h.Refresh(ctx, nextRefresh)
+		if err != nil {
+			t.errRep.HandleProcessingError(ctx, t.log, "Failed to refresh hash data in Redis", err)
 		}
 	})
-	// No rush so run refresh sequentially to not stress RAM/CPU/Redis/network.
-	// We have more important work to do that we shouldn't impact.
-	for _, refresh := range refreshFuncs {
-		err := refresh(ctx)
-		if err != nil {
-			if errz.ContextDone(err) {
-				t.log.Debug("Redis hash data refresh interrupted", logz.Error(err))
-				break
-			}
-			t.errRep.HandleProcessingError(ctx, t.log, "Failed to refresh hash data in Redis", err)
-			// continue anyway
-		}
-	}
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) int {

@@ -85,7 +85,7 @@ func TestExpiringHash_Refresh_ToExpireSoonerThanNextRefresh(t *testing.T) {
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	registrationTime := time.Now()
 	time.Sleep(ttl / 2)
-	require.NoError(t, hash.Refresh(registrationTime.Add(ttl*2))(context.Background()))
+	require.NoError(t, hash.Refresh(context.Background(), registrationTime.Add(ttl*2)))
 
 	expireAfter := registrationTime.Add(ttl)
 	valuesExpireAfter(t, client, key, expireAfter)
@@ -96,7 +96,7 @@ func TestExpiringHash_Refresh_ToExpireAfterNextRefresh(t *testing.T) {
 
 	require.NoError(t, hash.Set(key, 123, value)(context.Background()))
 	h1 := getHash(t, client, key)
-	require.NoError(t, hash.Refresh(time.Now().Add(ttl/10))(context.Background()))
+	require.NoError(t, hash.Refresh(context.Background(), time.Now().Add(ttl/10)))
 	h2 := getHash(t, client, key)
 	assert.Equal(t, h1, h2)
 }
