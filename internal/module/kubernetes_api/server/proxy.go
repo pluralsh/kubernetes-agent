@@ -375,6 +375,11 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 	delete(r.Header, httpz.CookieHeader)
 	delete(r.Header, httpz.GitlabAgentIdHeader)
 	delete(r.Header, httpz.CsrfTokenHeader)
+	// remove GitLab authorization query parameters
+	query := r.URL.Query()
+	delete(query, httpz.GitlabAgentIdQueryParam)
+	delete(query, httpz.CsrfTokenQueryParam)
+	r.URL.RawQuery = query.Encode()
 
 	r.Header[httpz.ViaHeader] = append(r.Header[httpz.ViaHeader], p.serverVia)
 
@@ -504,7 +509,7 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 		}, nil
 	}
 	if cookie, err := r.Cookie(gitLabKasCookieName); err == nil {
-		agentId, encryptedPublicSessionId, csrfToken, err := getSessionCookieParams(cookie, r.Header)
+		agentId, encryptedPublicSessionId, csrfToken, err := getSessionCookieParams(cookie, r)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -516,7 +521,7 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 	return 0, nil, errors.New("no valid credentials provided")
 }
 
-func getSessionCookieParams(cookie *http.Cookie, headers http.Header) (int64, string, string, error) {
+func getSessionCookieParams(cookie *http.Cookie, r *http.Request) (int64, string, string, error) {
 	if len(cookie.Value) == 0 {
 		return 0, "", "", fmt.Errorf("%s cookie value must not be empty", gitLabKasCookieName)
 	}
@@ -526,21 +531,75 @@ func getSessionCookieParams(cookie *http.Cookie, headers http.Header) (int64, st
 	if err != nil {
 		return 0, "", "", fmt.Errorf("%s invalid cookie value", gitLabKasCookieName)
 	}
-	agentIdHeader := headers[httpz.GitlabAgentIdHeader]
-	if len(agentIdHeader) != 1 {
-		return 0, "", "", fmt.Errorf("%s header must have exactly one value", httpz.GitlabAgentIdHeader)
-	}
-	agentIdStr := agentIdHeader[0]
-	agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
+
+	agentId, err := getAgentIdForSessionCookieRequest(r)
 	if err != nil {
-		return 0, "", "", fmt.Errorf("%s header: invalid value: %q", httpz.GitlabAgentIdHeader, agentIdStr)
+		return 0, "", "", err
 	}
-	csrfTokenHeader := headers[httpz.CsrfTokenHeader]
-	if len(csrfTokenHeader) != 1 {
-		return 0, "", "", fmt.Errorf("%s header must have exactly one value", httpz.CsrfTokenHeader)
+	csrfToken, err := getCsrfTokenForSessionCookieRequest(r)
+	if err != nil {
+		return 0, "", "", err
 	}
-	csrfToken := csrfTokenHeader[0]
 	return agentId, encryptedPublicSessionId, csrfToken, nil
+}
+
+// getAgentIdForSessionCookieRequest retrieves the agent id from the request when trying to authenticate with a session cookie.
+// First, the agent id is tried to be retrieved from the headers.
+// If that fails, the query parameters are tried.
+// When both the agent id is provided in the headers and the query parameters the query parameter
+// has precedence and the query parameter is silently ignored.
+func getAgentIdForSessionCookieRequest(r *http.Request) (int64, error) {
+	parseAgentId := func(agentIdStr string) (int64, error) {
+		agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("agent id in request: invalid value: %q", agentIdStr)
+		}
+		return agentId, nil
+	}
+	// Check the agent id header and return if it is present and a valid
+	agentIdHeader := r.Header[httpz.GitlabAgentIdHeader]
+	if len(agentIdHeader) == 1 {
+		return parseAgentId(agentIdHeader[0])
+	}
+
+	// If multiple agent id headers are given we abort with a failure
+	if len(agentIdHeader) > 1 {
+		return 0, fmt.Errorf("%s header must have exactly one value", httpz.GitlabAgentIdHeader)
+	}
+
+	// Check the query parameters for a valid agent id
+	agentIdParam := r.URL.Query()[httpz.GitlabAgentIdQueryParam]
+	if len(agentIdParam) != 1 {
+		return 0, fmt.Errorf("exactly one agent id must be provided either in the %q header or %q query parameter", httpz.GitlabAgentIdHeader, httpz.GitlabAgentIdQueryParam)
+	}
+
+	return parseAgentId(agentIdParam[0])
+}
+
+// getCsrfTokenForSessionCookieRequest retrieves the CSRF token from the request when trying to authenticate with a session cookie.
+// First, the CSRF token is tried to be retrieved from the headers.
+// If that fails, the query parameters are tried.
+// When both the CSRF token is provided in the headers and the query parameters the query parameter
+// has precedence and the query parameter is silently ignored.
+func getCsrfTokenForSessionCookieRequest(r *http.Request) (string, error) {
+	// Check the CSRF token header and return if it is present
+	csrfTokenHeader := r.Header[httpz.CsrfTokenHeader]
+	if len(csrfTokenHeader) == 1 {
+		return csrfTokenHeader[0], nil
+	}
+
+	// If multiple CSRF tokens headers are given we abort with a failure
+	if len(csrfTokenHeader) > 1 {
+		return "", fmt.Errorf("%s header must have exactly one value", httpz.CsrfTokenHeader)
+	}
+
+	// Check the query parameters for a valid CSRF token
+	csrfTokenParam := r.URL.Query()[httpz.CsrfTokenQueryParam]
+	if len(csrfTokenParam) != 1 {
+		return "", fmt.Errorf("exactly one CSRF token must be provided either in the %q header or %q query parameter", httpz.CsrfTokenHeader, httpz.CsrfTokenQueryParam)
+	}
+
+	return csrfTokenParam[0], nil
 }
 
 func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {

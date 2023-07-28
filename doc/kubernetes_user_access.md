@@ -228,9 +228,9 @@ experience](#authorized-user-side) should remain the same.**
 A cookie `_gitlab_kas` similar to the `_gitlab_session` cookie, but
 specific to KAS and available on the KAS subdomain.
 
-- The agent, in this case, is selected using a header `Gitlab-Agent-Id`
+- The agent, in this case, is selected using a header `Gitlab-Agent-Id` or query parameter `gitlab-agent-id`
   containing the numeric agent ID.
-- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a header `X-CSRF-Token` that KAS forwards along with the `_gitlab_kas` to the GitLab backend.
+- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a `X-Csrf-Token` header or `gitlab-csrf-token` query parameter that KAS forwards along with the `_gitlab_kas` to the GitLab backend.
 
 **Example request:**
 
@@ -255,6 +255,11 @@ fetch("https://kas.gitlab.example.com/k8s-proxy/version", {
   .then((response) => response.json())
   .then((data) => console.log(data));
 ```
+
+NOTE: when using websockets via the browser API you cannot send the
+`Gitlab-Agent-Id` and `X-Csrf-Token` as headers and therefore must
+send them as query parameters. The query parameter names are
+case-sensitive and must be `gitlab-agent-id` and `gitlab-csrf-token`.
 
 ### Authorization
 

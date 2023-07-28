@@ -164,7 +164,7 @@ func TestProxy_AuthorizationErrors(t *testing.T) {
 		{
 			name:    "cookie: missing agent ID header",
 			cookie:  strptr("the cookie"),
-			message: "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header must have exactly one value",
+			message: "GitLab Agent Server: Unauthorized: exactly one agent id must be provided either in the \"Gitlab-Agent-Id\" header or \"gitlab-agent-id\" query parameter",
 		},
 		{
 			name:          "cookie: multiple agent ID header values",
@@ -176,13 +176,13 @@ func TestProxy_AuthorizationErrors(t *testing.T) {
 			name:          "cookie: invalid agent ID value",
 			cookie:        strptr("the cookie"),
 			agentIdHeader: []string{"abcd"},
-			message:       "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header: invalid value: \"abcd\"",
+			message:       "GitLab Agent Server: Unauthorized: agent id in request: invalid value: \"abcd\"",
 		},
 		{
 			name:          "cookie: missing CSRF token header",
 			cookie:        strptr("the cookie"),
 			agentIdHeader: []string{"1234"},
-			message:       "GitLab Agent Server: Unauthorized: X-Csrf-Token header must have exactly one value",
+			message:       "GitLab Agent Server: Unauthorized: exactly one CSRF token must be provided either in the \"X-Csrf-Token\" header or \"gitlab-csrf-token\" query parameter",
 		},
 		{
 			name:            "cookie: multiple CSRF token header values",
@@ -345,7 +345,7 @@ func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 					HandleProcessingError(gomock.Any(), gomock.Any(), testhelpers.AgentId, gomock.Any(),
 						matcher.ErrorEq(fmt.Sprintf("HTTP status code: %d for path /api/v4/internal/kubernetes/authorize_proxy_user with reason %s", tc.authorizeProxyUserHttpStatus, tc.expectedErrReason)))
 			}
-			setExpectedSessionCookieParams(req)
+			setExpectedSessionCookieParamsInHeader(req)
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
@@ -590,7 +590,7 @@ func TestProxy_PreferAuthorizationHeaderOverSessionCookie(t *testing.T) {
 	var expectedExtra *rpc.HeaderExtra // nil
 	setJobTokenAndCookie := func(req *http.Request) {
 		setExpectedJobToken(req)
-		setExpectedSessionCookieParams(req)
+		setExpectedSessionCookieParamsInHeader(req)
 	}
 
 	_, k8sClient, client, req, requestCount, ciTunnelUsageSet, mockCiAccessRequestCounter, mockCiAccessUsersCounter, mockCiAccessAgentsCounter, _, _, _ := setupProxyWithHandler(t, "/", configCiAccessGitLabHandler(t, nil, nil))
@@ -601,7 +601,14 @@ func TestProxy_PreferAuthorizationHeaderOverSessionCookie(t *testing.T) {
 }
 
 func TestProxy_UserAccessHappyPath(t *testing.T) {
-	tests := []struct {
+	authenticationMethods := []struct {
+		name          string
+		setParamsFunc func(r *http.Request)
+	}{
+		{name: "auth in header", setParamsFunc: setExpectedSessionCookieParamsInHeader},
+		{name: "auth in params", setParamsFunc: setExpectedSessionCookieParamsInQuery},
+	}
+	testcases := []struct {
 		name          string
 		urlPathPrefix string
 		auth          *gapi.AuthorizeProxyUserResponse
@@ -665,22 +672,24 @@ func TestProxy_UserAccessHappyPath(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.auth.Agent = &gapi.AuthorizedAgentForUser{
-				Id:            testhelpers.AgentId,
-				ConfigProject: &gapi.ConfigProject{Id: 5},
-			}
-			tc.auth.User = &gapi.User{
-				Id:       testhelpers.UserId,
-				Username: "testuser",
-			}
-			_, k8sClient, client, req, requestCount, ciTunnelUsageSet, _, _, _, mockUserAccessRequestCounter, mockUserAccessUsersCounter, mockUserAccessAgentsCounter := setupProxyWithHandler(t, tc.urlPathPrefix, configUserAccessGitLabHandler(t, tc.auth))
-			mockUserAccessRequestCounter.EXPECT().Inc()
-			mockUserAccessUsersCounter.EXPECT().Add(testhelpers.UserId)
-			mockUserAccessAgentsCounter.EXPECT().Add(testhelpers.AgentId)
-			testProxyHappyPath(t, setExpectedSessionCookieParams, tc.expectedExtra, k8sClient, client, req, requestCount, ciTunnelUsageSet)
-		})
+	for _, atc := range authenticationMethods {
+		for _, tc := range testcases {
+			t.Run(fmt.Sprintf("%s-%s", atc.name, tc.name), func(t *testing.T) {
+				tc.auth.Agent = &gapi.AuthorizedAgentForUser{
+					Id:            testhelpers.AgentId,
+					ConfigProject: &gapi.ConfigProject{Id: 5},
+				}
+				tc.auth.User = &gapi.User{
+					Id:       testhelpers.UserId,
+					Username: "testuser",
+				}
+				_, k8sClient, client, req, requestCount, ciTunnelUsageSet, _, _, _, mockUserAccessRequestCounter, mockUserAccessUsersCounter, mockUserAccessAgentsCounter := setupProxyWithHandler(t, tc.urlPathPrefix, configUserAccessGitLabHandler(t, tc.auth))
+				mockUserAccessRequestCounter.EXPECT().Inc()
+				mockUserAccessUsersCounter.EXPECT().Add(testhelpers.UserId)
+				mockUserAccessAgentsCounter.EXPECT().Add(testhelpers.AgentId)
+				testProxyHappyPath(t, atc.setParamsFunc, tc.expectedExtra, k8sClient, client, req, requestCount, ciTunnelUsageSet)
+			})
+		}
 	}
 }
 
@@ -706,7 +715,7 @@ func assertUserAccessCredentials(t *testing.T, req *http.Request) bool {
 		assert.Equal(t, auth.CsrfToken, "the-csrf-token")
 }
 
-func setExpectedSessionCookieParams(req *http.Request) {
+func setExpectedSessionCookieParamsInHeader(req *http.Request) {
 	req.AddCookie(
 		&http.Cookie{
 			Name:  gitLabKasCookieName,
@@ -715,6 +724,19 @@ func setExpectedSessionCookieParams(req *http.Request) {
 	)
 	req.Header[httpz.GitlabAgentIdHeader] = []string{strconv.FormatInt(testhelpers.AgentId, 10)}
 	req.Header[httpz.CsrfTokenHeader] = []string{"the-csrf-token"}
+}
+
+func setExpectedSessionCookieParamsInQuery(req *http.Request) {
+	req.AddCookie(
+		&http.Cookie{
+			Name:  gitLabKasCookieName,
+			Value: "encrypted-session-cookie",
+		},
+	)
+	query := req.URL.Query()
+	query[httpz.GitlabAgentIdQueryParam] = []string{strconv.FormatInt(testhelpers.AgentId, 10)}
+	query[httpz.CsrfTokenQueryParam] = []string{"the-csrf-token"}
+	req.URL.RawQuery = query.Encode()
 }
 
 func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), expectedExtra *rpc.HeaderExtra, k8sClient *mock_kubernetes_api.MockKubernetesApiClient, client *http.Client, req *http.Request, requestCount *mock_usage_metrics.MockCounter, ciTunnelUsageSet *mock_usage_metrics.MockUniqueCounter) {
@@ -1155,6 +1177,162 @@ func Test_MergeProxiedResponseHeaders(t *testing.T) {
 			p.mergeProxiedResponseHeaders(tc.outboundHeaders, tc.inboundHeaders)
 
 			assert.Equal(t, tc.expectedInboundHeaders, tc.inboundHeaders)
+		})
+	}
+}
+
+func TestGetAuthorizationInfoFromRequest(t *testing.T) {
+	testcases := []struct {
+		name             string
+		givenRequest     *http.Request
+		expectedAgentId  int64
+		expectedErrorMsg string
+	}{
+		{
+			name: "missing agent id",
+			givenRequest: &http.Request{
+				URL: &url.URL{},
+			},
+			expectedAgentId:  0,
+			expectedErrorMsg: "exactly one agent id must be provided either in the \"Gitlab-Agent-Id\" header or \"gitlab-agent-id\" query parameter",
+		},
+		{
+			name: "invalid agent id in header",
+			givenRequest: &http.Request{
+				Header: map[string][]string{
+					httpz.GitlabAgentIdHeader: {"foobar"},
+				},
+			},
+			expectedAgentId:  0,
+			expectedErrorMsg: "agent id in request: invalid value: \"foobar\"",
+		},
+		{
+			name: "invalid agent id in query param",
+			givenRequest: &http.Request{
+				URL: &url.URL{
+					RawQuery: fmt.Sprintf("%s=foobar", httpz.GitlabAgentIdQueryParam),
+				},
+			},
+			expectedAgentId:  0,
+			expectedErrorMsg: "agent id in request: invalid value: \"foobar\"",
+		},
+		{
+			name: "multiple agent ids in headers",
+			givenRequest: &http.Request{
+				Header: map[string][]string{
+					httpz.GitlabAgentIdHeader: {"1", "2"},
+				},
+			},
+			expectedAgentId:  0,
+			expectedErrorMsg: fmt.Sprintf("%s: header must have exactly one value", httpz.GitlabAgentIdHeader),
+		},
+		{
+			name: "multiple agent ids in query params",
+			givenRequest: &http.Request{
+				URL: &url.URL{
+					RawQuery: fmt.Sprintf("%[1]s=1&%[1]s=2", httpz.GitlabAgentIdQueryParam),
+				},
+			},
+			expectedAgentId:  0,
+			expectedErrorMsg: fmt.Sprintf("%s: header must have exactly one value", httpz.GitlabAgentIdHeader),
+		},
+		{
+			name: "valid agent id in header",
+			givenRequest: &http.Request{
+				Header: map[string][]string{
+					httpz.GitlabAgentIdHeader: {"1"},
+				},
+			},
+			expectedAgentId: 1,
+		},
+		{
+			name: "valid agent id in query param",
+			givenRequest: &http.Request{
+				URL: &url.URL{
+					RawQuery: fmt.Sprintf("%s=1", httpz.GitlabAgentIdQueryParam),
+				},
+			},
+			expectedAgentId: 1,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// WHEN
+			actualAgentId, actualErr := getAgentIdForSessionCookieRequest(tc.givenRequest)
+
+			// THEN
+			require.Equal(t, tc.expectedAgentId, actualAgentId)
+			if tc.expectedAgentId == 0 {
+				require.Error(t, actualErr, tc.expectedErrorMsg)
+			}
+		})
+	}
+}
+
+func TestGetCsrfTokenForSessionCookieRequest(t *testing.T) {
+	testcases := []struct {
+		name              string
+		givenRequest      *http.Request
+		expectedCsrfToken string
+		expectedErrorMsg  string
+	}{
+		{
+			name: "missing CSRF token",
+			givenRequest: &http.Request{
+				URL: &url.URL{},
+			},
+			expectedCsrfToken: "",
+			expectedErrorMsg:  "exactly one CSRF token must be provided either in the \"X-Csrf-Token\" header or \"gitlab-csrf-token\" query parameter",
+		},
+		{
+			name: "multiple CSRF tokens in headers",
+			givenRequest: &http.Request{
+				Header: map[string][]string{
+					httpz.CsrfTokenHeader: {"csrf-token-1", "csrf-token-2"},
+				},
+			},
+			expectedCsrfToken: "",
+			expectedErrorMsg:  fmt.Sprintf("%s: header must have exactly one value", httpz.CsrfTokenHeader),
+		},
+		{
+			name: "multiple CSRF tokens in query params",
+			givenRequest: &http.Request{
+				URL: &url.URL{
+					RawQuery: fmt.Sprintf("%[1]s=csrf-token-1&%[1]s=csrf-token-2", httpz.CsrfTokenQueryParam),
+				},
+			},
+			expectedCsrfToken: "",
+			expectedErrorMsg:  fmt.Sprintf("%s: header must have exactly one value", httpz.CsrfTokenHeader),
+		},
+		{
+			name: "CSRF token in header",
+			givenRequest: &http.Request{
+				Header: map[string][]string{
+					httpz.CsrfTokenHeader: {"csrf-token"},
+				},
+			},
+			expectedCsrfToken: "csrf-token",
+		},
+		{
+			name: "CSRF token in query param",
+			givenRequest: &http.Request{
+				URL: &url.URL{
+					RawQuery: fmt.Sprintf("%s=csrf-token", httpz.CsrfTokenQueryParam),
+				},
+			},
+			expectedCsrfToken: "csrf-token",
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// WHEN
+			actualCsrfToken, actualErr := getCsrfTokenForSessionCookieRequest(tc.givenRequest)
+
+			// THEN
+			require.Equal(t, tc.expectedCsrfToken, actualCsrfToken)
+			if tc.expectedCsrfToken == "" {
+				require.Error(t, actualErr, tc.expectedErrorMsg)
+			}
 		})
 	}
 }

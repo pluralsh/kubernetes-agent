@@ -27,8 +27,10 @@ const (
 	ServerHeader                        = "Server"        // https://datatracker.ietf.org/doc/html/rfc9110#section-10.2.4
 	ViaHeader                           = "Via"           // https://datatracker.ietf.org/doc/html/rfc9110#section-7.6.3
 	GitlabAgentIdHeader                 = "Gitlab-Agent-Id"
+	GitlabAgentIdQueryParam             = "gitlab-agent-id"
 	GitlabUnauthorizedHeader            = "Gitlab-Unauthorized"
 	CsrfTokenHeader                     = "X-Csrf-Token"                     // nolint: gosec
+	CsrfTokenQueryParam                 = "gitlab-csrf-token"                // nolint: gosec
 	AccessControlAllowOriginHeader      = "Access-Control-Allow-Origin"      // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
 	AccessControlAllowHeadersHeader     = "Access-Control-Allow-Headers"     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
 	AccessControlAllowCredentialsHeader = "Access-Control-Allow-Credentials" // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
