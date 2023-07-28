@@ -19,17 +19,12 @@ import (
 type KeyToRedisKey[K any] func(key K) string
 type ScanCallback func(rawHashKey string, value []byte, err error) (bool /* done */, error)
 
-// IOFunc is a function that should be called to perform the I/O of the requested operation.
-// It is safe to call concurrently as it does not interfere with the hash's operation.
-type IOFunc func(ctx context.Context) error
-
 // ExpiringHashInterface represents a two-level hash: key K1 -> hashKey K2 -> value []byte.
 // key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
-// It is not safe for concurrent use directly, but it allows to perform I/O with backing store concurrently by
-// returning functions for doing that.
+// It is not safe for concurrent use.
 type ExpiringHashInterface[K1 any, K2 any] interface {
-	Set(key K1, hashKey K2, value []byte) IOFunc
-	Unset(key K1, hashKey K2) IOFunc
+	Set(ctx context.Context, key K1, hashKey K2, value []byte) error
+	Unset(ctx context.Context, key K1, hashKey K2) error
 	// Forget only removes the item from the in-memory map.
 	Forget(key K1, hashKey K2)
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
@@ -64,28 +59,24 @@ func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1To
 	}
 }
 
-func (h *ExpiringHash[K1, K2]) Set(key K1, hashKey K2, value []byte) IOFunc {
+func (h *ExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, value []byte) error {
 	ev := &ExpiringValue{
 		ExpiresAt: time.Now().Add(h.ttl).Unix(),
 		Value:     value,
 	}
 	h.setData(key, hashKey, ev)
-	return func(ctx context.Context) error {
-		return h.refreshKey(ctx, key, []refreshKey[K2]{
-			{
-				hashKey: hashKey,
-				value:   ev,
-			},
-		})
-	}
+	return h.refreshKey(ctx, key, []refreshKey[K2]{
+		{
+			hashKey: hashKey,
+			value:   ev,
+		},
+	})
 }
 
-func (h *ExpiringHash[K1, K2]) Unset(key K1, hashKey K2) IOFunc {
+func (h *ExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
 	h.unsetData(key, hashKey)
-	return func(ctx context.Context) error {
-		hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
-		return h.client.Do(ctx, hdelCmd).Error()
-	}
+	hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
+	return h.client.Do(ctx, hdelCmd).Error()
 }
 
 func (h *ExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {

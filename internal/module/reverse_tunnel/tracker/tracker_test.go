@@ -34,10 +34,9 @@ func TestRegisterConnection(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-			Return(func(ctx context.Context) error {
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()).
+			Do(func(ctx context.Context, key int64, hashKey string, value []byte) {
 				cancel()
-				return nil
 			}),
 		hash.EXPECT().
 			Clear(gomock.Any()),
@@ -57,10 +56,9 @@ func TestRegisterConnection_TwoConnections(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-			Return(func(ctx context.Context) error {
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()).
+			Do(func(ctx context.Context, key int64, hashKey string, value []byte) {
 				cancel()
-				return nil
 			}),
 		hash.EXPECT().
 			Clear(gomock.Any()),
@@ -82,14 +80,9 @@ func TestUnregisterConnection(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-			Return(nopIOFunc),
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
-			Unset(testhelpers.AgentId, selfUrl).
-			Return(func(ctx context.Context) error {
-				cancel()
-				return nil
-			}),
+			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
 		hash.EXPECT().
 			Clear(gomock.Any()),
 	)
@@ -97,6 +90,7 @@ func TestUnregisterConnection(t *testing.T) {
 	go func() {
 		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+		cancel()
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -109,14 +103,9 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-			Return(nopIOFunc),
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
-			Unset(testhelpers.AgentId, selfUrl).
-			Return(func(ctx context.Context) error {
-				cancel()
-				return nil
-			}),
+			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
 		hash.EXPECT().
 			Clear(gomock.Any()),
 	)
@@ -126,6 +115,7 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
 		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+		cancel()
 	}()
 
 	require.NoError(t, r.Run(ctx))
@@ -140,8 +130,7 @@ func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
 
 	gomock.InOrder(
 		hash.EXPECT().
-			Set(testhelpers.AgentId, selfUrl, gomock.Any()).
-			Return(nopIOFunc),
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
 			Clear(gomock.Any()),
 	)
@@ -232,8 +221,4 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      hash,
 	}, hash, api
-}
-
-func nopIOFunc(ctx context.Context) error {
-	return nil
 }

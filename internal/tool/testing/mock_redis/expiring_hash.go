@@ -123,29 +123,29 @@ func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Scan(ctx, key, cb inter
 }
 
 // Set mocks base method.
-func (m *MockExpiringHashInterface[K1, K2]) Set(key K1, hashKey K2, value []byte) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, value []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", key, hashKey, value)
-	ret0, _ := ret[0].(redistool.IOFunc)
+	ret := m.ctrl.Call(m, "Set", ctx, key, hashKey, value)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Set(key, hashKey, value interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Set(ctx, key, hashKey, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Set), key, hashKey, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Set), ctx, key, hashKey, value)
 }
 
 // Unset mocks base method.
-func (m *MockExpiringHashInterface[K1, K2]) Unset(key K1, hashKey K2) redistool.IOFunc {
+func (m *MockExpiringHashInterface[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Unset", key, hashKey)
-	ret0, _ := ret[0].(redistool.IOFunc)
+	ret := m.ctrl.Call(m, "Unset", ctx, key, hashKey)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Unset indicates an expected call of Unset.
-func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Unset(key, hashKey interface{}) *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Unset(ctx, key, hashKey interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Unset), key, hashKey)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unset", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).Unset), ctx, key, hashKey)
 }

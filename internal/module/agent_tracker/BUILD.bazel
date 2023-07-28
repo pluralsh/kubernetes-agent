@@ -23,7 +23,6 @@ go_library(
         "//internal/tool/errz",
         "//internal/tool/logz",
         "//internal/tool/redistool",
-        "//internal/tool/syncz",
         "//pkg/entity",
         "@com_github_redis_rueidis//:rueidis",
         "@io_k8s_apimachinery//pkg/util/wait",
@@ -45,7 +44,6 @@ go_custom_test(
     embed = [":agent_tracker"],
     deps = [
         "//internal/tool/redistool",
-        "//internal/tool/syncz",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_redis",
         "//internal/tool/testing/mock_tool",
