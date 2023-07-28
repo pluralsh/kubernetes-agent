@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -33,12 +34,11 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	Forget(key K1, hashKey K2)
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key K1) (int64, error)
-	// GC returns a function that iterates all relevant stored data and deletes expired entries.
-	// The returned function can be called concurrently as it does not interfere with the hash's operation.
-	// The function returns number of deleted Redis (hash) keys, including when an error occurs.
+	// GC iterates all relevant stored data and deletes expired entries.
+	// It returns the number of deleted Redis (hash) keys, including when an error occurred.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
-	GC() func(context.Context) (int /* keysDeleted */, error)
+	GC(context.Context) (int /* keysDeleted */, error)
 	// Clear clears all data in this hash and deletes it from the backing store.
 	Clear(context.Context) (int, error)
 	// Refresh refreshes data in the backing store to prevent it from expiring.
@@ -161,23 +161,19 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	})
 }
 
-func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int, error) {
-	// Copy keys for safe concurrent access.
-	keys := make([]K1, 0, len(h.data))
+func (h *ExpiringHash[K1, K2]) GC(ctx context.Context) (int, error) {
+	var deletedKeys atomic.Int64
+	var wg errgroup.Group
 	for key := range h.data {
-		keys = append(keys, key)
-	}
-	return func(ctx context.Context) (int, error) {
-		var deletedKeys int
-		for _, key := range keys {
+		key := key
+		wg.Go(func() error {
 			deleted, err := h.gcHash(ctx, key)
-			if err != nil {
-				return deletedKeys, err
-			}
-			deletedKeys += deleted
-		}
-		return deletedKeys, nil
+			deletedKeys.Add(int64(deleted))
+			return err
+		})
 	}
+	err := wg.Wait() // must be before the Load() to wait for all goroutines to finish and only then load the value.
+	return int(deletedKeys.Load()), err
 }
 
 // gcHash iterates a hash and removes all expired values.

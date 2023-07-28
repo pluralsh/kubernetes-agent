@@ -64,17 +64,18 @@ func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) Forget(key, hashKey int
 }
 
 // GC mocks base method.
-func (m *MockExpiringHashInterface[K1, K2]) GC() func(context.Context) (int, error) {
+func (m *MockExpiringHashInterface[K1, K2]) GC(arg0 context.Context) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GC")
-	ret0, _ := ret[0].(func(context.Context) (int, error))
-	return ret0
+	ret := m.ctrl.Call(m, "GC", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GC indicates an expected call of GC.
-func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) GC() *gomock.Call {
+func (mr *MockExpiringHashInterfaceMockRecorder[K1, K2]) GC(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).GC))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockExpiringHashInterface[K1, K2])(nil).GC), arg0)
 }
 
 // Len mocks base method.

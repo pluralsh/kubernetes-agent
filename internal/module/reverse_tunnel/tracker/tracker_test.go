@@ -159,19 +159,13 @@ func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
 func TestGC(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
-	wasCalled := false
-
 	hash.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled = true
-			return 3, nil
-		})
+		GC(gomock.Any()).
+		Return(3, nil)
 
 	deleted, err := r.runGC(context.Background())
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, deleted)
-	assert.True(t, wasCalled)
 }
 
 func TestRefreshRegistrations(t *testing.T) {

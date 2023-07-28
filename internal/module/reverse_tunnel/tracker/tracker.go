@@ -159,10 +159,9 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error) {
-	gc := syncz.RunWithMutex(&t.mu, func() func(ctx context.Context) (int /* keysDeleted */, error) {
-		return t.tunnelsByAgentId.GC()
-	})
-	return gc(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tunnelsByAgentId.GC(ctx)
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (kasUrl -> nil).
