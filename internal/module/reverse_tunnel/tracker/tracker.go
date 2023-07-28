@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"go.uber.org/zap"
 )
 
@@ -94,39 +93,36 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 }
 
 func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
-	register := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
-		if t.done {
-			return noopIO
-		}
-		cnt := t.tunnelsByAgentIdCount[agentId]
-		cnt++
-		t.tunnelsByAgentIdCount[agentId] = cnt
-		if cnt == 1 {
-			// First tunnel for this agentId
-			return t.tunnelsByAgentId.Set(agentId, t.ownPrivateApiUrl, nil)
-		} else {
-			return noopIO
-		}
-	})
-	return register(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.done {
+		return nil
+	}
+	cnt := t.tunnelsByAgentIdCount[agentId]
+	cnt++
+	t.tunnelsByAgentIdCount[agentId] = cnt
+	if cnt == 1 {
+		// First tunnel for this agentId
+		return t.tunnelsByAgentId.Set(ctx, agentId, t.ownPrivateApiUrl, nil)
+	}
+	return nil
 }
 
 func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
-	unregister := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
-		if t.done {
-			return noopIO
-		}
-		cnt := t.tunnelsByAgentIdCount[agentId]
-		cnt--
-		if cnt == 0 {
-			delete(t.tunnelsByAgentIdCount, agentId)
-			return t.tunnelsByAgentId.Unset(agentId, t.ownPrivateApiUrl)
-		} else {
-			t.tunnelsByAgentIdCount[agentId] = cnt
-			return noopIO
-		}
-	})
-	return unregister(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.done {
+		return nil
+	}
+	cnt := t.tunnelsByAgentIdCount[agentId]
+	cnt--
+	if cnt == 0 {
+		delete(t.tunnelsByAgentIdCount, agentId)
+		return t.tunnelsByAgentId.Unset(ctx, agentId, t.ownPrivateApiUrl)
+	} else {
+		t.tunnelsByAgentIdCount[agentId] = cnt
+		return nil
+	}
 }
 
 func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
@@ -153,17 +149,15 @@ func (t *RedisTracker) stop() {
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
-	refresh := syncz.RunWithMutex(&t.mu, func() redistool.IOFunc {
-		return t.tunnelsByAgentId.Refresh(nextRefresh)
-	})
-	return refresh(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) (int /* keysDeleted */, error) {
-	gc := syncz.RunWithMutex(&t.mu, func() func(ctx context.Context) (int /* keysDeleted */, error) {
-		return t.tunnelsByAgentId.GC()
-	})
-	return gc(ctx)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.tunnelsByAgentId.GC(ctx)
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (kasUrl -> nil).
@@ -176,8 +170,4 @@ func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int6
 
 func strToStr(key string) string {
 	return key
-}
-
-func noopIO(ctx context.Context) error {
-	return nil
 }

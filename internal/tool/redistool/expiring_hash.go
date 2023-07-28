@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -18,30 +19,25 @@ import (
 type KeyToRedisKey[K any] func(key K) string
 type ScanCallback func(rawHashKey string, value []byte, err error) (bool /* done */, error)
 
-// IOFunc is a function that should be called to perform the I/O of the requested operation.
-// It is safe to call concurrently as it does not interfere with the hash's operation.
-type IOFunc func(ctx context.Context) error
-
 // ExpiringHashInterface represents a two-level hash: key K1 -> hashKey K2 -> value []byte.
 // key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
-// It is not safe for concurrent use directly, but it allows to perform I/O with backing store concurrently by
-// returning functions for doing that.
+// It is not safe for concurrent use.
 type ExpiringHashInterface[K1 any, K2 any] interface {
-	Set(key K1, hashKey K2, value []byte) IOFunc
-	Unset(key K1, hashKey K2) IOFunc
+	Set(ctx context.Context, key K1, hashKey K2, value []byte) error
+	Unset(ctx context.Context, key K1, hashKey K2) error
 	// Forget only removes the item from the in-memory map.
 	Forget(key K1, hashKey K2)
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key K1) (int64, error)
-	// GC returns a function that iterates all relevant stored data and deletes expired entries.
-	// The returned function can be called concurrently as it does not interfere with the hash's operation.
-	// The function returns number of deleted Redis (hash) keys, including when an error occurs.
+	// GC iterates all relevant stored data and deletes expired entries.
+	// It returns the number of deleted Redis (hash) keys, including when an error occurred.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
-	GC() func(context.Context) (int /* keysDeleted */, error)
+	GC(context.Context) (int /* keysDeleted */, error)
 	// Clear clears all data in this hash and deletes it from the backing store.
 	Clear(context.Context) (int, error)
-	Refresh(nextRefresh time.Time) IOFunc
+	// Refresh refreshes data in the backing store to prevent it from expiring.
+	Refresh(ctx context.Context, nextRefresh time.Time) error
 }
 
 type ExpiringHash[K1 comparable, K2 comparable] struct {
@@ -63,31 +59,24 @@ func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1To
 	}
 }
 
-func (h *ExpiringHash[K1, K2]) Set(key K1, hashKey K2, value []byte) IOFunc {
+func (h *ExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, value []byte) error {
 	ev := &ExpiringValue{
 		ExpiresAt: time.Now().Add(h.ttl).Unix(),
 		Value:     value,
 	}
 	h.setData(key, hashKey, ev)
-	return func(ctx context.Context) error {
-		return h.refreshKey(ctx, key, []refreshKey[K2]{
-			{
-				hashKey: hashKey,
-				value: ExpiringValue{ // cannot copy ev directly
-					ExpiresAt: ev.ExpiresAt,
-					Value:     ev.Value,
-				},
-			},
-		})
-	}
+	return h.refreshKey(ctx, key, []refreshKey[K2]{
+		{
+			hashKey: hashKey,
+			value:   ev,
+		},
+	})
 }
 
-func (h *ExpiringHash[K1, K2]) Unset(key K1, hashKey K2) IOFunc {
+func (h *ExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
 	h.unsetData(key, hashKey)
-	return func(ctx context.Context) error {
-		hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
-		return h.client.Do(ctx, hdelCmd).Error()
-	}
+	hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
+	return h.client.Do(ctx, hdelCmd).Error()
 }
 
 func (h *ExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {
@@ -163,23 +152,19 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	})
 }
 
-func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int, error) {
-	// Copy keys for safe concurrent access.
-	keys := make([]K1, 0, len(h.data))
+func (h *ExpiringHash[K1, K2]) GC(ctx context.Context) (int, error) {
+	var deletedKeys atomic.Int64
+	var wg errgroup.Group
 	for key := range h.data {
-		keys = append(keys, key)
-	}
-	return func(ctx context.Context) (int, error) {
-		var deletedKeys int
-		for _, key := range keys {
+		key := key
+		wg.Go(func() error {
 			deleted, err := h.gcHash(ctx, key)
-			if err != nil {
-				return deletedKeys, err
-			}
-			deletedKeys += deleted
-		}
-		return deletedKeys, nil
+			deletedKeys.Add(int64(deleted))
+			return err
+		})
 	}
+	err := wg.Wait() // must be before the Load() to wait for all goroutines to finish and only then load the value.
+	return int(deletedKeys.Load()), err
 }
 
 // gcHash iterates a hash and removes all expired values.
@@ -225,27 +210,21 @@ func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 	return keysDeleted, err
 }
 
-func (h *ExpiringHash[K1, K2]) Refresh(nextRefresh time.Time) IOFunc {
-	argsMap := make(map[K1][]refreshKey[K2], len(h.data))
+func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
+	var wg errgroup.Group
 	for key, hashData := range h.data {
-		args := h.prepareRefreshKey(hashData, nextRefresh)
-		if len(args) == 0 {
-			// Nothing to do for this key.
-			continue
-		}
-		argsMap[key] = args
+		key := key
+		hashData := hashData
+		wg.Go(func() error {
+			args := h.prepareRefreshKey(hashData, nextRefresh)
+			if len(args) == 0 {
+				// Nothing to do for this key.
+				return nil
+			}
+			return h.refreshKey(ctx, key, args)
+		})
 	}
-	return func(ctx context.Context) error {
-		var wg errgroup.Group
-		for key, args := range argsMap {
-			key := key
-			args := args
-			wg.Go(func() error {
-				return h.refreshKey(ctx, key, args)
-			})
-		}
-		return wg.Wait()
-	}
+	return wg.Wait()
 }
 
 func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
@@ -258,10 +237,9 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 			continue
 		}
 		value.ExpiresAt = expiresAt
-		// Copy value to decouple from the mutable instance in hashData. That way it's safe for concurrent access.
 		args = append(args, refreshKey[K2]{
 			hashKey: hashKey,
-			value:   ExpiringValue{ExpiresAt: value.ExpiresAt, Value: value.Value},
+			value:   value,
 		})
 	}
 	return args
@@ -274,7 +252,7 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 	empty := true
 	// Iterate indexes to avoid copying the value which has inlined proto message, which shouldn't be copied.
 	for i := range args {
-		redisValue, err := proto.Marshal(&args[i].value)
+		redisValue, err := proto.Marshal(args[i].value)
 		if err != nil {
 			// This should never happen
 			if marshalErr == nil {
@@ -320,7 +298,7 @@ func (h *ExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
 
 type refreshKey[K2 any] struct {
 	hashKey K2
-	value   ExpiringValue
+	value   *ExpiringValue
 }
 
 func PrefixedInt64Key(prefix string, key int64) string {

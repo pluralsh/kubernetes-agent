@@ -5,9 +5,7 @@ go_library(
     name = "syncz",
     srcs = [
         "mutex.go",
-        "rwmutex.go",
         "subscriptions.go",
-        "synz.go",
         "worker.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz",
