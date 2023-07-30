@@ -242,9 +242,20 @@ type leaseLeaderElector struct {
 	eventRecorder      resourcelock.EventRecorder
 }
 
+// Run runs the leader election
+// Run triggers the onStartedLeading function when this instance acquired the lease.
+// Run triggers the onStoppedLeading function when:
+// 1. it had the lease acquired and lost it again
+// 2. ctx is canceled, no matter if it held the lease or not
+// The (2) bullet point above is due to the outrageous behavior of the client-go leaderelection implementation
+// that ALWAYS calls the OnStoppedLeading callback NO MATTER if it held the lease or not when its ctx is canceled.
 func (l *leaseLeaderElector) Run(ctx context.Context, onStartedLeading, onStoppedLeading func()) {
 	name, err := l.name(ctx)
 	if err != nil {
+		// NOTE: we need to call onStoppedLeading explicitly here to guarantee a consistent interface for the caller
+		// of this Run method - that is expecting that a onStoppedLeading callback is triggered whenever the
+		// context is canceled and therefore the leader election is asked to be stopped.
+		onStoppedLeading()
 		return // ctx done
 	}
 	elector, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
