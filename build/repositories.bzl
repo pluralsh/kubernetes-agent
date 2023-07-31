@@ -2170,15 +2170,15 @@ def go_repositories():
         name = "com_github_onsi_ginkgo_v2",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/onsi/ginkgo/v2",
-        sum = "h1:BA2GMJOtfGAfagzYtrAlufIP0lq6QERkFmHLMLPwFSU=",
-        version = "v2.9.2",
+        sum = "h1:WgqUCUt/lT6yXoQ8Wef0fsNn5cAuMK7+KT9UFRz2tcU=",
+        version = "v2.11.0",
     )
     go_repository(
         name = "com_github_onsi_gomega",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/onsi/gomega",
-        sum = "h1:ENqfyGeS5AX/rlXDd/ETokDz93u0YufY1Pgxuy/PvWE=",
-        version = "v1.27.6",
+        sum = "h1:naR28SdDFlqrG6kScpT8VWpu1xWY5nJRCF3XaYyBjhI=",
+        version = "v1.27.10",
     )
     go_repository(
         name = "com_github_opencontainers_go_digest",
@@ -2373,8 +2373,8 @@ def go_repositories():
         name = "com_github_redis_rueidis",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/redis/rueidis",
-        sum = "h1:wQFMLqXQQPCow05i3KZXMB0z/6n4P0/6UVfJ1qYnDW4=",
-        version = "v1.0.13",
+        sum = "h1:cPIgLfAg3/2vhA7jfH1lXDaxoz+dPEjWF5qi2UB7hUQ=",
+        version = "v1.0.14-0.20230729063510-08a6c6c00e39",
     )
     go_repository(
         name = "com_github_robfig_cron_v3",

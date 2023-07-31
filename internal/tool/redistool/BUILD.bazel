@@ -15,6 +15,7 @@ go_library(
         "redistool.go",
         "redistool.pb.go",
         "token_limiter.go",
+        "transaction.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool",
     visibility = ["//:__subpackages__"],

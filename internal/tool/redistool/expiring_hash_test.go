@@ -177,6 +177,67 @@ func TestExpiringHash_Clear(t *testing.T) {
 	assert.Zero(t, size)
 }
 
+func TestTransactionConflict_Sibling(t *testing.T) {
+	client, _, key, _ := setupHash(t)
+	c, cancel := client.Dedicate()
+	cancel()
+	iteration := 0
+	err := transaction(context.Background(), c, func(ctx context.Context) ([]rueidis.Completed, error) {
+		switch iteration {
+		case 0:
+			// Mutate a sibling mapping on purpose to trigger a conflict situation.
+			err := client.Do(context.Background(), client.B().Hset().Key(key).FieldValue().FieldValue("1", "123").Build()).Error() // nolint: contextcheck
+			if err != nil {
+				return nil, err
+			}
+		case 1:
+			// the expected retry
+		default:
+			require.FailNow(t, "unexpected invocation")
+		}
+		iteration++
+		return []rueidis.Completed{
+			client.B().Hset().Key(key).FieldValue().FieldValue("2", "234").Build(),
+		}, nil
+	}, key)
+	require.NoError(t, err)
+	v1, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("1").Build()).ToString()
+	require.NoError(t, err)
+	assert.Equal(t, "123", v1)
+	v2, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("2").Build()).ToString()
+	require.NoError(t, err)
+	assert.Equal(t, "234", v2)
+}
+
+func TestTransactionConflict_SameKey(t *testing.T) {
+	client, _, key, _ := setupHash(t)
+	c, cancel := client.Dedicate()
+	cancel()
+	iteration := 0
+	err := transaction(context.Background(), c, func(ctx context.Context) ([]rueidis.Completed, error) {
+		switch iteration {
+		case 0:
+			// Mutate a sibling mapping on purpose to trigger a conflict situation.
+			err := client.Do(context.Background(), client.B().Hset().Key(key).FieldValue().FieldValue("1", "xxxxxx").Build()).Error() // nolint: contextcheck
+			if err != nil {
+				return nil, err
+			}
+		case 1:
+			// the expected retry
+		default:
+			require.FailNow(t, "unexpected invocation")
+		}
+		iteration++
+		return []rueidis.Completed{
+			client.B().Hset().Key(key).FieldValue().FieldValue("1", "123").Build(),
+		}, nil
+	}, key)
+	require.NoError(t, err)
+	v1, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("1").Build()).ToString()
+	require.NoError(t, err)
+	assert.Equal(t, "123", v1)
+}
+
 func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
 	d, err := proto.Marshal(&ExpiringValue{
 		ExpiresAt: 123123123,

@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -88,35 +87,22 @@ func (h *ExpiringHash[K1, K2]) Len(ctx context.Context, key K1) (size int64, ret
 	return h.client.Do(ctx, hlenCmd).AsInt64()
 }
 
-func (h *ExpiringHash[K1, K2]) scan(ctx context.Context, key K1, cb func(k, v string) (bool /*done*/, bool /*delete*/, error)) (keysDeleted int, retErr error) {
-	redisKey := h.key1ToRedisKey(key)
+type scanCb func(k, v string) (bool /*done*/, bool /*delete*/, error)
+
+func scan(ctx context.Context, redisKey string, c rueidis.CoreClient, cb scanCb) ( /*retKeysToDelete*/ []string, error) {
 	var keysToDelete []string
-	defer func() {
-		if len(keysToDelete) == 0 {
-			return
-		}
-		hdelCmd := h.client.B().Hdel().Key(redisKey).Field(keysToDelete...).Build()
-		err := h.client.Do(ctx, hdelCmd).Error()
-		if err != nil {
-			if retErr == nil {
-				retErr = err
-			}
-			return
-		}
-		keysDeleted = len(keysToDelete)
-	}()
 	// Scan keys of a hash. See https://redis.io/commands/scan
 	var se rueidis.ScanEntry
 	var err error
 	for more := true; more; more = se.Cursor != 0 {
-		hscanCmd := h.client.B().Hscan().Key(redisKey).Cursor(se.Cursor).Build()
-		se, err = h.client.Do(ctx, hscanCmd).AsScanEntry()
+		hscanCmd := c.B().Hscan().Key(redisKey).Cursor(se.Cursor).Build()
+		se, err = c.Do(ctx, hscanCmd).AsScanEntry()
 		if err != nil {
-			return 0, err
+			return keysToDelete, err
 		}
 		if len(se.Elements)%2 != 0 {
 			// This shouldn't happen
-			return 0, errors.New("invalid Redis reply")
+			return keysToDelete, errors.New("invalid Redis reply")
 		}
 		for i := 0; i < len(se.Elements); i += 2 {
 			k := se.Elements[i]
@@ -126,71 +112,98 @@ func (h *ExpiringHash[K1, K2]) scan(ctx context.Context, key K1, cb func(k, v st
 				keysToDelete = append(keysToDelete, k)
 			}
 			if err != nil || done {
-				return 0, err
+				return keysToDelete, err
 			}
 		}
 	}
-	return 0, nil
+	return keysToDelete, nil
 }
 
-func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (keysDeleted int, retErr error) {
+func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error) {
 	now := time.Now().Unix()
-	var msg ExpiringValue
-	return h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
-		// Avoid creating a temporary copy
-		vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
-		err := proto.Unmarshal(vBytes, &msg)
-		if err != nil {
-			done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
+	redisKey := h.key1ToRedisKey(key)
+	keysToDelete, scanErr := scan(ctx, redisKey, h.client,
+		func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+			var msg ExpiringValue
+			// Avoid creating a temporary copy
+			vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
+			err := proto.Unmarshal(vBytes, &msg)
+			if err != nil {
+				done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
+				return done, false, cbErr
+			}
+			if msg.ExpiresAt < now {
+				return false, true, nil
+			}
+			done, cbErr := cb(k, msg.Value, nil)
 			return done, false, cbErr
+		})
+	if len(keysToDelete) == 0 {
+		return 0, scanErr
+	}
+	hdelCmd := h.client.B().Hdel().Key(redisKey).Field(keysToDelete...).Build()
+	err := h.client.Do(ctx, hdelCmd).Error()
+	if err != nil {
+		if scanErr != nil {
+			return 0, scanErr
 		}
-		if msg.ExpiresAt < now {
-			return false, true, nil
-		}
-		done, cbErr := cb(k, msg.Value, nil)
-		return done, false, cbErr
-	})
+		return 0, err
+	}
+	return len(keysToDelete), scanErr
 }
 
-func (h *ExpiringHash[K1, K2]) GC(ctx context.Context) (int, error) {
-	var deletedKeys atomic.Int64
-	var wg errgroup.Group
+func (h *ExpiringHash[K1, K2]) GC(ctx context.Context) (int /* keysDeleted */, error) {
+	var deletedKeys int
+	client, cancel := h.client.Dedicate()
+	defer cancel()
 	for key := range h.data {
-		key := key
-		wg.Go(func() error {
-			deleted, err := h.gcHash(ctx, key)
-			deletedKeys.Add(int64(deleted))
-			return err
-		})
+		deleted, err := gcHash(ctx, h.key1ToRedisKey(key), client)
+		deletedKeys += deleted
+		if err != nil {
+			return deletedKeys, err
+		}
 	}
-	err := wg.Wait() // must be before the Load() to wait for all goroutines to finish and only then load the value.
-	return int(deletedKeys.Load()), err
+	return deletedKeys, nil
 }
 
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
-func (h *ExpiringHash[K1, K2]) gcHash(ctx context.Context, key K1) (int, error) {
-	now := time.Now().Unix()
-	var msg ExpiringValueTimestamp
-	var firstErr error
-	deleted, err := h.scan(ctx, key, func(k, v string) (bool /*done*/, bool /*delete*/, error) {
-		// Avoid creating a temporary copy
-		vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
-		err := proto.UnmarshalOptions{
-			DiscardUnknown: true, // We know there is one more field, but we don't need it
-		}.Unmarshal(vBytes, &msg)
+func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (int /* keysDeleted */, error) {
+	var errs []error
+	keysDeleted := 0
+	// We don't want to delete a k->v mapping that has just been overwritten by another client. So use a transaction.
+	err := transaction(ctx, c, func(ctx context.Context) ([]rueidis.Completed, error) {
+		now := time.Now().Unix()
+		errs = nil
+		keysToDelete, err := scan(ctx, redisKey, c,
+			func(k, v string) (bool /*done*/, bool /*delete*/, error) {
+				var msg ExpiringValueTimestamp
+				// Avoid creating a temporary copy
+				vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
+				err := proto.UnmarshalOptions{
+					DiscardUnknown: true, // We know there is one more field, but we don't need it
+				}.Unmarshal(vBytes, &msg)
+				if err != nil {
+					errs = append(errs, err)
+					return false, false, nil
+				}
+				return false, msg.ExpiresAt < now, nil
+			})
 		if err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-			return false, false, nil
+			errs = append(errs, err)
 		}
-		return false, msg.ExpiresAt < now, nil
-	})
+		keysDeleted = len(keysToDelete)
+		if keysDeleted == 0 {
+			return nil, nil
+		}
+		return []rueidis.Completed{
+			c.B().Hdel().Key(redisKey).Field(keysToDelete...).Build(),
+		}, nil
+	}, redisKey)
 	if err != nil {
-		return deleted, err
+		return 0, err
 	}
-	return deleted, firstErr
+	return keysDeleted, errors.Join(errs...)
 }
 
 func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
