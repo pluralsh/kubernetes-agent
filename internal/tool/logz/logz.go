@@ -269,3 +269,7 @@ func TrivyResourceRequestMemory(trivyResourceRequestMemory string) zap.Field {
 func TrivyResourceLimitMemory(trivyResourceLimitMemory string) zap.Field {
 	return zap.String("trivy_resource_limit_memory", trivyResourceLimitMemory)
 }
+
+func InventoryName(name string) zap.Field {
+	return zap.String("inventory_name", name)
+}

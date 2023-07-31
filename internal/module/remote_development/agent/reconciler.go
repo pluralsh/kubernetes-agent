@@ -155,7 +155,7 @@ func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsIn
 
 	// Apply workspace config if one was provided in the workspaceRailsInfo
 	if workspaceRailsInfo.ConfigToApply != "" {
-		err := r.k8sClient.Apply(ctx, workspaceRailsInfo.Namespace, workspaceRailsInfo.ConfigToApply)
+		err := r.k8sClient.Apply(ctx, workspaceRailsInfo.ConfigToApply)
 		if err != nil {
 			return fmt.Errorf("error applying workspace config (namespace %s, workspace name %s): %w", namespace, name, err)
 		}

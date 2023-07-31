@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 
@@ -23,11 +24,23 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/object/validation"
 )
 
+var (
+	noInventoryFoundErr       = errors.New("no inventory found")
+	noOwningInventoryFoundErr = errors.New("no owning inventory found")
+)
+
 type K8sClient struct {
 	log       *zap.Logger
 	clientset kubernetes.Interface
 	applier   *apply.Applier
 	factory   util.Factory
+}
+
+// applierInfo contains the information that is needed to run an applier command to Kubernetes.
+// It contains the inventory object and the objects tracked by that inventory.
+type applierInfo struct {
+	invInfo *unstructured.Unstructured
+	objects []*unstructured.Unstructured
 }
 
 func New(log *zap.Logger, factory util.Factory) (*K8sClient, error) {
@@ -82,41 +95,47 @@ func (k *K8sClient) DeleteNamespace(ctx context.Context, name string) error {
 	return client.Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-func (k *K8sClient) Apply(ctx context.Context, namespace string, config string) error {
+func (k *K8sClient) Apply(ctx context.Context, config string) error {
 	objs, err := k.decode(strings.NewReader(config))
 	if err != nil {
 		return err
 	}
 
-	invObj, objs := k.splitObjects(namespace, objs)
-
-	// process work - apply to cluster
-	k.log.Debug("Applying work to cluster")
-	applierOptions := apply.ApplierOptions{
-		ServerSideOptions: common.ServerSideOptions{
-			ServerSideApply: true,
-			ForceConflicts:  true,
-			FieldManager:    modagent.FieldManager,
-		},
-		ReconcileTimeout:         0,
-		EmitStatusEvents:         true,
-		PruneTimeout:             0,
-		ValidationPolicy:         validation.ExitEarly,
-		WatcherRESTScopeStrategy: watcher.RESTScopeNamespace,
+	parsedApplierInfo, err := k.groupObjectsByInventory(objs)
+	if err != nil {
+		return err
 	}
-	events := k.applier.Run(ctx, inventory.WrapInventoryInfoObj(invObj), objs, applierOptions)
 
-	k.log.Debug("Applied work to cluster")
-
-	// We listen on the events channel in goroutine
-	// not to block this function's execution
-	go func() {
-		// TODO: Add logging as a part of processing the events above
-		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/397001
-		for e := range events {
-			k.log.Debug("Applied event", applyEvent(e))
+	for _, applierInfo := range parsedApplierInfo {
+		// process work - apply to cluster
+		k.log.Debug("Applying work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
+		applierOptions := apply.ApplierOptions{
+			ServerSideOptions: common.ServerSideOptions{
+				ServerSideApply: true,
+				ForceConflicts:  true,
+				FieldManager:    modagent.FieldManager,
+			},
+			ReconcileTimeout:         0,
+			EmitStatusEvents:         true,
+			PruneTimeout:             0,
+			ValidationPolicy:         validation.ExitEarly,
+			WatcherRESTScopeStrategy: watcher.RESTScopeNamespace,
 		}
-	}()
+		events := k.applier.Run(ctx, inventory.WrapInventoryInfoObj(applierInfo.invInfo), applierInfo.objects, applierOptions)
+
+		k.log.Debug("Applied work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
+
+		// We listen on the events channel in goroutine
+		// not to block this function's execution
+		go func() {
+			// TODO: Add logging as a part of processing the events above
+			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/397001
+			for e := range events {
+				k.log.Debug("Applied event", applyEvent(e))
+			}
+		}()
+	}
+
 	return nil
 }
 
@@ -146,38 +165,33 @@ func (k *K8sClient) decode(data io.Reader) ([]*unstructured.Unstructured, error)
 	return objs, nil
 }
 
-func (k *K8sClient) splitObjects(namespace string, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured) {
-	inventoryObjects := make([]*unstructured.Unstructured, 0, 1)
-	resources := make([]*unstructured.Unstructured, 0, len(objs))
+func (k *K8sClient) groupObjectsByInventory(objs []*unstructured.Unstructured) (map[string]*applierInfo, error) {
+	info := map[string]*applierInfo{}
 	for _, obj := range objs {
 		if inventory.IsInventoryObject(obj) {
-			inventoryObjects = append(inventoryObjects, obj)
-		} else {
-			resources = append(resources, obj)
+			info[obj.GetName()] = &applierInfo{
+				invInfo: obj,
+				objects: make([]*unstructured.Unstructured, 0),
+			}
 		}
 	}
-
-	if len(inventoryObjects) == 0 {
-		return k.defaultInventoryObjTemplate(namespace), resources
+	if len(info) == 0 {
+		return nil, noInventoryFoundErr
 	}
 
-	return inventoryObjects[0], resources
-}
-
-func (k *K8sClient) defaultInventoryObjTemplate(namespace string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name":      "remote-dev-inventory",
-				"namespace": namespace,
-				"labels": map[string]interface{}{
-					common.InventoryLabel: "remote_development",
-				},
-			},
-		},
+	for _, obj := range objs {
+		if inventory.IsInventoryObject(obj) {
+			continue
+		}
+		annotations := obj.GetAnnotations()
+		key, ok := annotations[inventory.OwningInventoryKey]
+		if !ok {
+			return nil, noOwningInventoryFoundErr
+		}
+		info[key].objects = append(info[key].objects, obj)
 	}
+
+	return info, nil
 }
 
 func applyEvent(event event.Event) zap.Field {

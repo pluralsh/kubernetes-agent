@@ -7,3 +7,4 @@ package mock_k8s
 //go:generate mockgen.sh -destination "core_v1.go" -package "mock_k8s" "k8s.io/client-go/kubernetes/typed/core/v1" "CoreV1Interface,SecretInterface"
 //go:generate mockgen.sh -destination "workqueue.go" -package "mock_k8s" -mock_names "RateLimitingInterface=MockRateLimitingWorkqueue" "k8s.io/client-go/util/workqueue" "RateLimitingInterface"
 //go:generate mockgen.sh -destination "apiextensionclient_v1.go" -package "mock_k8s" "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1" "ApiextensionsV1Interface,CustomResourceDefinitionInterface"
+//go:generate mockgen.sh -destination "kubectl_cmd_util.go" -package "mock_k8s" "k8s.io/kubectl/pkg/cmd/util" "Factory"
