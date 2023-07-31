@@ -30,7 +30,7 @@ func (m *MockClient) DeleteNamespace(ctx context.Context, name string) error {
 	return nil
 }
 
-func (m *MockClient) Apply(ctx context.Context, namespace, config string) error {
+func (m *MockClient) Apply(ctx context.Context, config string) error {
 	m.ApplyRecorder = config
 	return nil
 }
