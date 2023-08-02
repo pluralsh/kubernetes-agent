@@ -141,14 +141,6 @@ func VulnerabilitiesCount(n int) zap.Field {
 	return zap.Int("vulnerabilities_count", n)
 }
 
-func ReportName(name string) zap.Field {
-	return zap.String("report_name", name)
-}
-
-func Kind(kind string) zap.Field {
-	return zap.String("k8s_kind", kind)
-}
-
 func Error(err error) zap.Field {
 	return zap.Error(err) // nolint:forbidigo
 }
@@ -252,22 +244,6 @@ func K8sGroup(groupName string) zap.Field {
 
 func K8sResource(resourceName string) zap.Field {
 	return zap.String("k8s_resource", resourceName)
-}
-
-func TrivyResourceRequestCPU(trivyResourceRequestCPU string) zap.Field {
-	return zap.String("trivy_resource_request_cpu", trivyResourceRequestCPU)
-}
-
-func TrivyResourceLimitCPU(trivyResourceLimitCPU string) zap.Field {
-	return zap.String("trivy_resource_limit_cpu", trivyResourceLimitCPU)
-}
-
-func TrivyResourceRequestMemory(trivyResourceRequestMemory string) zap.Field {
-	return zap.String("trivy_resource_request_memory", trivyResourceRequestMemory)
-}
-
-func TrivyResourceLimitMemory(trivyResourceLimitMemory string) zap.Field {
-	return zap.String("trivy_resource_limit_memory", trivyResourceLimitMemory)
 }
 
 func InventoryName(name string) zap.Field {

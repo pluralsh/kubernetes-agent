@@ -36,7 +36,7 @@ func TestUsageTracker(t *testing.T) {
 	}
 	require.Equal(t, expectedCounters, ud.Counters)
 	expectedUniqueCounters = map[string][]int64{
-		"y": []int64{3, 1},
+		"y": {3, 1},
 	}
 	requireEqual(t, expectedUniqueCounters, ud)
 
