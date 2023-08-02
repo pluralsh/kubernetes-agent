@@ -13,7 +13,7 @@ type MultiCounter []Counter
 // NewMultiCounter wraps multiple counters into a single one.
 // Every call to Inc() will be dispatched to each counter.
 func NewMultiCounter(counters ...Counter) MultiCounter {
-	return MultiCounter(counters)
+	return counters
 }
 
 func (m MultiCounter) Inc() {
