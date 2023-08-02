@@ -87,7 +87,6 @@ type TunnelRegistry struct {
 	log                 *zap.Logger
 	errRep              errz.ErrReporter
 	tunnelRegisterer    tracker.Registerer
-	ownPrivateApiUrl    string
 	tunnelStreamVisitor *grpctool.StreamVisitor
 
 	mu                    sync.Mutex
@@ -96,7 +95,7 @@ type TunnelRegistry struct {
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer tracker.Registerer, ownPrivateApiUrl string) (*TunnelRegistry, error) {
+func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer tracker.Registerer) (*TunnelRegistry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
@@ -105,7 +104,6 @@ func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegistere
 		log:                   log,
 		errRep:                errRep,
 		tunnelRegisterer:      tunnelRegisterer,
-		ownPrivateApiUrl:      ownPrivateApiUrl,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
 		tuns:                  make(map[*tunnel]struct{}),
 		tunsByAgentId:         make(map[int64]map[*tunnel]struct{}),
