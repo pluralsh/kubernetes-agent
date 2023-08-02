@@ -196,7 +196,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	tunnelTracker := a.constructTunnelTracker(srvApi, redisClient)
 
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, tunnelTracker, a.OwnPrivateApiUrl)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, tunnelTracker)
 	if err != nil {
 		return err
 	}
