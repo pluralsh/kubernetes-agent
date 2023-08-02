@@ -141,14 +141,6 @@ func VulnerabilitiesCount(n int) zap.Field {
 	return zap.Int("vulnerabilities_count", n)
 }
 
-func ReportName(name string) zap.Field {
-	return zap.String("report_name", name)
-}
-
-func Kind(kind string) zap.Field {
-	return zap.String("k8s_kind", kind)
-}
-
 func Error(err error) zap.Field {
 	return zap.Error(err) // nolint:forbidigo
 }
