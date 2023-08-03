@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
+	v1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -188,6 +189,8 @@ func TestGitRepositoryController_SuccessfullyCreateReceiverAndSecretForGitReposi
 	// Secret
 	mockCoreV1ApiClient.EXPECT().Secrets("namespace").Return(mockSecretsApiClient)
 	mockSecretsApiClient.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any())
+	// The following expectations are for the removal of the receiver secret with the deprecated name
+	mockSecretsApiClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("dummy error to abort removal"))
 
 	// Receiver
 	mockReceiverApiClient.EXPECT().Namespace("namespace").Return(mockNamespacedReceiverApiClient)
@@ -198,6 +201,57 @@ func TestGitRepositoryController_SuccessfullyCreateReceiverAndSecretForGitReposi
 
 	// THEN
 	assert.Equal(t, Success, res.status)
+}
+
+func TestGitRepositoryController_DeleteDeprecatedReceiverSecret(t *testing.T) {
+	// GIVEN
+	ctrl := gomock.NewController(t)
+	mockCoreV1ApiClient := mock_k8s.NewMockCoreV1Interface(ctrl)
+	mockSecretsApiClient := mock_k8s.NewMockSecretInterface(ctrl)
+	c := &gitRepositoryController{
+		log:               zaptest.NewLogger(t),
+		corev1ApiClient:   mockCoreV1ApiClient,
+		gitLabExternalUrl: url.URL{Scheme: "https", Host: "gitlab.example.com:8080"},
+		agentId:           1,
+	}
+
+	// Secret
+	mockSecretsApiClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				agentIdAnnotationKey: "1",
+			},
+		},
+	}, nil)
+	mockSecretsApiClient.EXPECT().Delete(gomock.Any(), "gitlab-test", gomock.Any())
+
+	// WHEN
+	c.deleteDeprecatedReceiverSecret(context.Background(), mockSecretsApiClient, "gitlab-test")
+}
+
+func TestGitRepositoryController_IgnoreUnmanagedDeprecatedReceiverSecret(t *testing.T) {
+	// GIVEN
+	ctrl := gomock.NewController(t)
+	mockCoreV1ApiClient := mock_k8s.NewMockCoreV1Interface(ctrl)
+	mockSecretsApiClient := mock_k8s.NewMockSecretInterface(ctrl)
+	c := &gitRepositoryController{
+		log:               zaptest.NewLogger(t),
+		corev1ApiClient:   mockCoreV1ApiClient,
+		gitLabExternalUrl: url.URL{Scheme: "https", Host: "gitlab.example.com:8080"},
+		agentId:           1,
+	}
+
+	// Secret
+	mockSecretsApiClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				agentIdAnnotationKey: "another-agent",
+			},
+		},
+	}, nil)
+
+	// WHEN
+	c.deleteDeprecatedReceiverSecret(context.Background(), mockSecretsApiClient, "gitlab-test")
 }
 
 func TestGitRepositoryController_RetryOnSecretReconciliationFailureForGitRepository(t *testing.T) {
@@ -255,6 +309,8 @@ func TestGitRepositoryController_RetryOnReceiverReconciliationFailureForGitRepos
 	// Secret
 	mockCoreV1ApiClient.EXPECT().Secrets("namespace").Return(mockSecretsApiClient)
 	mockSecretsApiClient.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any())
+	// The following expectations are for the removal of the receiver secret with the deprecated name
+	mockSecretsApiClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("dummy error to abort removal"))
 
 	// Receiver
 	mockReceiverApiClient.EXPECT().Namespace("namespace").Return(mockNamespacedReceiverApiClient)
@@ -291,6 +347,8 @@ func TestGitRepositoryController_IgnoreConflictOnReceiverReconciliationFailureFo
 	// Secret
 	mockCoreV1ApiClient.EXPECT().Secrets("namespace").Return(mockSecretsApiClient)
 	mockSecretsApiClient.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any())
+	// The following expectations are for the removal of the receiver secret with the deprecated name
+	mockSecretsApiClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("dummy error to abort removal"))
 
 	// Receiver
 	mockReceiverApiClient.EXPECT().Namespace("namespace").Return(mockNamespacedReceiverApiClient)
@@ -352,6 +410,40 @@ func TestGitRepositoryController_ReceiverObjUpdateChangeTriggersProjectReconcili
 
 	// WHEN
 	c.handleReceiverObj(context.Background(), getTestReceiverAsInterface())
+}
+
+func TestGitRepositoryController_ObjectWithPrefix(t *testing.T) {
+	testcases := []struct {
+		name            string
+		n               int
+		expectedGenName string
+	}{
+		{
+			name:            "foobar",
+			n:               20,
+			expectedGenName: "gitlab-foobar",
+		},
+		{
+			name:            "foobar",
+			n:               len(objectNamePrefix) + 3,
+			expectedGenName: "gitlab-foo",
+		},
+		{
+			name:            "foo+bar",
+			n:               len(objectNamePrefix) + 4,
+			expectedGenName: "gitlab-fo-x",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// WHEN
+			actualGenName := objectWithPrefix(tc.name, tc.n)
+
+			// THEN
+			require.Equal(t, tc.expectedGenName, actualGenName)
+		})
+	}
 }
 
 func getTestGitRepositoryAsRuntimeObject(t *testing.T) runtime.Object {
