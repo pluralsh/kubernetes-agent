@@ -35,7 +35,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 	log := rpcApi.Log().With(logz.AgentId(agentId))
 	tunnelFound, findHandle := r.tunnelFinder.FindTunnel(agentId, service, method)
 	defer findHandle.Done()
-	if !tunnelFound && isNoTunnelSupported(md) {
+	if !tunnelFound {
 		err = stream.SendMsg(&GatewayKasResponse{
 			Msg: &GatewayKasResponse_NoTunnel_{
 				NoTunnel: &GatewayKasResponse_NoTunnel{},
@@ -68,10 +68,6 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 		return err
 	}
 	return tunnel.ForwardStream(log, rpcApi, stream, newWrappingCallback(log, rpcApi, stream))
-}
-
-func isNoTunnelSupported(md metadata.MD) bool {
-	return len(md.Get(modserver.RoutingFeatureNoTunnel)) > 0
 }
 
 func removeHopMeta(md metadata.MD) metadata.MD {
