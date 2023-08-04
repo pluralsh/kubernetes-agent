@@ -11,6 +11,13 @@ Each agent connects to an instance of `kas` and keeps an open connection. When
 GitLab must talk to a particular agent, a `kas` instance connected to this agent must
 be found, and the request routed to it.
 
+## Walk Through
+
+[Mikhail (`@ash2k`)](https://gitlab.com/ash2k) and [Timo (`@timofurrer`)](https://gitlab.com/timofurrer) recorded
+a video where they walk through the most important parts of the KAS <-> Agentk routing and tunneling.
+
+[![GitLab Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests](https://img.youtube.com/vi/6U6A5tGCszE/0.jpg)](https://youtu.be/6U6A5tGCszE "GitLab Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests")
+
 ## System design
 
 For an architecture overview please see [architecture.md](../doc/architecture.md).
