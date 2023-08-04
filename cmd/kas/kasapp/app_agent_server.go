@@ -12,6 +12,7 @@ import (
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
@@ -36,18 +37,18 @@ const (
 )
 
 type agentServer struct {
-	log       *zap.Logger
-	listenCfg *kascfg.ListenAgentCF
-	tlsConfig *tls.Config
-	server    *grpc.Server
-	auxCancel context.CancelFunc
-	ready     func()
+	log           *zap.Logger
+	listenCfg     *kascfg.ListenAgentCF
+	tlsConfig     *tls.Config
+	server        *grpc.Server
+	tunnelTracker tracker.Tracker
+	auxCancel     context.CancelFunc
+	ready         func()
 }
 
-func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
-	probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry, streamProm grpc.StreamServerInterceptor,
-	unaryProm grpc.UnaryServerInterceptor, grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
+func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, tp trace.TracerProvider,
+	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory, ownPrivateApiUrl string,
+	probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor, grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -108,17 +109,27 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Tra
 	}
 
 	return &agentServer{
-		log:       log,
-		listenCfg: listenCfg,
-		tlsConfig: tlsConfig,
-		server:    grpc.NewServer(serverOpts...),
-		auxCancel: auxCancel,
-		ready:     probeRegistry.RegisterReadinessToggle("agentServer"),
+		log:           log,
+		listenCfg:     listenCfg,
+		tlsConfig:     tlsConfig,
+		server:        grpc.NewServer(serverOpts...),
+		tunnelTracker: constructTunnelTracker(log, cfg, srvApi, redisClient, ownPrivateApiUrl),
+		auxCancel:     auxCancel,
+		ready:         probeRegistry.RegisterReadinessToggle("agentServer"),
 	}, nil
 }
 
 func (s *agentServer) Start(stage stager.Stage) {
-	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
+	trackerCtx, trackerCancel := context.WithCancel(context.Background())
+	stage.Go(func(ctx context.Context) error {
+		return s.tunnelTracker.Run(trackerCtx) // use a separate ctx to stop when the server starts stopping
+	})
+	grpctool.StartServer(stage, s.server, func() (retLis net.Listener, retErr error) {
+		defer func() {
+			if retErr != nil { // something went wrong here, stop the tracker
+				trackerCancel()
+			}
+		}()
 		var lis net.Listener
 		var err error
 		if s.listenCfg.Websocket { // Explicitly handle TLS for a WebSocket server
@@ -159,5 +170,19 @@ func (s *agentServer) Start(stage stager.Stage) {
 	}, func() {
 		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
 		s.auxCancel()
+		trackerCancel()
 	})
+}
+
+func constructTunnelTracker(log *zap.Logger, cfg *kascfg.ConfigurationFile, api modserver.Api, redisClient rueidis.Client, ownPrivateApiUrl string) tracker.Tracker {
+	return tracker.NewRedisTracker(
+		log,
+		api,
+		redisClient,
+		cfg.Redis.KeyPrefix+":tunnel_tracker2",
+		cfg.Agent.RedisConnInfoTtl.AsDuration(),
+		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoGc.AsDuration(),
+		ownPrivateApiUrl,
+	)
 }
