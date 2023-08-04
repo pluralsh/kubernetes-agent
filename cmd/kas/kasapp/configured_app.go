@@ -164,8 +164,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, tp, redisClient, ssh, agentRpcApiFactory, probeRegistry, // nolint: contextcheck
-		reg, streamProm, unaryProm, grpcServerErrorReporter)
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
+		a.OwnPrivateApiUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
@@ -192,11 +192,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
-	// Reverse gRPC tunnel tracker
-	tunnelTracker := a.constructTunnelTracker(srvApi, redisClient)
-
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, tunnelTracker)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, agentSrv.tunnelTracker)
 	if err != nil {
 		return err
 	}
@@ -210,7 +207,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		routingBackoffFactor,
 		routingJitter,
 	))
-	tunnelQuerier := tracker.NewAggregatingQuerier(a.Log, tunnelTracker, srvApi, pollConfig, routingCachePeriod)
+	tunnelQuerier := tracker.NewAggregatingQuerier(a.Log, agentSrv.tunnelTracker, srvApi, pollConfig, routingCachePeriod)
 	kasToAgentRouter, err := newRouter(
 		privateApiSrv.kasPool,
 		tunnelQuerier,
@@ -333,9 +330,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		// Start modules.
 		func(stage stager.Stage) {
-			// Tunnel tracker should be stopped ASAP to unregister this kas replica from Redis
-			// to avoid getting more requests on the private API server.
-			stage.Go(tunnelTracker.Run)
 			startModules(stage, afterServersModules)
 		},
 	)
@@ -379,20 +373,6 @@ func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClie
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
-	)
-}
-
-func (a *ConfiguredApp) constructTunnelTracker(api modshared.Api, redisClient rueidis.Client) tracker.Tracker {
-	cfg := a.Configuration
-	return tracker.NewRedisTracker(
-		a.Log,
-		api,
-		redisClient,
-		cfg.Redis.KeyPrefix+":tunnel_tracker2",
-		cfg.Agent.RedisConnInfoTtl.AsDuration(),
-		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
-		cfg.Agent.RedisConnInfoGc.AsDuration(),
-		a.OwnPrivateApiUrl,
 	)
 }
 
