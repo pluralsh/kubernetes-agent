@@ -157,18 +157,21 @@ func (t *RedisTracker) refreshHash(ctx context.Context, wg *wait.Group, h redist
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) int {
-	hashes := []redistool.ExpiringHashInterface[int64, int64]{
-		t.connectionsByProjectId,
-		t.connectionsByAgentId,
-		t.connectedAgents,
-	}
+	var gcFuncs []func(context.Context) (int, error)
+	func() {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+		gcFuncs = []func(context.Context) (int, error){
+			t.connectionsByProjectId.GC(),
+			t.connectionsByAgentId.GC(),
+			t.connectedAgents.GC(),
+		}
+	}()
 	keysDeleted := 0
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	// GC runs concurrently for each hash key already. This should be enough concurrency, so call the functions
-	// sequentially.
-	for _, h := range hashes {
-		deleted, err := h.GC(ctx)
+	// No rush so run GC sequentially to not stress RAM/CPU/Redis/network.
+	// We have more important work to do that we shouldn't impact.
+	for _, gc := range gcFuncs {
+		deleted, err := gc(ctx)
 		keysDeleted += deleted
 		if err != nil {
 			if errz.ContextDone(err) {
