@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -105,7 +106,7 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 			}),
 	)
 	kasPool.EXPECT().
-		Dial(gomock.Any(), "grpc://pipe").
+		Dial(gomock.Any(), kasUrlPipe).
 		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
 			wg.Done()
 			<-ctx.Done() // block to simulate a long running dial
@@ -125,8 +126,56 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	assert.Same(t, context.Canceled, err)
 	assert.Len(t, tf.connections, 3)
 	assert.Contains(t, tf.connections, selfAddr)
-	assert.Contains(t, tf.connections, "grpc://pipe")
+	assert.Contains(t, tf.connections, kasUrlPipe)
 	assert.Contains(t, tf.connections, "grpc://pipe2")
+}
+
+func TestTunnelFinder_StopTryingAbsentKasUrl(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	tf, querier, rpcApi, kasPool := setupTunnelFinder(ctx, t)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	gomock.InOrder(
+		kasPool.EXPECT().
+			Dial(gomock.Any(), selfAddr).
+			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+				wg.Done()
+				<-ctx.Done() // block to simulate a long running dial
+				return nil, ctx.Err()
+			}),
+		rpcApi.EXPECT().
+			HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()),
+	)
+	gomock.InOrder(
+		querier.EXPECT().
+			CachedKasUrlsByAgentId(testhelpers.AgentId),
+		querier.EXPECT().
+			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
+			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+				cb([]string{kasUrlPipe})
+				wg.Wait()
+				cancel()
+				<-ctx.Done()
+			}),
+	)
+	kasPool.EXPECT().
+		Dial(gomock.Any(), kasUrlPipe).
+		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+			defer wg.Done()
+			tf.mu.Lock()
+			defer tf.mu.Unlock()
+			tf.kasUrls = nil // remove kasUrlPipe from the list
+			return nil, errors.New("boom")
+		})
+	rpcApi.EXPECT().
+		HandleProcessingError(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any())
+	_, err := tf.Find(ctx)
+	assert.Same(t, context.Canceled, err)
+	assert.Len(t, tf.connections, 1)
+	assert.Contains(t, tf.connections, selfAddr)
 }
 
 func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tracker.MockPollingQuerier, *mock_modserver.MockRpcApi, *mock_rpc.MockPoolInterface) {

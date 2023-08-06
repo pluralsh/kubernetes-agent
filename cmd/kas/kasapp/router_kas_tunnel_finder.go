@@ -63,11 +63,12 @@ type tunnelFinder struct {
 	foundTunnel       chan readyTunnel
 	noTunnel          chan struct{}
 	wg                wait.Group
-	connections       map[string]kasConnAttempt // kas URL -> conn info
 	pollCancel        context.CancelFunc
 
-	mu   sync.Mutex // protects done
-	done bool       // successfully done searching
+	mu          sync.Mutex                // protects the fields below
+	connections map[string]kasConnAttempt // kas URL -> conn info
+	kasUrls     []string                  // current known kas URLs for the agent id
+	done        bool                      // successfully done searching
 }
 
 func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
@@ -97,7 +98,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	defer f.pollCancel()
 
 	// Unconditionally connect to self ASAP.
-	f.tryKas(f.ownPrivateApiUrl) // nolint: contextcheck
+	f.tryKasLocked(f.ownPrivateApiUrl) // nolint: contextcheck
 	startedPolling := false
 	// This flag is set when we've run out of kas URLs to try. When a new set of URLs is received, if this is set,
 	// we try to connect to one of those URLs.
@@ -111,12 +112,12 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	t := time.NewTimer(tryNewKasInterval)
 	defer t.Stop()
 	kasUrlsC := make(chan []string)
-	kasUrls := f.tunnelQuerier.CachedKasUrlsByAgentId(f.agentId)
+	f.kasUrls = f.tunnelQuerier.CachedKasUrlsByAgentId(f.agentId)
 	done := ctx.Done()
 
 	// Timer must have been stopped or has fired when this function is called
 	tryNextKasWhenTimerNotRunning := func() {
-		if f.tryNextKas(kasUrls) { // nolint: contextcheck
+		if f.tryNextKas() { // nolint: contextcheck
 			// Connected to an instance.
 			needToTryNewKas = false
 			t.Reset(tryNewKasInterval)
@@ -147,11 +148,14 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 		case <-f.noTunnel:
 			stopAndDrain(t)
 			tryNextKasWhenTimerNotRunning()
-		case kasUrls = <-kasUrlsC:
+		case kasUrls := <-kasUrlsC:
+			f.mu.Lock()
+			f.kasUrls = kasUrls
+			f.mu.Unlock()
 			if !needToTryNewKas {
 				continue
 			}
-			if f.tryNextKas(kasUrls) { // nolint: contextcheck
+			if f.tryNextKas() { // nolint: contextcheck
 				// Connected to a new kas instance.
 				needToTryNewKas = false
 				stopAndDrain(t)
@@ -166,18 +170,20 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	}
 }
 
-func (f *tunnelFinder) tryNextKas(kasUrls []string) bool {
-	for _, kasUrl := range kasUrls {
+func (f *tunnelFinder) tryNextKas() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, kasUrl := range f.kasUrls {
 		if _, ok := f.connections[kasUrl]; ok {
 			continue // skip tunnel via kas that we have connected to already
 		}
-		f.tryKas(kasUrl)
+		f.tryKasLocked(kasUrl)
 		return true
 	}
 	return false
 }
 
-func (f *tunnelFinder) tryKas(kasUrl string) {
+func (f *tunnelFinder) tryKasLocked(kasUrl string) {
 	connCtx, connCancel := context.WithCancel(f.outgoingCtx)
 	f.connections[kasUrl] = kasConnAttempt{
 		cancel: connCancel,
@@ -200,6 +206,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 		defer func() {
 			if !success {
 				attemptCancel()
+				f.maybeStopTrying(kasUrl)
 			}
 		}()
 		kasConn, err := f.kasPool.Dial(attemptCtx, kasUrl)
@@ -290,6 +297,22 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 		}
 		return nil, retry.Done
 	})
+}
+
+func (f *tunnelFinder) maybeStopTrying(tryingKasUrl string) {
+	if tryingKasUrl == f.ownPrivateApiUrl {
+		return // keep trying the own URL
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, kasUrl := range f.kasUrls {
+		if kasUrl == tryingKasUrl {
+			return // known URLs still contain this URL so keep trying it.
+		}
+	}
+	attempt := f.connections[tryingKasUrl]
+	delete(f.connections, tryingKasUrl)
+	attempt.cancel()
 }
 
 func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
