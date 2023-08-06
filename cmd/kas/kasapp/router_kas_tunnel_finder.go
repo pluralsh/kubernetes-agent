@@ -196,7 +196,13 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 
 		// 1. Dial another kas
 		log.Debug("Trying tunnel")
-		kasConn, err := f.kasPool.Dial(ctx, kasUrl)
+		attemptCtx, attemptCancel := context.WithCancel(ctx)
+		defer func() {
+			if !success {
+				attemptCancel()
+			}
+		}()
+		kasConn, err := f.kasPool.Dial(attemptCtx, kasUrl)
 		if err != nil {
 			f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to dial kas", err)
 			return nil, retry.Backoff
@@ -209,7 +215,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 
 		// 2. Open a stream to the desired service/method
 		kasStream, err := kasConn.NewStream(
-			ctx,
+			attemptCtx,
 			&proxyStreamDesc,
 			f.fullMethod,
 			grpc.ForceCodec(grpctool.RawCodecWithProtoFallback{}),
@@ -228,7 +234,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 					// Let Find() know there is no tunnel available from that kas instantaneously.
 					// A tunnel may still be found when a suitable agent connects later, but none available immediately.
 					select {
-					case <-ctx.Done():
+					case <-attemptCtx.Done():
 					case f.noTunnel <- struct{}{}:
 					}
 				}
@@ -278,7 +284,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 			kasStreamCancel: cancel,
 		}
 		select {
-		case <-ctx.Done():
+		case <-attemptCtx.Done():
 		case f.foundTunnel <- rt:
 			success = true
 		}
