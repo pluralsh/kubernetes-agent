@@ -2,6 +2,7 @@ package redistool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/redis/rueidis"
@@ -46,10 +47,10 @@ func transaction(ctx context.Context, c rueidis.DedicatedClient, cb func(context
 		multiExec = append(multiExec, cmds...)
 		multiExec = append(multiExec, c.B().Exec().Build())
 		resp := c.DoMulti(ctx, multiExec...)
-		execCalled = true                         // Disable deferred UNWATCH as Redis UNWATCHes all keys on EXEC.
-		err = MultiFirstError(resp[:len(resp)-1]) // all but the last one, which is EXEC
-		if err != nil {                           // Something is wrong with commands or I/O, abort
-			return err
+		execCalled = true                       // Disable deferred UNWATCH as Redis UNWATCHes all keys on EXEC.
+		errs := MultiErrors(resp[:len(resp)-1]) // all but the last one, which is EXEC
+		if len(errs) > 0 {                      // Something is wrong with commands or I/O, abort
+			return errors.Join(errs...)
 		}
 		// EXEC error
 		switch resp[len(resp)-1].Error() { // nolint: errorlint

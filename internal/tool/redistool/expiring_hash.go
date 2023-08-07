@@ -219,8 +219,8 @@ func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 		delete(h.data, k1)
 		keysDeleted += len(toDel)
 	}
-	err := MultiFirstError(h.client.DoMulti(ctx, cmds...))
-	return keysDeleted, err
+	errs := MultiErrors(h.client.DoMulti(ctx, cmds...))
+	return keysDeleted, errors.Join(errs...)
 }
 
 func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
@@ -259,7 +259,7 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 }
 
 func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
-	var marshalErr error
+	var errs []error
 	redisKey := h.key1ToRedisKey(key)
 	hsetCmd := h.client.B().Hset().Key(redisKey).FieldValue()
 	empty := true
@@ -268,16 +268,14 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 		redisValue, err := proto.Marshal(args[i].value)
 		if err != nil {
 			// This should never happen
-			if marshalErr == nil {
-				marshalErr = fmt.Errorf("failed to marshal ExpiringValue: %w", err)
-			}
+			errs = append(errs, fmt.Errorf("failed to marshal ExpiringValue: %w", err))
 			continue // skip this value
 		}
 		hsetCmd.FieldValue(h.key2ToRedisKey(args[i].hashKey), rueidis.BinaryString(redisValue))
 		empty = false
 	}
 	if empty {
-		return nil // nothing to do, all skipped.
+		return errors.Join(errs...) // nothing to do, all skipped. Return any accumulated errors.
 	}
 	resp := h.client.DoMulti(ctx,
 		h.client.B().Multi().Build(),
@@ -285,11 +283,8 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 		h.client.B().Pexpire().Key(redisKey).Milliseconds(h.ttl.Milliseconds()).Build(),
 		h.client.B().Exec().Build(),
 	)
-	err := MultiFirstError(resp)
-	if err != nil {
-		return err
-	}
-	return marshalErr
+	errs = append(errs, MultiErrors(resp)...)
+	return errors.Join(errs...)
 }
 
 func (h *ExpiringHash[K1, K2]) setData(key K1, hashKey K2, value *ExpiringValue) {

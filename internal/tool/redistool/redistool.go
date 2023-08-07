@@ -7,13 +7,14 @@ import (
 	"github.com/redis/rueidis"
 )
 
-func MultiFirstError(resp []rueidis.RedisResult) error {
+func MultiErrors(resp []rueidis.RedisResult) []error {
+	var errs []error
 	for _, r := range resp {
 		if err := r.Error(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errs
 }
 
 // UnixDialer can be used as DialFn in rueidis.ClientOption.
