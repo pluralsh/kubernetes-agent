@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
@@ -100,7 +101,7 @@ func TestTokenLimiterNotAllowedWhenIncrError(t *testing.T) {
 		).
 		Return([]rueidis.RedisResult{rmock.ErrorResult(err)})
 	rpcApi.EXPECT().
-		HandleProcessingError("redistool.TokenLimiter: error while incrementing token key count", err)
+		HandleProcessingError("redistool.TokenLimiter: error while incrementing token key count", matcher.ErrorIs(err))
 
 	require.False(t, limiter.Allow(ctx), "Do not allow when there is a connection error")
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,18 +113,21 @@ func defaultRequestConfig() *GitLabRequestConfig {
 
 func ApplyRequestOptions(opts []GitLabRequestOption) (*GitLabRequestConfig, error) {
 	c := defaultRequestConfig()
-	var firstErr error
+	var errs []error
 	for _, o := range opts {
 		err := o(c)
-		if err != nil && firstErr == nil {
-			firstErr = err
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
-	if firstErr != nil { // return the first error but close the body first
+	if len(errs) > 0 { // return the error(s) but close the body first
 		if c.Body != nil {
-			_ = c.Body.Close()
+			err := c.Body.Close()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
-		return nil, firstErr
+		return nil, errors.Join(errs...)
 	}
 	return c, nil
 }

@@ -2,6 +2,7 @@ package redistool
 
 import (
 	"context"
+	"errors"
 	"unsafe"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -67,7 +68,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 		l.redisClient.B().Expire().Key(key).Seconds(59).Build(),
 		l.redisClient.B().Exec().Build(),
 	)
-	err = MultiFirstError(resp)
+	err = errors.Join(MultiErrors(resp)...)
 	if err != nil {
 		api.HandleProcessingError("redistool.TokenLimiter: error while incrementing token key count", err)
 		return false
