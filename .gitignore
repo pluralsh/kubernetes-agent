@@ -7,7 +7,7 @@
 /pkg/ruby/kas-grpc-*.gem
 
 # created by goland debugger
-go_build_agentk
-go_build_kas
+go_build_agentk*
+go_build_kas*
 
 .DS_Store
