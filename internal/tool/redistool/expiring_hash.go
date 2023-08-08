@@ -28,11 +28,12 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	Forget(key K1, hashKey K2)
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key K1) (int64, error)
-	// GC iterates all relevant stored data and deletes expired entries.
-	// It returns the number of deleted Redis (hash) keys, including when an error occurred.
+	// GC returns a function that iterates all relevant stored data and deletes expired entries.
+	// The returned function can be called concurrently as it does not interfere with the hash's operation.
+	// The function returns number of deleted Redis (hash) keys, including when an error occurred.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
-	GC(context.Context) (int /* keysDeleted */, error)
+	GC() func(context.Context) (int /* keysDeleted */, error)
 	// Clear clears all data in this hash and deletes it from the backing store.
 	Clear(context.Context) (int, error)
 	// Refresh refreshes data in the backing store to prevent it from expiring.
@@ -152,18 +153,25 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	return len(keysToDelete), scanErr
 }
 
-func (h *ExpiringHash[K1, K2]) GC(ctx context.Context) (int /* keysDeleted */, error) {
-	var deletedKeys int
-	client, cancel := h.client.Dedicate()
-	defer cancel()
+func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */, error) {
+	// Copy keys for safe concurrent access.
+	keys := make([]K1, 0, len(h.data))
 	for key := range h.data {
-		deleted, err := gcHash(ctx, h.key1ToRedisKey(key), client)
-		deletedKeys += deleted
-		if err != nil {
-			return deletedKeys, err
-		}
+		keys = append(keys, key)
 	}
-	return deletedKeys, nil
+	return func(ctx context.Context) (int, error) {
+		var deletedKeys int
+		client, cancel := h.client.Dedicate()
+		defer cancel()
+		for _, key := range keys {
+			deleted, err := gcHash(ctx, h.key1ToRedisKey(key), client)
+			deletedKeys += deleted
+			if err != nil {
+				return deletedKeys, err
+			}
+		}
+		return deletedKeys, nil
+	}
 }
 
 // gcHash iterates a hash and removes all expired values.
