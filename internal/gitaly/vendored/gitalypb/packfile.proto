@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package gitaly;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb";
+
+// PackfileNegotiationStatistics represents the git packfile negotiation.
+message PackfileNegotiationStatistics {
+  // PayloadSize is the total size of all pktlines' payload in bytes. This excludes the pktline prefix.
+  int64 payload_size = 1;
+  // Packets is the total number of packets.
+  int64 packets = 2;
+  // Caps is the capabilities announced by the client.
+  repeated string caps = 3;
+  // Wants is the number of objects the client announced it wants.
+  int64 wants = 4;
+  // Haves is the number of objects the client announced it has.
+  int64 haves = 5;
+  // Shallows is the number of shallow boundaries announced by the client.
+  int64 shallows = 6;
+  // Deepen is one of "deepen <depth>", "deepen-since <timestamp>", "deepen-not <ref>".
+  // [deepen <depth>|deepen-since <timestamp>|deepen-not <ref>]
+  string deepen = 7;
+  // Filter is specified by the client.
+  string filter = 8;
+}

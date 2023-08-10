@@ -104,6 +104,18 @@ message ReferenceNotFoundError {
   bytes reference_name = 1;
 }
 
+// ReferenceStateMismatchError is an error returned when updating a reference fails because its pointing to a different
+// object ID than expected.
+message ReferenceStateMismatchError {
+  // ReferenceName is the name of the reference that was failed to update.
+  bytes reference_name = 1;
+  // ExpectedObjectId is the object ID that the reference was expected to point to but didn't.
+  bytes expected_object_id = 2;
+  // ActualObjectId is the object ID that the reference actually pointed to at the time when it was tried to be
+  // updated.
+  bytes actual_object_id = 3;
+}
+
 // ReferenceUpdateError is an error returned when updating a reference has
 // failed.
 message ReferenceUpdateError {
@@ -160,4 +172,30 @@ message CustomHookError {
   bytes stderr = 2;
   // HookType is the type of the hook.
   HookType hook_type = 3;
+}
+
+// PathError is an error returned when there is an issue with the path provided.
+message PathError {
+  // ErrorType is the type of error encountered.
+  enum ErrorType {
+    // PathError_ERROR_TYPE_UNSPECIFIED is the default error type and should never be set.
+    ERROR_TYPE_UNSPECIFIED = 0;
+    // PathError_ERROR_TYPE_EMPTY_PATH is the error type when the provided path is empty.
+    ERROR_TYPE_EMPTY_PATH = 1;
+    // PathError_ERROR_TYPE_RELATIVE_PATH_ESCAPES_REPOSITORY is the error type when there are
+    // traversing components found in the path and it either escapes the repository or is not
+    // supported by the RPC.
+    ERROR_TYPE_RELATIVE_PATH_ESCAPES_REPOSITORY = 2;
+    // PathError_ERROR_TYPE_ABSOLUTE_PATH is the error type when an absolute path is provided
+    // while a relative path was expected.
+    ERROR_TYPE_ABSOLUTE_PATH = 3;
+    // PathError_ERROR_TYPE_LONG_PATH is the error type when the path is too long.
+    ERROR_TYPE_LONG_PATH = 4;
+  };
+
+  // Path is the file or directory path that triggered the error. The path may be
+  // truncated due to size limits.
+  bytes path = 1;
+  // ErrorType is the type of path error that occurred.
+  ErrorType error_type = 2;
 }
