@@ -2,8 +2,8 @@ package modshared
 
 import (
 	"context"
-	"errors"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ func (a *RpcApiStub) PollWithBackoff(cfg retry.PollConfig, f retry.PollWithBacko
 	err := retry.PollWithBackoff(ageCtx, cfg, func(ctx context.Context) (error, retry.AttemptResult) {
 		return f()
 	})
-	if errors.Is(err, retry.ErrWaitTimeout) {
+	if errz.ContextDone(err) {
 		return nil // all good, ctx is done
 	}
 	return err

@@ -212,7 +212,7 @@ handlingFetchedData:
 
 func (w *worker) watchValuesUrlSource(src *agentcfg.ChartValuesUrlCF, pos int, fetched chan<- fetchedFromSource) func(context.Context) {
 	return func(ctx context.Context) {
-		_ = wait.PollImmediateInfiniteWithContext(ctx, src.PollPeriod.AsDuration(), func(ctx context.Context) (bool /* done */, error) {
+		_ = wait.PollImmediateInfiniteWithContext(ctx, src.PollPeriod.AsDuration(), func(ctx context.Context) (bool /* done */, error) { // nolint:staticcheck
 			values, err := w.pollValuesUrlSource(ctx, src)
 			if err != nil {
 				w.log.Error("Failed to fetch values from URL", append(w.logForSource(pos), logz.Error(err))...)

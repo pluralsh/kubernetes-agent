@@ -87,5 +87,5 @@ func TestRetryPipeline_LastOutputOnly(t *testing.T) {
 }
 
 func backoffMgr() wait.BackoffManager {
-	return wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{})
+	return wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{}) // nolint:staticcheck
 }

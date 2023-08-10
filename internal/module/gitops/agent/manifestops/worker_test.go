@@ -330,7 +330,7 @@ func setupWorker(t *testing.T) (*worker, *MockApplier, *mock_rpc.MockObjectsToSy
 		applier:           applier,
 		restClientGetter:  tf,
 		applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
-		decodeRetryPolicy: wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{}),
+		decodeRetryPolicy: wait.NewExponentialBackoffManager(time.Minute, time.Minute, time.Minute, 2, 1, clock.RealClock{}), // nolint:staticcheck
 		objWatcher:        watcher,
 	}
 	return w, applier, watcher
