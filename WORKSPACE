@@ -25,9 +25,9 @@ http_archive(
 
 http_archive(
     name = "rules_oci",
-    sha256 = "db57efd706f01eb3ce771468366baa1614b5b25f4cce99757e2b8d942155b8ec",
-    strip_prefix = "rules_oci-1.0.0",
-    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.0.0/rules_oci-v1.0.0.tar.gz",
+    sha256 = "176e601d21d1151efd88b6b027a24e782493c5d623d8c6211c7767f306d655c8",
+    strip_prefix = "rules_oci-1.2.0",
+    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.2.0/rules_oci-v1.2.0.tar.gz",
 )
 
 http_archive(
@@ -71,10 +71,10 @@ http_archive(
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "b8a1527901774180afc798aeb28c4634bdccf19c4d98e7bdd1ce79d1fe9aaad7",
+    sha256 = "66ffd9315665bfaafc96b52278f57c7e2dd09f5ede279ea6d39b2be471e7e3aa",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.2/bazel-skylib-1.4.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.2/bazel-skylib-1.4.2.tar.gz",
     ],
 )
 
@@ -89,9 +89,9 @@ http_archive(
 
 http_archive(
     name = "aspect_bazel_lib",
-    sha256 = "e3151d87910f69cf1fc88755392d7c878034a69d6499b287bcfc00b1cf9bb415",
-    strip_prefix = "bazel-lib-1.32.1",
-    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.32.1/bazel-lib-v1.32.1.tar.gz",
+    sha256 = "d488d8ecca98a4042442a4ae5f1ab0b614f896c0ebf6e3eafff363bcc51c6e62",
+    strip_prefix = "bazel-lib-1.33.0",
+    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.33.0/bazel-lib-v1.33.0.tar.gz",
 )
 
 # Required for proto files. Needs to be compatible with generated code in org_golang_google_genproto.
@@ -99,10 +99,10 @@ http_archive(
 # See https://github.com/bazelbuild/bazel-gazelle/releases/tag/v0.32.0
 http_archive(
     name = "go_googleapis",
-    sha256 = "b54f92060bf2a65c2671491d8c1cb8ad6aa466a29b58f08a907eb170e99cc7ec",
-    strip_prefix = "googleapis-64d54ff78cfe7cdc2f4b95717dc9afa3ef32a29a",
+    sha256 = "3881f4badd30620901a462c7967f9e6cdfe802299c24b571d173e918670f83c0",
+    strip_prefix = "googleapis-85b79ef2370fbe08b453f64ee558e8cbb867cee2",
     urls = [
-        "https://github.com/googleapis/googleapis/archive/64d54ff78cfe7cdc2f4b95717dc9afa3ef32a29a.zip",
+        "https://github.com/googleapis/googleapis/archive/85b79ef2370fbe08b453f64ee558e8cbb867cee2.zip",
     ],
 )
 
