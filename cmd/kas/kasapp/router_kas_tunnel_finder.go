@@ -315,6 +315,8 @@ func (f *tunnelFinder) maybeStopTrying(tryingKasUrl string) {
 }
 
 func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	for url, c := range f.connections {
 		if url != kasUrl {
 			c.cancel()
@@ -323,6 +325,8 @@ func (f *tunnelFinder) stopAllConnectionAttemptsExcept(kasUrl string) {
 }
 
 func (f *tunnelFinder) stopAllConnectionAttempts() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	for _, c := range f.connections {
 		c.cancel()
 	}
