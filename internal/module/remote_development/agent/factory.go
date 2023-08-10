@@ -90,7 +90,6 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				agentId:            agentId,
 				api:                config.Api,
 				pollConfig:         pollFactory,
-				pollFunction:       retry.PollWithBackoff,
 				stateTracker:       newPersistedStateTracker(),
 				terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
 				informer:           inf,

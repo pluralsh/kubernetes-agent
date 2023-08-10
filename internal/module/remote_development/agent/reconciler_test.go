@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
@@ -274,14 +273,10 @@ func (r *ReconcilerTestSuite) SetupTest() {
 	r.mockApi.EXPECT().GetAgentId(gomock.Any()).AnyTimes()
 
 	r.runner = reconciler{
-		log:        zaptest.NewLogger(r.T()),
-		agentId:    testhelpers.AgentId,
-		api:        r.mockApi,
-		pollConfig: testhelpers.NewPollConfig(time.Second),
-		pollFunction: func(ctx context.Context, cfg retry.PollConfig, f retry.PollWithBackoffCtxFunc) error {
-			err, _ := f(ctx)
-			return err
-		},
+		log:                zaptest.NewLogger(r.T()),
+		agentId:            testhelpers.AgentId,
+		api:                r.mockApi,
+		pollConfig:         testhelpers.NewPollConfig(time.Second),
 		stateTracker:       newPersistedStateTracker(),
 		terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
 		informer:           r.mockInformer,
