@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
-	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/info"
@@ -32,7 +32,9 @@ func TestPropagateUntilStop(t *testing.T) {
 	ctxParent, cancelParent := context.WithCancel(context.Background())
 	ctx, cancel, stop := propagateUntil(ctxParent)
 	stop()
-	runtime.Gosched()
+	// Let the Go runtime schedule the other goroutine.
+	// It should exit so that this test doesn't flake.
+	time.Sleep(10 * time.Millisecond)
 	cancelParent()
 	select {
 	case <-ctx.Done():
