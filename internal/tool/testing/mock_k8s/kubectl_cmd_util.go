@@ -13,9 +13,10 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	dynamic "k8s.io/client-go/dynamic"
 	kubernetes "k8s.io/client-go/kubernetes"
+	openapi "k8s.io/client-go/openapi"
 	rest "k8s.io/client-go/rest"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
-	openapi "k8s.io/kubectl/pkg/util/openapi"
+	openapi0 "k8s.io/kubectl/pkg/util/openapi"
 	validation "k8s.io/kubectl/pkg/validation"
 )
 
@@ -101,25 +102,11 @@ func (mr *MockFactoryMockRecorder) NewBuilder() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewBuilder", reflect.TypeOf((*MockFactory)(nil).NewBuilder))
 }
 
-// OpenAPIGetter mocks base method.
-func (m *MockFactory) OpenAPIGetter() discovery.OpenAPISchemaInterface {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OpenAPIGetter")
-	ret0, _ := ret[0].(discovery.OpenAPISchemaInterface)
-	return ret0
-}
-
-// OpenAPIGetter indicates an expected call of OpenAPIGetter.
-func (mr *MockFactoryMockRecorder) OpenAPIGetter() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenAPIGetter", reflect.TypeOf((*MockFactory)(nil).OpenAPIGetter))
-}
-
 // OpenAPISchema mocks base method.
-func (m *MockFactory) OpenAPISchema() (openapi.Resources, error) {
+func (m *MockFactory) OpenAPISchema() (openapi0.Resources, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "OpenAPISchema")
-	ret0, _ := ret[0].(openapi.Resources)
+	ret0, _ := ret[0].(openapi0.Resources)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -128,6 +115,21 @@ func (m *MockFactory) OpenAPISchema() (openapi.Resources, error) {
 func (mr *MockFactoryMockRecorder) OpenAPISchema() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenAPISchema", reflect.TypeOf((*MockFactory)(nil).OpenAPISchema))
+}
+
+// OpenAPIV3Client mocks base method.
+func (m *MockFactory) OpenAPIV3Client() (openapi.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OpenAPIV3Client")
+	ret0, _ := ret[0].(openapi.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OpenAPIV3Client indicates an expected call of OpenAPIV3Client.
+func (mr *MockFactoryMockRecorder) OpenAPIV3Client() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenAPIV3Client", reflect.TypeOf((*MockFactory)(nil).OpenAPIV3Client))
 }
 
 // RESTClient mocks base method.
@@ -220,16 +222,16 @@ func (mr *MockFactoryMockRecorder) UnstructuredClientForMapping(arg0 interface{}
 }
 
 // Validator mocks base method.
-func (m *MockFactory) Validator(arg0 string, arg1 *resource.QueryParamVerifier) (validation.Schema, error) {
+func (m *MockFactory) Validator(arg0 string) (validation.Schema, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validator", arg0, arg1)
+	ret := m.ctrl.Call(m, "Validator", arg0)
 	ret0, _ := ret[0].(validation.Schema)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Validator indicates an expected call of Validator.
-func (mr *MockFactoryMockRecorder) Validator(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockFactoryMockRecorder) Validator(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validator", reflect.TypeOf((*MockFactory)(nil).Validator), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validator", reflect.TypeOf((*MockFactory)(nil).Validator), arg0)
 }

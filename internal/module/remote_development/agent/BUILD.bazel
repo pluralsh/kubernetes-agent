@@ -56,7 +56,6 @@ go_custom_test(
     deps = [
         "//internal/module/modagent",
         "//internal/module/remote_development/agent/k8s",
-        "//internal/tool/retry",
         "//internal/tool/testing/mock_modagent",
         "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",

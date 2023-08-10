@@ -204,7 +204,6 @@ func (q *AggregatingQuerier) unregisterConsumerLocked(pc *pollingContext, h *pol
 
 func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollingContext) {
 	var consumers []pollConsumer // reuse slice between polls
-	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		var kasUrls []string
 		err := q.delegate.KasUrlsByAgentId(ctx, agentId, func(kasUrl string) (bool, error) {

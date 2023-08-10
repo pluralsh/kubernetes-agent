@@ -196,7 +196,6 @@ func (f *tunnelFinder) tryKasLocked(kasUrl string) {
 func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFunc, kasUrl string) {
 	log := f.log.With(logz.KasUrl(kasUrl)) // nolint:govet
 	noTunnelSent := false
-	// err can only be retry.ErrWaitTimeout
 	_ = retry.PollWithBackoff(ctx, f.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
 		success := false
 

@@ -114,7 +114,7 @@ verify:
     - make verify-ci
 
 lint:
-  image: golangci/golangci-lint:v1.52.2-alpine
+  image: golangci/golangci-lint:v1.54.0-alpine
   stage: test
   tags:
     - saas-linux-large-amd64

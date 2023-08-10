@@ -40,7 +40,6 @@ type reconciler struct {
 	agentId      int64
 	api          modagent.Api
 	pollConfig   retry.PollConfigFactory
-	pollFunction func(ctx context.Context, cfg retry.PollConfig, f retry.PollWithBackoffCtxFunc) error
 	stateTracker *persistedStateTracker
 	informer     informer
 	k8sClient    k8s.Client

@@ -22,10 +22,6 @@ const (
 	Done
 )
 
-var (
-	ErrWaitTimeout = wait.ErrWaitTimeout
-)
-
 type BackoffManager = wait.BackoffManager
 type BackoffManagerFactory func() BackoffManager
 
@@ -58,7 +54,7 @@ type PollConfigFactory func() PollConfig
 // If sliding is true, the period is computed after f runs. If it is false then
 // period includes the runtime for f.
 // It returns when:
-// - context signals done. ErrWaitTimeout is returned in this case.
+// - context signals done. Context error is returned in this case.
 // - f returns Done
 func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFunc) error {
 	var t clock.Timer
@@ -78,7 +74,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		for {
 			select {
 			case <-done:
-				return ErrWaitTimeout
+				return ctx.Err()
 			default:
 			}
 			err, result := f(ctx)
@@ -88,7 +84,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 				select {
 				case <-done:
 					timer.Stop()
-					return ErrWaitTimeout
+					return ctx.Err()
 				case <-cfg.pokeC:
 					timer.Stop()
 				case <-timer.C:
@@ -115,7 +111,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 		// of every loop to prevent extra executions of f().
 		select {
 		case <-done:
-			return ErrWaitTimeout
+			return ctx.Err()
 		case <-cfg.pokeC:
 			if !t.Stop() {
 				<-t.C()
@@ -129,7 +125,7 @@ func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffCtxFu
 
 func NewExponentialBackoffFactory(initBackoff, maxBackoff, resetDuration time.Duration, backoffFactor, jitter float64) BackoffManagerFactory {
 	return func() BackoffManager {
-		return wait.NewExponentialBackoffManager(initBackoff, maxBackoff, resetDuration, backoffFactor, jitter, clock.RealClock{})
+		return wait.NewExponentialBackoffManager(initBackoff, maxBackoff, resetDuration, backoffFactor, jitter, clock.RealClock{}) // nolint:staticcheck
 	}
 }
 
