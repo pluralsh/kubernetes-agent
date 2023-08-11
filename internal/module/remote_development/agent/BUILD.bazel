@@ -4,6 +4,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "agent",
     srcs = [
+        "error_tracker.go",
         "factory.go",
         "informer.go",
         "k8s_informer.go",
@@ -22,6 +23,7 @@ go_library(
         "//internal/module/modshared",
         "//internal/module/remote_development",
         "//internal/module/remote_development/agent/k8s",
+        "//internal/module/remote_development/agent/util",
         "//internal/tool/errz",
         "//internal/tool/httpz",
         "//internal/tool/ioz",
@@ -47,6 +49,7 @@ go_library(
 go_custom_test(
     name = "agent_test",
     srcs = [
+        "error_tracker_test.go",
         "module_test.go",
         "persisted_state_test.go",
         "reconciler_test.go",
@@ -56,6 +59,7 @@ go_custom_test(
     deps = [
         "//internal/module/modagent",
         "//internal/module/remote_development/agent/k8s",
+        "//internal/module/remote_development/agent/util",
         "//internal/tool/testing/mock_modagent",
         "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",

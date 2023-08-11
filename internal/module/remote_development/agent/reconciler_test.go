@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -145,6 +146,123 @@ func (r *ReconcilerTestSuite) TestSuccessfulCreationOfWorkspace() {
 	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
 }
 
+func (r *ReconcilerTestSuite) TestSuccessfulReportingOfApplierErrors() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	workspace := "workspaceA"
+	currentWorkspaceState := r.newMockWorkspaceInAgent(workspace)
+	applierError := errors.New("applier error")
+
+	// step1: expect nothing in rails req, get creation req in rails resp => changes should FAIL to apply
+	r.expectRequestAndReturnReply(
+		r.mockApi,
+		r.generateRailsRequest(WorkspaceUpdateTypeFull),
+		r.generateRailsResponse(
+			r.generateInfoForWorkspaceChanges(
+				workspace,
+				"Running",
+				"Creating",
+			),
+		),
+	)
+	r.ensureK8sClientReturnsApplierError(applierError)
+
+	err := r.runner.Run(ctx)
+	r.runner.applierErrorTracker.waitForErrors()
+
+	r.Require().NoError(err)
+	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.Require().Contains(r.runner.applierErrorTracker.store, errorTrackerKey{
+		name:      currentWorkspaceState.Name,
+		namespace: currentWorkspaceState.Namespace,
+	})
+
+	// step 2: expect applier error details in Rails request and ensure tracked error is purged
+	// from the tracker
+	r.expectRequestAndReturnReply(
+		r.mockApi,
+		r.generateRailsRequest(
+			WorkspaceUpdateTypePartial,
+			r.agentInfoWithApplierErrors(currentWorkspaceState, applierError),
+		),
+		r.generateRailsResponse(
+			r.generateInfoForWorkspaceInErrorState(workspace),
+		),
+	)
+
+	err = r.runner.Run(ctx)
+	r.runner.applierErrorTracker.waitForErrors()
+
+	r.Require().NoError(err)
+	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.Require().NotContains(r.runner.applierErrorTracker.store, errorTrackerKey{
+		name:      currentWorkspaceState.Name,
+		namespace: currentWorkspaceState.Namespace,
+	})
+}
+
+func (r *ReconcilerTestSuite) TestSerializationOfRailsRequests() {
+	workspace := &parsedWorkspace{
+		Name:            "workspace1",
+		Namespace:       "namespace1",
+		ResourceVersion: "123",
+		K8sDeploymentInfo: map[string]interface{}{
+			"a": 1,
+		},
+	}
+
+	tests := []struct {
+		testCase              string
+		request               RequestPayload
+		expectedSerialization string
+	}{
+		{
+			testCase: "partial sync payload with latest k8s info",
+			request: r.generateRailsRequest(
+				WorkspaceUpdateTypePartial,
+				WorkspaceAgentInfo{
+					Name:                    workspace.Name,
+					Namespace:               workspace.Namespace,
+					LatestK8sDeploymentInfo: workspace.K8sDeploymentInfo,
+				},
+			),
+			expectedSerialization: "{\"update_type\":\"partial\",\"workspace_agent_infos\":[{\"name\":\"workspace1\",\"namespace\":\"namespace1\",\"latest_k8s_deployment_info\":{\"a\":1}}]}",
+		},
+		{
+			testCase: "partial sync payload with only terminating progress",
+			request: r.generateRailsRequest(
+				WorkspaceUpdateTypePartial,
+				r.agentInfoWithTerminationProgress(workspace, TerminationProgressTerminating),
+			),
+			expectedSerialization: "{\"update_type\":\"partial\",\"workspace_agent_infos\":[{\"name\":\"workspace1\",\"namespace\":\"namespace1\",\"termination_progress\":\"Terminating\"}]}",
+		},
+		{
+			testCase: "partial sync payload with applier errors",
+			request: r.generateRailsRequest(
+				WorkspaceUpdateTypePartial,
+				r.agentInfoWithApplierErrors(workspace, errors.New("applierError")),
+			),
+			expectedSerialization: "{\"update_type\":\"partial\",\"workspace_agent_infos\":[{\"name\":\"workspace1\",\"namespace\":\"namespace1\",\"error_details\":{\"error_type\":\"applier\",\"error_message\":\"applierError\"}}]}",
+		},
+		{
+			testCase:              "full sync payload",
+			request:               r.generateRailsRequest(WorkspaceUpdateTypeFull),
+			expectedSerialization: "{\"update_type\":\"full\",\"workspace_agent_infos\":[]}",
+		},
+	}
+
+	for _, tc := range tests {
+		raw, err := json.Marshal(tc.request)
+
+		r.NoError(err)
+		r.Equal(tc.expectedSerialization, string(raw))
+	}
+}
+func (r *ReconcilerTestSuite) ensureK8sClientReturnsApplierError(err error) {
+	r.mockK8sClient.MockError = err
+}
+
 func (r *ReconcilerTestSuite) updateMockWorkspaceStateInInformer(mockInformer *mockInformer, workspace *parsedWorkspace) {
 	workspace.ResourceVersion = workspace.ResourceVersion + "1"
 
@@ -225,6 +343,17 @@ func (r *ReconcilerTestSuite) generateInfoForWorkspaceChanges(name, desiredState
 	}
 }
 
+func (r *ReconcilerTestSuite) generateInfoForWorkspaceInErrorState(name string) *WorkspaceRailsInfo {
+	return &WorkspaceRailsInfo{
+		Name:                      name,
+		Namespace:                 name + "-namespace",
+		DeploymentResourceVersion: "1",
+		ActualState:               WorkspaceStateError,
+		DesiredState:              "Running",
+		ConfigToApply:             "",
+	}
+}
+
 func (r *ReconcilerTestSuite) generateRailsRequest(updateType WorkspaceUpdateType, agentInfos ...WorkspaceAgentInfo) RequestPayload {
 	// agentInfos may be a nil slice. However, we want it to be an empty(0-length) slice. Hence, the explicit initialization.
 	if len(agentInfos) == 0 {
@@ -241,6 +370,17 @@ func (r *ReconcilerTestSuite) agentInfoForNonTerminatedWorkspace(workspace *pars
 	return WorkspaceAgentInfo{
 		Name:      workspace.Name,
 		Namespace: workspace.Namespace,
+	}
+}
+
+func (r *ReconcilerTestSuite) agentInfoWithApplierErrors(workspace *parsedWorkspace, err error) WorkspaceAgentInfo {
+	return WorkspaceAgentInfo{
+		Name:      workspace.Name,
+		Namespace: workspace.Namespace,
+		ErrorDetails: &ErrorDetails{
+			ErrorType:    ErrorTypeApplier,
+			ErrorMessage: err.Error(),
+		},
 	}
 }
 
@@ -272,14 +412,18 @@ func (r *ReconcilerTestSuite) SetupTest() {
 	//  however, since each test may have multiple runs, this is just put here for simplicity
 	r.mockApi.EXPECT().GetAgentId(gomock.Any()).AnyTimes()
 
+	// this may be called in cases where the reconciliation loop results in applier errors
+	r.mockApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 	r.runner = reconciler{
-		log:                zaptest.NewLogger(r.T()),
-		agentId:            testhelpers.AgentId,
-		api:                r.mockApi,
-		pollConfig:         testhelpers.NewPollConfig(time.Second),
-		stateTracker:       newPersistedStateTracker(),
-		terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
-		informer:           r.mockInformer,
-		k8sClient:          r.mockK8sClient,
+		log:                 zaptest.NewLogger(r.T()),
+		agentId:             testhelpers.AgentId,
+		api:                 r.mockApi,
+		pollConfig:          testhelpers.NewPollConfig(time.Second),
+		stateTracker:        newPersistedStateTracker(),
+		informer:            r.mockInformer,
+		k8sClient:           r.mockK8sClient,
+		terminatingTracker:  newPersistedTerminatingWorkspacesTracker(),
+		applierErrorTracker: newErrorTracker(),
 	}
 }

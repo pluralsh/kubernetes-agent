@@ -19,3 +19,9 @@ type parsedWorkspace struct {
 	ResourceVersion   string
 	K8sDeploymentInfo map[string]interface{}
 }
+
+// workspaceInfoKey is used as an identifier for workspace data when preparing rails payload
+type workspaceInfoKey struct {
+	Name      string
+	Namespace string
+}

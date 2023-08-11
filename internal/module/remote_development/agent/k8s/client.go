@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
+	rdutil "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/util"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -95,17 +96,18 @@ func (k *K8sClient) DeleteNamespace(ctx context.Context, name string) error {
 	return client.Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-func (k *K8sClient) Apply(ctx context.Context, config string) error {
+func (k *K8sClient) Apply(ctx context.Context, config string) <-chan error {
 	objs, err := k.decode(strings.NewReader(config))
 	if err != nil {
-		return err
+		return rdutil.ToAsync(err)
 	}
 
 	parsedApplierInfo, err := k.groupObjectsByInventory(objs)
 	if err != nil {
-		return err
+		return rdutil.ToAsync(err)
 	}
 
+	eventChannels := make([]<-chan event.Event, 0, len(parsedApplierInfo))
 	for _, applierInfo := range parsedApplierInfo {
 		// process work - apply to cluster
 		k.log.Debug("Applying work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
@@ -122,21 +124,28 @@ func (k *K8sClient) Apply(ctx context.Context, config string) error {
 			WatcherRESTScopeStrategy: watcher.RESTScopeNamespace,
 		}
 		events := k.applier.Run(ctx, inventory.WrapInventoryInfoObj(applierInfo.invInfo), applierInfo.objects, applierOptions)
+		eventChannels = append(eventChannels, events)
 
 		k.log.Debug("Applied work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
-
-		// We listen on the events channel in goroutine
-		// not to block this function's execution
-		go func() {
-			// TODO: Add logging as a part of processing the events above
-			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/397001
-			for e := range events {
-				k.log.Debug("Applied event", applyEvent(e))
-			}
-		}()
 	}
 
-	return nil
+	// Event channels received for each invocation of Run are combined to pipe incoming values
+	// through a single event channel. This event channel will be asynchronously consumed to
+	// log events and capture errors
+	combinedEventsCh := rdutil.CombineChannels(eventChannels)
+
+	return rdutil.RunWithAsyncResult(func(outCh chan<- error) {
+		for e := range combinedEventsCh {
+			k.log.Debug("Applied event", applyEvent(e))
+			if e.Type == event.ErrorType {
+				// TODO: it would be useful to log supplementary information like inventory name,
+				// workspace, namespace here
+				// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/420980
+				k.log.Error("Error when applying config", logz.Error(err))
+				outCh <- e.ErrorEvent.Err
+			}
+		}
+	})
 }
 
 func (k *K8sClient) decode(data io.Reader) ([]*unstructured.Unstructured, error) {
