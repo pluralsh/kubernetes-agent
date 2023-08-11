@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/util"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
@@ -23,14 +25,19 @@ import (
 type MessageType string
 type WorkspaceUpdateType string
 type TerminationProgress string
+type ErrorType string
 
 const (
 	WorkspaceUpdateTypePartial WorkspaceUpdateType = "partial"
 	WorkspaceUpdateTypeFull    WorkspaceUpdateType = "full"
 
-	WorkspaceStateTerminated       string              = "Terminated"
+	WorkspaceStateTerminated string = "Terminated"
+	WorkspaceStateError      string = "Error"
+
 	TerminationProgressTerminating TerminationProgress = "Terminating"
 	TerminationProgressTerminated  TerminationProgress = "Terminated"
+
+	ErrorTypeApplier ErrorType = "applier"
 )
 
 // reconciler is equipped to and responsible for carrying
@@ -55,6 +62,17 @@ type reconciler struct {
 	// removed from the tracker once they are removed from the cluster and their Terminated
 	// status is persisted in Rails
 	terminatingTracker persistedTerminatingWorkspacesTracker
+
+	// applierErrorTracker is used when applying k8s configs for a workspace to the cluster.
+	// It tracks the asynchronous errors received and serves as the single source of truth when
+	// reporting these errors to Rails
+	applierErrorTracker *errorTracker
+
+	// versionCounter is an atomic counter that creates monotonically increasing values for use
+	// as versions by the applierErrorTracker. It is monotonically increasing in order to determine
+	// if one version is older than another and thereby only watch for errors corresponding to the
+	// latest operation
+	versionCounter atomic.Uint64
 }
 
 // TODO: revisit all request and response types, and make more strongly typed if possible
@@ -65,6 +83,12 @@ type WorkspaceAgentInfo struct {
 	Namespace               string                 `json:"namespace,omitempty"`
 	LatestK8sDeploymentInfo map[string]interface{} `json:"latest_k8s_deployment_info,omitempty"`
 	TerminationProgress     TerminationProgress    `json:"termination_progress,omitempty"`
+	ErrorDetails            *ErrorDetails          `json:"error_details,omitempty"`
+}
+
+type ErrorDetails struct {
+	ErrorType    ErrorType `json:"error_type,omitempty"`
+	ErrorMessage string    `json:"error_message,omitempty"`
 }
 
 type RequestPayload struct {
@@ -89,9 +113,11 @@ func (r *reconciler) Run(ctx context.Context) error {
 	r.log.Debug("Running reconciliation loop")
 	defer r.log.Debug("Reconciliation loop ended")
 
+	applierErrorsSnapshot := r.applierErrorTracker.createSnapshot()
+
 	// Load and the info on the workspaces from the informer. Skip it if the persisted state in
 	// rails is already up-to-date for the workspace
-	workspaceAgentInfos := r.generateWorkspaceAgentInfos()
+	workspaceAgentInfos := r.generateWorkspaceAgentInfos(applierErrorsSnapshot)
 
 	updateType := WorkspaceUpdateTypePartial
 	if !r.hasFullSyncRunBefore {
@@ -111,23 +137,34 @@ func (r *reconciler) Run(ctx context.Context) error {
 		//  for ex. there may be a case where no workspace is found for a given combination of workspace name &
 		//  workspace
 		// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/409807
-		err = r.applyWorkspaceChanges(ctx, workspaceRailsInfo)
-		if err != nil {
-			// TODO: how to report this back to rails?
-			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/397001
-			r.api.HandleProcessingError(ctx, r.log, r.agentId, "Error when applying workspace info", err)
-		}
+
+		// increment version to guarantee ordering
+		version := r.versionCounter.Add(1)
+
+		errCh := r.applyWorkspaceChanges(ctx, workspaceRailsInfo, applierErrorsSnapshot)
+		r.applierErrorTracker.watchForLatestErrors(ctx, workspaceRailsInfo.Name, workspaceRailsInfo.Namespace, version, errCh)
 	}
 
 	r.hasFullSyncRunBefore = true
 	return nil
 }
 
-func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsInfo *WorkspaceRailsInfo) error {
+func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsInfo *WorkspaceRailsInfo, applierErrorsSnapshot map[errorTrackerKey]operationState) <-chan error {
 	r.stateTracker.recordVersion(workspaceRailsInfo)
 
 	name := workspaceRailsInfo.Name
 	namespace := workspaceRailsInfo.Namespace
+	key := errorTrackerKey{
+		name:      name,
+		namespace: namespace,
+	}
+
+	// If an error was reported to rails successfully, it can now be safely cleaned up from the tracker.
+	// we can do a cleanup if the version in the tracker matches the version of
+	// error sent to Rails
+	if state, hasEntry := applierErrorsSnapshot[key]; hasEntry && state.err != nil {
+		r.applierErrorTracker.deleteErrorIfVersion(name, namespace, state.version)
+	}
 
 	// When desired state is Terminated, trigger workspace deletion and exit early
 	// to avoid processing/applying the workspace config
@@ -135,10 +172,14 @@ func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsIn
 		// Handle Terminated state (delete the namespace and workspace) and return
 		err := r.handleDesiredStateIsTerminated(ctx, name, namespace, workspaceRailsInfo.ActualState)
 		if err != nil {
-			return fmt.Errorf("error when handling terminated state for workspace %s: %w", name, err)
+			// TODO: this is technically not an applier error. A separate error type should be identified for it
+			// and reported accordingly
+			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/420966
+			applierErr := fmt.Errorf("error when handling terminated state for workspace %s: %w", name, err)
+			return util.ToAsync(applierErr)
 		}
 		// we don't want to continue by creating namespace if we just terminated the workspace
-		return nil
+		return util.ToAsync[error](nil)
 	}
 
 	// Desired state is not Terminated, so continue to handle workspace creation and config apply if needed
@@ -148,51 +189,109 @@ func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsIn
 	if !namespaceExists {
 		err := r.k8sClient.CreateNamespace(ctx, namespace)
 		if err != nil && !errors.IsAlreadyExists(err) {
-			return fmt.Errorf("error creating namespace %s: %w", namespace, err)
+			// TODO: this is technically not an applier error. A separate error type should be identified for it
+			// and reported accordingly
+			// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/420966
+			applierErr := fmt.Errorf("error creating namespace %s: %w", namespace, err)
+			return util.ToAsync(applierErr)
 		}
 	}
 
 	// Apply workspace config if one was provided in the workspaceRailsInfo
 	if workspaceRailsInfo.ConfigToApply != "" {
-		err := r.k8sClient.Apply(ctx, workspaceRailsInfo.ConfigToApply)
-		if err != nil {
-			return fmt.Errorf("error applying workspace config (namespace %s, workspace name %s): %w", namespace, name, err)
-		}
+		return r.k8sClient.Apply(ctx, workspaceRailsInfo.ConfigToApply)
 	}
-	return nil
+	return util.ToAsync[error](nil)
 }
 
-func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
+func (r *reconciler) generateWorkspaceAgentInfos(applierErrorsSnapshot map[errorTrackerKey]operationState) []WorkspaceAgentInfo {
 	parsedWorkspaces := r.informer.List()
-	// "workspaceAgentInfos" is constructed by looping over "parsedWorkspaces" and "terminatingTracker".
-	// It can remain a nil slice because GitLab already has the latest version of all workspaces,
-	// However, we want it to be an empty(0-length) slice. Hence, initializing it.
-	// TODO: add a test case - https://gitlab.com/gitlab-org/gitlab/-/issues/407554
-	workspaceAgentInfos := make([]WorkspaceAgentInfo, 0)
 
-	// nonTerminatedWorkspaces is a set of all workspaces in the cluster returned by the informer
+	// unterminatedWorkspaces is a set of all workspaces in the cluster returned by the informer
 	// it is compared with the workspaces in the terminatingTracker (considered "Terminating") to determine
-	// which works have been removed from the cluster and can be deemed "Terminated"
-	nonTerminatedWorkspaces := make(map[string]struct{})
-
+	// which ones have been removed from the cluster and can be deemed "Terminated"
+	unterminatedWorkspaces := make(map[string]struct{})
 	for _, workspace := range parsedWorkspaces {
 		// any workspace returned by the informer is deemed as having not been terminated irrespective of its status
 		// workspaces that have been terminated completely will be absent from this set
-		nonTerminatedWorkspaces[workspace.Name] = struct{}{}
+		unterminatedWorkspaces[workspace.Name] = struct{}{}
+	}
 
+	workspaceInfos := r.collectInfoForUnpersistedWorkspaces(parsedWorkspaces)
+	r.enrichRailsPayloadWithWorkspaceTerminationProgress(workspaceInfos, unterminatedWorkspaces)
+	r.enrichRailsPayloadWithApplierErrorDetails(workspaceInfos, applierErrorsSnapshot)
+
+	// "result" is constructed by taking the values collected in workspaceInfos which in turn
+	// is prepared by starting off with unpersisted workspace data and enrich it with termination progress
+	// and error details
+	result := make([]WorkspaceAgentInfo, 0, len(workspaceInfos))
+	for _, agentInfo := range workspaceInfos {
+		result = append(result, agentInfo)
+	}
+
+	return result
+}
+
+func (r *reconciler) collectInfoForUnpersistedWorkspaces(existingWorkspaces []*parsedWorkspace) map[workspaceInfoKey]WorkspaceAgentInfo {
+	workspaceAgentInfos := make(map[workspaceInfoKey]WorkspaceAgentInfo)
+
+	for _, workspace := range existingWorkspaces {
 		// if Rails already knows about the latest version of the resource, don't send the info again
 		if r.stateTracker.isPersisted(workspace.Name, workspace.ResourceVersion) {
 			r.log.Debug("Skipping sending workspace info. GitLab already has the latest version", logz.WorkspaceName(workspace.Name))
 			continue
 		}
 
-		workspaceAgentInfos = append(workspaceAgentInfos, WorkspaceAgentInfo{
+		key := workspaceInfoKey{
+			Name:      workspace.Name,
+			Namespace: workspace.Namespace,
+		}
+		workspaceAgentInfos[key] = WorkspaceAgentInfo{
 			Name:                    workspace.Name,
 			Namespace:               workspace.Namespace,
 			LatestK8sDeploymentInfo: workspace.K8sDeploymentInfo,
-		})
+		}
 	}
 
+	return workspaceAgentInfos
+}
+
+func (r *reconciler) enrichRailsPayloadWithApplierErrorDetails(payload map[workspaceInfoKey]WorkspaceAgentInfo, errorsSnapshot map[errorTrackerKey]operationState) {
+	// for each entry in the error snapshot, either a new payload has to be
+	// created or the error details must be merged into the existing payload
+	// being sent over to rails
+	for trackerKey, state := range errorsSnapshot {
+		if state.err == nil {
+			// this case will occur if the config is in the process of being
+			// applied and the error status is not yet known
+			continue
+		}
+
+		key := workspaceInfoKey{
+			Name:      trackerKey.name,
+			Namespace: trackerKey.namespace,
+		}
+
+		var agentInfo WorkspaceAgentInfo
+		var exists bool
+
+		agentInfo, exists = payload[key]
+		if !exists {
+			agentInfo = WorkspaceAgentInfo{
+				Name:      trackerKey.name,
+				Namespace: trackerKey.namespace,
+			}
+		}
+
+		agentInfo.ErrorDetails = &ErrorDetails{
+			ErrorType:    ErrorTypeApplier,
+			ErrorMessage: state.err.Error(),
+		}
+		payload[key] = agentInfo
+	}
+}
+
+func (r *reconciler) enrichRailsPayloadWithWorkspaceTerminationProgress(payload map[workspaceInfoKey]WorkspaceAgentInfo, unterminatedWorkspaces map[string]struct{}) {
 	// For each workspace that has been scheduled for termination, check if it exists in the cluster
 	// If it is missing from the cluster, it can be considered as Terminated otherwise Terminating
 	//
@@ -200,7 +299,7 @@ func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
 	//	cluster and are still considered Terminating. This may need to be optimized in case it becomes an issue
 	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/408844
 	for entry := range r.terminatingTracker {
-		_, existsInCluster := nonTerminatedWorkspaces[entry.name]
+		_, existsInCluster := unterminatedWorkspaces[entry.name]
 
 		terminationProgress := TerminationProgressTerminating
 		if !existsInCluster {
@@ -212,14 +311,25 @@ func (r *reconciler) generateWorkspaceAgentInfos() []WorkspaceAgentInfo {
 			logz.WorkspaceTerminationProgress(string(terminationProgress)),
 		)
 
-		workspaceAgentInfos = append(workspaceAgentInfos, WorkspaceAgentInfo{
-			Name:                entry.name,
-			Namespace:           entry.namespace,
-			TerminationProgress: terminationProgress,
-		})
-	}
+		key := workspaceInfoKey{
+			Name:      entry.name,
+			Namespace: entry.namespace,
+		}
 
-	return workspaceAgentInfos
+		var agentInfo WorkspaceAgentInfo
+		var exists bool
+
+		agentInfo, exists = payload[key]
+		if !exists {
+			agentInfo = WorkspaceAgentInfo{
+				Name:      entry.name,
+				Namespace: entry.namespace,
+			}
+		}
+
+		agentInfo.TerminationProgress = terminationProgress
+		payload[key] = agentInfo
+	}
 }
 
 func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
@@ -229,6 +339,13 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 ) (workspaceRailsInfos []*WorkspaceRailsInfo, retError error) {
 	// Do the POST request to the Rails API
 	r.log.Debug("Making GitLab request")
+
+	if workspaceAgentInfos == nil {
+		// In case there is nothing to report to rails, populate the payload with an empty slice
+		// to be explicit about the intent
+		// TODO: add a test case - https://gitlab.com/gitlab-org/gitlab/-/issues/407554
+		workspaceAgentInfos = []WorkspaceAgentInfo{}
+	}
 
 	startTime := time.Now()
 	var requestPayload = RequestPayload{

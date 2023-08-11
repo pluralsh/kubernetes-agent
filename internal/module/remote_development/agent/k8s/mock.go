@@ -7,6 +7,7 @@ import (
 type MockClient struct {
 	NamespaceStore map[string]struct{}
 	ApplyRecorder  string
+	MockError      error
 }
 
 func NewMockClient() *MockClient {
@@ -15,22 +16,34 @@ func NewMockClient() *MockClient {
 	}
 }
 
-func (m *MockClient) NamespaceExists(ctx context.Context, name string) bool {
+func (m *MockClient) NamespaceExists(_ context.Context, name string) bool {
 	_, ok := m.NamespaceStore[name]
 	return ok
 }
 
-func (m *MockClient) CreateNamespace(ctx context.Context, name string) error {
+func (m *MockClient) CreateNamespace(_ context.Context, name string) error {
 	m.NamespaceStore[name] = struct{}{}
 	return nil
 }
 
-func (m *MockClient) DeleteNamespace(ctx context.Context, name string) error {
+func (m *MockClient) DeleteNamespace(_ context.Context, name string) error {
 	delete(m.NamespaceStore, name)
 	return nil
 }
 
-func (m *MockClient) Apply(ctx context.Context, config string) error {
+func (m *MockClient) Apply(_ context.Context, config string) <-chan error {
 	m.ApplyRecorder = config
+
+	if m.MockError != nil {
+		errorCh := make(chan error)
+		go func() {
+			defer close(errorCh)
+			errorCh <- m.MockError
+			m.MockError = nil
+		}()
+
+		return errorCh
+	}
+
 	return nil
 }

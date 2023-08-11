@@ -86,14 +86,15 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			}
 
 			r := &reconciler{
-				log:                config.Log,
-				agentId:            agentId,
-				api:                config.Api,
-				pollConfig:         pollFactory,
-				stateTracker:       newPersistedStateTracker(),
-				terminatingTracker: newPersistedTerminatingWorkspacesTracker(),
-				informer:           inf,
-				k8sClient:          k8sClient,
+				log:                 config.Log,
+				agentId:             agentId,
+				api:                 config.Api,
+				pollConfig:          pollFactory,
+				stateTracker:        newPersistedStateTracker(),
+				terminatingTracker:  newPersistedTerminatingWorkspacesTracker(),
+				informer:            inf,
+				k8sClient:           k8sClient,
+				applierErrorTracker: newErrorTracker(),
 			}
 
 			err = r.informer.Start(ctx)
