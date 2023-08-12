@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -75,7 +78,6 @@ func TestErrorString(t *testing.T) {
 		Path:    "path",
 	}
 	assert.EqualError(t, e, "RpcError: bla: path")
-
 }
 
 func TestUnknownErrorCode(t *testing.T) {
@@ -94,4 +96,20 @@ func TestErrorCodeFromError(t *testing.T) {
 
 	err = errors.New("bla")
 	assert.Equal(t, UnknownError, ErrorCodeFromError(err))
+}
+
+func TestErrorToGrpcError(t *testing.T) {
+	e := &Error{
+		Code:    RpcError,
+		Cause:   status.Error(codes.DataLoss, "oh no"),
+		Message: "msg",
+		RpcName: "/gitlab.agent.grpctool.test.Testing/RequestResponse",
+		Path:    "path",
+	}
+
+	s, ok := status.FromError(e)
+	require.True(t, ok)
+	assert.Equal(t, codes.DataLoss, s.Code())
+	assert.Equal(t, "RpcError: /gitlab.agent.grpctool.test.Testing/RequestResponse: msg: path: rpc error: code = DataLoss desc = oh no", s.Message())
+	assert.EqualError(t, s.Err(), "rpc error: code = DataLoss desc = RpcError: /gitlab.agent.grpctool.test.Testing/RequestResponse: msg: path: rpc error: code = DataLoss desc = oh no")
 }
