@@ -1,12 +1,12 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "internal_client",
+    name = "client",
     srcs = [
         "address_parser.go",
         "dial.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/internal_client",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/grpc/client",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitaly/vendored/dnsresolver",

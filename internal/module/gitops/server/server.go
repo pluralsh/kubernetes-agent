@@ -306,7 +306,7 @@ func isUserError(err error) bool {
 		return true
 	}
 	switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
-	case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+	case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType, gitaly.InvalidArgument:
 		return true
 	}
 	return false

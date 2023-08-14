@@ -5,6 +5,8 @@ import (
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PathEntryVisitor interface {
@@ -35,7 +37,12 @@ entriesLoop:
 			if err == io.EOF { // nolint:errorlint
 				break
 			}
-			return NewRpcError(err, "GetTreeEntries.Recv", string(repoPath))
+			switch status.Code(err) { // nolint:exhaustive
+			case codes.InvalidArgument:
+				return NewInvalidArgument(err, "GetTreeEntries.Recv", string(repoPath))
+			default:
+				return NewRpcError(err, "GetTreeEntries.Recv", string(repoPath))
+			}
 		}
 		for _, entry := range resp.Entries {
 			done, err := visitor.Entry(entry)

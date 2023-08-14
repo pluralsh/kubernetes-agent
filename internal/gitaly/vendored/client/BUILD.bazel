@@ -13,7 +13,7 @@ go_library(
         "//internal/gitaly/vendored/backoff",
         "//internal/gitaly/vendored/dnsresolver",
         "//internal/gitaly/vendored/gitalyauth",
-        "//internal/gitaly/vendored/internal_client",
+        "//internal/gitaly/vendored/grpc/client",
         "@org_golang_google_grpc//:grpc",
     ],
 )

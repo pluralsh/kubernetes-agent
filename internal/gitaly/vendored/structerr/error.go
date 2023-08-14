@@ -3,6 +3,7 @@ package structerr
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -10,9 +11,12 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-type metadataItem struct {
-	key   string
-	value any
+// MetadataItem is an item that associated a metadata key with an arbitrary value.
+type MetadataItem struct {
+	// Key is the key of the metadata item that will be used as the logging key.
+	Key string
+	// Value is the value of the metadata item that will be formatted as the logging value.
+	Value any
 }
 
 // Error is a structured error that contains additional details.
@@ -23,7 +27,7 @@ type Error struct {
 	// metadata is the array of metadata items added to this error. Note that we explicitly
 	// don't use a map here so that we don't have any allocation overhead here in the general
 	// case where there is no metadata.
-	metadata []metadataItem
+	metadata []MetadataItem
 }
 
 type grpcStatuser interface {
@@ -173,8 +177,22 @@ func NewResourceExhausted(format string, a ...any) Error {
 	return newError(codes.ResourceExhausted, format, a...)
 }
 
-// NewUnavailable constructs a new error code with the Unavailable error code. Please refer to New
-// for further details.
+// NewUnavailable constructs a new error code with the Unavailable error code. Please refer to New for further details.
+// Please note that the Unavailable status code is a signal telling clients to retry automatically. This auto-retry
+// mechanism is handled at the library layer, without client consensus. Typically, it is used for the situations where
+// the gRPC is not available or is not responding. Here are some discrete examples:
+//
+//   - Server downtime: The server hosting the gRPC service is down for maintenance or has crashed.
+//   - Network issues: Connectivity problems between the client and server, like network congestion or a broken connection,
+//     can cause the service to appear unavailable.
+//   - Load balancing failure: In a distributed system, the load balancer may be unable to route the client's request to a
+//     healthy instance of the gRPC service. This can happen if all instances are down or if the load balancer is
+//     misconfigured.
+//   - TLS/SSL handshake failure: If there's a problem during the TLS/SSL handshake between the client and the server, the
+//     connection may fail, leading to an UNAVAILABLE status code.
+//
+// Thus, this status code should be used by interceptors or network-related components. gRPC handlers should use another
+// status code instead.
 func NewUnavailable(format string, a ...any) Error {
 	return newError(codes.Unavailable, format, a...)
 }
@@ -251,24 +269,26 @@ func (e Error) errorChain() []Error {
 	return result
 }
 
-// Metadata returns the Error's metadata. The metadata will contain the combination of all added
-// metadata of this error as well as any wrapped Errors.
-//
-// When the same metada key exists multiple times in the error chain, then the value that is
-// highest up the callchain will be returned. This is done because in general, the higher up the
-// callchain one is the more context is available.
+// Metadata returns the Error's metadata. Please refer to `ExtractMetadata()` for the exact semantics of this function.
 func (e Error) Metadata() map[string]any {
-	result := map[string]any{}
+	return ExtractMetadata(e)
+}
 
-	for _, err := range e.errorChain() {
-		for _, m := range err.metadata {
-			if _, exists := result[m.key]; !exists {
-				result[m.key] = m.value
-			}
-		}
+// MetadataItems returns a copy of all metadata items added to this error. This function has the
+// same semantics as `Metadata()`. The results are sorted by their metadata key.
+func (e Error) MetadataItems() []MetadataItem {
+	metadata := e.Metadata()
+
+	items := make([]MetadataItem, 0, len(metadata))
+	for key, value := range metadata {
+		items = append(items, MetadataItem{Key: key, Value: value})
 	}
 
-	return result
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Key < items[j].Key
+	})
+
+	return items
 }
 
 // WithMetadata adds an additional metadata item to the Error. The metadata has the intent to
@@ -277,16 +297,25 @@ func (e Error) Metadata() map[string]any {
 func (e Error) WithMetadata(key string, value any) Error {
 	for i, metadataItem := range e.metadata {
 		// In case the key already exists we override it.
-		if metadataItem.key == key {
-			e.metadata[i].value = value
+		if metadataItem.Key == key {
+			e.metadata[i].Value = value
 			return e
 		}
 	}
 
 	// Otherwise we append a new metadata item.
-	e.metadata = append(e.metadata, metadataItem{
-		key: key, value: value,
+	e.metadata = append(e.metadata, MetadataItem{
+		Key: key, Value: value,
 	})
+	return e
+}
+
+// WithMetadataItems is a convenience function to append multiple metadata items to an error. It
+// behaves the same as if `WithMetadata()` was called for each of the items separately.
+func (e Error) WithMetadataItems(items ...MetadataItem) Error {
+	for _, item := range items {
+		e = e.WithMetadata(item.Key, item.Value)
+	}
 	return e
 }
 
@@ -311,4 +340,41 @@ func (e Error) WithDetail(detail proto.Message) Error {
 func (e Error) WithGRPCCode(code codes.Code) Error {
 	e.code = code
 	return e
+}
+
+// ErrorMetadater is an interface that can be implemented by error types in order to provide custom metadata items
+// without itself being a `structerr.Error`.
+type ErrorMetadater interface {
+	// ErrorMetadata returns the list of metadata items attached to this error.
+	ErrorMetadata() []MetadataItem
+}
+
+// ExtractMetadata extracts metadata from the given error if any of the errors in its chain contain any. Errors may
+// contain in case they are either a `structerr.Error` or in case they implement the `ErrorMetadater` interface. The
+// metadata will contain the combination of all added metadata of this error as well as any wrapped Errors.
+//
+// When the same metada key exists multiple times in the error chain, then the value that is
+// highest up the callchain will be returned. This is done because in general, the higher up the
+// callchain one is the more context is available.
+func ExtractMetadata(err error) map[string]any {
+	metadata := map[string]any{}
+
+	for ; err != nil; err = errors.Unwrap(err) {
+		var metadataItems []MetadataItem
+		if structerr, ok := err.(Error); ok { // nolint: errorlint
+			metadataItems = structerr.metadata
+		} else if errorMetadater, ok := err.(ErrorMetadater); ok { // nolint: errorlint
+			metadataItems = errorMetadater.ErrorMetadata()
+		} else {
+			continue
+		}
+
+		for _, m := range metadataItems {
+			if _, exists := metadata[m.Key]; !exists {
+				metadata[m.Key] = m.Value
+			}
+		}
+	}
+
+	return metadata
 }

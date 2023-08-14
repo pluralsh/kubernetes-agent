@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/backoff"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/dnsresolver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/internal_client"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/grpc/client"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +21,7 @@ import (
 // connOpts should not contain `grpc.WithInsecure` as DialContext determines whether it is needed or not from the
 // scheme. `grpc.TransportCredentials` should not be provided either as those are handled internally as well.
 func DialContext(ctx context.Context, rawAddress string, connOpts []grpc.DialOption) (*grpc.ClientConn, error) {
-	return client.Dial(ctx, rawAddress, connOpts, nil)
+	return client.Dial(ctx, rawAddress, client.WithGrpcOptions(connOpts))
 }
 
 // DNSResolverBuilderConfig exposes the DNS resolver builder option. It is used to build Gitaly
@@ -32,6 +32,7 @@ type DNSResolverBuilderConfig dnsresolver.BuilderConfig
 func DefaultDNSResolverBuilderConfig() *DNSResolverBuilderConfig {
 	return &DNSResolverBuilderConfig{
 		RefreshRate:     5 * time.Minute,
+		LookupTimeout:   15 * time.Second,
 		Backoff:         backoff.NewDefaultExponential(rand.New(rand.NewSource(time.Now().UnixNano()))), // nolint: gosec
 		DefaultGrpcPort: "443",
 	}

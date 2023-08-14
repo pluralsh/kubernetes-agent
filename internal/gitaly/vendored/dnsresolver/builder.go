@@ -27,6 +27,8 @@ type BuilderConfig struct {
 	// RefreshRate determines the periodic refresh rate of the resolver. The resolver may issue
 	// the resolver earlier if client connection demands
 	RefreshRate time.Duration
+	// LookupTimeout determines the timeout of underlying DNS query.
+	LookupTimeout time.Duration
 	// Backoff defines the backoff strategy when the resolver fails to resolve or pushes new
 	// state to client connection
 	Backoff backoff.Strategy
@@ -90,14 +92,15 @@ func (d *Builder) Build(target resolver.Target, cc resolver.ClientConn, _ resolv
 	dr := &dnsResolver{
 		retry: d.opts.Backoff,
 
-		ctx:         ctx,
-		cancel:      cancel,
-		host:        host,
-		port:        port,
-		cc:          cc,
-		refreshRate: d.opts.RefreshRate,
-		lookup:      lookup,
-		reqs:        make(chan struct{}, 1),
+		ctx:           ctx,
+		cancel:        cancel,
+		host:          host,
+		port:          port,
+		cc:            cc,
+		refreshRate:   d.opts.RefreshRate,
+		lookupTimeout: d.opts.LookupTimeout,
+		lookup:        lookup,
+		reqs:          make(chan struct{}, 1),
 	}
 
 	dr.wg.Add(1)

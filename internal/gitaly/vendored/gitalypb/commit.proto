@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package gitaly;
 
+import "errors.proto";
 import "google/protobuf/timestamp.proto";
 import "lint.proto";
 import "shared.proto";
@@ -308,13 +309,14 @@ message CommitIsAncestorResponse {
   bool value = 1;
 }
 
-// This comment is left unintentionally blank.
+// TreeEntryRequest is a request for the TreeEntry RPC.
 message TreeEntryRequest {
-  // This comment is left unintentionally blank.
+  // Repository is the repository for which to read the tree entry.
   Repository repository = 1 [(target_repository)=true];
-  // commit ID or refname
+  // Revision is the revision that identifies the commit at which the tree entry is to be read. It can be either a
+  // commit ID or a reference name.
   bytes revision = 2;
-  // entry path relative to repository root
+  // Path is the path of the entry that shall be read, relative to the tree of the specified revision.
   bytes path = 3;
   // Limit is the maximum number of bytes to fetch. If object is bigger, remaining bytes are not sent
   // 0 means there is no limit.
@@ -324,29 +326,33 @@ message TreeEntryRequest {
   int64 max_size = 5;
 }
 
-// This comment is left unintentionally blank.
+// TreeEntryResponse is a response for the TreeEntry RPC. Multiple responses may be sent in case the tree entry's data
+// exceeds the maximum allowed message length.
 message TreeEntryResponse {
+  // ObjectType is the type of the returned tree entry.
+  //
   // TODO: Replace this enum with ObjectType in shared.proto
   enum ObjectType {
-    // This comment is left unintentionally blank.
+    // COMMIT indicates that the tree entry is a commit, which may be the case for submodules.
     COMMIT = 0; // protolint:disable:this ENUM_FIELD_NAMES_PREFIX ENUM_FIELD_NAMES_ZERO_VALUE_END_WITH
-    // This comment is left unintentionally blank.
+    // BLOB indicates that the tree entry is a blob.
     BLOB = 1; // protolint:disable:this ENUM_FIELD_NAMES_PREFIX
-    // This comment is left unintentionally blank.
+    // TREE indicates that the tree entry is a tree, which may be the case for subdirectories.
     TREE = 2; // protolint:disable:this ENUM_FIELD_NAMES_PREFIX
-    // This comment is left unintentionally blank.
+    // TAG indicates that the tree entry is a tag. This case should never happen.
     TAG = 3; // protolint:disable:this ENUM_FIELD_NAMES_PREFIX
   }
 
-  // This comment is left unintentionally blank.
+  // Type is the object type of the tree entry.
   ObjectType type = 1;
-  // SHA1 object ID
+  // Oid is the object ID of the tree entry. In case of submodules, it contains the commit ID that the submodule
+  // currently refers to.
   string oid = 2;
-  // This comment is left unintentionally blank.
+  // Size is the size of the tree entry.
   int64 size = 3;
-  // file mode
+  // Mode is the mode of the tree entry.
   int32 mode = 4;
-  // raw object contents
+  // Data contains the raw object contents. This data may be split up across multiple messages.
   bytes data = 5;
 }
 
@@ -465,6 +471,17 @@ message GetTreeEntriesResponse {
   repeated TreeEntry entries = 1;
   // This comment is left unintentionally blank.
   PaginationCursor pagination_cursor = 2;
+}
+
+// GetTreeEntriesError may be returned when GetTreeEntries fails with a specific root
+// cause.
+message GetTreeEntriesError {
+  oneof error {
+    // ResolveTree is set when the provided revision ID could not be resolved.
+    ResolveRevisionError resolve_tree = 1;
+    // Path is set when the provided path is not valid.
+    PathError path = 2;
+  }
 }
 
 // This comment is left unintentionally blank.
@@ -801,12 +818,24 @@ message GetCommitSignaturesRequest {
 
 // This comment is left unintentionally blank.
 message GetCommitSignaturesResponse {
-  // Only present for a new commit signature data.
+  // Signer of the commit. A commit can be signed either by a user or by Gitaly itself.
+  enum Signer {
+    // SIGNER_UNSPECIFIED indicates that the signer has not been specified.
+    SIGNER_UNSPECIFIED = 0;
+    // SIGNER_USER indicates that the commit has been signed by a user.
+    SIGNER_USER = 1;
+    // SIGNER_SYSTEM indicates that the commit has been signed by Gitaly itself.
+    SIGNER_SYSTEM = 2;
+  }
+
+  // Commit id of the signature.
   string commit_id = 1;
-  // See ExtractCommitSignatureResponse above for how these fields should be handled.
+  // Signature of the commit (GPG or SSH).
   bytes signature = 2;
-  // This comment is left unintentionally blank.
+  // Signed text that is used to verify the signature.
   bytes signed_text = 3;
+  // Signer of the commit
+  Signer signer = 4;
 }
 
 // This comment is left unintentionally blank.

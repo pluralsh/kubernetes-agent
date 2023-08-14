@@ -25,6 +25,13 @@ proto_library(
 )
 
 proto_library(
+    name = "packfile_proto",
+    srcs = ["packfile.proto"],
+    strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
+    tags = ["manual"],
+)
+
+proto_library(
     name = "shared_proto",
     srcs = ["shared.proto"],
     strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
@@ -41,6 +48,7 @@ proto_library(
     strip_import_prefix = "/internal/gitaly/vendored/gitalypb",
     tags = ["manual"],
     deps = [
+        ":errors_proto",
         ":lint_proto",
         ":shared_proto",
         "@com_google_protobuf//:timestamp_proto",
@@ -65,6 +73,7 @@ proto_library(
     tags = ["manual"],
     deps = [
         ":lint_proto",
+        ":packfile_proto",
         ":shared_proto",
     ],
 )
@@ -72,6 +81,7 @@ proto_library(
 PROTOS = [
     "lint",
     "errors",
+    "packfile",
     "shared",
     "service_config",
 ]
@@ -120,6 +130,7 @@ go_library(
         "commit_grpc.pb.go",
         "errors.pb.go",
         "lint.pb.go",
+        "packfile.pb.go",
         "service_config.pb.go",
         "shared.pb.go",
         "smarthttp.pb.go",

@@ -20,6 +20,8 @@ const (
 	ProtocolError
 	// UnexpectedTreeEntryType - returned when TreeEntryResponse has an unexpected type.
 	UnexpectedTreeEntryType
+	// InvalidArgument - returned when Gitaly responds with InvalidArgument status code.
+	InvalidArgument
 )
 
 func (e ErrorCode) String() string {
@@ -36,6 +38,8 @@ func (e ErrorCode) String() string {
 		return "ProtocolError"
 	case UnexpectedTreeEntryType:
 		return "UnexpectedTreeEntryType"
+	case InvalidArgument:
+		return "InvalidArgument"
 	default:
 		return fmt.Sprintf("invalid ErrorCode: %d", e)
 	}
@@ -94,6 +98,16 @@ func NewProtocolError(err error, message, rpcName, path string) error {
 		Code:    ProtocolError,
 		Cause:   err,
 		Message: message,
+		RpcName: rpcName,
+		Path:    path,
+	}
+}
+
+func NewInvalidArgument(err error, rpcName, path string) error {
+	return &Error{
+		Code:    InvalidArgument,
+		Cause:   err,
+		Message: "invalid argument",
 		RpcName: rpcName,
 		Path:    path,
 	}
