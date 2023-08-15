@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,12 @@ const (
 	projectAnnotationKey   = "agent.gitlab.com/project"
 	agentIdAnnotationKey   = "agent.gitlab.com/id"
 	receiverSecretInterval = 5 * time.Minute
+	maxReceiverNameLength  = 63
+	maxSecretNameLength    = 253
+)
+
+var (
+	isAlphanumeric = regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString
 )
 
 type gitRepositoryController struct {
@@ -277,7 +284,7 @@ func (c *gitRepositoryController) reconcile(ctx context.Context, key string) rec
 
 	// reconcile the Secret required for the Receiver
 	secret := newWebhookReceiverSecret(c.agentId, &gitRepository)
-	if err = c.reconcileWebhookReceiverSecret(ctx, secret); err != nil {
+	if err = c.reconcileWebhookReceiverSecret(ctx, secret, gitRepository.Name); err != nil {
 		return reconciliationResult{status: RetryRateLimited, error: err}
 	}
 
@@ -376,7 +383,7 @@ func (c *gitRepositoryController) reconcileWebhookReceiver(ctx context.Context, 
 	return nil
 }
 
-func (c *gitRepositoryController) reconcileWebhookReceiverSecret(ctx context.Context, secret *applycorev1.SecretApplyConfiguration) error {
+func (c *gitRepositoryController) reconcileWebhookReceiverSecret(ctx context.Context, secret *applycorev1.SecretApplyConfiguration, gitRepositoryName string) error {
 	secrets := c.corev1ApiClient.Secrets(*secret.Namespace)
 	if _, err := secrets.Apply(ctx, secret, metav1.ApplyOptions{FieldManager: modagent.FieldManager, Force: true}); err != nil {
 		if kubeerrors.IsConflict(err) {
@@ -385,9 +392,34 @@ func (c *gitRepositoryController) reconcileWebhookReceiverSecret(ctx context.Con
 		}
 		return fmt.Errorf("failed to apply Secret for Receiver: %w", err)
 	}
+
+	c.deleteDeprecatedReceiverSecret(ctx, secrets, objectWithPrefix(gitRepositoryName, maxSecretNameLength))
 	return nil
 }
 
+// deleteDeprecatedReceiverSecret deletes the old receiver secret that has been replaced by a new one
+// This method was introduced with %16.3 and may be removed with a future version.
+func (c *gitRepositoryController) deleteDeprecatedReceiverSecret(ctx context.Context, secrets v1.SecretInterface, name string) {
+	secret, err := secrets.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		// we don't really care at this point.
+		// All relevant possible errors with the k8s API
+		// will be detected in other places.
+		return
+	}
+
+	if agentId := secret.Annotations[agentIdAnnotationKey]; agentId != strconv.FormatInt(c.agentId, 10) {
+		// we don't manage this object, so let's ignore it.
+		return
+	}
+
+	if err = secrets.Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		c.log.Debug("Failed to delete deprecated Receiver Secret", logz.Error(err))
+	}
+}
+
+// newWebhookReceiver instantiates a new Receiver object.
+// The name of the Receiver object must adhere to RFC 1123 with a length of max 63 characters.
 func newWebhookReceiver(agentId int64, repository *sourcev1.GitRepository, project string, secretName string) *notificationv1.Receiver {
 	return &notificationv1.Receiver{
 		TypeMeta: metav1.TypeMeta{
@@ -395,7 +427,7 @@ func newWebhookReceiver(agentId int64, repository *sourcev1.GitRepository, proje
 			APIVersion: notificationv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      objectWithPrefix(repository.Name),
+			Name:      objectWithPrefix(repository.Name, maxReceiverNameLength),
 			Namespace: repository.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(repository, repository.GroupVersionKind()),
@@ -425,7 +457,7 @@ func newWebhookReceiver(agentId int64, repository *sourcev1.GitRepository, proje
 }
 
 func newWebhookReceiverSecret(agentId int64, repository *sourcev1.GitRepository) *applycorev1.SecretApplyConfiguration {
-	return applycorev1.Secret(objectWithPrefix(repository.Name), repository.Namespace).
+	return applycorev1.Secret(objectWithPrefix("receiver-"+repository.Name, maxSecretNameLength), repository.Namespace).
 		WithOwnerReferences(
 			applymetav1.OwnerReference().
 				WithAPIVersion(repository.GroupVersionKind().GroupVersion().String()).
@@ -441,8 +473,22 @@ func newWebhookReceiverSecret(agentId int64, repository *sourcev1.GitRepository)
 		WithData(map[string][]byte{"token": {}})
 }
 
-func objectWithPrefix(name string) string {
-	return objectNamePrefix + name
+// objectWithPrefix generate an RFC1123 compliant object name with a pre-defined prefix.
+// It implements RFC1123 in best-effort manner, meaning:
+// - generated name is no longer than n characters
+// - ends with an alphanumeric character. If name doesn't, then -x is appended
+// Limitations:
+// - it doesn't ensure uniqueness. This may be implemented later in case it really causes issues.
+// - n must be at least 2
+func objectWithPrefix(name string, n int) string {
+	result := objectNamePrefix + name
+	if len(result) > n {
+		result = result[:n]
+		if !isAlphanumeric(result[n-1:]) {
+			result = result[:n-2] + "-x"
+		}
+	}
+	return result
 }
 
 // getProjectPathFromRepositoryUrl converts a full HTTP(S) or SSH Url into a GitLab full project path

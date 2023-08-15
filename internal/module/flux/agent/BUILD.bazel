@@ -78,6 +78,7 @@ go_custom_test(
         "@com_github_fluxcd_source_controller_api//v1:api",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@io_k8s_api//core/v1:core",
         "@io_k8s_apiextensions_apiserver//pkg/apis/apiextensions/v1:apiextensions",
         "@io_k8s_apimachinery//pkg/api/errors",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
