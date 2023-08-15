@@ -83,65 +83,10 @@ message GitRefCF {
   }
 }
 
-message ChartProjectSourceCF {
-  // Project id.
-  // e.g. gitlab-org/cluster-integration/gitlab-agent
-  string id = 1 [json_name = "id", (validate.rules).string.min_bytes = 1];
-  // Path in the repository.
-  // e.g. charts/my-chart
-  string path = 2 [json_name = "path"];
-  // Ref in the GitOps repository to fetch manifests from.
-  GitRefCF ref = 3 [json_name = "ref"];
-}
-
-message ChartSourceCF {
-  oneof source {
-    option (validate.required) = true;
-
-    ChartProjectSourceCF project = 1 [json_name = "project", (validate.rules).message.required = true];
-  }
-}
-
-message ChartCF {
-  string release_name = 1 [json_name = "release_name", (validate.rules).string.min_bytes = 1];
-  ChartSourceCF source = 2 [json_name = "source", (validate.rules).message.required = true];
-  repeated ChartValuesCF values = 3 [json_name = "values"];
-  optional string namespace = 4 [json_name = "namespace", (validate.rules).string.min_bytes = 1];
-  optional int32 max_history = 5 [json_name = "max_history", (validate.rules).int32.gt = 0];
-}
-
-message ChartValuesFileCF {
-  // Project id. Can only be omitted if chart is coming from a GitLab project. In that case file is fetched from
-  // that project.
-  // e.g. gitlab-org/cluster-integration/gitlab-agent
-  optional string project_id = 1 [json_name = "project_id", (validate.rules).string.min_bytes = 1];
-  // Ref in the repository to fetch manifests from.
-  GitRefCF ref = 2 [json_name = "ref"];
-  string file = 3 [json_name = "file", (validate.rules).string.min_bytes = 1];
-}
-
-message ChartValuesUrlCF {
-  // URL with values to fetch. Server must reply with application/yaml or application/json media type.
-  string url = 1 [json_name = "url", (validate.rules).string.uri = true];
-  // How often to poll URL for changes.
-  google.protobuf.Duration poll_period = 2 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
-  // Maximum file size.
-  optional uint32 max_file_size = 3 [json_name = "max_file_size", (validate.rules).uint32.gt = 0];
-}
-
-message ChartValuesCF {
-  oneof from {
-    option (validate.required) = true;
-
-    google.protobuf.Struct inline = 1 [json_name = "inline", (validate.rules).message.required = true];
-    ChartValuesFileCF file = 2 [json_name = "file", (validate.rules).message.required = true];
-    ChartValuesUrlCF url = 3 [json_name = "url", (validate.rules).message.required = true];
-  }
-}
-
 message GitopsCF {
+  reserved 2;
+  reserved "charts";
   repeated ManifestProjectCF manifest_projects = 1 [json_name = "manifest_projects"];
-  repeated ChartCF charts = 2 [json_name = "charts"];
 }
 
 message ObservabilityCF {

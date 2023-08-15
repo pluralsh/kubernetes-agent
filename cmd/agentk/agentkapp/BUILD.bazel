@@ -23,7 +23,6 @@ go_library(
         "//internal/module/agent_configuration/rpc",
         "//internal/module/flux/agent",
         "//internal/module/gitlab_access/rpc",
-        "//internal/module/gitops/agent/chartops",
         "//internal/module/gitops/agent/manifestops",
         "//internal/module/kubernetes_api/agent",
         "//internal/module/modagent",
