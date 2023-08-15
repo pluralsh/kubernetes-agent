@@ -31,6 +31,10 @@ const (
 	k8sApiProxyRequestsViaUserAccessMetricName             = "k8s_api_proxy_requests_via_user_access"
 	k8sApiProxyRequestsUniqueUsersViaUserAccessMetricName  = "k8s_api_proxy_requests_unique_users_via_user_access"
 	k8sApiProxyRequestsUniqueAgentsViaUserAccessMetricName = "k8s_api_proxy_requests_unique_agents_via_user_access"
+	// PAT access metric names
+	k8sApiProxyRequestsViaPatAccessMetricName             = "k8s_api_proxy_requests_via_pat_access"
+	k8sApiProxyRequestsUniqueUsersViaPatAccessMetricName  = "k8s_api_proxy_requests_unique_users_via_pat_access"
+	k8sApiProxyRequestsUniqueAgentsViaPatAccessMetricName = "k8s_api_proxy_requests_unique_agents_via_pat_access"
 )
 
 type Factory struct {
@@ -115,6 +119,9 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			userAccessRequestCounter: config.UsageTracker.RegisterCounter(k8sApiProxyRequestsViaUserAccessMetricName),
 			userAccessUsersCounter:   config.UsageTracker.RegisterUniqueCounter(k8sApiProxyRequestsUniqueUsersViaUserAccessMetricName),
 			userAccessAgentsCounter:  config.UsageTracker.RegisterUniqueCounter(k8sApiProxyRequestsUniqueAgentsViaUserAccessMetricName),
+			patAccessRequestCounter:  config.UsageTracker.RegisterCounter(k8sApiProxyRequestsViaPatAccessMetricName),
+			patAccessUsersCounter:    config.UsageTracker.RegisterUniqueCounter(k8sApiProxyRequestsUniqueUsersViaPatAccessMetricName),
+			patAccessAgentsCounter:   config.UsageTracker.RegisterUniqueCounter(k8sApiProxyRequestsUniqueAgentsViaPatAccessMetricName),
 			responseSerializer:       serializer.NewCodecFactory(runtime.NewScheme()),
 			traceProvider:            config.TraceProvider,
 			tracePropagator:          config.TracePropagator,
