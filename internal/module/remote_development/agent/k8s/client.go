@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -36,6 +37,9 @@ type K8sClient struct {
 	applier   *apply.Applier
 	factory   util.Factory
 }
+
+// verify interface compliance for K8sClient
+var _ Client = (*K8sClient)(nil)
 
 // applierInfo contains the information that is needed to run an applier command to Kubernetes.
 // It contains the inventory object and the objects tracked by that inventory.
@@ -73,10 +77,18 @@ func New(log *zap.Logger, factory util.Factory) (*K8sClient, error) {
 	}, nil
 }
 
-func (k *K8sClient) NamespaceExists(ctx context.Context, name string) bool {
+func (k *K8sClient) NamespaceExists(ctx context.Context, name string) (bool, error) {
 	client := k.clientset.CoreV1().Namespaces()
 	_, err := client.Get(ctx, name, metav1.GetOptions{})
-	return err == nil
+	if err == nil {
+		return true, nil
+	}
+
+	if k8serrors.IsNotFound(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func (k *K8sClient) CreateNamespace(ctx context.Context, name string) error {

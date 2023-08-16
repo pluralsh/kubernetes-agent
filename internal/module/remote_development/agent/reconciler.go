@@ -57,11 +57,11 @@ type reconciler struct {
 	// indicating partial sync for subsequent cycles for the same reconciler
 	hasFullSyncRunBefore bool
 
-	// terminatingTracker tracks all workspaces for whom termination has been initiated but
-	// still exist in the cluster and therefore considered "Terminating". These workspaces are
-	// removed from the tracker once they are removed from the cluster and their Terminated
-	// status is persisted in Rails
-	terminatingTracker persistedTerminatingWorkspacesTracker
+	// terminationTracker tracks all workspaces for whom termination has been initiated or
+	// they have been terminated.  These workspaces are evicted from the tracker once a workspace
+	// has been completely removed from the cluster and the corresponding termination progress i.e
+	// Terminated has been successfully reported to the
+	terminationTracker terminationTracker
 
 	// applierErrorTracker is used when applying k8s configs for a workspace to the cluster.
 	// It tracks the asynchronous errors received and serves as the single source of truth when
@@ -183,11 +183,15 @@ func (r *reconciler) applyWorkspaceChanges(ctx context.Context, workspaceRailsIn
 	}
 
 	// Desired state is not Terminated, so continue to handle workspace creation and config apply if needed
+	namespaceExists, err := r.k8sClient.NamespaceExists(ctx, namespace)
+	if err != nil {
+		applierErr := fmt.Errorf("error when checking if namespace %s exists: %w", namespace, err)
+		return util.ToAsync(applierErr)
+	}
 
-	// Create namespace if needed
-	namespaceExists := r.k8sClient.NamespaceExists(ctx, namespace)
+	// Create namespace if it doesn't exist already
 	if !namespaceExists {
-		err := r.k8sClient.CreateNamespace(ctx, namespace)
+		err = r.k8sClient.CreateNamespace(ctx, namespace)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			// TODO: this is technically not an applier error. A separate error type should be identified for it
 			// and reported accordingly
@@ -208,7 +212,7 @@ func (r *reconciler) generateWorkspaceAgentInfos(applierErrorsSnapshot map[error
 	parsedWorkspaces := r.informer.List()
 
 	// unterminatedWorkspaces is a set of all workspaces in the cluster returned by the informer
-	// it is compared with the workspaces in the terminatingTracker (considered "Terminating") to determine
+	// it is compared with the workspaces in the terminationTracker (considered "Terminating") to determine
 	// which ones have been removed from the cluster and can be deemed "Terminated"
 	unterminatedWorkspaces := make(map[string]struct{})
 	for _, workspace := range parsedWorkspaces {
@@ -298,8 +302,15 @@ func (r *reconciler) enrichRailsPayloadWithWorkspaceTerminationProgress(payload 
 	// TODO this implementation will repeatedly send workspaces that have to be completely removed from the
 	//	cluster and are still considered Terminating. This may need to be optimized in case it becomes an issue
 	// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/408844
-	for entry := range r.terminatingTracker {
+	for entry, progressInTracker := range r.terminationTracker {
 		_, existsInCluster := unterminatedWorkspaces[entry.name]
+
+		if progressInTracker == TerminationProgressTerminated && existsInCluster {
+			r.log.Warn("Workspace is Terminated in tracker but exists in cluster",
+				logz.WorkspaceName(entry.name),
+				logz.WorkspaceNamespace(entry.namespace),
+			)
+		}
 
 		terminationProgress := TerminationProgressTerminating
 		if !existsInCluster {
@@ -393,25 +404,35 @@ func (r *reconciler) performWorkspaceUpdateRequestToRailsApi(
 }
 
 func (r *reconciler) handleDesiredStateIsTerminated(ctx context.Context, name string, namespace string, actualState string) error {
-	if r.terminatingTracker.isTerminating(name, namespace) && actualState == WorkspaceStateTerminated {
-		r.log.Debug("ActualState=Terminated, so deleting it from persistedTerminatingWorkspacesTracker", logz.WorkspaceNamespace(namespace))
-		r.terminatingTracker.delete(name, namespace)
+	if actualState == WorkspaceStateTerminated {
+		r.log.Debug("ActualState=Terminated has been persisted by Rails and hence deleting it from terminationTracker", logz.WorkspaceNamespace(namespace))
+		r.terminationTracker.delete(name, namespace)
 		r.stateTracker.delete(name)
 		return nil
 	}
 
-	if !r.k8sClient.NamespaceExists(ctx, namespace) {
-		// nothing to as the workspace has already absent from the cluster
+	namespaceExists, err := r.k8sClient.NamespaceExists(ctx, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to check if namespace exists: %w", err)
+	}
+
+	if !namespaceExists {
+		r.terminationTracker.add(name, namespace, TerminationProgressTerminated)
+		// nothing to do as the workspace is already absent in the cluster
 		return nil
 	}
 
 	r.log.Debug("Namespace for terminated workspace still exists, so deleting the namespace", logz.WorkspaceNamespace(namespace))
-	err := r.k8sClient.DeleteNamespace(ctx, namespace)
+
+	// DeleteNamespace may be called while a delete operation is ongoing for the same workspace.
+	// This may occur in cases where the operation spans across multiple partial syncs or
+	// if a partial sync (with termination request) is followed by a full sync
+	err = r.k8sClient.DeleteNamespace(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to terminate workspace by deleting namespace: %w", err)
 	}
 
-	r.terminatingTracker.add(name, namespace)
+	r.terminationTracker.add(name, namespace, TerminationProgressTerminating)
 
 	return nil
 }
