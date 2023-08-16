@@ -5,12 +5,6 @@
 
 - [pkg/agentcfg/agentcfg.proto](#pkg_agentcfg_agentcfg-proto)
     - [AgentConfiguration](#gitlab-agent-agentcfg-AgentConfiguration)
-    - [ChartCF](#gitlab-agent-agentcfg-ChartCF)
-    - [ChartProjectSourceCF](#gitlab-agent-agentcfg-ChartProjectSourceCF)
-    - [ChartSourceCF](#gitlab-agent-agentcfg-ChartSourceCF)
-    - [ChartValuesCF](#gitlab-agent-agentcfg-ChartValuesCF)
-    - [ChartValuesFileCF](#gitlab-agent-agentcfg-ChartValuesFileCF)
-    - [ChartValuesUrlCF](#gitlab-agent-agentcfg-ChartValuesUrlCF)
     - [CiAccessAsAgentCF](#gitlab-agent-agentcfg-CiAccessAsAgentCF)
     - [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF)
     - [CiAccessAsCiJobCF](#gitlab-agent-agentcfg-CiAccessAsCiJobCF)
@@ -76,108 +70,6 @@ additional config for kas.
 | remote_development | [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF) |  |  |
 | flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
 | gitlab_external_url | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartCF"></a>
-
-### ChartCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| release_name | [string](#string) |  |  |
-| source | [ChartSourceCF](#gitlab-agent-agentcfg-ChartSourceCF) |  |  |
-| values | [ChartValuesCF](#gitlab-agent-agentcfg-ChartValuesCF) | repeated |  |
-| namespace | [string](#string) | optional |  |
-| max_history | [int32](#int32) | optional |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartProjectSourceCF"></a>
-
-### ChartProjectSourceCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  | Project id. e.g. gitlab-org/cluster-integration/gitlab-agent |
-| path | [string](#string) |  | Path in the repository. e.g. charts/my-chart |
-| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the GitOps repository to fetch manifests from. |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartSourceCF"></a>
-
-### ChartSourceCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| project | [ChartProjectSourceCF](#gitlab-agent-agentcfg-ChartProjectSourceCF) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartValuesCF"></a>
-
-### ChartValuesCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| inline | [google.protobuf.Struct](#google-protobuf-Struct) |  |  |
-| file | [ChartValuesFileCF](#gitlab-agent-agentcfg-ChartValuesFileCF) |  |  |
-| url | [ChartValuesUrlCF](#gitlab-agent-agentcfg-ChartValuesUrlCF) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartValuesFileCF"></a>
-
-### ChartValuesFileCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| project_id | [string](#string) | optional | Project id. Can only be omitted if chart is coming from a GitLab project. In that case file is fetched from that project. e.g. gitlab-org/cluster-integration/gitlab-agent |
-| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the repository to fetch manifests from. |
-| file | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-agentcfg-ChartValuesUrlCF"></a>
-
-### ChartValuesUrlCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| url | [string](#string) |  | URL with values to fetch. Server must reply with application/yaml or application/json media type. |
-| poll_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How often to poll URL for changes. |
-| max_file_size | [uint32](#uint32) | optional | Maximum file size. |
 
 
 
@@ -419,7 +311,6 @@ GitRef in the repository to fetch manifests from.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | manifest_projects | [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF) | repeated |  |
-| charts | [ChartCF](#gitlab-agent-agentcfg-ChartCF) | repeated |  |
 
 
 

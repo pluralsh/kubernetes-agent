@@ -75,12 +75,6 @@ func TestValidation_Valid(t *testing.T) {
 			Valid: &ManifestProjectCF{},
 		},
 		{
-			Name: "minimal ChartValuesUrlCF",
-			Valid: &ChartValuesUrlCF{
-				Url: "https://example.com",
-			},
-		},
-		{
 			Name:  "minimal RemoteDevelopmentCF",
 			Valid: &RemoteDevelopmentCF{},
 		},
@@ -166,14 +160,6 @@ func TestValidation_Invalid(t *testing.T) {
 		{
 			ErrString: "invalid ExtraKeyValCF.Key: value length must be at least 1 bytes; invalid ExtraKeyValCF.Val: value must contain at least 1 item(s)",
 			Invalid:   &ExtraKeyValCF{},
-		},
-		{
-			ErrString: "invalid ChartValuesCF.From: value is required",
-			Invalid:   &ChartValuesCF{},
-		},
-		{
-			ErrString: "invalid ChartValuesUrlCF.Url: value must be absolute",
-			Invalid:   &ChartValuesUrlCF{},
 		},
 		{
 			ErrString: "invalid RemoteDevelopmentCF.PartialSyncInterval: value must be greater than 0s; invalid RemoteDevelopmentCF.FullSyncInterval: value must be greater than 0s",
