@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 type ConfigurationData struct {
@@ -40,7 +41,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 		res, err := w.Client.GetConfiguration(ctx, &ConfigurationRequest{
 			CommitId:  lastProcessedCommitId,
 			AgentMeta: w.AgentMeta,
-		})
+		}, grpc.WaitForReady(true))
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {
 				w.Log.Warn("GetConfiguration failed", logz.Error(err))

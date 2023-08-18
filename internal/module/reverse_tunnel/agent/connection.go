@@ -68,7 +68,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 	ctx, cancel, stopPropagation := propagateUntil(ctx)
 	defer cancel()
 
-	tunnel, err := c.client.Connect(ctx)
+	tunnel, err := c.client.Connect(ctx, grpc.WaitForReady(true))
 	if err != nil {
 		return fmt.Errorf("Connect(): %w", err) // wrap
 	}
