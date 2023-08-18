@@ -158,8 +158,9 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 			next := make(chan struct{})
 			done := make(chan struct{})
 
+			c1r := &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.cachedProjects)}
 			c1 := mockGitLabFluxClient.EXPECT().
-				ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.cachedProjects)})).
+				ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, c1r), gomock.Any()).
 				DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 					close(next)
 					return nil, errors.New("just for testing, it's okay")
@@ -169,8 +170,9 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 
 			// we need this to abort the PollWithBackoff in reconcileProjects eventually
 			if tc.expectedIsUpdateRequired {
+				c3r := &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)}
 				c3 := mockGitLabFluxClient.EXPECT().
-					ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)})).
+					ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, c3r), gomock.Any()).
 					DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 						close(done)
 						return nil, errors.New("just for testing, it's okay")
@@ -234,10 +236,10 @@ func TestClient_RestartsProjectReconciliationOnProjectsUpdate(t *testing.T) {
 	// we need this to abort the PollWithBackoff in reconcileProjects eventually
 	mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 	mockGitLabFluxClient.EXPECT().
-		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(firstProjects)}).
+		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(firstProjects)}, gomock.Any()).
 		Return(nil, errors.New("just for testing, it's okay"))
 	mockGitLabFluxClient.EXPECT().
-		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(secondProjects)}).
+		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(secondProjects)}, gomock.Any()).
 		DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 			cancel()
 			return nil, errors.New("just for testing, it's okay")
@@ -418,7 +420,7 @@ func setupClientForProjectReconciliation(t *testing.T, projects []string, projec
 
 	// setup mock expectations
 	mockGitLabFluxClient.EXPECT().
-		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(projects)}).
+		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(projects)}, gomock.Any()).
 		Return(mockRpcClient, nil)
 
 	mockRpcClient.EXPECT().Recv().Return(&rpc.ReconcileProjectsResponse{Project: &rpc.Project{Id: projectToReconcile}}, nil)

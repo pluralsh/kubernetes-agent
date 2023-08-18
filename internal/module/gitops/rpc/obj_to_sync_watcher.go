@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -56,7 +57,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 			Ref:       req.Ref,
 			CommitId:  lastProcessedCommitId,
 			Paths:     req.Paths,
-		})
+		}, grpc.WaitForReady(true))
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {
 				o.Log.Error("GetObjectsToSynchronize failed", logz.Error(err))

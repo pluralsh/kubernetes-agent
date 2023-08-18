@@ -48,6 +48,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
@@ -321,6 +322,13 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	}
 	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
+		// Default gRPC parameters are good, no need to change them at the moment.
+		// Specify them explicitly for discoverability.
+		// See https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md.
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff:           backoff.DefaultConfig,
+			MinConnectTimeout: 20 * time.Second, // matches the default gRPC value.
+		}),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 		grpc.WithUserAgent(userAgent),
 		// keepalive.ClientParameters must be specified at least as large as what is allowed by the

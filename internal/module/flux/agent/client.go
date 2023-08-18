@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -186,8 +187,12 @@ func (c *client) reconcileProjects(ctx context.Context, projects []string) {
 	c.log.Debug("Started watching projects for reconciliation", logz.ProjectsToReconcile(projects))
 	defer c.log.Debug("Stopped watching projects for reconciliation", logz.ProjectsToReconcile(projects))
 
+	req := &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(projects)}
+
 	_ = retry.PollWithBackoff(ctx, c.pollCfgFactory(), func(ctx context.Context) (error, retry.AttemptResult) {
-		rpcClient, err := c.fluxGitLabClient.ReconcileProjects(ctx, &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(projects)})
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel() // ensure streaming call is canceled
+		rpcClient, err := c.fluxGitLabClient.ReconcileProjects(ctx, req, grpc.WaitForReady(true))
 		if err != nil {
 			c.agentApi.HandleProcessingError(ctx, c.log, c.agentId, "Failed to reconcile projects", err)
 			return nil, retry.Backoff
