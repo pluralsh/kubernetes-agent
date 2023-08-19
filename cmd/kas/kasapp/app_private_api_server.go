@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -169,6 +170,13 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (grpctool.PoolInterface, error) {
 
 	sharedPoolOpts := []grpc.DialOption{
+		// Default gRPC parameters are good, no need to change them at the moment.
+		// Specify them explicitly for discoverability.
+		// See https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md.
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff:           backoff.DefaultConfig,
+			MinConnectTimeout: 20 * time.Second, // matches the default gRPC value.
+		}),
 		grpc.WithStatsHandler(csh),
 		grpc.WithUserAgent(kasServerName()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
