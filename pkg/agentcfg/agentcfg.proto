@@ -9,7 +9,6 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 import "google/protobuf/duration.proto";
-import "google/protobuf/struct.proto";
 
 // CF suffix stands for Configuration File, meaning a message is
 // part of ConfigurationFile.
