@@ -240,7 +240,7 @@ func TestWSTunnel_TLS(t *testing.T) {
 	t.Run("gRPC", func(t *testing.T) {
 		conn, err := grpc.DialContext(
 			context.Background(),
-			l.Addr().String(),
+			"dns:"+l.Addr().String(),
 			grpc.WithTransportCredentials(credentials.NewTLS(clientTLSConfig)),
 		)
 		require.NoError(t, err)
@@ -255,7 +255,7 @@ func TestWSTunnel_TLS(t *testing.T) {
 	t.Run("gRPC via WebSocket", func(t *testing.T) {
 		conn, err := grpc.DialContext(
 			context.Background(),
-			"wss://"+l.Addr().String(),
+			"passthrough:wss://"+l.Addr().String(),
 			grpc.WithContextDialer(wstunnel.DialerForGRPC(0, &websocket.DialOptions{
 				HTTPClient: &http.Client{
 					Transport: &http.Transport{
@@ -298,7 +298,7 @@ func TestWSTunnel_Cleartext(t *testing.T) {
 	t.Run("gRPC", func(t *testing.T) {
 		conn, err := grpc.DialContext(
 			context.Background(),
-			l.Addr().String(),
+			"dns:"+l.Addr().String(),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		require.NoError(t, err)
@@ -313,7 +313,7 @@ func TestWSTunnel_Cleartext(t *testing.T) {
 	t.Run("gRPC via WebSocket", func(t *testing.T) {
 		conn, err := grpc.DialContext(
 			context.Background(),
-			"ws://"+l.Addr().String(),
+			"passthrough:ws://"+l.Addr().String(),
 			grpc.WithContextDialer(wstunnel.DialerForGRPC(0, &websocket.DialOptions{})),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
@@ -346,7 +346,7 @@ func testKeepalive(t *testing.T, webSocketClient, webSocketServer bool, kp keepa
 	}()
 	conn, err := grpc.DialContext(
 		context.Background(),
-		"ws://pipe",
+		"passthrough:ws://pipe",
 		grpc.WithContextDialer(dial),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

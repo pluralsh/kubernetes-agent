@@ -32,7 +32,7 @@ func TestValidator(t *testing.T) {
 		assert.NoError(t, server.Serve(lis))
 	}()
 
-	conn, err := grpc.DialContext(context.Background(), "bufnet",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(StreamClientValidatingInterceptor),
 		grpc.WithChainUnaryInterceptor(UnaryClientValidatingInterceptor),

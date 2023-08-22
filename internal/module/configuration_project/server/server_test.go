@@ -135,7 +135,7 @@ func constructKasConnection(t *testing.T, kasAddress, kasSecretFile string) *grp
 	var addressToDial string
 	switch u.Scheme {
 	case "grpc":
-		addressToDial = u.Host
+		addressToDial = "dns:" + u.Host
 	default:
 		t.Fatalf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}

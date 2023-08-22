@@ -74,7 +74,7 @@ func agentStartInternalServer(stage stager.Stage, internalServer *grpc.Server, i
 }
 
 func agentConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
-	return grpc.DialContext(context.Background(), "pipe",
+	return grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(grpctool.RawCodec{})),

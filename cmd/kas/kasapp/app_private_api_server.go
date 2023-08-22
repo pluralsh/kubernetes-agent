@@ -202,7 +202,7 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 	}
 
 	// Construct in-memory connection to private API gRPC server
-	inMemConn, err := grpc.DialContext(context.Background(), "pipe", // nolint: contextcheck
+	inMemConn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
 		append([]grpc.DialOption{
 			grpc.WithContextDialer(dialer),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),

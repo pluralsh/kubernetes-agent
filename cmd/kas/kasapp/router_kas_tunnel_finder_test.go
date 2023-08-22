@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	selfAddr = "grpc://self"
+	selfAddr   = "grpc://self"
+	kasUrlPipe = "grpc://pipe"
 )
 
 func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
