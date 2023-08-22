@@ -46,10 +46,6 @@ var (
 	_ reverse_tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
 )
 
-const (
-	kasUrlPipe = "grpc://pipe"
-)
-
 func TestRouter_UnaryHappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	unaryResponse := &test.Response{Message: &test.Response_Scalar{Scalar: 123}}
@@ -247,7 +243,8 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
-	privateApiServerListener := grpctool.NewDialListener()
+	privateApiServerListener, err := net.Listen("tcp", "localhost:0")
+	require.NoError(t, err)
 	defer privateApiServerListener.Close()
 
 	gomock.InOrder(
@@ -295,17 +292,13 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 		kasPool: grpctool.NewPool(log, rep,
 			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
 			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-				if addr == "self" {
-					<-ctx.Done()
-					return nil, ctx.Err()
-				} else {
-					return privateApiServerListener.DialContext(ctx, addr)
-				}
+				<-ctx.Done()
+				return nil, ctx.Err()
 			}),
 		),
 		tunnelQuerier:             querier,
 		tunnelFinder:              finder,
-		ownPrivateApiUrl:          selfAddr,
+		ownPrivateApiUrl:          "grpc://" + privateApiServerListener.Addr().String(),
 		pollConfig:                testhelpers.NewPollConfig(time.Minute),
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
@@ -327,7 +320,7 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	wg.Start(func() {
 		assert.NoError(t, privateApiServer.Serve(privateApiServerListener))
 	})
-	internalServerConn, err := grpc.DialContext(context.Background(), "pipe",
+	internalServerConn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(internalServerListener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
@@ -389,8 +382,8 @@ func mdContains(t *testing.T, expectedMd metadata.MD, actualMd metadata.MD) {
 	}
 }
 
-// test:client(default codec) --> kas1:internal server(raw codec) --> router_kas handler -->
-// client from kas_pool(raw wih fallback codec) --> kas2:private server(raw wih fallback codec) -->
+// test:client(default codec) --> kas:internal server(raw codec) --> router_kas handler -->
+// client from kas_pool(raw wih fallback codec) --> kas:private server(raw wih fallback codec) -->
 // router_agent handler --> tunnel finder --> tunnel.ForwardStream()
 func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest func(client test.TestingClient)) {
 	ctrl := gomock.NewController(t)
@@ -401,18 +394,13 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest
 	fh := mock_reverse_tunnel.NewMockFindHandle(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
-	privateApiServerListener := grpctool.NewDialListener()
+	privateApiServerListener, err := net.Listen("tcp", "localhost:0")
+	require.NoError(t, err)
 	defer privateApiServerListener.Close()
 
 	gomock.InOrder(
 		querier.EXPECT().
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
-		querier.EXPECT().
-			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
-				cb([]string{kasUrlPipe})
-				<-ctx.Done()
-			}),
 		finder.EXPECT().
 			FindTunnel(testhelpers.AgentId, gomock.Any(), gomock.Any()).
 			Return(true, fh),
@@ -457,18 +445,10 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest
 	r := &router{
 		kasPool: grpctool.NewPool(log, rep,
 			credentials.NewTLS(tlstool.DefaultClientTLSConfig()),
-			grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-				if addr == "self" {
-					<-ctx.Done()
-					return nil, ctx.Err()
-				} else {
-					return privateApiServerListener.DialContext(ctx, addr)
-				}
-			}),
 		),
 		tunnelQuerier:             querier,
 		tunnelFinder:              finder,
-		ownPrivateApiUrl:          selfAddr,
+		ownPrivateApiUrl:          "grpc://" + privateApiServerListener.Addr().String(),
 		pollConfig:                testhelpers.NewPollConfig(time.Minute),
 		internalServer:            internalServer,
 		privateApiServer:          privateApiServer,
@@ -490,7 +470,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest
 	wg.Start(func() {
 		assert.NoError(t, privateApiServer.Serve(privateApiServerListener))
 	})
-	internalServerConn, err := grpc.DialContext(context.Background(), "pipe",
+	internalServerConn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(internalServerListener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(

@@ -104,7 +104,7 @@ func TestGrpcErrors_AbruptConnectionDrop(t *testing.T) {
 	defer func() {
 		assert.NoError(t, l.Close())
 	}()
-	conn, err := grpc.DialContext(context.Background(), "pipe",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(l.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -141,7 +141,7 @@ func TestGrpcErrors_AbruptConnectionDrop(t *testing.T) {
 
 func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 	cConn, sConn := net.Pipe()
-	conn, err := grpc.DialContext(context.Background(), "pipe",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(onceDialer(cConn)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -184,7 +184,7 @@ func TestGrpcErrors_ErrorReadingRequest(t *testing.T) {
 
 func TestGrpcErrors_ErrorWritingResponse(t *testing.T) {
 	cConn, sConn := net.Pipe()
-	conn, err := grpc.DialContext(context.Background(), "pipe",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(onceDialer(cConn)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -257,7 +257,7 @@ func setup(t *testing.T, srv test.TestingServer, opt ...grpc.ServerOption) *grpc
 	wg.Start(func() {
 		assert.NoError(t, s.Serve(l))
 	})
-	conn, err := grpc.DialContext(context.Background(), "pipe",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(l.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

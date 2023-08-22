@@ -125,7 +125,7 @@ func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.S
 }
 
 func serverConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
-	return grpc.DialContext(context.Background(), "pipe",
+	return grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
@@ -138,7 +138,7 @@ func serverConstructInternalServerConn(dialContext func(ctx context.Context, add
 }
 
 func serverConstructKasConnection(agentToken api.AgentToken, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
-	return grpc.DialContext(context.Background(), "pipe",
+	return grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(agentToken, true)),

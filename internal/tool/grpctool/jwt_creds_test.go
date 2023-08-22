@@ -63,7 +63,7 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 	wg.Start(func() {
 		assert.NoError(t, srv.Serve(listener))
 	})
-	conn, err := grpc.DialContext(context.Background(), "pipe",
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe",
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(c),

@@ -30,7 +30,7 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	listener := grpctool.NewDialListener()
 
 	// Construct connection to internal gRPC server
-	conn, err := grpc.DialContext(context.Background(), "pipe", // nolint: contextcheck
+	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(

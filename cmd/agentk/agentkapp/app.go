@@ -357,7 +357,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	secure := u.Scheme == "grpcs"
 	switch u.Scheme {
 	case "ws", "wss":
-		addressToDial = a.KasAddress
+		addressToDial = "passthrough:" + a.KasAddress
 		dialer := net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
@@ -382,10 +382,12 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 			CompressionMode: websocket.CompressionDisabled,
 		})))
 	case "grpc":
-		addressToDial = grpcHostWithPort(u)
+		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
+		addressToDial = "dns:" + grpctool.HostWithPort(u)
 		opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)))
 	case "grpcs":
-		addressToDial = grpcHostWithPort(u)
+		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
+		addressToDial = "dns:" + grpctool.HostWithPort(u)
 		opts = append(opts,
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
@@ -475,22 +477,6 @@ func NewCommand() *cobra.Command {
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
 	cobra.CheckErr(c.MarkFlagRequired("token-file"))
 	return c
-}
-
-func grpcHostWithPort(u *url.URL) string {
-	port := u.Port()
-	if port != "" {
-		return u.Host
-	}
-	switch u.Scheme {
-	case "grpc":
-		return net.JoinHostPort(u.Host, "80")
-	case "grpcs":
-		return net.JoinHostPort(u.Host, "443")
-	default:
-		// Function called with unknown scheme, just return the original host.
-		return u.Host
-	}
 }
 
 func parseHeaders(raw []string) (http.Header, error) {

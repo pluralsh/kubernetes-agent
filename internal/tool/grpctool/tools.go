@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 
 	"github.com/ash2k/stager"
@@ -144,4 +145,21 @@ func StatusErrorFromContext(ctx context.Context, msg string) error {
 		code = codes.Unknown
 	}
 	return status.Errorf(code, "%s: %v", msg, err)
+}
+
+// HostWithPort adds port if it was not specified in a URL with a "grpc" or "grpcs" scheme.
+func HostWithPort(u *url.URL) string {
+	port := u.Port()
+	if port != "" {
+		return u.Host
+	}
+	switch u.Scheme {
+	case "grpc":
+		return net.JoinHostPort(u.Host, "80")
+	case "grpcs":
+		return net.JoinHostPort(u.Host, "443")
+	default:
+		// Function called with unknown scheme, just return the original host.
+		return u.Host
+	}
 }
