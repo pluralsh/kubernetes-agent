@@ -225,6 +225,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 			&proxyStreamDesc,
 			f.fullMethod,
 			grpc.ForceCodec(grpctool.RawCodecWithProtoFallback{}),
+			grpc.WaitForReady(true),
 		)
 		if err != nil {
 			f.rpcApi.HandleProcessingError(log, f.agentId, "Failed to open new stream to kas", err)
