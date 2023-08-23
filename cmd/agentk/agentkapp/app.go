@@ -384,13 +384,21 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	case "grpc":
 		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
 		addressToDial = "dns:" + grpctool.HostWithPort(u)
-		opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)))
+		opts = append(opts,
+			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
+			// See https://github.com/grpc/grpc/blob/master/doc/service_config.md.
+			// See https://github.com/grpc/grpc/blob/master/doc/load-balancing.md.
+			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
+		)
 	case "grpcs":
 		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
 		addressToDial = "dns:" + grpctool.HostWithPort(u)
 		opts = append(opts,
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
+			// See https://github.com/grpc/grpc/blob/master/doc/service_config.md.
+			// See https://github.com/grpc/grpc/blob/master/doc/load-balancing.md.
+			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
 		)
 	default:
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
