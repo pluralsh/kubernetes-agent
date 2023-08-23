@@ -249,7 +249,7 @@ func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Tim
 }
 
 func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
-	args := make([]refreshKey[K2], 0, len(hashData))
+	var args []refreshKey[K2] // nolint:prealloc
 	expiresAt := time.Now().Add(h.ttl).Unix()
 	nextRefreshUnix := nextRefresh.Unix()
 	for hashKey, value := range hashData {
