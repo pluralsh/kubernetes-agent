@@ -39,9 +39,8 @@ import (
 	notifications_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
@@ -193,7 +192,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, errRep, agentSrv.tunnelTracker)
+	tunnelRegistry, err := tunnel.NewTunnelRegistry(a.Log, errRep, agentSrv.tunnelTracker)
 	if err != nil {
 		return err
 	}
@@ -207,7 +206,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		routingBackoffFactor,
 		routingJitter,
 	))
-	tunnelQuerier := tracker.NewAggregatingQuerier(a.Log, agentSrv.tunnelTracker, srvApi, pollConfig, routingCachePeriod)
+	tunnelQuerier := tunnel.NewAggregatingQuerier(a.Log, agentSrv.tunnelTracker, srvApi, pollConfig, routingCachePeriod)
 	kasToAgentRouter, err := newRouter(
 		privateApiSrv.kasPool,
 		tunnelQuerier,

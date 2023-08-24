@@ -9,10 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
@@ -48,7 +48,7 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
 		querier.EXPECT().
 			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+			Do(func(ctx context.Context, agentId int64, cb tunnel.PollKasUrlsByAgentIdCallback) {
 				cb([]string{kasUrlPipe})
 				cb([]string{kasUrlPipe}) // same thing two times
 				wg.Wait()
@@ -99,7 +99,7 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
 		querier.EXPECT().
 			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+			Do(func(ctx context.Context, agentId int64, cb tunnel.PollKasUrlsByAgentIdCallback) {
 				cb([]string{kasUrlPipe, "grpc://pipe2"})
 				wg.Wait()
 				cancel()
@@ -155,7 +155,7 @@ func TestTunnelFinder_StopTryingAbsentKasUrl(t *testing.T) {
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
 		querier.EXPECT().
 			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+			Do(func(ctx context.Context, agentId int64, cb tunnel.PollKasUrlsByAgentIdCallback) {
 				cb([]string{kasUrlPipe})
 				wg.Wait()
 				cancel()
@@ -179,10 +179,10 @@ func TestTunnelFinder_StopTryingAbsentKasUrl(t *testing.T) {
 	assert.Contains(t, tf.connections, selfAddr)
 }
 
-func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tracker.MockPollingQuerier, *mock_modserver.MockRpcApi, *mock_rpc.MockPoolInterface) {
+func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_reverse_tunnel_tunnel.MockPollingQuerier, *mock_modserver.MockRpcApi, *mock_rpc.MockPoolInterface) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
+	querier := mock_reverse_tunnel_tunnel.NewMockPollingQuerier(ctrl)
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	kasPool := mock_rpc.NewMockPoolInterface(ctrl)
 

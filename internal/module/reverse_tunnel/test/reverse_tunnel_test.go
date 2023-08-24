@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
@@ -307,7 +307,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 }
 
 type serverTestingServer struct {
-	tunnelFinder reverse_tunnel.TunnelFinder
+	tunnelFinder tunnel.TunnelFinder
 }
 
 func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
@@ -350,7 +350,7 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 }
 
 var (
-	_ reverse_tunnel.TunnelDataCallback = streamingCallback{}
+	_ tunnel.TunnelDataCallback = streamingCallback{}
 )
 
 type streamingCallback struct {

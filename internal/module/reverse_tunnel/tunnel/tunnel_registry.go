@@ -1,4 +1,4 @@
-package reverse_tunnel
+package tunnel
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
@@ -48,11 +47,11 @@ type TunnelFinder interface {
 type findTunnelRequest struct {
 	agentId         int64
 	service, method string
-	retTun          chan<- *tunnel
+	retTun          chan<- *tunnelImpl
 }
 
 type findHandle struct {
-	retTun    <-chan *tunnel
+	retTun    <-chan *tunnelImpl
 	done      func()
 	gotTunnel bool
 }
@@ -81,15 +80,15 @@ func (h *findHandle) Done() {
 type TunnelRegistry struct {
 	log                 *zap.Logger
 	errRep              errz.ErrReporter
-	tunnelRegisterer    tracker.Registerer
+	tunnelRegisterer    Registerer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 
 	mu                    sync.Mutex
-	tunsByAgentId         map[int64]map[*tunnel]struct{}
+	tunsByAgentId         map[int64]map[*tunnelImpl]struct{}
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer tracker.Registerer) (*TunnelRegistry, error) {
+func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer Registerer) (*TunnelRegistry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
@@ -99,14 +98,14 @@ func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegistere
 		errRep:                errRep,
 		tunnelRegisterer:      tunnelRegisterer,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
-		tunsByAgentId:         make(map[int64]map[*tunnel]struct{}),
+		tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
 		findRequestsByAgentId: make(map[int64]map[*findTunnelRequest]struct{}),
 	}, nil
 }
 
 func (r *TunnelRegistry) FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle) {
 	// Buffer 1 to not block on send when a tunnel is found before find request is registered.
-	retTun := make(chan *tunnel, 1) // can receive nil from it if Stop() is called
+	retTun := make(chan *tunnelImpl, 1) // can receive nil from it if Stop() is called
 	ftr := &findTunnelRequest{
 		agentId: agentId,
 		service: service,
@@ -175,7 +174,7 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 	}
 	retErr := make(chan error, 1)
 	agentId := agentInfo.Id
-	tun := &tunnel{
+	tun := &tunnelImpl{
 		tunnel:              server,
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
@@ -236,7 +235,7 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 	}
 }
 
-func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) error {
+func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnelImpl) error {
 	agentId := toReg.agentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -255,14 +254,14 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) error {
 	toReg.state = stateReady
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
-		tunsByAgentId = make(map[*tunnel]struct{}, 1)
+		tunsByAgentId = make(map[*tunnelImpl]struct{}, 1)
 		r.tunsByAgentId[agentId] = tunsByAgentId
 	}
 	tunsByAgentId[toReg] = struct{}{}
 	return r.tunnelRegisterer.RegisterTunnel(context.Background(), agentId) // don't pass context to always register
 }
 
-func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnel) error {
+func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnelImpl) error {
 	agentId := toUnreg.agentId
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	delete(tunsByAgentId, toUnreg)
@@ -272,7 +271,7 @@ func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnel) error {
 	return r.tunnelRegisterer.UnregisterTunnel(context.Background(), agentId) // don't pass context to always unregister
 }
 
-func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
+func (r *TunnelRegistry) onTunnelForward(tun *tunnelImpl) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	switch tun.state {
@@ -292,7 +291,7 @@ func (r *TunnelRegistry) onTunnelForward(tun *tunnel) error {
 	}
 }
 
-func (r *TunnelRegistry) onTunnelDone(tun *tunnel) {
+func (r *TunnelRegistry) onTunnelDone(tun *tunnelImpl) {
 	var err error
 	func() {
 		r.mu.Lock()
@@ -304,7 +303,7 @@ func (r *TunnelRegistry) onTunnelDone(tun *tunnel) {
 	}
 }
 
-func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) error {
+func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnelImpl) error {
 	switch tun.state {
 	case stateReady:
 		panic(errors.New("unreachable: ready -> done should never happen"))

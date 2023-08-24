@@ -15,12 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
@@ -40,10 +38,10 @@ import (
 )
 
 var (
-	_ kasRouter                         = (*router)(nil)
-	_ grpc.StreamHandler                = (*router)(nil).RouteToKasStreamHandler
-	_ grpc.StreamHandler                = (*router)(nil).RouteToAgentStreamHandler
-	_ reverse_tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
+	_ kasRouter                 = (*router)(nil)
+	_ grpc.StreamHandler        = (*router)(nil).RouteToKasStreamHandler
+	_ grpc.StreamHandler        = (*router)(nil).RouteToAgentStreamHandler
+	_ tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
 )
 
 func TestRouter_UnaryHappyPath(t *testing.T) {
@@ -56,11 +54,11 @@ func TestRouter_UnaryHappyPath(t *testing.T) {
 		headerResp  metadata.MD
 		trailerResp metadata.MD
 	)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Do(forwardStream(t, routingMeta, payloadMD, payloadReq, unaryResponse, responseMD, trailersMD))
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Join(routingMeta, payloadMD))
 		// grpc.Header() and grpc.Trailer are ok here because it's a unary RPC.
 		response, err := client.RequestResponse(ctx, payloadReq, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
@@ -77,11 +75,11 @@ func TestRouter_UnaryImmediateError(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(statusWithDetails.Err())
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx := metadata.NewOutgoingContext(context.Background(), routingMeta)
 		_, err = client.RequestResponse(ctx, &test.Request{S1: "123"})
 		require.Error(t, err)
@@ -101,16 +99,16 @@ func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 		headerResp  metadata.MD
 		trailerResp metadata.MD
 	)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi reverse_tunnel.RpcApi, incomingStream grpc.ServerStream, cb reverse_tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
 			return statusWithDetails.Err()
 		})
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMeta, payloadMD))
@@ -130,11 +128,11 @@ func TestRouter_StreamHappyPath(t *testing.T) {
 	routingMeta := routingMetadata()
 	payloadMD, responseMD, trailersMD := meta()
 	payloadReq := &test.Request{S1: "123"}
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Do(forwardStream(t, routingMeta, payloadMD, payloadReq, streamResponse, responseMD, trailersMD))
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMeta, payloadMD))
@@ -159,11 +157,11 @@ func TestRouter_StreamImmediateError(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(statusWithDetails.Err())
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, routingMeta)
@@ -183,16 +181,16 @@ func TestRouter_StreamErrorAfterHeader(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi reverse_tunnel.RpcApi, incomingStream grpc.ServerStream, cb reverse_tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
 			return statusWithDetails.Err()
 		})
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMeta, payloadMD))
@@ -213,17 +211,17 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	tunnel := mock_reverse_tunnel.NewMockTunnel(ctrl)
-	tunnel.EXPECT().
+	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
+	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi reverse_tunnel.RpcApi, incomingStream grpc.ServerStream, cb reverse_tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
 			assert.NoError(t, cb.Error(statusWithDetails.Proto()))
 			return status.Error(codes.Unavailable, "expected return error")
 		})
-	runRouterTest(t, tunnel, func(client test.TestingClient) {
+	runRouterTest(t, tun, func(client test.TestingClient) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMeta, payloadMD))
@@ -239,8 +237,8 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	rep := mock_tool.NewMockErrReporter(ctrl)
 	log := zaptest.NewLogger(t)
-	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
-	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
+	querier := mock_reverse_tunnel_tunnel.NewMockPollingQuerier(ctrl)
+	finder := mock_reverse_tunnel_tunnel.NewMockTunnelFinder(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
 	privateApiServerListener, err := net.Listen("tcp", "localhost:0")
@@ -252,7 +250,7 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
 		querier.EXPECT().
 			PollKasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb tracker.PollKasUrlsByAgentIdCallback) {
+			Do(func(ctx context.Context, agentId int64, cb tunnel.PollKasUrlsByAgentIdCallback) {
 				<-ctx.Done()
 			}),
 	)
@@ -353,8 +351,8 @@ func verifyHeaderAndTrailer(t *testing.T, stream grpc.ClientStream, responseMD, 
 	mdContains(t, trailersMD, stream.Trailer())
 }
 
-func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, reverse_tunnel.RpcApi, grpc.ServerStream, reverse_tunnel.TunnelDataCallback) {
-	return func(log *zap.Logger, rpcApi reverse_tunnel.RpcApi, incomingStream grpc.ServerStream, cb reverse_tunnel.TunnelDataCallback) {
+func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, tunnel.RpcApi, grpc.ServerStream, tunnel.TunnelDataCallback) {
+	return func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) {
 		verifyMeta(t, incomingStream, routingMetadata, payloadMD)
 		var req test.Request
 		err := incomingStream.RecvMsg(&req)
@@ -385,13 +383,13 @@ func mdContains(t *testing.T, expectedMd metadata.MD, actualMd metadata.MD) {
 // test:client(default codec) --> kas:internal server(raw codec) --> router_kas handler -->
 // client from kas_pool(raw wih fallback codec) --> kas:private server(raw wih fallback codec) -->
 // router_agent handler --> tunnel finder --> tunnel.ForwardStream()
-func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, runTest func(client test.TestingClient)) {
+func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel_tunnel.MockTunnel, runTest func(client test.TestingClient)) {
 	ctrl := gomock.NewController(t)
 	rep := mock_tool.NewMockErrReporter(ctrl)
 	log := zaptest.NewLogger(t)
-	querier := mock_reverse_tunnel_tracker.NewMockPollingQuerier(ctrl)
-	finder := mock_reverse_tunnel.NewMockTunnelFinder(ctrl)
-	fh := mock_reverse_tunnel.NewMockFindHandle(ctrl)
+	querier := mock_reverse_tunnel_tunnel.NewMockPollingQuerier(ctrl)
+	finder := mock_reverse_tunnel_tunnel.NewMockTunnelFinder(ctrl)
+	fh := mock_reverse_tunnel_tunnel.NewMockFindHandle(ctrl)
 	internalServerListener := grpctool.NewDialListener()
 	defer internalServerListener.Close()
 	privateApiServerListener, err := net.Listen("tcp", "localhost:0")
