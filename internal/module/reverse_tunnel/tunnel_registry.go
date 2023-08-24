@@ -85,7 +85,6 @@ type TunnelRegistry struct {
 	tunnelStreamVisitor *grpctool.StreamVisitor
 
 	mu                    sync.Mutex
-	tuns                  map[*tunnel]struct{}
 	tunsByAgentId         map[int64]map[*tunnel]struct{}
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
@@ -100,7 +99,6 @@ func NewTunnelRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegistere
 		errRep:                errRep,
 		tunnelRegisterer:      tunnelRegisterer,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
-		tuns:                  make(map[*tunnel]struct{}),
 		tunsByAgentId:         make(map[int64]map[*tunnel]struct{}),
 		findRequestsByAgentId: make(map[int64]map[*findTunnelRequest]struct{}),
 	}, nil
@@ -255,7 +253,6 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) error {
 
 	// 2. Register the tunnel
 	toReg.state = stateReady
-	r.tuns[toReg] = struct{}{}
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
 		tunsByAgentId = make(map[*tunnel]struct{}, 1)
@@ -267,7 +264,6 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) error {
 
 func (r *TunnelRegistry) unregisterTunnelLocked(toUnreg *tunnel) error {
 	agentId := toUnreg.agentId
-	delete(r.tuns, toUnreg)
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
@@ -345,30 +341,35 @@ func (r *TunnelRegistry) Stop() {
 
 // stopInternal is used for testing.
 func (r *TunnelRegistry) stopInternal() (int, int) {
-	// Abort all tunnels
+	stoppedTun := 0
+	abortedFtr := 0
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	tl := len(r.tuns)
-	fl := len(r.findRequestsByAgentId)
-	if tl == 0 && fl == 0 {
-		return 0, 0 // Avoid logging a warning
-	}
-	r.log.Warn("Stopping tunnels and find requests", logz.NumberOfTunnels(tl), logz.NumberOfTunnelFindRequests(fl))
-	for tun := range r.tuns {
-		tun.state = stateDone
-		tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
-		err := r.unregisterTunnelLocked(tun)
-		if err != nil {
-			r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(tun.agentId)), "Failed to unregister tunnel", err)
+
+	// 1. Abort all tunnels
+	for agentId, tunSet := range r.tunsByAgentId {
+		for tun := range tunSet {
+			stoppedTun++
+			tun.state = stateDone
+			tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
+			err := r.unregisterTunnelLocked(tun)
+			if err != nil {
+				r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to unregister tunnel", err)
+			}
 		}
 	}
-	r.log.Warn("Done stopping tunnels")
-	// Abort all waiting new stream requests
+
+	// 2. Abort all waiting new stream requests
 	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
 		for ftr := range findRequestsForAgentId {
+			abortedFtr++
 			ftr.retTun <- nil // respond ASAP, then do all the bookkeeping
 			r.deleteFindRequestLocked(ftr)
 		}
 	}
-	return tl, fl
+	if stoppedTun > 0 || abortedFtr > 0 {
+		r.errRep.HandleProcessingError(context.Background(), r.log, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
+	}
+	return stoppedTun, abortedFtr
 }

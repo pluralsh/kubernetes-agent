@@ -145,18 +145,6 @@ func Error(err error) zap.Field {
 	return zap.Error(err) // nolint:forbidigo
 }
 
-func NumberOfTunnels(n int) zap.Field {
-	return zap.Int("num_tunnels", n)
-}
-
-func NumberOfTunnelFindRequests(n int) zap.Field {
-	return zap.Int("num_find_requests", n)
-}
-
-func Filename(filename string) zap.Field {
-	return zap.String("filename", filename)
-}
-
 func WorkspaceName(name string) zap.Field {
 	return zap.String("workspace_name", name)
 }
