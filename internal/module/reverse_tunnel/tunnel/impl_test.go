@@ -35,7 +35,7 @@ func TestTunnel_ForwardStream_VisitorErrorIsReturnedOnErrorMessageAndReadError(t
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
-	cb := NewMockTunnelDataCallback(ctrl)
+	cb := NewMockDataCallback(ctrl)
 	incomingStream.EXPECT().
 		Context().
 		Return(incomingCtx).
@@ -100,7 +100,7 @@ func TestTunnel_ForwardStream_IsUnblockedWhenIncomingStreamContextIsCancelledAft
 	incomingCtx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	incomingCtx = grpc.NewContextWithServerTransportStream(incomingCtx, sts)
-	cb := NewMockTunnelDataCallback(ctrl)
+	cb := NewMockDataCallback(ctrl)
 	incomingStream.EXPECT().
 		Context().
 		Return(incomingCtx).

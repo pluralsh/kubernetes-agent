@@ -38,10 +38,10 @@ import (
 )
 
 var (
-	_ kasRouter                 = (*router)(nil)
-	_ grpc.StreamHandler        = (*router)(nil).RouteToKasStreamHandler
-	_ grpc.StreamHandler        = (*router)(nil).RouteToAgentStreamHandler
-	_ tunnel.TunnelDataCallback = (*wrappingCallback)(nil)
+	_ kasRouter           = (*router)(nil)
+	_ grpc.StreamHandler  = (*router)(nil).RouteToKasStreamHandler
+	_ grpc.StreamHandler  = (*router)(nil).RouteToAgentStreamHandler
+	_ tunnel.DataCallback = (*wrappingCallback)(nil)
 )
 
 func TestRouter_UnaryHappyPath(t *testing.T) {
@@ -102,7 +102,7 @@ func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
 	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
@@ -184,7 +184,7 @@ func TestRouter_StreamErrorAfterHeader(t *testing.T) {
 	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
 	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
@@ -214,7 +214,7 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 	tun := mock_reverse_tunnel_tunnel.NewMockTunnel(ctrl)
 	tun.EXPECT().
 		ForwardStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) error {
+		DoAndReturn(func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) error {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
@@ -351,8 +351,8 @@ func verifyHeaderAndTrailer(t *testing.T, stream grpc.ClientStream, responseMD, 
 	mdContains(t, trailersMD, stream.Trailer())
 }
 
-func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, tunnel.RpcApi, grpc.ServerStream, tunnel.TunnelDataCallback) {
-	return func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.TunnelDataCallback) {
+func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, tunnel.RpcApi, grpc.ServerStream, tunnel.DataCallback) {
+	return func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) {
 		verifyMeta(t, incomingStream, routingMetadata, payloadMD)
 		var req test.Request
 		err := incomingStream.RecvMsg(&req)

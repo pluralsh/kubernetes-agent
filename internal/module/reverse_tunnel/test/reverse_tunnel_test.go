@@ -350,7 +350,7 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 }
 
 var (
-	_ tunnel.TunnelDataCallback = streamingCallback{}
+	_ tunnel.DataCallback = streamingCallback{}
 )
 
 type streamingCallback struct {

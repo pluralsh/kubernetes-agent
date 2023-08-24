@@ -190,7 +190,7 @@ func (mr *MockTunnelMockRecorder) Done() *gomock.Call {
 }
 
 // ForwardStream mocks base method.
-func (m *MockTunnel) ForwardStream(arg0 *zap.Logger, arg1 tunnel.RpcApi, arg2 grpc.ServerStream, arg3 tunnel.TunnelDataCallback) error {
+func (m *MockTunnel) ForwardStream(arg0 *zap.Logger, arg1 tunnel.RpcApi, arg2 grpc.ServerStream, arg3 tunnel.DataCallback) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ForwardStream", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)

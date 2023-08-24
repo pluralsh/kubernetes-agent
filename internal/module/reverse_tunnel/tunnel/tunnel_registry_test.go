@@ -484,14 +484,14 @@ func TestFindTunnelIsUnblockedByContext(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = FindTunnel request aborted: context deadline exceeded")
 }
 
-func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver.MockAgentRpcApi, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver.MockAgentRpcApi, *MockDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
 	ctrl := gomock.NewController(t)
 	rep := mock_tool.NewMockErrReporter(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
-	cb := NewMockTunnelDataCallback(ctrl)
+	cb := NewMockDataCallback(ctrl)
 
 	rpcApi := mock_modserver.NewMockAgentRpcApi(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)

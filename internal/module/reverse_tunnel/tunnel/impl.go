@@ -41,7 +41,7 @@ const (
 	errorNumber           protoreflect.FieldNumber = 5
 )
 
-type TunnelDataCallback interface {
+type DataCallback interface {
 	Header(map[string]*prototool.Values) error
 	Message([]byte) error
 	Trailer(map[string]*prototool.Values) error
@@ -56,7 +56,7 @@ type Tunnel interface {
 	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
 	// cb is called with header, messages and trailer coming from the tunnel. It's the callers
 	// responsibility to forward them into the incomingStream.
-	ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) error
+	ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb DataCallback) error
 	// Done must be called when the caller is done with the Tunnel.
 	Done()
 }
@@ -73,7 +73,7 @@ type tunnelImpl struct {
 	onDone    func(*tunnelImpl)
 }
 
-func (t *tunnelImpl) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) error {
+func (t *tunnelImpl) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb DataCallback) error {
 	if err := t.onForward(t); err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (t *tunnelImpl) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStrea
 	return pair.forIncomingStream
 }
 
-func (t *tunnelImpl) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb TunnelDataCallback) errPair {
+func (t *tunnelImpl) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb DataCallback) errPair {
 	// Here we have a situation where we need to pipe one server stream into another server stream.
 	// One stream is incoming request stream and the other one is incoming tunnel stream.
 	// We need to use at least one extra goroutine in addition to the current one (or two separate ones) to
