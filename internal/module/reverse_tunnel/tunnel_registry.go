@@ -155,7 +155,7 @@ func (r *TunnelRegistry) FindTunnel(agentId int64, service, method string) (bool
 					// Got the tunnel, but it's too late so return it to the registry.
 					return r.onTunnelDoneLocked(tun)
 				} else {
-					r.deleteFindRequest(ftr)
+					r.deleteFindRequestLocked(ftr)
 				}
 				return nil
 			}()
@@ -248,8 +248,8 @@ func (r *TunnelRegistry) registerTunnelLocked(toReg *tunnel) error {
 		}
 		// Waiting request found!
 		toReg.state = stateFound
-		ftr.retTun <- toReg      // Satisfy the waiting request ASAP
-		r.deleteFindRequest(ftr) // Remove it from the queue
+		ftr.retTun <- toReg            // Satisfy the waiting request ASAP
+		r.deleteFindRequestLocked(ftr) // Remove it from the queue
 		return nil
 	}
 
@@ -328,7 +328,7 @@ func (r *TunnelRegistry) onTunnelDoneLocked(tun *tunnel) error {
 	return nil
 }
 
-func (r *TunnelRegistry) deleteFindRequest(ftr *findTunnelRequest) {
+func (r *TunnelRegistry) deleteFindRequestLocked(ftr *findTunnelRequest) {
 	findRequestsForAgentId := r.findRequestsByAgentId[ftr.agentId]
 	delete(findRequestsForAgentId, ftr)
 	if len(findRequestsForAgentId) == 0 {
@@ -367,7 +367,7 @@ func (r *TunnelRegistry) stopInternal() (int, int) {
 	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
 		for ftr := range findRequestsForAgentId {
 			ftr.retTun <- nil // respond ASAP, then do all the bookkeeping
-			r.deleteFindRequest(ftr)
+			r.deleteFindRequestLocked(ftr)
 		}
 	}
 	return tl, fl
