@@ -60,6 +60,8 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 			RegisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
 	require.NoError(t, err)
@@ -73,7 +75,6 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 	tl, fl := r.stopInternal()
 	assert.EqualValues(t, 1, tl)
 	assert.Zero(t, fl)
-	assert.Empty(t, r.tuns)
 	assert.Empty(t, r.tunsByAgentId)
 	assert.Empty(t, r.findRequestsByAgentId)
 	tl, fl = r.stopInternal()
@@ -111,6 +112,8 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 						RegisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelRegisterer.EXPECT(). // stopInternal()
 						UnregisterTunnel(gomock.Any(), gomock.Any()),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
 	agentInfo := testhelpers.AgentInfoObj()
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
@@ -166,6 +169,8 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	tunnelRegisterer.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any()).
 		Times(2)
+	rep.EXPECT().
+		HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	agentInfo := testhelpers.AgentInfoObj()
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
 	require.NoError(t, err)
@@ -256,6 +261,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	tunnelRegisterer.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any()).
 		Times(2)
+	rep.EXPECT().
+		HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
 	require.NoError(t, err)
 	var wg wait.Group
@@ -371,6 +378,8 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 			RegisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
 	require.NoError(t, err)
@@ -436,6 +445,8 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 			RegisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
+		rep.EXPECT().
+			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), rep, tunnelRegisterer)
 	require.NoError(t, err)
