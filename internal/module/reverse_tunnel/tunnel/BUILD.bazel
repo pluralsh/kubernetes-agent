@@ -7,8 +7,8 @@ go_library(
         "aggregating_querier.go",
         "doc.go",
         "impl.go",
+        "registry.go",
         "tracker.go",
-        "tunnel_registry.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel",
     # should not be imported from agent module(s)
@@ -46,8 +46,8 @@ go_custom_test(
         "aggregating_querier_test.go",
         "impl_test.go",
         "mock_for_test.go",
+        "registry_test.go",
         "tracker_test.go",
-        "tunnel_registry_test.go",
     ],
     embed = [":tunnel"],
     deps = [

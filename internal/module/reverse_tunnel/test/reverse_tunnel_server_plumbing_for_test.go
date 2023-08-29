@@ -55,7 +55,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	tunnelRegistry, err := tunnel.NewTunnelRegistry(log, rep, tunnelRegisterer)
+	tunnelRegistry, err := tunnel.NewRegistry(log, rep, tunnelRegisterer)
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)

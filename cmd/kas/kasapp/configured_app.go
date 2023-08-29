@@ -192,7 +192,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
 	// Tunnel registry
-	tunnelRegistry, err := tunnel.NewTunnelRegistry(a.Log, errRep, agentSrv.tunnelTracker)
+	tunnelRegistry, err := tunnel.NewRegistry(a.Log, errRep, agentSrv.tunnelTracker)
 	if err != nil {
 		return err
 	}
