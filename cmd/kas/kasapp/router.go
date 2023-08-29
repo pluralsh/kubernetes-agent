@@ -36,7 +36,7 @@ type kasRouter interface {
 type router struct {
 	kasPool          grpctool.PoolInterface
 	tunnelQuerier    tunnel.PollingQuerier
-	tunnelFinder     tunnel.TunnelFinder
+	tunnelFinder     tunnel.Finder
 	ownPrivateApiUrl string
 	pollConfig       retry.PollConfigFactory
 	// internalServer is the internal gRPC server for use inside of kas.
@@ -54,7 +54,7 @@ type router struct {
 }
 
 func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
-	tunnelFinder tunnel.TunnelFinder, ownPrivateApiUrl string,
+	tunnelFinder tunnel.Finder, ownPrivateApiUrl string,
 	internalServer, privateApiServer grpc.ServiceRegistrar,
 	pollConfig retry.PollConfigFactory, tp trace.TracerProvider, registerer prometheus.Registerer) (*router, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})

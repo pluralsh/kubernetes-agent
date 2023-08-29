@@ -34,7 +34,7 @@ type FindHandle interface {
 	Done()
 }
 
-type TunnelFinder interface {
+type Finder interface {
 	// FindTunnel starts searching for a tunnel to a matching agentk.
 	// Found tunnel is:
 	// - to an agent with provided id.

@@ -307,7 +307,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 }
 
 type serverTestingServer struct {
-	tunnelFinder tunnel.TunnelFinder
+	tunnelFinder tunnel.Finder
 }
 
 func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
@@ -326,7 +326,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
-// reverse_tunnel.TunnelFinder.FindTunnel().
+// reverse_tunnel.Finder.FindTunnel().
 func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 	// ServiceDesc must match test.Testing_ServiceDesc
 	s.RegisterService(&grpc.ServiceDesc{

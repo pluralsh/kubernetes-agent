@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	_ Handler      = &TunnelRegistry{}
-	_ TunnelFinder = &TunnelRegistry{}
+	_ Handler = &TunnelRegistry{}
+	_ Finder  = &TunnelRegistry{}
 )
 
 func TestStopUnregistersAllConnections(t *testing.T) {
