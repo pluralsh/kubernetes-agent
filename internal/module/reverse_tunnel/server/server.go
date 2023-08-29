@@ -12,7 +12,7 @@ import (
 
 type server struct {
 	rpc.UnimplementedReverseTunnelServer
-	tunnelHandler          tunnel.TunnelHandler
+	tunnelHandler          tunnel.Handler
 	getAgentInfoPollConfig retry.PollConfigFactory
 }
 

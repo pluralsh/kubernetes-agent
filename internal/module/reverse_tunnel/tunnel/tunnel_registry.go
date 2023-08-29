@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type TunnelHandler interface {
+type Handler interface {
 	// HandleTunnel is called with server-side interface of the reverse tunnel.
 	// It registers the tunnel and blocks, waiting for a request to proxy through the tunnel.
 	// The method returns the error value to return to gRPC framework.

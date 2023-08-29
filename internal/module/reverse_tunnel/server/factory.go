@@ -20,7 +20,7 @@ const (
 )
 
 type Factory struct {
-	TunnelHandler tunnel.TunnelHandler
+	TunnelHandler tunnel.Handler
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
