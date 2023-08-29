@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
@@ -52,7 +52,7 @@ func (t readyTunnel) Done() {
 type tunnelFinder struct {
 	log               *zap.Logger
 	kasPool           grpctool.PoolInterface
-	tunnelQuerier     tracker.PollingQuerier
+	tunnelQuerier     tunnel.PollingQuerier
 	rpcApi            modserver.RpcApi
 	fullMethod        string // /service/method
 	ownPrivateApiUrl  string
@@ -71,7 +71,7 @@ type tunnelFinder struct {
 	done        bool                      // successfully done searching
 }
 
-func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
+func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
 	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
 	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool.StreamVisitor) *tunnelFinder {
 	return &tunnelFinder{

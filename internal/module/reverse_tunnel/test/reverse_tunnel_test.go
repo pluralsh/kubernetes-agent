@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
@@ -307,7 +307,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 }
 
 type serverTestingServer struct {
-	tunnelFinder reverse_tunnel.TunnelFinder
+	tunnelFinder tunnel.Finder
 }
 
 func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
@@ -326,7 +326,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
-// reverse_tunnel.TunnelFinder.FindTunnel().
+// reverse_tunnel.Finder.FindTunnel().
 func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 	// ServiceDesc must match test.Testing_ServiceDesc
 	s.RegisterService(&grpc.ServiceDesc{
@@ -350,7 +350,7 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 }
 
 var (
-	_ reverse_tunnel.TunnelDataCallback = streamingCallback{}
+	_ tunnel.DataCallback = streamingCallback{}
 )
 
 type streamingCallback struct {

@@ -12,7 +12,7 @@ import (
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
@@ -41,7 +41,7 @@ type agentServer struct {
 	listenCfg     *kascfg.ListenAgentCF
 	tlsConfig     *tls.Config
 	server        *grpc.Server
-	tunnelTracker tracker.Tracker
+	tunnelTracker tunnel.Tracker
 	auxCancel     context.CancelFunc
 	ready         func()
 }
@@ -174,8 +174,8 @@ func (s *agentServer) Start(stage stager.Stage) {
 	})
 }
 
-func constructTunnelTracker(log *zap.Logger, cfg *kascfg.ConfigurationFile, api modserver.Api, redisClient rueidis.Client, ownPrivateApiUrl string) tracker.Tracker {
-	return tracker.NewRedisTracker(
+func constructTunnelTracker(log *zap.Logger, cfg *kascfg.ConfigurationFile, api modserver.Api, redisClient rueidis.Client, ownPrivateApiUrl string) tunnel.Tracker {
+	return tunnel.NewRedisTracker(
 		log,
 		api,
 		redisClient,

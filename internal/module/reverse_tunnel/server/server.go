@@ -2,8 +2,8 @@ package server
 
 import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"google.golang.org/grpc/codes"
@@ -12,7 +12,7 @@ import (
 
 type server struct {
 	rpc.UnimplementedReverseTunnelServer
-	tunnelHandler          reverse_tunnel.TunnelHandler
+	tunnelHandler          tunnel.Handler
 	getAgentInfoPollConfig retry.PollConfigFactory
 }
 

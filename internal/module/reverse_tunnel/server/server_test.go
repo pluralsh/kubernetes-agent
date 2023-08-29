@@ -12,8 +12,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
@@ -27,7 +27,7 @@ var (
 
 func TestConnectAllowsValidToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
+	h := mock_reverse_tunnel_tunnel.NewMockHandler(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 1)
 	mockRpcApi.EXPECT().
 		Log().
@@ -58,7 +58,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 
 func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
+	h := mock_reverse_tunnel_tunnel.NewMockHandler(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 1)
 	mockRpcApi.EXPECT().
 		Log().
@@ -84,7 +84,7 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 
 func TestConnectRetriesFailedAgentInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
+	h := mock_reverse_tunnel_tunnel.NewMockHandler(ctrl)
 	mockRpcApi := mock_modserver.NewMockAgentRpcApiWithMockPoller(ctrl, 2)
 	mockRpcApi.EXPECT().
 		Log().

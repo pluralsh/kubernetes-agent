@@ -60,7 +60,7 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/starboard_vulnerability/agent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_agent_tracker" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_cache" \
@@ -73,9 +73,8 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modshared" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_redis" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tracker" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool" \

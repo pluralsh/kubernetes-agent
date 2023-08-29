@@ -6,8 +6,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
@@ -36,8 +35,8 @@ type kasRouter interface {
 // routing kas -> gateway kas -> agentk
 type router struct {
 	kasPool          grpctool.PoolInterface
-	tunnelQuerier    tracker.PollingQuerier
-	tunnelFinder     reverse_tunnel.TunnelFinder
+	tunnelQuerier    tunnel.PollingQuerier
+	tunnelFinder     tunnel.Finder
 	ownPrivateApiUrl string
 	pollConfig       retry.PollConfigFactory
 	// internalServer is the internal gRPC server for use inside of kas.
@@ -54,8 +53,8 @@ type router struct {
 	tunnelFindTimeout         time.Duration
 }
 
-func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tracker.PollingQuerier,
-	tunnelFinder reverse_tunnel.TunnelFinder, ownPrivateApiUrl string,
+func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
+	tunnelFinder tunnel.Finder, ownPrivateApiUrl string,
 	internalServer, privateApiServer grpc.ServiceRegistrar,
 	pollConfig retry.PollConfigFactory, tp trace.TracerProvider, registerer prometheus.Registerer) (*router, error) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})

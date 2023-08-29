@@ -1,4 +1,4 @@
-package reverse_tunnel
+package tunnel
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	_ Tunnel = &tunnel{}
+	_ Tunnel = &tunnelImpl{}
 )
 
 func TestTunnel_ForwardStream_VisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
@@ -35,7 +35,7 @@ func TestTunnel_ForwardStream_VisitorErrorIsReturnedOnErrorMessageAndReadError(t
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
-	cb := NewMockTunnelDataCallback(ctrl)
+	cb := NewMockDataCallback(ctrl)
 	incomingStream.EXPECT().
 		Context().
 		Return(incomingCtx).
@@ -75,14 +75,14 @@ func TestTunnel_ForwardStream_VisitorErrorIsReturnedOnErrorMessageAndReadError(t
 			RecvMsg(gomock.Any()).
 			Return(errors.New("correct error")),
 	)
-	c := tunnel{
+	c := tunnelImpl{
 		tunnel:              connectServer,
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
-		onForward: func(t *tunnel) error {
+		onForward: func(t *tunnelImpl) error {
 			return nil
 		},
-		onDone: func(t *tunnel) {},
+		onDone: func(t *tunnelImpl) {},
 	}
 	err = c.ForwardStream(nil, nil, incomingStream, cb)
 	assert.EqualError(t, err, "correct error")
@@ -100,7 +100,7 @@ func TestTunnel_ForwardStream_IsUnblockedWhenIncomingStreamContextIsCancelledAft
 	incomingCtx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	incomingCtx = grpc.NewContextWithServerTransportStream(incomingCtx, sts)
-	cb := NewMockTunnelDataCallback(ctrl)
+	cb := NewMockDataCallback(ctrl)
 	incomingStream.EXPECT().
 		Context().
 		Return(incomingCtx).
@@ -127,14 +127,14 @@ func TestTunnel_ForwardStream_IsUnblockedWhenIncomingStreamContextIsCancelledAft
 			return status.Error(codes.DataLoss, "boom")
 		})
 
-	c := tunnel{
+	c := tunnelImpl{
 		tunnel:              connectServer,
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
-		onForward: func(t *tunnel) error {
+		onForward: func(t *tunnelImpl) error {
 			return nil
 		},
-		onDone: func(t *tunnel) {},
+		onDone: func(t *tunnelImpl) {},
 	}
 	err = c.ForwardStream(nil, nil, incomingStream, cb)
 	assert.EqualError(t, err, "rpc error: code = DeadlineExceeded desc = Incoming stream closed: context deadline exceeded")
