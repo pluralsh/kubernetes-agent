@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.uber.org/zap"
@@ -79,7 +79,7 @@ func (h *findHandle) Done() {
 
 type Registry struct {
 	log                 *zap.Logger
-	errRep              errz.ErrReporter
+	api                 modshared.Api
 	tunnelRegisterer    Registerer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 
@@ -88,14 +88,14 @@ type Registry struct {
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func NewRegistry(log *zap.Logger, errRep errz.ErrReporter, tunnelRegisterer Registerer) (*Registry, error) {
+func NewRegistry(log *zap.Logger, api modshared.Api, tunnelRegisterer Registerer) (*Registry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return &Registry{
 		log:                   log,
-		errRep:                errRep,
+		api:                   api,
 		tunnelRegisterer:      tunnelRegisterer,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
 		tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
@@ -138,7 +138,7 @@ func (r *Registry) FindTunnel(agentId int64, service, method string) (bool /* tu
 		return nil
 	}()
 	if err != nil {
-		r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to unregister tunnel", err)
+		r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 	}
 	return found, &findHandle{
 		retTun: retTun,
@@ -157,7 +157,7 @@ func (r *Registry) FindTunnel(agentId int64, service, method string) (bool /* tu
 				return nil
 			}()
 			if err != nil {
-				r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to register tunnel", err)
+				r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
 			}
 		},
 	}
@@ -191,7 +191,7 @@ func (r *Registry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, s
 		err = r.registerTunnelLocked(tun)
 	}()
 	if err != nil {
-		r.errRep.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), "Failed to register tunnel", err)
+		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
 	}
 	// Wait for return error or for cancellation
 	select {
@@ -204,7 +204,7 @@ func (r *Registry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, s
 			err = r.unregisterTunnelLocked(tun) // nolint: contextcheck
 			r.mu.Unlock()
 			if err != nil {
-				r.errRep.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), "Failed to unregister tunnel", err)
+				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 			}
 			return nil
 		case stateFound:
@@ -299,7 +299,7 @@ func (r *Registry) onTunnelDone(tun *tunnelImpl) {
 		err = r.onTunnelDoneLocked(tun)
 	}()
 	if err != nil {
-		r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(tun.agentId)), "Failed to register tunnel", err)
+		r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(tun.agentId)), tun.agentId, "Failed to register tunnel", err)
 	}
 }
 
@@ -354,7 +354,7 @@ func (r *Registry) stopInternal() (int, int) {
 			tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
 			err := r.unregisterTunnelLocked(tun)
 			if err != nil {
-				r.errRep.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), "Failed to unregister tunnel", err)
+				r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 			}
 		}
 	}
@@ -368,7 +368,7 @@ func (r *Registry) stopInternal() (int, int) {
 		}
 	}
 	if stoppedTun > 0 || abortedFtr > 0 {
-		r.errRep.HandleProcessingError(context.Background(), r.log, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
+		r.api.HandleProcessingError(context.Background(), r.log, modshared.NoAgentId, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
 	}
 	return stoppedTun, abortedFtr
 }
