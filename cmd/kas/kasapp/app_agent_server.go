@@ -37,13 +37,14 @@ const (
 )
 
 type agentServer struct {
-	log           *zap.Logger
-	listenCfg     *kascfg.ListenAgentCF
-	tlsConfig     *tls.Config
-	server        *grpc.Server
-	tunnelTracker tunnel.Tracker
-	auxCancel     context.CancelFunc
-	ready         func()
+	log            *zap.Logger
+	listenCfg      *kascfg.ListenAgentCF
+	tlsConfig      *tls.Config
+	server         *grpc.Server
+	tunnelTracker  tunnel.Tracker
+	tunnelRegistry *tunnel.Registry
+	auxCancel      context.CancelFunc
+	ready          func()
 }
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, tp trace.TracerProvider,
@@ -59,6 +60,13 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		Help: "The total number of times configured rate limit of new agent connections was exceeded",
 	})
 	err = reg.Register(rateExceededCounter)
+	if err != nil {
+		return nil, err
+	}
+	// Tunnel registry
+	tunnelTracker := constructTunnelTracker(log, cfg, srvApi, redisClient, ownPrivateApiUrl)
+	tunnelRegistry, err := tunnel.NewRegistry(log, srvApi, tunnelTracker, cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoGc.AsDuration())
 	if err != nil {
 		return nil, err
 	}
@@ -109,25 +117,26 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	}
 
 	return &agentServer{
-		log:           log,
-		listenCfg:     listenCfg,
-		tlsConfig:     tlsConfig,
-		server:        grpc.NewServer(serverOpts...),
-		tunnelTracker: constructTunnelTracker(log, cfg, srvApi, redisClient, ownPrivateApiUrl),
-		auxCancel:     auxCancel,
-		ready:         probeRegistry.RegisterReadinessToggle("agentServer"),
+		log:            log,
+		listenCfg:      listenCfg,
+		tlsConfig:      tlsConfig,
+		server:         grpc.NewServer(serverOpts...),
+		tunnelTracker:  tunnelTracker,
+		tunnelRegistry: tunnelRegistry,
+		auxCancel:      auxCancel,
+		ready:          probeRegistry.RegisterReadinessToggle("agentServer"),
 	}, nil
 }
 
 func (s *agentServer) Start(stage stager.Stage) {
-	trackerCtx, trackerCancel := context.WithCancel(context.Background())
+	registryCtx, registryCancel := context.WithCancel(context.Background())
 	stage.Go(func(ctx context.Context) error {
-		return s.tunnelTracker.Run(trackerCtx) // use a separate ctx to stop when the server starts stopping
+		return s.tunnelRegistry.Run(registryCtx) // use a separate ctx to stop when the server starts stopping
 	})
 	grpctool.StartServer(stage, s.server, func() (retLis net.Listener, retErr error) {
 		defer func() {
-			if retErr != nil { // something went wrong here, stop the tracker
-				trackerCancel()
+			if retErr != nil { // something went wrong here, stop the registry
+				registryCancel()
 			}
 		}()
 		var lis net.Listener
@@ -170,7 +179,7 @@ func (s *agentServer) Start(stage stager.Stage) {
 	}, func() {
 		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
 		s.auxCancel()
-		trackerCancel()
+		registryCancel()
 	})
 }
 
@@ -181,8 +190,6 @@ func constructTunnelTracker(log *zap.Logger, cfg *kascfg.ConfigurationFile, api 
 		redisClient,
 		cfg.Redis.KeyPrefix+":tunnel_tracker2",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
-		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
-		cfg.Agent.RedisConnInfoGc.AsDuration(),
 		ownPrivateApiUrl,
 	)
 }

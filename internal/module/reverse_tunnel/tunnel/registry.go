@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -14,6 +15,12 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	// refreshOverlap is the duration of an "overlap" between two refresh periods. It's a safety measure so that
+	// a concurrent GC from another kas instance doesn't delete the data that is about to be refreshed.
+	refreshOverlap = 5 * time.Second
 )
 
 type Handler interface {
@@ -81,6 +88,8 @@ type Registry struct {
 	log                 *zap.Logger
 	api                 modshared.Api
 	tunnelRegisterer    Registerer
+	refreshPeriod       time.Duration
+	gcPeriod            time.Duration
 	tunnelStreamVisitor *grpctool.StreamVisitor
 
 	mu                    sync.Mutex
@@ -88,7 +97,8 @@ type Registry struct {
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func NewRegistry(log *zap.Logger, api modshared.Api, tunnelRegisterer Registerer) (*Registry, error) {
+func NewRegistry(log *zap.Logger, api modshared.Api, tunnelRegisterer Registerer,
+	refreshPeriod, gcPeriod time.Duration) (*Registry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
@@ -97,10 +107,57 @@ func NewRegistry(log *zap.Logger, api modshared.Api, tunnelRegisterer Registerer
 		log:                   log,
 		api:                   api,
 		tunnelRegisterer:      tunnelRegisterer,
+		refreshPeriod:         refreshPeriod,
+		gcPeriod:              gcPeriod,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
 		tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
 		findRequestsByAgentId: make(map[int64]map[*findTunnelRequest]struct{}),
 	}, nil
+}
+
+func (r *Registry) Run(ctx context.Context) error {
+	defer r.stopInternal() // nolint: contextcheck
+	refreshTicker := time.NewTicker(r.refreshPeriod)
+	defer refreshTicker.Stop()
+	gcTicker := time.NewTicker(r.gcPeriod)
+	defer gcTicker.Stop()
+	done := ctx.Done()
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-refreshTicker.C:
+			err := r.refreshRegistrations(ctx, time.Now().Add(r.refreshPeriod-refreshOverlap))
+			if err != nil {
+				r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Failed to refresh data in Redis", err)
+			}
+		case <-gcTicker.C:
+			deletedKeys, err := r.runGC(ctx)
+			if err != nil {
+				r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Failed to GC data in Redis", err)
+				// fallthrough
+			}
+			if deletedKeys > 0 {
+				r.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(deletedKeys))
+			}
+		}
+	}
+}
+
+func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.tunnelRegisterer.Refresh(ctx, nextRefresh)
+}
+
+func (r *Registry) runGC(ctx context.Context) (int /* keysDeleted */, error) {
+	var gc func(ctx context.Context) (int /* keysDeleted */, error)
+	func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		gc = r.tunnelRegisterer.GC()
+	}()
+	return gc(ctx)
 }
 
 func (r *Registry) FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle) {
@@ -331,14 +388,9 @@ func (r *Registry) deleteFindRequestLocked(ftr *findTunnelRequest) {
 	}
 }
 
-// Stop aborts any open tunnels.
+// stopInternal aborts any open tunnels.
 // It should not be necessary to abort tunnels when registry is used correctly i.e. this method is called after
 // all tunnels have terminated gracefully.
-func (r *Registry) Stop() {
-	r.stopInternal()
-}
-
-// stopInternal is used for testing.
 func (r *Registry) stopInternal() (int, int) {
 	stoppedTun := 0
 	abortedFtr := 0
