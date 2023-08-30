@@ -7,6 +7,7 @@ package mock_reverse_tunnel_tunnel
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
@@ -37,6 +38,34 @@ func NewMockRegisterer(ctrl *gomock.Controller) *MockRegisterer {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRegisterer) EXPECT() *MockRegistererMockRecorder {
 	return m.recorder
+}
+
+// GC mocks base method.
+func (m *MockRegisterer) GC() func(context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GC")
+	ret0, _ := ret[0].(func(context.Context) (int, error))
+	return ret0
+}
+
+// GC indicates an expected call of GC.
+func (mr *MockRegistererMockRecorder) GC() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockRegisterer)(nil).GC))
+}
+
+// Refresh mocks base method.
+func (m *MockRegisterer) Refresh(arg0 context.Context, arg1 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Refresh", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Refresh indicates an expected call of Refresh.
+func (mr *MockRegistererMockRecorder) Refresh(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockRegisterer)(nil).Refresh), arg0, arg1)
 }
 
 // RegisterTunnel mocks base method.

@@ -191,13 +191,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(internalSrv.inMemConn, &retErr)
 
-	// Tunnel registry
-	tunnelRegistry, err := tunnel.NewRegistry(a.Log, srvApi, agentSrv.tunnelTracker)
-	if err != nil {
-		return err
-	}
-	defer tunnelRegistry.Stop() // nolint: contextcheck
-
 	// Kas to agentk router
 	pollConfig := retry.NewPollConfigFactory(routingAttemptInterval, retry.NewExponentialBackoffFactory(
 		routingInitBackoff,
@@ -210,7 +203,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	kasToAgentRouter, err := newRouter(
 		privateApiSrv.kasPool,
 		tunnelQuerier,
-		tunnelRegistry,
+		agentSrv.tunnelRegistry,
 		a.OwnPrivateApiUrl,
 		internalSrv.server,
 		privateApiSrv,
@@ -255,7 +248,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentQuerier: agentTracker,
 		},
 		&reverse_tunnel_server.Factory{
-			TunnelHandler: tunnelRegistry,
+			TunnelHandler: agentSrv.tunnelRegistry,
 		},
 		&kubernetes_api_server.Factory{},
 	}

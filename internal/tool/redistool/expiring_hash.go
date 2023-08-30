@@ -26,6 +26,8 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	Unset(ctx context.Context, key K1, hashKey K2) error
 	// Forget only removes the item from the in-memory map.
 	Forget(key K1, hashKey K2)
+	// Scan iterates key-value pairs for key.
+	// Safe for concurrent use.
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
 	Len(ctx context.Context, key K1) (int64, error)
 	// GC returns a function that iterates all relevant stored data and deletes expired entries.

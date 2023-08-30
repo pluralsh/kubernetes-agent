@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,54 +27,26 @@ const (
 )
 
 func TestRegisterConnection(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	r, hash, _ := setupTracker(t)
 
-	gomock.InOrder(
-		hash.EXPECT().
-			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()).
-			Do(func(ctx context.Context, key int64, hashKey string, value []byte) {
-				cancel()
-			}),
-		hash.EXPECT().
-			Clear(gomock.Any()),
-	)
+	hash.EXPECT().
+		Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any())
 
-	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-	}()
-
-	require.NoError(t, r.Run(ctx))
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
 func TestRegisterConnection_TwoConnections(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	r, hash, _ := setupTracker(t)
 
-	gomock.InOrder(
-		hash.EXPECT().
-			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()).
-			Do(func(ctx context.Context, key int64, hashKey string, value []byte) {
-				cancel()
-			}),
-		hash.EXPECT().
-			Clear(gomock.Any()),
-	)
+	hash.EXPECT().
+		Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any())
 
-	go func() {
-		// Two registrations result in a single Set() call
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // first
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // second
-	}()
-
-	require.NoError(t, r.Run(ctx))
+	// Two registrations result in a single Set() call
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // first
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // second
 }
 
 func TestUnregisterConnection(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	r, hash, _ := setupTracker(t)
 
 	gomock.InOrder(
@@ -83,22 +54,13 @@ func TestUnregisterConnection(t *testing.T) {
 			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
 			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
-		hash.EXPECT().
-			Clear(gomock.Any()),
 	)
 
-	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-		cancel()
-	}()
-
-	require.NoError(t, r.Run(ctx))
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
 func TestUnregisterConnection_TwoConnections(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	r, hash, _ := setupTracker(t)
 
 	gomock.InOrder(
@@ -106,69 +68,25 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
 			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
-		hash.EXPECT().
-			Clear(gomock.Any()),
 	)
 
-	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-		cancel()
-	}()
-
-	require.NoError(t, r.Run(ctx))
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
 // This test ensures Unset() is only called when there are no registered connections i.e. it is NOT called
 // for two RegisterTunnel() and a single UnregisterTunnel().
 func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	r, hash, _ := setupTracker(t)
-
-	gomock.InOrder(
-		hash.EXPECT().
-			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
-		hash.EXPECT().
-			Clear(gomock.Any()),
-	)
-
-	go func() {
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-		assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-		cancel()
-	}()
-
-	require.NoError(t, r.Run(ctx))
-}
-
-func TestGC(t *testing.T) {
-	r, hash, _ := setupTracker(t)
-
-	wasCalled := false
-
-	hash.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled = true
-			return 3, nil
-		})
-
-	deleted, err := r.runGC(context.Background())
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, deleted)
-	assert.True(t, wasCalled)
-}
-
-func TestRefreshRegistrations(t *testing.T) {
 	r, hash, _ := setupTracker(t)
 
 	hash.EXPECT().
-		Refresh(gomock.Any(), gomock.Any())
-	assert.NoError(t, r.refreshRegistrations(context.Background(), time.Now()))
+		Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any())
+
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
+	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
 func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
@@ -221,8 +139,6 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 	return &RedisTracker{
 		log:                   zaptest.NewLogger(t),
 		api:                   api,
-		refreshPeriod:         time.Minute,
-		gcPeriod:              time.Minute,
 		ownPrivateApiUrl:      selfUrl,
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      hash,
