@@ -184,7 +184,6 @@ push_image_tag_fips:
     - if: '$CI_COMMIT_TAG && ($RUN_IN_FORKS || $CI_PROJECT_PATH == "gitlab-org/cluster-integration/gitlab-agent")'
   script:
     - *registry_creds
-    - make release-tag-fips
     - git fetch
     - >
       if [[ $(git branch --remotes --contains "tags/${CI_COMMIT_TAG}" | grep "${CI_DEFAULT_BRANCH}") ]]; then
