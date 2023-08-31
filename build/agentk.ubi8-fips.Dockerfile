@@ -1,7 +1,7 @@
 # Dockerfile for agentk
 
 ARG BUILDER_IMAGE
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-micro:8.7
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-micro:8.8
 ARG UID=1000
 
 FROM ${BUILDER_IMAGE} as builder
