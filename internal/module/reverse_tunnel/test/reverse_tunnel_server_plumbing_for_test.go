@@ -29,7 +29,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAgentRpcApi, *mock_reverse_tunnel_tunnel.MockRegisterer) {
+func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAgentRpcApi, *mock_reverse_tunnel_tunnel.MockTracker) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
@@ -49,12 +49,12 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 			}
 		}).
 		MinTimes(1)
-	tunnelRegisterer := mock_reverse_tunnel_tunnel.NewMockRegisterer(ctrl)
+	tunnelTracker := mock_reverse_tunnel_tunnel.NewMockTracker(ctrl)
 	agentServer := serverConstructAgentServer(ctx, serverRpcApi)
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, tunnelRegisterer, time.Minute, time.Minute)
+	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, time.Minute, time.Minute, func() tunnel.Tracker { return tunnelTracker })
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)
@@ -98,7 +98,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 				serverStartInternalServer(stage, internalServer, internalListener)
 			},
 		)
-	}, kasConn, internalServerConn, serverRpcApi, tunnelRegisterer
+	}, kasConn, internalServerConn, serverRpcApi, tunnelTracker
 }
 
 func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {

@@ -5,6 +5,7 @@ go_library(
     name = "syncz",
     srcs = [
         "mutex.go",
+        "striped.go",
         "subscriptions.go",
         "worker.go",
     ],
@@ -19,6 +20,7 @@ go_library(
 go_custom_test(
     name = "syncz_test",
     srcs = [
+        "striped_test.go",
         "subscriptions_test.go",
         "worker_test.go",
     ],

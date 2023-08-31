@@ -199,7 +199,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		routingBackoffFactor,
 		routingJitter,
 	))
-	tunnelQuerier := tunnel.NewAggregatingQuerier(a.Log, agentSrv.tunnelTracker, srvApi, pollConfig, routingCachePeriod)
+	tunnelQuerier := tunnel.NewAggregatingQuerier(a.Log, agentSrv.tunnelRegistry, srvApi, pollConfig, routingCachePeriod)
 	kasToAgentRouter, err := newRouter(
 		privateApiSrv.kasPool,
 		tunnelQuerier,
