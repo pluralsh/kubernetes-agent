@@ -22,6 +22,7 @@ const (
 	// refreshOverlap is the duration of an "overlap" between two refresh periods. It's a safety measure so that
 	// a concurrent GC from another kas instance doesn't delete the data that is about to be refreshed.
 	refreshOverlap = 5 * time.Second
+	stopTimeout    = 5 * time.Second
 	stripeBits     = 8
 )
 
@@ -145,6 +146,8 @@ func (r *Registry) Run(ctx context.Context) error {
 // all tunnels have terminated gracefully.
 func (r *Registry) stopInternal(ctx context.Context) (int /*stoppedTun*/, int /*abortedFtr*/) {
 	ctx = contextWithoutCancel(ctx)
+	ctx, cancel := context.WithTimeout(ctx, stopTimeout)
+	defer cancel()
 	ctx, span := r.tracer.Start(ctx, "Registry.stopInternal", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
