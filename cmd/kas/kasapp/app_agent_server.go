@@ -46,9 +46,11 @@ type agentServer struct {
 	ready          func()
 }
 
-func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, tp trace.TracerProvider,
-	redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory, ownPrivateApiUrl string,
-	probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor, grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
+func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, dt trace.Tracer,
+	tp trace.TracerProvider, redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
+	ownPrivateApiUrl string, probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry,
+	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
+	grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
 	listenCfg := cfg.Agent.Listen
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
@@ -68,6 +70,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	tunnelRegistry, err := tunnel.NewRegistry(
 		log,
 		srvApi,
+		dt,
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
 		func() tunnel.Tracker {

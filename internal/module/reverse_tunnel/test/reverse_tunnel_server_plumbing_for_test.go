@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -54,7 +55,8 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, time.Minute, time.Minute, func() tunnel.Tracker { return tunnelTracker })
+	tr := trace.NewNoopTracerProvider().Tracer("test")
+	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, tr, time.Minute, time.Minute, func() tunnel.Tracker { return tunnelTracker })
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)

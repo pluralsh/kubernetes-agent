@@ -46,9 +46,7 @@ func (r *router) RouteToKasStreamHandler(srv interface{}, stream grpc.ServerStre
 
 func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, md metadata.MD, agentId int64) (readyTunnel, error) {
 	startRouting := time.Now()
-	findCtx, span := r.tracer.Start(ctx, "find tunnel",
-		trace.WithSpanKind(trace.SpanKindInternal),
-	)
+	findCtx, span := r.tracer.Start(ctx, "router.findReadyTunnel", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	log := rpcApi.Log().With(logz.AgentId(agentId))
 	tf := newTunnelFinder(
