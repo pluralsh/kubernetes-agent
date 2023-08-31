@@ -400,7 +400,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel_tunnel.MockTunnel, 
 		querier.EXPECT().
 			CachedKasUrlsByAgentId(testhelpers.AgentId),
 		finder.EXPECT().
-			FindTunnel(testhelpers.AgentId, gomock.Any(), gomock.Any()).
+			FindTunnel(gomock.Any(), testhelpers.AgentId, gomock.Any(), gomock.Any()).
 			Return(true, fh),
 		fh.EXPECT().
 			Get(gomock.Any()).

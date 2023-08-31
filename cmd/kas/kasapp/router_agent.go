@@ -33,7 +33,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 	stream = wrappedStream
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	log := rpcApi.Log().With(logz.AgentId(agentId))
-	tunnelFound, findHandle := r.tunnelFinder.FindTunnel(agentId, service, method)
+	tunnelFound, findHandle := r.tunnelFinder.FindTunnel(ctx, agentId, service, method)
 	defer findHandle.Done()
 	if !tunnelFound {
 		err = stream.SendMsg(&GatewayKasResponse{
@@ -45,11 +45,11 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 			return rpcApi.HandleIoError(log, "SendMsg(GatewayKasResponse_NoTunnel) failed", err)
 		}
 	}
-	tunnel, err := findHandle.Get(wrappedStream.WrappedContext)
+	tun, err := findHandle.Get(wrappedStream.WrappedContext)
 	if err != nil {
 		return err
 	}
-	defer tunnel.Done()
+	defer tun.Done()
 	err = stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_TunnelReady_{
 			TunnelReady: &GatewayKasResponse_TunnelReady{},
@@ -67,7 +67,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 		}
 		return err
 	}
-	return tunnel.ForwardStream(log, rpcApi, stream, newWrappingCallback(log, rpcApi, stream))
+	return tun.ForwardStream(log, rpcApi, stream, newWrappingCallback(log, rpcApi, stream))
 }
 
 func removeHopMeta(md metadata.MD) metadata.MD {

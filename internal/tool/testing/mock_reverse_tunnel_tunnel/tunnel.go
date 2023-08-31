@@ -319,16 +319,16 @@ func (m *MockFinder) EXPECT() *MockFinderMockRecorder {
 }
 
 // FindTunnel mocks base method.
-func (m *MockFinder) FindTunnel(arg0 int64, arg1, arg2 string) (bool, tunnel.FindHandle) {
+func (m *MockFinder) FindTunnel(arg0 context.Context, arg1 int64, arg2, arg3 string) (bool, tunnel.FindHandle) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindTunnel", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "FindTunnel", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(tunnel.FindHandle)
 	return ret0, ret1
 }
 
 // FindTunnel indicates an expected call of FindTunnel.
-func (mr *MockFinderMockRecorder) FindTunnel(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockFinderMockRecorder) FindTunnel(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindTunnel", reflect.TypeOf((*MockFinder)(nil).FindTunnel), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindTunnel", reflect.TypeOf((*MockFinder)(nil).FindTunnel), arg0, arg1, arg2, arg3)
 }

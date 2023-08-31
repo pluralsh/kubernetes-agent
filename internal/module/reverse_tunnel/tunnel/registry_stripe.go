@@ -12,6 +12,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,20 +26,27 @@ type findTunnelRequest struct {
 }
 
 type findHandle struct {
+	tracer    trace.Tracer
 	retTun    <-chan *tunnelImpl
 	done      func()
 	gotTunnel bool
 }
 
 func (h *findHandle) Get(ctx context.Context) (Tunnel, error) {
+	ctx, span := h.tracer.Start(ctx, "findHandle.Get", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	select {
 	case <-ctx.Done():
+		span.SetStatus(otelcodes.Error, ctx.Err().Error())
 		return nil, grpctool.StatusErrorFromContext(ctx, "FindTunnel request aborted")
 	case tun := <-h.retTun:
 		h.gotTunnel = true
 		if tun == nil {
+			span.SetStatus(otelcodes.Error, "kas is shutting down")
 			return nil, status.Error(codes.Unavailable, "kas is shutting down")
 		}
+		span.SetStatus(otelcodes.Ok, "")
 		return tun, nil
 	}
 }
@@ -53,6 +62,7 @@ func (h *findHandle) Done() {
 type registryStripe struct {
 	log                   *zap.Logger
 	api                   modshared.Api
+	tracer                trace.Tracer
 	tunnelStreamVisitor   *grpctool.StreamVisitor
 	mu                    sync.Mutex
 	tunnelTracker         Tracker
@@ -76,7 +86,7 @@ func (r *registryStripe) GC(ctx context.Context) (int /* keysDeleted */, error) 
 	return gc(ctx)
 }
 
-func (r *registryStripe) FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle) {
+func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
 	// Buffer 1 to not block on send when a tunnel is found before find request is registered.
 	retTun := make(chan *tunnelImpl, 1) // can receive nil from it if Stop() is called
 	ftr := &findTunnelRequest{
@@ -99,7 +109,7 @@ func (r *registryStripe) FindTunnel(agentId int64, service, method string) (bool
 			tun.state = stateFound
 			retTun <- tun // must not block because the reception is below
 			found = true
-			return r.unregisterTunnelLocked(tun)
+			return r.unregisterTunnelLocked(ctx, tun)
 		}
 		// 2. No suitable tunnel found, add to the queue
 		findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -111,9 +121,10 @@ func (r *registryStripe) FindTunnel(agentId int64, service, method string) (bool
 		return nil
 	}()
 	if err != nil {
-		r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
+		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 	}
 	return found, &findHandle{
+		tracer: r.tracer,
 		retTun: retTun,
 		done: func() {
 			err := func() error {
@@ -130,7 +141,7 @@ func (r *registryStripe) FindTunnel(agentId int64, service, method string) (bool
 				return nil
 			}()
 			if err != nil {
-				r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
+				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
 			}
 		},
 	}
@@ -161,7 +172,7 @@ func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 	func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		err = r.registerTunnelLocked(tun)
+		err = r.registerTunnelLocked(ctx, tun)
 	}()
 	if err != nil {
 		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
@@ -174,7 +185,7 @@ func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 		switch tun.state {
 		case stateReady:
 			tun.state = stateContextDone
-			err = r.unregisterTunnelLocked(tun) // nolint: contextcheck
+			err = r.unregisterTunnelLocked(ctx, tun) // nolint: contextcheck
 			r.mu.Unlock()
 			if err != nil {
 				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
@@ -208,7 +219,7 @@ func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 	}
 }
 
-func (r *registryStripe) registerTunnelLocked(toReg *tunnelImpl) error {
+func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnelImpl) error {
 	agentId := toReg.agentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -231,17 +242,19 @@ func (r *registryStripe) registerTunnelLocked(toReg *tunnelImpl) error {
 		r.tunsByAgentId[agentId] = tunsByAgentId
 	}
 	tunsByAgentId[toReg] = struct{}{}
-	return r.tunnelTracker.RegisterTunnel(context.Background(), agentId) // don't pass context to always register
+	// don't pass the original context to always register
+	return r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), agentId)
 }
 
-func (r *registryStripe) unregisterTunnelLocked(toUnreg *tunnelImpl) error {
+func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tunnelImpl) error {
 	agentId := toUnreg.agentId
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
 		delete(r.tunsByAgentId, agentId)
 	}
-	return r.tunnelTracker.UnregisterTunnel(context.Background(), agentId) // don't pass context to always unregister
+	// don't pass the original context to always unregister
+	return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
 }
 
 func (r *registryStripe) onTunnelForward(tun *tunnelImpl) error {
@@ -282,7 +295,7 @@ func (r *registryStripe) onTunnelDoneLocked(tun *tunnelImpl) error {
 		panic(errors.New("unreachable: ready -> done should never happen"))
 	case stateFound:
 		// Tunnel was found but was not used, Done() was called. Just put it back.
-		return r.registerTunnelLocked(tun)
+		return r.registerTunnelLocked(context.Background(), tun)
 	case stateForwarding:
 		tun.state = stateDone
 	case stateDone:
@@ -307,7 +320,7 @@ func (r *registryStripe) deleteFindRequestLocked(ftr *findTunnelRequest) {
 // Stop aborts any open tunnels.
 // It should not be necessary to abort tunnels when registry is used correctly i.e. this method is called after
 // all tunnels have terminated gracefully.
-func (r *registryStripe) Stop() (int /*stoppedTun*/, int /*abortedFtr*/) {
+func (r *registryStripe) Stop(ctx context.Context) (int /*stoppedTun*/, int /*abortedFtr*/) {
 	stoppedTun := 0
 	abortedFtr := 0
 
@@ -320,9 +333,9 @@ func (r *registryStripe) Stop() (int /*stoppedTun*/, int /*abortedFtr*/) {
 			stoppedTun++
 			tun.state = stateDone
 			tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
-			err := r.unregisterTunnelLocked(tun)
+			err := r.unregisterTunnelLocked(ctx, tun)
 			if err != nil {
-				r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
+				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 			}
 		}
 	}
@@ -336,7 +349,13 @@ func (r *registryStripe) Stop() (int /*stoppedTun*/, int /*abortedFtr*/) {
 		}
 	}
 	if stoppedTun > 0 || abortedFtr > 0 {
-		r.api.HandleProcessingError(context.Background(), r.log, modshared.NoAgentId, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
+		r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
 	}
 	return stoppedTun, abortedFtr
+}
+
+// contextWithoutCancel returns an independent context with existing tracing span.
+// TODO use https://pkg.go.dev/context#WithoutCancel after upgrading to Go 1.21.
+func contextWithoutCancel(ctx context.Context) context.Context {
+	return trace.ContextWithSpan(context.Background(), trace.SpanFromContext(ctx))
 }

@@ -315,14 +315,14 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	sts := grpc.ServerTransportStreamFromContext(ctx)
 	service, method := grpctool.SplitGrpcMethod(sts.Method())
-	_, th := s.tunnelFinder.FindTunnel(testhelpers.AgentId, service, method)
+	_, th := s.tunnelFinder.FindTunnel(ctx, testhelpers.AgentId, service, method)
 	defer th.Done()
-	tunnel, err := th.Get(ctx)
+	tun, err := th.Get(ctx)
 	if err != nil {
 		return status.FromContextError(err).Err()
 	}
-	defer tunnel.Done()
-	return tunnel.ForwardStream(rpcApi.Log(), rpcApi, server, streamingCallback{incomingStream: server})
+	defer tun.Done()
+	return tun.ForwardStream(rpcApi.Log(), rpcApi, server, streamingCallback{incomingStream: server})
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with

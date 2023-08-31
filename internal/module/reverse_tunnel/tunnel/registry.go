@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -10,7 +11,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -18,6 +23,13 @@ const (
 	// a concurrent GC from another kas instance doesn't delete the data that is about to be refreshed.
 	refreshOverlap = 5 * time.Second
 	stripeBits     = 8
+)
+
+const (
+	traceTunnelFoundAttr    attribute.Key = "found"
+	traceDeletedKeysAttr    attribute.Key = "deletedKeys"
+	traceStoppedTunnelsAttr attribute.Key = "stoppedTunnels"
+	traceAbortedFTRAttr     attribute.Key = "abortedFTR"
 )
 
 type Handler interface {
@@ -45,18 +57,19 @@ type Finder interface {
 	// - supports handling provided gRPC service and method.
 	// Tunnel found boolean indicates whether a suitable tunnel is immediately available from the
 	// returned FindHandle object.
-	FindTunnel(agentId int64, service, method string) (bool /* tunnel found */, FindHandle)
+	FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle)
 }
 
 type Registry struct {
 	log           *zap.Logger
 	api           modshared.Api
+	tracer        trace.Tracer
 	refreshPeriod time.Duration
 	gcPeriod      time.Duration
 	stripes       syncz.StripedValue[registryStripe]
 }
 
-func NewRegistry(log *zap.Logger, api modshared.Api, refreshPeriod, gcPeriod time.Duration,
+func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refreshPeriod, gcPeriod time.Duration,
 	newTunnelTracker func() Tracker) (*Registry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
@@ -65,12 +78,14 @@ func NewRegistry(log *zap.Logger, api modshared.Api, refreshPeriod, gcPeriod tim
 	return &Registry{
 		log:           log,
 		api:           api,
+		tracer:        tracer,
 		refreshPeriod: refreshPeriod,
 		gcPeriod:      gcPeriod,
 		stripes: syncz.NewStripedValueInit(stripeBits, func() registryStripe {
 			return registryStripe{
 				log:                   log,
 				api:                   api,
+				tracer:                tracer,
 				tunnelStreamVisitor:   tunnelStreamVisitor,
 				tunnelTracker:         newTunnelTracker(),
 				tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
@@ -80,23 +95,34 @@ func NewRegistry(log *zap.Logger, api modshared.Api, refreshPeriod, gcPeriod tim
 	}, nil
 }
 
-func (r *Registry) FindTunnel(agentId int64, service, method string) (bool, FindHandle) {
+func (r *Registry) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
+	ctx, span := r.tracer.Start(ctx, "Registry.FindTunnel", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	// Use GetPointer() to avoid copying the embedded mutex.
-	return r.stripes.GetPointer(agentId).FindTunnel(agentId, service, method)
+	found, th := r.stripes.GetPointer(agentId).FindTunnel(ctx, agentId, service, method)
+	span.SetAttributes(traceTunnelFoundAttr.Bool(found))
+	return found, th
 }
 
 func (r *Registry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
+	ctx, span := r.tracer.Start(ctx, "Registry.HandleTunnel", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End() // we don't add the returned error to the span as it's added by the gRPC OTEL stats handler already.
+
 	// Use GetPointer() to avoid copying the embedded mutex.
 	return r.stripes.GetPointer(agentInfo.Id).HandleTunnel(ctx, agentInfo, server)
 }
 
 func (r *Registry) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
+	ctx, span := r.tracer.Start(ctx, "Registry.KasUrlsByAgentId", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	// Use GetPointer() to avoid copying the embedded mutex.
 	return r.stripes.GetPointer(agentId).tunnelTracker.KasUrlsByAgentId(ctx, agentId, cb)
 }
 
 func (r *Registry) Run(ctx context.Context) error {
-	defer r.stopInternal() // nolint: contextcheck
+	defer r.stopInternal(ctx) // nolint: contextcheck
 	refreshTicker := time.NewTicker(r.refreshPeriod)
 	defer refreshTicker.Stop()
 	gcTicker := time.NewTicker(r.gcPeriod)
@@ -117,35 +143,78 @@ func (r *Registry) Run(ctx context.Context) error {
 // stopInternal aborts any open tunnels.
 // It should not be necessary to abort tunnels when registry is used correctly i.e. this method is called after
 // all tunnels have terminated gracefully.
-func (r *Registry) stopInternal() (int /*stoppedTun*/, int /*abortedFtr*/) {
-	var stoppedTun, abortedFtr int
+func (r *Registry) stopInternal(ctx context.Context) (int /*stoppedTun*/, int /*abortedFtr*/) {
+	ctx = contextWithoutCancel(ctx)
+	ctx, span := r.tracer.Start(ctx, "Registry.stopInternal", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
+	var wg wait.Group
+	var stoppedTun, abortedFtr atomic.Int32
+
 	for s := range r.stripes.Stripes { // use index var to avoid copying embedded mutex
-		st, aftr := r.stripes.Stripes[s].Stop()
-		stoppedTun += st
-		abortedFtr += aftr
+		s := s
+		wg.Start(func() {
+			stopCtx, stopSpan := r.tracer.Start(ctx, "registryStripe.Stop", trace.WithSpanKind(trace.SpanKindInternal))
+			defer stopSpan.End()
+
+			st, aftr := r.stripes.Stripes[s].Stop(stopCtx)
+			stoppedTun.Add(int32(st))
+			abortedFtr.Add(int32(aftr))
+			stopSpan.SetAttributes(traceStoppedTunnelsAttr.Int(st), traceAbortedFTRAttr.Int(aftr))
+		})
 	}
-	return stoppedTun, abortedFtr
+	wg.Wait()
+
+	v1 := int(stoppedTun.Load())
+	v2 := int(abortedFtr.Load())
+	span.SetAttributes(traceStoppedTunnelsAttr.Int(v1), traceAbortedFTRAttr.Int(v2))
+	return v1, v2
 }
 
 func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Time) {
+	ctx, span := r.tracer.Start(ctx, "Registry.refreshRegistrations", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	for s := range r.stripes.Stripes { // use index var to avoid copying embedded mutex
-		err := r.stripes.Stripes[s].Refresh(ctx, nextRefresh)
-		if err != nil {
-			r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Failed to refresh data in Redis", err)
-		}
+		func() {
+			refreshCtx, refreshSpan := r.tracer.Start(ctx, "registryStripe.Refresh", trace.WithSpanKind(trace.SpanKindInternal))
+			defer refreshSpan.End()
+
+			err := r.stripes.Stripes[s].Refresh(refreshCtx, nextRefresh)
+			if err != nil {
+				r.api.HandleProcessingError(refreshCtx, r.log, modshared.NoAgentId, "Failed to refresh data", err)
+				refreshSpan.SetStatus(otelcodes.Error, err.Error())
+				// fallthrough
+			} else {
+				refreshSpan.SetStatus(otelcodes.Ok, "")
+			}
+		}()
 	}
 }
 
 func (r *Registry) runGC(ctx context.Context) int {
+	ctx, span := r.tracer.Start(ctx, "Registry.runGC", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	total := 0
 	for s := range r.stripes.Stripes { // use index var to avoid copying embedded mutex
-		deletedKeys, err := r.stripes.Stripes[s].GC(ctx)
-		if err != nil {
-			r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Failed to GC data in Redis", err)
-			// fallthrough
-		}
-		total += deletedKeys
+		func() {
+			gcCtx, gcSpan := r.tracer.Start(ctx, "registryStripe.GC", trace.WithSpanKind(trace.SpanKindInternal))
+			defer gcSpan.End()
+
+			deletedKeys, err := r.stripes.Stripes[s].GC(gcCtx)
+			if err != nil {
+				r.api.HandleProcessingError(gcCtx, r.log, modshared.NoAgentId, "Failed to GC data", err)
+				gcSpan.SetStatus(otelcodes.Error, err.Error())
+				// fallthrough
+			} else {
+				gcSpan.SetStatus(otelcodes.Ok, "")
+			}
+			total += deletedKeys
+			gcSpan.SetAttributes(traceDeletedKeysAttr.Int(deletedKeys))
+		}()
 	}
+	span.SetAttributes(traceDeletedKeysAttr.Int(total))
 	if total > 0 {
 		r.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(total))
 	}

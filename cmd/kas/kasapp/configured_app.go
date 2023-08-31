@@ -163,7 +163,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
 		a.OwnPrivateApiUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
