@@ -41,7 +41,6 @@ type agentServer struct {
 	listenCfg      *kascfg.ListenAgentCF
 	tlsConfig      *tls.Config
 	server         *grpc.Server
-	tunnelTracker  tunnel.Tracker
 	tunnelRegistry *tunnel.Registry
 	auxCancel      context.CancelFunc
 	ready          func()
@@ -64,9 +63,17 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		return nil, err
 	}
 	// Tunnel registry
-	tunnelTracker := constructTunnelTracker(log, cfg, srvApi, redisClient, ownPrivateApiUrl)
-	tunnelRegistry, err := tunnel.NewRegistry(log, srvApi, tunnelTracker, cfg.Agent.RedisConnInfoRefresh.AsDuration(),
-		cfg.Agent.RedisConnInfoGc.AsDuration())
+	prefix := cfg.Redis.KeyPrefix + ":tunnel_tracker2"
+	ttl := cfg.Agent.RedisConnInfoTtl.AsDuration()
+	tunnelRegistry, err := tunnel.NewRegistry(
+		log,
+		srvApi,
+		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoGc.AsDuration(),
+		func() tunnel.Tracker {
+			return tunnel.NewRedisTracker(log, srvApi, redisClient, prefix, ttl, ownPrivateApiUrl)
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +128,6 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		listenCfg:      listenCfg,
 		tlsConfig:      tlsConfig,
 		server:         grpc.NewServer(serverOpts...),
-		tunnelTracker:  tunnelTracker,
 		tunnelRegistry: tunnelRegistry,
 		auxCancel:      auxCancel,
 		ready:          probeRegistry.RegisterReadinessToggle("agentServer"),
@@ -181,15 +187,4 @@ func (s *agentServer) Start(stage stager.Stage) {
 		s.auxCancel()
 		registryCancel()
 	})
-}
-
-func constructTunnelTracker(log *zap.Logger, cfg *kascfg.ConfigurationFile, api modserver.Api, redisClient rueidis.Client, ownPrivateApiUrl string) tunnel.Tracker {
-	return tunnel.NewRedisTracker(
-		log,
-		api,
-		redisClient,
-		cfg.Redis.KeyPrefix+":tunnel_tracker2",
-		cfg.Agent.RedisConnInfoTtl.AsDuration(),
-		ownPrivateApiUrl,
-	)
 }
