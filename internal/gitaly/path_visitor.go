@@ -39,6 +39,9 @@ entriesLoop:
 			}
 			switch status.Code(err) { // nolint:exhaustive
 			case codes.InvalidArgument:
+				if isInvalidRevisionOrPath(err) {
+					return NewNotFoundError("GetTreeEntries.Recv", string(repoPath))
+				}
 				return NewInvalidArgument(err, "GetTreeEntries.Recv", string(repoPath))
 			default:
 				return NewRpcError(err, "GetTreeEntries.Recv", string(repoPath))

@@ -46,13 +46,19 @@ func (s *server) ListAgentConfigFiles(ctx context.Context, req *rpc.ListAgentCon
 	ref := git.ExplicitRefOrHead(req.DefaultBranch)
 	err = pf.Visit(ctx, req.Repository.ToGitalyRepository(), []byte(ref), []byte(agent_configuration.Directory), true, v)
 	if err != nil {
-		log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
-		rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)
+		forwardErr := func() {
+			log := rpcApi.Log().With(logz.ProjectId(req.Repository.GlProjectPath))
+			rpcApi.HandleProcessingError(log, modshared.NoAgentId, "PathFetcher", err)
+		}
 		switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
 		case gitaly.InvalidArgument:
-			// We send this to Sentry anyway (above) because it shouldn't normally happen in this method.
+			// We send this to Sentry anyway, because it shouldn't normally happen in this method.
+			forwardErr()
 			return nil, status.Errorf(codes.InvalidArgument, "PathFetcher: %v", err)
+		case gitaly.NotFound:
+			return &rpc.ListAgentConfigFilesResponse{}, nil
 		default:
+			forwardErr()
 			return nil, status.Errorf(codes.Unavailable, "PathFetcher: %v", err)
 		}
 	}

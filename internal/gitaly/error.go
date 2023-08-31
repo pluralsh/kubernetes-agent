@@ -3,6 +3,9 @@ package gitaly
 import (
 	"errors"
 	"fmt"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
+	"google.golang.org/grpc/status"
 )
 
 type ErrorCode int
@@ -143,4 +146,16 @@ func ErrorCodeFromError(err error) ErrorCode {
 		return UnknownError
 	}
 	return e.Code
+}
+
+func isInvalidRevisionOrPath(err error) bool {
+	s := status.Convert(err)
+	for _, d := range s.Details() {
+		if e, ok := d.(*gitalypb.GetTreeEntriesError); ok {
+			if _, ok = e.Error.(*gitalypb.GetTreeEntriesError_ResolveTree); ok {
+				return true
+			}
+		}
+	}
+	return false
 }
