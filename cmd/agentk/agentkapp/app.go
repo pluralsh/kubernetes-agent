@@ -96,6 +96,8 @@ type App struct {
 	KasAddress                 string
 	KasCACertFile              string
 	KasHeaders                 []string
+	KasSkipTLSVerify           bool
+	KasTLSServerName           string
 	ServiceAccountName         string
 	ObservabilityListenNetwork string
 	ObservabilityListenAddress string
@@ -312,6 +314,8 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if err != nil {
 		return nil, err
 	}
+	tlsConfig.InsecureSkipVerify = a.KasSkipTLSVerify
+	tlsConfig.ServerName = a.KasTLSServerName
 	u, err := url.Parse(a.KasAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %w", err)
@@ -473,13 +477,15 @@ func NewCommand() *cobra.Command {
 	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
 
-	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
-	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "Optional HTTP headers to set when connecting to the agent server")
+	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "File with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
+	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "HTTP headers to set when connecting to the agent server")
+	f.BoolVar(&a.KasSkipTLSVerify, "kas-insecure-skip-tls-verify", false, "If true, the agent server's certificate will not be checked for validity. This will make the connection insecure")
+	f.StringVar(&a.KasTLSServerName, "kas-tls-server-name", "", "Server name to use for agent server certificate validation. If it is not provided, the hostname used to contact the server is used")
 
 	f.StringVar(&a.ObservabilityListenNetwork, "observability-listen-network", defaultObservabilityListenNetwork, "Observability network to listen on")
 	f.StringVar(&a.ObservabilityListenAddress, "observability-listen-address", defaultObservabilityListenAddress, "Observability address to listen on")
-	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "Optional file with X.509 certificate in PEM format. User for observability endpoint TLS")
-	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "Optional file with X.509 key in PEM format. User for observability endpoint TLS")
+	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "File with X.509 certificate in PEM format for observability endpoint TLS")
+	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "File with X.509 key in PEM format for observability endpoint TLS")
 
 	kubeConfigFlags.AddFlags(f)
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
