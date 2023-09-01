@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/redis/rueidis"
+	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -77,6 +79,112 @@ func TestExpiringHash_GC(t *testing.T) {
 	assert.EqualValues(t, 1, keysDeleted)
 
 	equalHash(t, client, key, 321, value)
+}
+
+func TestExpiringHash_GCContinuesOnConflict(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := rmock.NewClient(ctrl)
+	ded := rmock.NewDedicatedClient(ctrl)
+	val := &ExpiringValue{
+		ExpiresAt: time.Now().Unix() - 1000, // long expired
+		Value:     nil,
+	}
+	valBytes, err := proto.Marshal(val)
+	require.NoError(t, err)
+	watch := func() *gomock.Call {
+		return ded.EXPECT(). // Transaction
+					Do(
+				gomock.Any(),
+				matchCmd("WATCH"),
+			)
+	}
+	scan := func() *gomock.Call {
+		return ded.EXPECT(). // scan()
+					Do(
+				gomock.Any(),
+				matchCmd("HSCAN"),
+			).
+			Return(rmock.Result(rmock.RedisArray(
+				rmock.RedisInt64(0), // 0 means no more elements to scan
+				rmock.RedisArray(rmock.RedisString("key"), rmock.RedisString(string(valBytes))),
+			)))
+	}
+	failDelete := func() *gomock.Call {
+		return ded.EXPECT().
+			DoMulti(
+				gomock.Any(),
+				rmock.Match("MULTI"),
+				matchCmd("HDEL"),
+				rmock.Match("EXEC"),
+			).
+			Return([]rueidis.RedisResult{
+				rmock.Result(rmock.RedisString("OK")),
+				rmock.Result(rmock.RedisString("QUEUED")),
+				rmock.Result(rmock.RedisNil()), // conflict!
+			})
+	}
+	set := func(key string) *gomock.Call {
+		return client.EXPECT().
+			DoMulti(
+				gomock.Any(),
+				rmock.Match("MULTI"),
+				rmock.MatchFn(func(cmd []string) bool {
+					return len(cmd) == 4 && cmd[0] == "HSET" && cmd[1] == key && cmd[2] == "key"
+				}),
+				rmock.Match("PEXPIRE", key, "2000"),
+				rmock.Match("EXEC"),
+			)
+	}
+	gomock.InOrder(
+		set("1"), // SET 1,
+		set("2"), // SET 2,
+		client.EXPECT(). // GC() start
+					Dedicate().
+					Return(ded, func() {}),
+		// GC first element - attempt 1
+		watch(),
+		scan(),
+		failDelete(),
+		// GC first element - attempt 2
+		watch(),
+		scan(),
+		failDelete(),
+		// GC second element
+		watch(),
+		scan(),
+		ded.EXPECT().
+			DoMulti(
+				gomock.Any(),
+				rmock.Match("MULTI"),
+				matchCmd("HDEL"),
+				rmock.Match("EXEC"),
+			).
+			Return([]rueidis.RedisResult{
+				rmock.Result(rmock.RedisString("OK")),
+				rmock.Result(rmock.RedisString("QUEUED")),
+				rmock.Result(rmock.RedisArray(rmock.RedisInt64(1))), // removed 1
+			}),
+	)
+
+	hash := NewExpiringHash[string, string](client, s2s, s2s, ttl)
+	err = hash.Set(context.Background(), "1", "key", nil)
+	require.NoError(t, err)
+	err = hash.Set(context.Background(), "2", "key", nil)
+	require.NoError(t, err)
+
+	deleted, err := hash.GC()(context.Background())
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, deleted)
+}
+
+func matchCmd(cmd string) gomock.Matcher {
+	return rmock.MatchFn(func(cmdAndArgs []string) bool {
+		return cmdAndArgs[0] == cmd
+	})
+}
+
+func s2s(key string) string {
+	return key
 }
 
 func TestExpiringHash_Refresh_ToExpireSoonerThanNextRefresh(t *testing.T) {
@@ -180,9 +288,9 @@ func TestExpiringHash_Clear(t *testing.T) {
 func TestTransactionConflict_Sibling(t *testing.T) {
 	client, _, key, _ := setupHash(t)
 	c, cancel := client.Dedicate()
-	cancel()
+	defer cancel()
 	iteration := 0
-	err := transaction(context.Background(), c, func(ctx context.Context) ([]rueidis.Completed, error) {
+	err := transaction(context.Background(), 10, c, func(ctx context.Context) ([]rueidis.Completed, error) {
 		switch iteration {
 		case 0:
 			// Mutate a sibling mapping on purpose to trigger a conflict situation.
@@ -212,9 +320,9 @@ func TestTransactionConflict_Sibling(t *testing.T) {
 func TestTransactionConflict_SameKey(t *testing.T) {
 	client, _, key, _ := setupHash(t)
 	c, cancel := client.Dedicate()
-	cancel()
+	defer cancel()
 	iteration := 0
-	err := transaction(context.Background(), c, func(ctx context.Context) ([]rueidis.Completed, error) {
+	err := transaction(context.Background(), 10, c, func(ctx context.Context) ([]rueidis.Completed, error) {
 		switch iteration {
 		case 0:
 			// Mutate a sibling mapping on purpose to trigger a conflict situation.
@@ -236,6 +344,33 @@ func TestTransactionConflict_SameKey(t *testing.T) {
 	v1, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("1").Build()).ToString()
 	require.NoError(t, err)
 	assert.Equal(t, "123", v1)
+}
+
+func TestTransactionConflict_AttemptsExceeded(t *testing.T) {
+	client, _, key, _ := setupHash(t)
+	c, cancel := client.Dedicate()
+	defer cancel()
+	iteration := 0
+	err := transaction(context.Background(), 1, c, func(ctx context.Context) ([]rueidis.Completed, error) {
+		switch iteration {
+		case 0:
+			// Mutate a sibling mapping on purpose to trigger a conflict situation.
+			err := client.Do(context.Background(), client.B().Hset().Key(key).FieldValue().FieldValue("1", "xxxxxx").Build()).Error() // nolint: contextcheck
+			if err != nil {
+				return nil, err
+			}
+		default:
+			require.FailNow(t, "unexpected invocation")
+		}
+		iteration++
+		return []rueidis.Completed{
+			client.B().Hset().Key(key).FieldValue().FieldValue("1", "123").Build(),
+		}, nil
+	}, key)
+	require.Same(t, attemptsExceeded, err)
+	v1, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("1").Build()).ToString()
+	require.NoError(t, err)
+	assert.Equal(t, "xxxxxx", v1)
 }
 
 func BenchmarkExpiringValue_Unmarshal(b *testing.B) {
