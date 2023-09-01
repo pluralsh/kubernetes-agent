@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"context"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/info"
@@ -58,7 +59,8 @@ type Tunnel interface {
 	// responsibility to forward them into the incomingStream.
 	ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb DataCallback) error
 	// Done must be called when the caller is done with the Tunnel.
-	Done()
+	// ctx is used for tracing only.
+	Done(ctx context.Context)
 }
 
 type tunnelImpl struct {
@@ -70,7 +72,7 @@ type tunnelImpl struct {
 	state               stateType
 
 	onForward func(*tunnelImpl) error
-	onDone    func(*tunnelImpl)
+	onDone    func(context.Context, *tunnelImpl)
 }
 
 func (t *tunnelImpl) ForwardStream(log *zap.Logger, rpcApi RpcApi, incomingStream grpc.ServerStream, cb DataCallback) error {
@@ -195,8 +197,8 @@ func (t *tunnelImpl) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStrea
 	return pair
 }
 
-func (t *tunnelImpl) Done() {
-	t.onDone(t)
+func (t *tunnelImpl) Done(ctx context.Context) {
+	t.onDone(ctx, t)
 }
 
 type errPair struct {

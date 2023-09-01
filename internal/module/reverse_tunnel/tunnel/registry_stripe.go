@@ -28,7 +28,7 @@ type findTunnelRequest struct {
 type findHandle struct {
 	tracer    trace.Tracer
 	retTun    <-chan *tunnelImpl
-	done      func()
+	done      func(context.Context)
 	gotTunnel bool
 }
 
@@ -51,12 +51,15 @@ func (h *findHandle) Get(ctx context.Context) (Tunnel, error) {
 	}
 }
 
-func (h *findHandle) Done() {
+func (h *findHandle) Done(ctx context.Context) {
+	ctx, span := h.tracer.Start(ctx, "findHandle.Done", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	if h.gotTunnel {
 		// No cleanup needed if Get returned a tunnel.
 		return
 	}
-	h.done()
+	h.done(ctx)
 }
 
 type registryStripe struct {
@@ -126,7 +129,7 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 	return found, &findHandle{
 		tracer: r.tracer,
 		retTun: retTun,
-		done: func() {
+		done: func(ctx context.Context) {
 			err := func() error {
 				r.mu.Lock()
 				defer r.mu.Unlock()
@@ -134,7 +137,7 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 				tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
 				if tun != nil {
 					// Got the tunnel, but it's too late so return it to the registry.
-					return r.onTunnelDoneLocked(tun)
+					return r.onTunnelDoneLocked(ctx, tun)
 				} else {
 					r.deleteFindRequestLocked(ftr)
 				}
@@ -277,25 +280,28 @@ func (r *registryStripe) onTunnelForward(tun *tunnelImpl) error {
 	}
 }
 
-func (r *registryStripe) onTunnelDone(tun *tunnelImpl) {
+func (r *registryStripe) onTunnelDone(ctx context.Context, tun *tunnelImpl) {
+	ctx, span := r.tracer.Start(ctx, "registryStripe.onTunnelDone", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	var err error
 	func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		err = r.onTunnelDoneLocked(tun)
+		err = r.onTunnelDoneLocked(ctx, tun)
 	}()
 	if err != nil {
-		r.api.HandleProcessingError(context.Background(), r.log.With(logz.AgentId(tun.agentId)), tun.agentId, "Failed to register tunnel", err)
+		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(tun.agentId)), tun.agentId, "Failed to register tunnel", err)
 	}
 }
 
-func (r *registryStripe) onTunnelDoneLocked(tun *tunnelImpl) error {
+func (r *registryStripe) onTunnelDoneLocked(ctx context.Context, tun *tunnelImpl) error {
 	switch tun.state {
 	case stateReady:
 		panic(errors.New("unreachable: ready -> done should never happen"))
 	case stateFound:
 		// Tunnel was found but was not used, Done() was called. Just put it back.
-		return r.registerTunnelLocked(context.Background(), tun)
+		return r.registerTunnelLocked(ctx, tun)
 	case stateForwarding:
 		tun.state = stateDone
 	case stateDone:
