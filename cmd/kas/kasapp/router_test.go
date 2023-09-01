@@ -405,8 +405,8 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel_tunnel.MockTunnel, 
 		fh.EXPECT().
 			Get(gomock.Any()).
 			Return(tunnel, nil),
-		tunnel.EXPECT().Done(),
-		fh.EXPECT().Done(),
+		tunnel.EXPECT().Done(gomock.Any()),
+		fh.EXPECT().Done(gomock.Any()),
 	)
 	factory := func(ctx context.Context, fullMethodName string) modserver.RpcApi {
 		return &serverRpcApi{

@@ -48,7 +48,8 @@ type FindHandle interface {
 	// It returns gRPC status errors only, ready to return from RPC handler.
 	Get(ctx context.Context) (Tunnel, error)
 	// Done must be called to free resources of this FindHandle instance.
-	Done()
+	// ctx is used for tracing only.
+	Done(ctx context.Context)
 }
 
 type Finder interface {

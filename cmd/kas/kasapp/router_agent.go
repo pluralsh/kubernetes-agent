@@ -24,17 +24,18 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 	}
 	sts := grpc.ServerTransportStreamFromContext(ctx)
 	service, method := grpctool.SplitGrpcMethod(sts.Method())
-	wrappedStream := grpc_middleware.WrapServerStream(stream)
 	// Overwrite incoming MD with sanitized MD
+	wrappedStream := grpc_middleware.WrapServerStream(stream)
 	wrappedStream.WrappedContext = metadata.NewIncomingContext(
 		wrappedStream.WrappedContext,
 		removeHopMeta(md),
 	)
+	ctx = wrappedStream.WrappedContext
 	stream = wrappedStream
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	log := rpcApi.Log().With(logz.AgentId(agentId))
 	tunnelFound, findHandle := r.tunnelFinder.FindTunnel(ctx, agentId, service, method)
-	defer findHandle.Done()
+	defer findHandle.Done(ctx)
 	if !tunnelFound {
 		err = stream.SendMsg(&GatewayKasResponse{
 			Msg: &GatewayKasResponse_NoTunnel_{
@@ -45,11 +46,11 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 			return rpcApi.HandleIoError(log, "SendMsg(GatewayKasResponse_NoTunnel) failed", err)
 		}
 	}
-	tun, err := findHandle.Get(wrappedStream.WrappedContext)
+	tun, err := findHandle.Get(ctx)
 	if err != nil {
 		return err
 	}
-	defer tun.Done()
+	defer tun.Done(ctx)
 	err = stream.SendMsg(&GatewayKasResponse{
 		Msg: &GatewayKasResponse_TunnelReady_{
 			TunnelReady: &GatewayKasResponse_TunnelReady{},

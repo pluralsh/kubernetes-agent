@@ -171,15 +171,15 @@ func (m *MockFindHandle) EXPECT() *MockFindHandleMockRecorder {
 }
 
 // Done mocks base method.
-func (m *MockFindHandle) Done() {
+func (m *MockFindHandle) Done(arg0 context.Context) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Done")
+	m.ctrl.Call(m, "Done", arg0)
 }
 
 // Done indicates an expected call of Done.
-func (mr *MockFindHandleMockRecorder) Done() *gomock.Call {
+func (mr *MockFindHandleMockRecorder) Done(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Done", reflect.TypeOf((*MockFindHandle)(nil).Done))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Done", reflect.TypeOf((*MockFindHandle)(nil).Done), arg0)
 }
 
 // Get mocks base method.
@@ -221,15 +221,15 @@ func (m *MockTunnel) EXPECT() *MockTunnelMockRecorder {
 }
 
 // Done mocks base method.
-func (m *MockTunnel) Done() {
+func (m *MockTunnel) Done(arg0 context.Context) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Done")
+	m.ctrl.Call(m, "Done", arg0)
 }
 
 // Done indicates an expected call of Done.
-func (mr *MockTunnelMockRecorder) Done() *gomock.Call {
+func (mr *MockTunnelMockRecorder) Done(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Done", reflect.TypeOf((*MockTunnel)(nil).Done))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Done", reflect.TypeOf((*MockTunnel)(nil).Done), arg0)
 }
 
 // ForwardStream mocks base method.
