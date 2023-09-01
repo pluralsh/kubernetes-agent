@@ -38,7 +38,8 @@ func (h *findHandle) Get(ctx context.Context) (Tunnel, error) {
 
 	select {
 	case <-ctx.Done():
-		span.SetStatus(otelcodes.Error, ctx.Err().Error())
+		span.SetStatus(otelcodes.Error, "FindTunnel request aborted")
+		span.RecordError(ctx.Err())
 		return nil, grpctool.StatusErrorFromContext(ctx, "FindTunnel request aborted")
 	case tun := <-h.retTun:
 		h.gotTunnel = true

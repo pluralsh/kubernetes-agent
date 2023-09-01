@@ -187,7 +187,8 @@ func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Ti
 			err := r.stripes.Stripes[s].Refresh(refreshCtx, nextRefresh)
 			if err != nil {
 				r.api.HandleProcessingError(refreshCtx, r.log, modshared.NoAgentId, "Failed to refresh data", err)
-				refreshSpan.SetStatus(otelcodes.Error, err.Error())
+				refreshSpan.SetStatus(otelcodes.Error, "Failed to refresh data")
+				refreshSpan.RecordError(err)
 				// fallthrough
 			} else {
 				refreshSpan.SetStatus(otelcodes.Ok, "")
@@ -209,7 +210,8 @@ func (r *Registry) runGC(ctx context.Context) int {
 			deletedKeys, err := r.stripes.Stripes[s].GC(gcCtx)
 			if err != nil {
 				r.api.HandleProcessingError(gcCtx, r.log, modshared.NoAgentId, "Failed to GC data", err)
-				gcSpan.SetStatus(otelcodes.Error, err.Error())
+				gcSpan.SetStatus(otelcodes.Error, "Failed to GC data")
+				gcSpan.RecordError(err)
 				// fallthrough
 			} else {
 				gcSpan.SetStatus(otelcodes.Ok, "")
