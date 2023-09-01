@@ -96,6 +96,7 @@ type App struct {
 	KasAddress                 string
 	KasCACertFile              string
 	KasHeaders                 []string
+	KasSkipTLSVerify           bool
 	ServiceAccountName         string
 	ObservabilityListenNetwork string
 	ObservabilityListenAddress string
@@ -312,6 +313,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if err != nil {
 		return nil, err
 	}
+	tlsConfig.InsecureSkipVerify = a.KasSkipTLSVerify
 	u, err := url.Parse(a.KasAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %w", err)
@@ -475,6 +477,7 @@ func NewCommand() *cobra.Command {
 
 	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "File with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
 	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "HTTP headers to set when connecting to the agent server")
+	f.BoolVar(&a.KasSkipTLSVerify, "kas-insecure-skip-tls-verify", false, "If true, the agent server's certificate will not be checked for validity. This will make the connection insecure")
 
 	f.StringVar(&a.ObservabilityListenNetwork, "observability-listen-network", defaultObservabilityListenNetwork, "Observability network to listen on")
 	f.StringVar(&a.ObservabilityListenAddress, "observability-listen-address", defaultObservabilityListenAddress, "Observability address to listen on")
