@@ -82,9 +82,9 @@ message AllowedAgentsForJob {
 
 message AuthorizeProxyUserRequest {
   int64 agent_id = 1 [json_name = "agent_id", (validate.rules).int64.gt = 0];
-  string access_type = 2 [json_name = "access_type", (validate.rules).string = {in: ["session_cookie"]}];
+  string access_type = 2 [json_name = "access_type", (validate.rules).string = {in: ["session_cookie", "personal_access_token"]}];
   string access_key = 3 [json_name = "access_key", (validate.rules).string.min_bytes = 1];
-  string csrf_token = 4 [json_name = "csrf_token", (validate.rules).string.min_bytes = 1];
+  string csrf_token = 4 [json_name = "csrf_token"];
 }
 
 message AuthorizeProxyUserResponse {

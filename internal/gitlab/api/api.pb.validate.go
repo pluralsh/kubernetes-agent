@@ -1896,7 +1896,7 @@ func (m *AuthorizeProxyUserRequest) validate(all bool) error {
 	if _, ok := _AuthorizeProxyUserRequest_AccessType_InLookup[m.GetAccessType()]; !ok {
 		err := AuthorizeProxyUserRequestValidationError{
 			field:  "AccessType",
-			reason: "value must be in list [session_cookie]",
+			reason: "value must be in list [session_cookie personal_access_token]",
 		}
 		if !all {
 			return err
@@ -1915,16 +1915,7 @@ func (m *AuthorizeProxyUserRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if len(m.GetCsrfToken()) < 1 {
-		err := AuthorizeProxyUserRequestValidationError{
-			field:  "CsrfToken",
-			reason: "value length must be at least 1 bytes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
+	// no validation rules for CsrfToken
 
 	if len(errors) > 0 {
 		return AuthorizeProxyUserRequestMultiError(errors)
@@ -2007,7 +1998,8 @@ var _ interface {
 } = AuthorizeProxyUserRequestValidationError{}
 
 var _AuthorizeProxyUserRequest_AccessType_InLookup = map[string]struct{}{
-	"session_cookie": {},
+	"session_cookie":        {},
+	"personal_access_token": {},
 }
 
 // Validate checks the field values on AuthorizeProxyUserResponse with the

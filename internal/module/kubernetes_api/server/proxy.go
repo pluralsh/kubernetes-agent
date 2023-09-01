@@ -45,6 +45,7 @@ const (
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
+	tokenTypePat                    = "pat"
 )
 
 var (
@@ -93,6 +94,9 @@ type kubernetesApiProxy struct {
 	userAccessRequestCounter usage_metrics.Counter
 	userAccessUsersCounter   usage_metrics.UniqueCounter
 	userAccessAgentsCounter  usage_metrics.UniqueCounter
+	patAccessRequestCounter  usage_metrics.Counter
+	patAccessUsersCounter    usage_metrics.UniqueCounter
+	patAccessAgentsCounter   usage_metrics.UniqueCounter
 	responseSerializer       runtime.NegotiatedSerializer
 	traceProvider            trace.TracerProvider
 	tracePropagator          propagation.TextMapPropagator
@@ -287,6 +291,27 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		p.userAccessRequestCounter.Inc()
 		p.userAccessUsersCounter.Add(userId)
 		p.userAccessAgentsCounter.Add(agentId)
+	case patAuthn:
+		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "personal_access_token", c.token, "")
+		if eResp != nil {
+			return log, agentId, 0, nil, eResp
+		}
+		userId = auth.User.Id
+		impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
+		if err != nil {
+			msg := "Failed to construct user impersonation config"
+			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+			return log, agentId, userId, nil, &grpctool.ErrResp{
+				StatusCode: http.StatusInternalServerError,
+				Msg:        msg,
+				Err:        err,
+			}
+		}
+
+		// update usage metrics for PAT requests using the CI tunnel
+		p.patAccessRequestCounter.Inc()
+		p.patAccessUsersCounter.Add(userId)
+		p.patAccessAgentsCounter.Add(agentId)
 	default: // This should never happen
 		msg := "Invalid authorization type"
 		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
@@ -490,6 +515,10 @@ type ciJobTokenAuthn struct {
 	jobToken string
 }
 
+type patAuthn struct {
+	token string
+}
+
 type sessionCookieAuthn struct {
 	encryptedPublicSessionId string
 	csrfToken                string
@@ -500,13 +529,20 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 		if len(authzHeader) > 1 {
 			return 0, nil, fmt.Errorf("%s header: expecting a single header, got %d", httpz.AuthorizationHeader, len(authzHeader))
 		}
-		agentId, jobToken, err := getAgentIdAndJobTokenFromHeader(authzHeader[0])
+		agentId, tokenType, token, err := getAgentIdAndTokenFromHeader(authzHeader[0])
 		if err != nil {
 			return 0, nil, err
 		}
-		return agentId, ciJobTokenAuthn{
-			jobToken: jobToken,
-		}, nil
+		switch tokenType {
+		case tokenTypeCi:
+			return agentId, ciJobTokenAuthn{
+				jobToken: token,
+			}, nil
+		case tokenTypePat:
+			return agentId, patAuthn{
+				token: token,
+			}, nil
+		}
 	}
 	if cookie, err := r.Cookie(gitLabKasCookieName); err == nil {
 		agentId, encryptedPublicSessionId, csrfToken, err := getSessionCookieParams(cookie, r)
@@ -602,34 +638,35 @@ func getCsrfTokenForSessionCookieRequest(r *http.Request) (string, error) {
 	return csrfTokenParam[0], nil
 }
 
-func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
+func getAgentIdAndTokenFromHeader(header string) (int64, string /* token type */, string /* token */, error) {
 	if !strings.HasPrefix(header, authorizationHeaderBearerPrefix) {
 		// "missing" space in message - it's in the authorizationHeaderBearerPrefix constant already
-		return 0, "", fmt.Errorf("%s header: expecting %stoken", httpz.AuthorizationHeader, authorizationHeaderBearerPrefix)
+		return 0, "", "", fmt.Errorf("%s header: expecting %stoken", httpz.AuthorizationHeader, authorizationHeaderBearerPrefix)
 	}
 	tokenValue := header[len(authorizationHeaderBearerPrefix):]
 	tokenType, tokenContents, found := strings.Cut(tokenValue, tokenSeparator)
 	if !found {
-		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
+		return 0, "", "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
 	switch tokenType {
 	case tokenTypeCi:
+	case tokenTypePat:
 	default:
-		return 0, "", fmt.Errorf("%s header: unknown token type", httpz.AuthorizationHeader)
+		return 0, "", "", fmt.Errorf("%s header: unknown token type", httpz.AuthorizationHeader)
 	}
 	agentIdAndToken := tokenContents
 	agentIdStr, token, found := strings.Cut(agentIdAndToken, tokenSeparator)
 	if !found {
-		return 0, "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
+		return 0, "", "", fmt.Errorf("%s header: invalid value", httpz.AuthorizationHeader)
 	}
 	agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
 	if err != nil {
-		return 0, "", fmt.Errorf("%s header: failed to parse: %w", httpz.AuthorizationHeader, err)
+		return 0, "", "", fmt.Errorf("%s header: failed to parse: %w", httpz.AuthorizationHeader, err)
 	}
 	if token == "" {
-		return 0, "", fmt.Errorf("%s header: empty token", httpz.AuthorizationHeader)
+		return 0, "", "", fmt.Errorf("%s header: empty token", httpz.AuthorizationHeader)
 	}
-	return agentId, token, nil
+	return agentId, tokenType, token, nil
 }
 
 func constructJobImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgent) (*rpc.ImpersonationConfig, error) {
