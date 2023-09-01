@@ -473,13 +473,13 @@ func NewCommand() *cobra.Command {
 	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
 
-	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
-	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "Optional HTTP headers to set when connecting to the agent server")
+	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "File with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")
+	f.StringArrayVar(&a.KasHeaders, "kas-header", []string{}, "HTTP headers to set when connecting to the agent server")
 
 	f.StringVar(&a.ObservabilityListenNetwork, "observability-listen-network", defaultObservabilityListenNetwork, "Observability network to listen on")
 	f.StringVar(&a.ObservabilityListenAddress, "observability-listen-address", defaultObservabilityListenAddress, "Observability address to listen on")
-	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "Optional file with X.509 certificate in PEM format. User for observability endpoint TLS")
-	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "Optional file with X.509 key in PEM format. User for observability endpoint TLS")
+	f.StringVar(&a.ObservabilityCertFile, "observability-cert-file", "", "File with X.509 certificate in PEM format for observability endpoint TLS")
+	f.StringVar(&a.ObservabilityKeyFile, "observability-key-file", "", "File with X.509 key in PEM format for observability endpoint TLS")
 
 	kubeConfigFlags.AddFlags(f)
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
