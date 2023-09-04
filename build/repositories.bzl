@@ -16,13 +16,7 @@ def go_repositories():
         sum = "h1:ANLJcKmQm4nIaog7xdr/id6FM6zm5hHnfZrvtKPxqGg=",
         version = "v2.3.1",
     )
-    go_repository(
-        name = "com_github_alecthomas_template",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/alecthomas/template",
-        sum = "h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=",
-        version = "v0.0.0-20190718012654-fb15b899a751",
-    )
+
     go_repository(
         name = "com_github_alecthomas_units",
         build_file_proto_mode = "disable_global",
@@ -480,13 +474,6 @@ def go_repositories():
     )
 
     go_repository(
-        name = "com_github_go_kit_kit",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/go-kit/kit",
-        sum = "h1:wDJmvq38kDhkVxi50ni9ykkdUr1PKgqKOoi01fa0Mdk=",
-        version = "v0.9.0",
-    )
-    go_repository(
         name = "com_github_go_kit_log",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-kit/log",
@@ -578,13 +565,6 @@ def go_repositories():
         version = "v10.11.1",
     )
 
-    go_repository(
-        name = "com_github_go_stack_stack",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/go-stack/stack",
-        sum = "h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=",
-        version = "v1.8.0",
-    )
     go_repository(
         name = "com_github_go_task_slim_sprig",
         build_file_proto_mode = "disable_global",
@@ -1052,13 +1032,6 @@ def go_repositories():
     )
 
     go_repository(
-        name = "com_github_kr_logfmt",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/kr/logfmt",
-        sum = "h1:T+h1c/A9Gawja4Y9mFVWj2vyii2bbUNDw3kt9VxK2EY=",
-        version = "v0.0.0-20140226030751-b84e30acd515",
-    )
-    go_repository(
         name = "com_github_kr_pretty",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/kr/pretty",
@@ -1331,13 +1304,6 @@ def go_repositories():
         importpath = "github.com/pingcap/errors",
         sum = "h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=",
         version = "v0.11.4",
-    )
-    go_repository(
-        name = "com_github_piotrkowalczuk_promgrpc_v4",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/piotrkowalczuk/promgrpc/v4",
-        sum = "h1:BckNJoO+TgdeW2nFKZWzXvqFteNaqp0TdC+JoZQ8c/E=",
-        version = "v4.1.0",
     )
 
     go_repository(
@@ -2522,13 +2488,7 @@ def go_repositories():
         sum = "h1:VpgP7xuJadIUuKccphEpTJnWhS2jkQyMt6Y7pJCD7fY=",
         version = "v0.0.0-20190408044501-666a987793e9",
     )
-    go_repository(
-        name = "in_gopkg_alecthomas_kingpin_v2",
-        build_file_proto_mode = "disable_global",
-        importpath = "gopkg.in/alecthomas/kingpin.v2",
-        sum = "h1:jMFz6MfLP0/4fUyZle81rXUoxOBFi19VUFKVDOQfozc=",
-        version = "v2.2.6",
-    )
+
     go_repository(
         name = "in_gopkg_check_v1",
         build_file_proto_mode = "disable_global",

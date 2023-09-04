@@ -104,8 +104,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	mp := otel.GetMeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
-	ssh := metric.ServerStatsHandler()
-	csh := metric.ClientStatsHandler()
+	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
+	csh := grpctool.NewClientRequestsInFlightStatsHandler()
 	goCollector := collectors.NewGoCollector()
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
