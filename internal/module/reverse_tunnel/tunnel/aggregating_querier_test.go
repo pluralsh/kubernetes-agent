@@ -21,7 +21,7 @@ func TestPollKasUrlsByAgentId_OnlyStartsSinglePoll(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := NewMockQuerier(ctrl)
 	q.EXPECT().
-		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any())
+		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId)
 	api := mock_modserver.NewMockApi(ctrl)
 	aq := NewAggregatingQuerier(zaptest.NewLogger(t), q, api, testhelpers.NewPollConfig(time.Minute), time.Minute)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -38,15 +38,8 @@ func TestPollKasUrlsByAgentId_PollingCycle(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := NewMockQuerier(ctrl)
 	q.EXPECT().
-		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-			done, err := cb("url1")
-			assert.NoError(t, err)
-			assert.False(t, done)
-			done, err = cb("url2")
-			assert.NoError(t, err)
-			assert.False(t, done)
-		})
+		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+		Return([]string{"url1", "url2"}, nil)
 	api := mock_modserver.NewMockApi(ctrl)
 	aq := NewAggregatingQuerier(zaptest.NewLogger(t), q, api, testhelpers.NewPollConfig(time.Minute), time.Minute)
 	call := 0
@@ -68,17 +61,11 @@ func TestPollKasUrlsByAgentId_CacheAfterStopped(t *testing.T) {
 	q := NewMockQuerier(ctrl)
 	gomock.InOrder(
 		q.EXPECT().
-			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-				_, err := cb("url1")
-				assert.NoError(t, err)
-			}),
+			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+			Return([]string{"url1"}, nil),
 		q.EXPECT().
-			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-				_, err := cb("url2")
-				assert.NoError(t, err)
-			}),
+			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+			Return([]string{"url2"}, nil),
 	)
 	api := mock_modserver.NewMockApi(ctrl)
 	aq := NewAggregatingQuerier(zaptest.NewLogger(t), q, api, testhelpers.NewPollConfig(time.Minute), time.Minute)
@@ -99,27 +86,25 @@ func TestPollKasUrlsByAgentId_CacheAfterStopped(t *testing.T) {
 func TestPollKasUrlsByAgentId_CacheWhenRunning(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := NewMockQuerier(ctrl)
-	start1 := make(chan struct{})
-	start2 := make(chan struct{})
-	gomock.InOrder(
-		q.EXPECT().
-			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-				_, err := cb("url1")
-				assert.NoError(t, err)
-			}),
-		q.EXPECT().
-			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-				close(start1)                      // start concurrent query
-				<-start2                           // wait for the concurrent query to consume item from cache
-				time.Sleep(100 * time.Millisecond) // wait for aq.PollKasUrlsByAgentId() to register second callback
-				_, err := cb("url2")
-				assert.NoError(t, err)
-			}),
-	)
 	api := mock_modserver.NewMockApi(ctrl)
 	aq := NewAggregatingQuerier(zaptest.NewLogger(t), q, api, testhelpers.NewPollConfig(time.Second), time.Minute)
+	start1 := make(chan struct{})
+	gomock.InOrder(
+		q.EXPECT().
+			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+			Return([]string{"url1"}, nil),
+		q.EXPECT().
+			KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+			DoAndReturn(func(ctx context.Context, agentId int64) ([]string, error) {
+				close(start1)                      // start concurrent query
+				assert.Eventually(t, func() bool { // wait for aq.PollKasUrlsByAgentId() to register second callback
+					aq.mu.Lock()
+					defer aq.mu.Unlock()
+					return len(aq.listeners[agentId].consumers) == 2
+				}, time.Second, 10*time.Millisecond)
+				return []string{"url2"}, nil
+			}),
+	)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	count1 := 0
@@ -137,7 +122,6 @@ func TestPollKasUrlsByAgentId_CacheWhenRunning(t *testing.T) {
 	<-start1
 	kasUrls := aq.CachedKasUrlsByAgentId(testhelpers.AgentId)
 	assert.Equal(t, []string{"url1"}, kasUrls) // from cache
-	close(start2)
 	count2 := 0
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
@@ -158,11 +142,8 @@ func TestPollKasUrlsByAgentId_GcRemovesExpiredCache(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	q := NewMockQuerier(ctrl)
 	q.EXPECT().
-		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) {
-			_, err := cb("url1")
-			assert.NoError(t, err)
-		})
+		KasUrlsByAgentId(gomock.Any(), testhelpers.AgentId).
+		Return([]string{"url1"}, nil)
 	api := mock_modserver.NewMockApi(ctrl)
 	gcPeriod := time.Second
 	aq := NewAggregatingQuerier(zaptest.NewLogger(t), q, api, testhelpers.NewPollConfig(time.Minute), gcPeriod)

@@ -115,12 +115,12 @@ func (r *Registry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, s
 	return r.stripes.GetPointer(agentInfo.Id).HandleTunnel(ctx, agentInfo, server)
 }
 
-func (r *Registry) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
+func (r *Registry) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]string, error) {
 	ctx, span := r.tracer.Start(ctx, "Registry.KasUrlsByAgentId", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	// Use GetPointer() to avoid copying the embedded mutex.
-	return r.stripes.GetPointer(agentId).tunnelTracker.KasUrlsByAgentId(ctx, agentId, cb)
+	return r.stripes.GetPointer(agentId).tunnelTracker.KasUrlsByAgentId(ctx, agentId)
 }
 
 func (r *Registry) Run(ctx context.Context) error {

@@ -74,7 +74,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
 		cfg.Agent.RedisConnInfoGc.AsDuration(),
 		func() tunnel.Tracker {
-			return tunnel.NewRedisTracker(log, srvApi, redisClient, prefix, ttl, ownPrivateApiUrl)
+			return tunnel.NewRedisTracker(redisClient, prefix, ttl, ownPrivateApiUrl)
 		},
 	)
 	if err != nil {
