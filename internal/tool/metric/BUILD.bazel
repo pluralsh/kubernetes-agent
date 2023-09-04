@@ -5,13 +5,11 @@ go_library(
     srcs = [
         "counter.go",
         "metric.go",
-        "promgrpc.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/logz",
-        "@com_github_piotrkowalczuk_promgrpc_v4//:promgrpc",
         "@com_github_prometheus_client_golang//prometheus",
         "@org_uber_go_zap//:zap",
     ],

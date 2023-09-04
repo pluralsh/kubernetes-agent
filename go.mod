@@ -17,7 +17,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
 	github.com/hashicorp/go-retryablehttp v0.7.4
-	github.com/piotrkowalczuk/promgrpc/v4 v4.1.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/redis/rueidis v1.0.14
 	github.com/robfig/cron/v3 v3.0.1
