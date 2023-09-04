@@ -13,6 +13,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	maxKeyGCAttempts = 2
+)
+
 // KeyToRedisKey is used to convert typed key (key1 or key2) into a string.
 // HSET key1 key2 value.
 type KeyToRedisKey[K any] func(key K) string
@@ -168,7 +172,10 @@ func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */
 		for _, key := range keys {
 			deleted, err := gcHash(ctx, h.key1ToRedisKey(key), client)
 			deletedKeys += deleted
-			if err != nil {
+			switch err { // nolint:errorlint
+			case nil, attemptsExceeded:
+				// Try to GC next key on conflicts
+			default:
 				return deletedKeys, err
 			}
 		}
@@ -178,11 +185,13 @@ func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */
 
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
+// Returns attemptsExceeded if maxAttempts attempts ware made but all failed.
 func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (int /* keysDeleted */, error) {
 	var errs []error
 	keysDeleted := 0
 	// We don't want to delete a k->v mapping that has just been overwritten by another client. So use a transaction.
-	err := transaction(ctx, c, func(ctx context.Context) ([]rueidis.Completed, error) {
+	// We don't want to retry too many times to GC to avoid spending too much time on it. Retry once.
+	err := transaction(ctx, maxKeyGCAttempts, c, func(ctx context.Context) ([]rueidis.Completed, error) {
 		now := time.Now().Unix()
 		errs = nil
 		keysToDelete, err := scan(ctx, redisKey, c,
@@ -211,6 +220,7 @@ func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (in
 		}, nil
 	}, redisKey)
 	if err != nil {
+		// Propagate attemptsExceeded error and any other errors as is.
 		return 0, err
 	}
 	return keysDeleted, errors.Join(errs...)

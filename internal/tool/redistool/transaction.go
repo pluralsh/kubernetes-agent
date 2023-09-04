@@ -3,18 +3,19 @@ package redistool
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/redis/rueidis"
 )
 
-// maxTransactionIterations is a safety mechanism to avoid infinite attempts.
-const maxTransactionIterations = 100
+var (
+	attemptsExceeded = errors.New("failed to execute Redis transaction too many times")
+)
 
 // Optimistic locking pattern.
 // See https://redis.io/docs/interact/transactions/
 // See https://github.com/redis/rueidis#cas-pattern
-func transaction(ctx context.Context, c rueidis.DedicatedClient, cb func(context.Context) ([]rueidis.Completed, error), keys ...string) (retErr error) {
+// Returns attemptsExceeded if maxAttempts attempts ware made but all failed.
+func transaction(ctx context.Context, maxAttempts int, c rueidis.DedicatedClient, cb func(context.Context) ([]rueidis.Completed, error), keys ...string) (retErr error) {
 	execCalled := false
 	defer func() {
 		if execCalled {
@@ -26,7 +27,7 @@ func transaction(ctx context.Context, c rueidis.DedicatedClient, cb func(context
 			retErr = err
 		}
 	}()
-	for i := 0; i < maxTransactionIterations; i++ {
+	for i := 0; i < maxAttempts; i++ {
 		// 1. WATCH
 		execCalled = false // Enable deferred cleanup (for retries)
 		err := c.Do(ctx, c.B().Watch().Key(keys...).Build()).Error()
@@ -61,5 +62,5 @@ func transaction(ctx context.Context, c rueidis.DedicatedClient, cb func(context
 			return err
 		}
 	}
-	return fmt.Errorf("failed to execute Redis transaction %d times", maxTransactionIterations)
+	return attemptsExceeded
 }
