@@ -2,21 +2,18 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
-	"go.uber.org/zap"
 )
 
-type KasUrlsByAgentIdCallback func(kasUrl string) (bool /* done */, error)
-
 type Querier interface {
-	// KasUrlsByAgentId calls the callback with the list of kas URLs for a particular agent id.
+	// KasUrlsByAgentId returns the list of kas URLs for a particular agent id.
+	// A partial list may be returned together with an error.
 	// Safe for concurrent use.
-	KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error
+	KasUrlsByAgentId(ctx context.Context, agentId int64) ([]string, error)
 }
 
 // Registerer allows to register and unregister tunnels.
@@ -39,18 +36,13 @@ type Tracker interface {
 }
 
 type RedisTracker struct {
-	log                   *zap.Logger
-	api                   modshared.Api
 	ownPrivateApiUrl      string
 	tunnelsByAgentIdCount map[int64]uint16
 	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
 }
 
-func NewRedisTracker(log *zap.Logger, api modshared.Api, client rueidis.Client, agentKeyPrefix string,
-	ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {
+func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
-		log:                   log,
-		api:                   api,
 		ownPrivateApiUrl:      ownPrivateApiUrl,
 		tunnelsByAgentIdCount: make(map[int64]uint16),
 		tunnelsByAgentId:      redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
@@ -80,15 +72,21 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) erro
 	}
 }
 
-func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64, cb KasUrlsByAgentIdCallback) error {
+func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]string, error) {
+	var urls []string
+	var errs []error
 	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
-			t.api.HandleProcessingError(ctx, t.log.With(logz.AgentId(agentId)), agentId, "Redis hash scan", err)
+			errs = append(errs, err)
 			return false, nil
 		}
-		return cb(rawHashKey)
+		urls = append(urls, rawHashKey)
+		return false, nil
 	})
-	return err
+	if err != nil {
+		errs = append(errs, err)
+	}
+	return urls, errors.Join(errs...)
 }
 
 func (t *RedisTracker) Refresh(ctx context.Context, nextRefresh time.Time) error {

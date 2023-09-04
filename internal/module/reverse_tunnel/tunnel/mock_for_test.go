@@ -117,17 +117,18 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 }
 
 // KasUrlsByAgentId mocks base method.
-func (m *MockQuerier) KasUrlsByAgentId(arg0 context.Context, arg1 int64, arg2 KasUrlsByAgentIdCallback) error {
+func (m *MockQuerier) KasUrlsByAgentId(arg0 context.Context, arg1 int64) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KasUrlsByAgentId", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "KasUrlsByAgentId", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // KasUrlsByAgentId indicates an expected call of KasUrlsByAgentId.
-func (mr *MockQuerierMockRecorder) KasUrlsByAgentId(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockQuerierMockRecorder) KasUrlsByAgentId(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KasUrlsByAgentId", reflect.TypeOf((*MockQuerier)(nil).KasUrlsByAgentId), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KasUrlsByAgentId", reflect.TypeOf((*MockQuerier)(nil).KasUrlsByAgentId), arg0, arg1)
 }
 
 // MockTracker is a mock of Tracker interface.
@@ -168,17 +169,18 @@ func (mr *MockTrackerMockRecorder) GC() *gomock.Call {
 }
 
 // KasUrlsByAgentId mocks base method.
-func (m *MockTracker) KasUrlsByAgentId(arg0 context.Context, arg1 int64, arg2 KasUrlsByAgentIdCallback) error {
+func (m *MockTracker) KasUrlsByAgentId(arg0 context.Context, arg1 int64) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KasUrlsByAgentId", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "KasUrlsByAgentId", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // KasUrlsByAgentId indicates an expected call of KasUrlsByAgentId.
-func (mr *MockTrackerMockRecorder) KasUrlsByAgentId(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockTrackerMockRecorder) KasUrlsByAgentId(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KasUrlsByAgentId", reflect.TypeOf((*MockTracker)(nil).KasUrlsByAgentId), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KasUrlsByAgentId", reflect.TypeOf((*MockTracker)(nil).KasUrlsByAgentId), arg0, arg1)
 }
 
 // Refresh mocks base method.
