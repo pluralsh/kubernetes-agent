@@ -40,20 +40,6 @@ func (m *MockTracker) EXPECT() *MockTrackerMockRecorder {
 	return m.recorder
 }
 
-// GC mocks base method.
-func (m *MockTracker) GC() func(context.Context) (int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GC")
-	ret0, _ := ret[0].(func(context.Context) (int, error))
-	return ret0
-}
-
-// GC indicates an expected call of GC.
-func (mr *MockTrackerMockRecorder) GC() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockTracker)(nil).GC))
-}
-
 // KasUrlsByAgentId mocks base method.
 func (m *MockTracker) KasUrlsByAgentId(arg0 context.Context, arg1 int64) ([]string, error) {
 	m.ctrl.T.Helper()

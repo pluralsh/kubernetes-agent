@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
 	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
@@ -67,11 +66,10 @@ type Registry struct {
 	api           modshared.Api
 	tracer        trace.Tracer
 	refreshPeriod time.Duration
-	gcPeriod      time.Duration
 	stripes       syncz.StripedValue[registryStripe]
 }
 
-func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refreshPeriod, gcPeriod time.Duration,
+func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refreshPeriod time.Duration,
 	newTunnelTracker func() Tracker) (*Registry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
@@ -82,7 +80,6 @@ func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refres
 		api:           api,
 		tracer:        tracer,
 		refreshPeriod: refreshPeriod,
-		gcPeriod:      gcPeriod,
 		stripes: syncz.NewStripedValueInit(stripeBits, func() registryStripe {
 			return registryStripe{
 				log:                   log,
@@ -127,8 +124,6 @@ func (r *Registry) Run(ctx context.Context) error {
 	defer r.stopInternal(ctx) // nolint: contextcheck
 	refreshTicker := time.NewTicker(r.refreshPeriod)
 	defer refreshTicker.Stop()
-	gcTicker := time.NewTicker(r.gcPeriod)
-	defer gcTicker.Stop()
 	done := ctx.Done()
 	for {
 		select {
@@ -136,8 +131,6 @@ func (r *Registry) Run(ctx context.Context) error {
 			return nil
 		case <-refreshTicker.C:
 			r.refreshRegistrations(ctx, time.Now().Add(r.refreshPeriod-refreshOverlap))
-		case <-gcTicker.C:
-			r.runGC(ctx)
 		}
 	}
 }
@@ -195,34 +188,4 @@ func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Ti
 			}
 		}()
 	}
-}
-
-func (r *Registry) runGC(ctx context.Context) int {
-	ctx, span := r.tracer.Start(ctx, "Registry.runGC", trace.WithSpanKind(trace.SpanKindInternal))
-	defer span.End()
-
-	total := 0
-	for s := range r.stripes.Stripes { // use index var to avoid copying embedded mutex
-		func() {
-			gcCtx, gcSpan := r.tracer.Start(ctx, "registryStripe.GC", trace.WithSpanKind(trace.SpanKindInternal))
-			defer gcSpan.End()
-
-			deletedKeys, err := r.stripes.Stripes[s].GC(gcCtx)
-			if err != nil {
-				r.api.HandleProcessingError(gcCtx, r.log, modshared.NoAgentId, "Failed to GC data", err)
-				gcSpan.SetStatus(otelcodes.Error, "Failed to GC data")
-				gcSpan.RecordError(err)
-				// fallthrough
-			} else {
-				gcSpan.SetStatus(otelcodes.Ok, "")
-			}
-			total += deletedKeys
-			gcSpan.SetAttributes(traceDeletedKeysAttr.Int(deletedKeys))
-		}()
-	}
-	span.SetAttributes(traceDeletedKeysAttr.Int(total))
-	if total > 0 {
-		r.log.Info("Deleted expired agent tunnel records", logz.RemovedHashKeys(total))
-	}
-	return total
 }

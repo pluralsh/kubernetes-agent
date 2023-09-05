@@ -80,16 +80,6 @@ func (r *registryStripe) Refresh(ctx context.Context, nextRefresh time.Time) err
 	return r.tunnelTracker.Refresh(ctx, nextRefresh)
 }
 
-func (r *registryStripe) GC(ctx context.Context) (int /* keysDeleted */, error) {
-	var gc func(ctx context.Context) (int /* keysDeleted */, error)
-	func() {
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		gc = r.tunnelTracker.GC()
-	}()
-	return gc(ctx)
-}
-
 func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
 	// Buffer 1 to not block on send when a tunnel is found before find request is registered.
 	retTun := make(chan *tunnelImpl, 1) // can receive nil from it if Stop() is called

@@ -149,83 +149,19 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 }
 
 func TestGC_HappyPath(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, _, _ := setupTracker(t)
+	r, connectedAgents, _, _, _, _ := setupTracker(t)
 
-	wasCalled1 := false
-	wasCalled2 := false
-	wasCalled3 := false
+	wasCalled := false
 
 	connectedAgents.EXPECT().
 		GC().
 		Return(func(_ context.Context) (int, error) {
-			wasCalled3 = true
+			wasCalled = true
 			return 3, nil
 		})
 
-	byAgentId.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled2 = true
-			return 2, nil
-		})
-
-	byProjectId.EXPECT().
-		GC().
-		Return(func(_ context.Context) (int, error) {
-			wasCalled1 = true
-			return 1, nil
-		})
-
-	assert.EqualValues(t, 6, r.runGC(context.Background()))
-	assert.True(t, wasCalled1)
-	assert.True(t, wasCalled2)
-	assert.True(t, wasCalled3)
-}
-
-func TestGC_AllCalledOnError(t *testing.T) {
-	r, connectedAgents, byAgentId, byProjectId, rep, _ := setupTracker(t)
-
-	wasCalled1 := false
-	wasCalled2 := false
-	wasCalled3 := false
-
-	gomock.InOrder(
-		connectedAgents.EXPECT().
-			GC().
-			Return(func(_ context.Context) (int, error) {
-				wasCalled3 = true
-				return 3, errors.New("err3")
-			}),
-		rep.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err3")),
-	)
-
-	gomock.InOrder(
-		byAgentId.EXPECT().
-			GC().
-			Return(func(_ context.Context) (int, error) {
-				wasCalled2 = true
-				return 2, errors.New("err2")
-			}),
-		rep.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err2")),
-	)
-
-	gomock.InOrder(
-		byProjectId.EXPECT().
-			GC().
-			Return(func(_ context.Context) (int, error) {
-				wasCalled1 = true
-				return 1, errors.New("err1")
-			}),
-		rep.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to GC data in Redis", matcher.ErrorEq("err1")),
-	)
-
-	assert.EqualValues(t, 6, r.runGC(context.Background()))
-	assert.True(t, wasCalled1)
-	assert.True(t, wasCalled2)
-	assert.True(t, wasCalled3)
+	assert.EqualValues(t, 3, r.runGC(context.Background()))
+	assert.True(t, wasCalled)
 }
 
 func TestRefresh_HappyPath(t *testing.T) {

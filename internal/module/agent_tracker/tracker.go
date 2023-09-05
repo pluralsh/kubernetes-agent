@@ -157,30 +157,20 @@ func (t *RedisTracker) refreshHash(ctx context.Context, wg *wait.Group, h redist
 }
 
 func (t *RedisTracker) runGC(ctx context.Context) int {
-	var gcFuncs []func(context.Context) (int, error)
+	var gcFunc func(context.Context) (int, error)
 	func() {
 		t.mu.Lock()
 		defer t.mu.Unlock()
-		gcFuncs = []func(context.Context) (int, error){
-			t.connectionsByProjectId.GC(),
-			t.connectionsByAgentId.GC(),
-			t.connectedAgents.GC(),
-		}
+		gcFunc = t.connectedAgents.GC() // only GC the hash where Len() is called.
 	}()
-	keysDeleted := 0
-	// No rush so run GC sequentially to not stress RAM/CPU/Redis/network.
-	// We have more important work to do that we shouldn't impact.
-	for _, gc := range gcFuncs {
-		deleted, err := gc(ctx)
-		keysDeleted += deleted
-		if err != nil {
-			if errz.ContextDone(err) {
-				t.log.Debug("Redis GC interrupted", logz.Error(err))
-				break
-			}
-			t.errRep.HandleProcessingError(ctx, t.log, "Failed to GC data in Redis", err)
-			// continue anyway
+	keysDeleted, err := gcFunc(ctx)
+	if err != nil {
+		if errz.ContextDone(err) {
+			t.log.Debug("Redis GC interrupted", logz.Error(err))
+			return 0
 		}
+		t.errRep.HandleProcessingError(ctx, t.log, "Failed to GC data in Redis", err)
+		// continue anyway
 	}
 	return keysDeleted
 }
