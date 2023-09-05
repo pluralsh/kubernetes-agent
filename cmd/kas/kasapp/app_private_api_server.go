@@ -139,18 +139,20 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
-			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),                         // nolint:contextcheck
+			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.StreamRpcApiInterceptor(factory),                             // 3. inject RPC API
+			jwtAuther.StreamServerInterceptor,                                      // 4. auth and maybe log
+			grpc_validator.StreamServerInterceptor(),                               // x. wrap with validator
+			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter), // nolint:contextcheck
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.UnaryRpcApiInterceptor(factory), // 3. inject RPC API
+			jwtAuther.UnaryServerInterceptor,          // 4. auth and maybe log
+			grpc_validator.UnaryServerInterceptor(),   // x. wrap with validator
 			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
@@ -191,12 +193,14 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 		}),
 		grpc.WithChainStreamInterceptor(
 			streamClientProm,
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			unaryClientProm,
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}

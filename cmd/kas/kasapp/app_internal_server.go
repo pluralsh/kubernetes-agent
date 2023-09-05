@@ -34,11 +34,13 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	)
@@ -49,13 +51,15 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 		server: grpc.NewServer(
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.ChainStreamInterceptor(
-				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
-				modserver.StreamRpcApiInterceptor(factory),                                                     // 2. inject RPC API
+				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 1. trace
+				modserver.StreamRpcApiInterceptor(factory), // 2. inject RPC API
 				grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ChainUnaryInterceptor(
-				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 1. trace
-				modserver.UnaryRpcApiInterceptor(factory),                                                     // 2. inject RPC API
+				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 1. trace
+				modserver.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
 				grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ForceServerCodec(grpctool.RawCodec{}),

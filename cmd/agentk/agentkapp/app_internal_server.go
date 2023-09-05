@@ -51,15 +51,17 @@ func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.T
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.ChainStreamInterceptor(
 				streamProm, // 1. measure all invocations
-				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-				modagent.StreamRpcApiInterceptor(factory),                                                      // 3. inject RPC API
-				grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
+				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+				modagent.StreamRpcApiInterceptor(factory), // 3. inject RPC API
+				grpc_validator.StreamServerInterceptor(),  // x. wrap with validator
 			),
 			grpc.ChainUnaryInterceptor(
 				unaryProm, // 1. measure all invocations
-				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-				modagent.UnaryRpcApiInterceptor(factory),                                                      // 3. inject RPC API
-				grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+				modagent.UnaryRpcApiInterceptor(factory), // 3. inject RPC API
+				grpc_validator.UnaryServerInterceptor(),  // x. wrap with validator
 			),
 		),
 		conn:     conn,
