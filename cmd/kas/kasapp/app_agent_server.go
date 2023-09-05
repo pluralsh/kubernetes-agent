@@ -92,17 +92,19 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
-			modserver.StreamAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
-			grpc_validator.StreamServerInterceptor(),                                                                      // x. wrap with validator
+			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.StreamAgentRpcApiInterceptor(factory), // 3. inject RPC API
+			grpc_validator.StreamServerInterceptor(),        // x. wrap with validator
 			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
 			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp)), // 2. trace
-			modserver.UnaryAgentRpcApiInterceptor(factory),                                                               // 3. inject RPC API
-			grpc_validator.UnaryServerInterceptor(),                                                                      // x. wrap with validator
+			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.UnaryAgentRpcApiInterceptor(factory), // 3. inject RPC API
+			grpc_validator.UnaryServerInterceptor(),        // x. wrap with validator
 			grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter),
 			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),

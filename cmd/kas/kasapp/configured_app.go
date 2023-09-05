@@ -63,7 +63,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -459,13 +459,15 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 			opts := []grpc.DialOption{
 				grpc.WithChainStreamInterceptor(
 					streamClientProm,
-					otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+					otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+						otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 					grpctool.StreamClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.StreamClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
 				grpc.WithChainUnaryInterceptor(
 					unaryClientProm,
-					otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+					otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+						otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 					grpctool.UnaryClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.UnaryClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),

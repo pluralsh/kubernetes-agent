@@ -56,18 +56,20 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.StreamRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.StreamServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.StreamServerInterceptor(),                                                       // x. wrap with validator
+			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.StreamRpcApiInterceptor(factory), // 3. inject RPC API
+			jwtAuther.StreamServerInterceptor,          // 4. auth and maybe log
+			grpc_validator.StreamServerInterceptor(),   // x. wrap with validator
 			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)), // 2. trace
-			modserver.UnaryRpcApiInterceptor(factory),                                                     // 3. inject RPC API
-			jwtAuther.UnaryServerInterceptor,                                                              // 4. auth and maybe log
-			grpc_validator.UnaryServerInterceptor(),                                                       // x. wrap with validator
+			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
+			modserver.UnaryRpcApiInterceptor(factory), // 3. inject RPC API
+			jwtAuther.UnaryServerInterceptor,          // 4. auth and maybe log
+			grpc_validator.UnaryServerInterceptor(),   // x. wrap with validator
 			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{

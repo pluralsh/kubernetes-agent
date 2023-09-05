@@ -45,6 +45,7 @@ danger-review:
     - echo "build --verbose_failures" >> .bazelrc
     - echo "build --curses=no" >> .bazelrc
     - echo "build --show_timestamps" >> .bazelrc
+    - echo "common --http_timeout_scaling=3.0" >> .bazelrc
     - |
       if [[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
         echo "build --google_default_credentials" >> .bazelrc

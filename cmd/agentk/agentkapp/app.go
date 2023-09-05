@@ -346,12 +346,14 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		}),
 		grpc.WithChainStreamInterceptor(
 			streamClientProm,
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			unaryClientProm,
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p)),
+			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}

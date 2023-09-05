@@ -25,9 +25,9 @@ http_archive(
 
 http_archive(
     name = "rules_oci",
-    sha256 = "176e601d21d1151efd88b6b027a24e782493c5d623d8c6211c7767f306d655c8",
-    strip_prefix = "rules_oci-1.2.0",
-    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.2.0/rules_oci-v1.2.0.tar.gz",
+    sha256 = "fc8551ccbfe4e716c8a3876b1b42d37e80f0bbd5045ec4de3bed88f0dc1ff0aa",
+    strip_prefix = "rules_oci-1.3.2",
+    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.3.2/rules_oci-v1.3.2.tar.gz",
 )
 
 http_archive(
@@ -41,9 +41,9 @@ http_archive(
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "977a0bd4593c8d4c8f45e056d181c35e48aa01ad4f8090bdb84f78dca42f47dc",
-    strip_prefix = "buildtools-6.1.2",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/refs/tags/v6.1.2.tar.gz"],
+    sha256 = "42968f9134ba2c75c03bb271bd7bb062afb7da449f9b913c96e5be4ce890030a",
+    strip_prefix = "buildtools-6.3.3",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/refs/tags/v6.3.3.tar.gz"],
 )
 
 http_archive(
@@ -89,20 +89,21 @@ http_archive(
 
 http_archive(
     name = "aspect_bazel_lib",
-    sha256 = "d488d8ecca98a4042442a4ae5f1ab0b614f896c0ebf6e3eafff363bcc51c6e62",
-    strip_prefix = "bazel-lib-1.33.0",
-    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.33.0/bazel-lib-v1.33.0.tar.gz",
+    sha256 = "271d5f38c218a0c2fe2e94f94dfc0b497e931cbb335348bf1695015191be5367",
+    strip_prefix = "bazel-lib-1.34.1",
+    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.34.1/bazel-lib-v1.34.1.tar.gz",
 )
 
 # Required for proto files. Needs to be compatible with generated code in org_golang_google_genproto.
 # See https://github.com/googleapis/googleapis and https://github.com/googleapis/go-genproto.
 # See https://github.com/bazelbuild/bazel-gazelle/releases/tag/v0.32.0
+# Copy hash from https://github.com/googleapis/googleapis/commits/master.
 http_archive(
     name = "go_googleapis",
-    sha256 = "3881f4badd30620901a462c7967f9e6cdfe802299c24b571d173e918670f83c0",
-    strip_prefix = "googleapis-85b79ef2370fbe08b453f64ee558e8cbb867cee2",
+    sha256 = "a404da971b03bca94f78009c2a37efa134e6a09e88ea8293d17118e412dd3251",
+    strip_prefix = "googleapis-eda81ef50cbc08ddf39e9e0689e116421581a234",
     urls = [
-        "https://github.com/googleapis/googleapis/archive/85b79ef2370fbe08b453f64ee558e8cbb867cee2.zip",
+        "https://github.com/googleapis/googleapis/archive/eda81ef50cbc08ddf39e9e0689e116421581a234.zip",
     ],
 )
 
@@ -117,8 +118,8 @@ go_repository(
     ],  # keep
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel",
-    sum = "h1:Z7GVAX/UkAXPKsy94IU+i6thsQS4nb7LviLpnaNeW8s=",
-    version = "v1.16.0",
+    sum = "h1:MW+phZ6WZ5/uk2nd93ANk/6yJ+dVrvNWUjGhnnFU5jM=",
+    version = "v1.17.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -130,8 +131,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
-    sum = "h1:cbsD4cUcviQGXdw8+bo5x2wazq10SKz8hEbtCRPcU78=",
-    version = "v1.16.0",
+    sum = "h1:U5GYackKpVKlPrd/5gKMlrTlP2dCESAAFU682VCpieY=",
+    version = "v1.17.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -142,8 +143,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable_global",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
-    sum = "h1:iqjq9LAB8aK++sKVcELezzn655JnBNdsDhghU4G/So8=",
-    version = "v1.16.0",
+    sum = "h1:kvWMtSUNVylLVrOE4WLUmBtgziYoCIYUNSpTYtMzVJI=",
+    version = "v1.17.0",
 )
 
 # Copied from rules_go to keep patches in place
