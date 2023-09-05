@@ -24,8 +24,6 @@ type Registerer interface {
 	RegisterTunnel(ctx context.Context, agentId int64) error
 	// UnregisterTunnel unregisters tunnel with the tracker.
 	UnregisterTunnel(ctx context.Context, agentId int64) error
-	// GC deletes expired tunnels from the underlying storage.
-	GC() func(context.Context) (int /* keysDeleted */, error)
 	// Refresh refreshes registered tunnels in the underlying storage.
 	Refresh(ctx context.Context, nextRefresh time.Time) error
 }
@@ -91,10 +89,6 @@ func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]s
 
 func (t *RedisTracker) Refresh(ctx context.Context, nextRefresh time.Time) error {
 	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
-}
-
-func (t *RedisTracker) GC() func(context.Context) (int /* keysDeleted */, error) {
-	return t.tunnelsByAgentId.GC()
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (kasUrl -> nil).

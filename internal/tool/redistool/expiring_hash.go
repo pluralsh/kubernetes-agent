@@ -30,15 +30,17 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	Unset(ctx context.Context, key K1, hashKey K2) error
 	// Forget only removes the item from the in-memory map.
 	Forget(key K1, hashKey K2)
-	// Scan iterates key-value pairs for key.
+	// Scan iterates key-value pairs for key. It removes any expired entries it finds.
 	// Safe for concurrent use.
 	Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error)
+	// Len returns number of key-value mappings in the hash identified by key.
 	Len(ctx context.Context, key K1) (int64, error)
 	// GC returns a function that iterates all relevant stored data and deletes expired entries.
 	// The returned function can be called concurrently as it does not interfere with the hash's operation.
 	// The function returns number of deleted Redis (hash) keys, including when an error occurred.
 	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
 	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
+	// GC only needs to be used if Len() is used. Otherwise expired entries will be found and deleted by Scan().
 	GC() func(context.Context) (int /* keysDeleted */, error)
 	// Clear clears all data in this hash and deletes it from the backing store.
 	Clear(context.Context) (int, error)

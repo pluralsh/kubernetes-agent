@@ -56,7 +56,7 @@ func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.
 
 	internalListener := grpctool.NewDialListener()
 	tr := trace.NewNoopTracerProvider().Tracer("test")
-	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, tr, time.Minute, time.Minute, func() tunnel.Tracker { return tunnelTracker })
+	tunnelRegistry, err := tunnel.NewRegistry(log, mockApi, tr, time.Minute, func() tunnel.Tracker { return tunnelTracker })
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(ctx, log)
