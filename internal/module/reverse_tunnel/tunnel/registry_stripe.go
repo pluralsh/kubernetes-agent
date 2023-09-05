@@ -81,6 +81,9 @@ func (r *registryStripe) Refresh(ctx context.Context, nextRefresh time.Time) err
 }
 
 func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
+	ctx, span := r.tracer.Start(ctx, "registryStripe.FindTunnel", trace.WithSpanKind(trace.SpanKindInternal))
+	defer span.End()
+
 	// Buffer 1 to not block on send when a tunnel is found before find request is registered.
 	retTun := make(chan *tunnelImpl, 1) // can receive nil from it if Stop() is called
 	ftr := &findTunnelRequest{
@@ -114,6 +117,7 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 		findRequestsForAgentId[ftr] = struct{}{}
 		return nil
 	}()
+	span.SetAttributes(traceTunnelFoundAttr.Bool(found))
 	if err != nil {
 		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
 	}
@@ -141,7 +145,11 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 	}
 }
 
-func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
+func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
+	ctx := server.Context()
+	ctx, span := r.tracer.Start(ctx, "registryStripe.HandleTunnel", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End() // we don't add the returned error to the span as it's added by the gRPC OTEL stats handler already.
+
 	recv, err := server.Recv()
 	if err != nil {
 		return err
@@ -169,11 +177,11 @@ func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 		err = r.registerTunnelLocked(ctx, tun)
 	}()
 	if err != nil {
-		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
+		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err) // nolint:contextcheck
 	}
 	// Wait for return error or for cancellation
 	select {
-	case <-ctx.Done():
+	case <-ageCtx.Done():
 		// Context canceled
 		r.mu.Lock()
 		switch tun.state {
@@ -182,7 +190,7 @@ func (r *registryStripe) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 			err = r.unregisterTunnelLocked(ctx, tun) // nolint: contextcheck
 			r.mu.Unlock()
 			if err != nil {
-				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
+				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err) // nolint:contextcheck
 			}
 			return nil
 		case stateFound:
