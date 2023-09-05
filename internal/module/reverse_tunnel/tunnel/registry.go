@@ -37,9 +37,8 @@ type Handler interface {
 	// HandleTunnel is called with server-side interface of the reverse tunnel.
 	// It registers the tunnel and blocks, waiting for a request to proxy through the tunnel.
 	// The method returns the error value to return to gRPC framework.
-	// ctx can be used to unblock the method if the tunnel is not being used already.
-	// ctx should be a child of the server's context.
-	HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
+	// ageCtx can be used to unblock the method if the tunnel is not being used already.
+	HandleTunnel(ageCtx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
 }
 
 type FindHandle interface {
@@ -98,21 +97,13 @@ func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refres
 }
 
 func (r *Registry) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
-	ctx, span := r.tracer.Start(ctx, "Registry.FindTunnel", trace.WithSpanKind(trace.SpanKindInternal))
-	defer span.End()
-
 	// Use GetPointer() to avoid copying the embedded mutex.
-	found, th := r.stripes.GetPointer(agentId).FindTunnel(ctx, agentId, service, method)
-	span.SetAttributes(traceTunnelFoundAttr.Bool(found))
-	return found, th
+	return r.stripes.GetPointer(agentId).FindTunnel(ctx, agentId, service, method)
 }
 
-func (r *Registry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
-	ctx, span := r.tracer.Start(ctx, "Registry.HandleTunnel", trace.WithSpanKind(trace.SpanKindInternal))
-	defer span.End() // we don't add the returned error to the span as it's added by the gRPC OTEL stats handler already.
-
+func (r *Registry) HandleTunnel(ageCtx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
 	// Use GetPointer() to avoid copying the embedded mutex.
-	return r.stripes.GetPointer(agentInfo.Id).HandleTunnel(ctx, agentInfo, server)
+	return r.stripes.GetPointer(agentInfo.Id).HandleTunnel(ageCtx, agentInfo, server)
 }
 
 func (r *Registry) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]string, error) {

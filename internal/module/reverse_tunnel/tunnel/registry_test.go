@@ -48,6 +48,10 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Recv().
@@ -90,6 +94,10 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	reg := make(chan struct{})
 	gomock.InOrder(
 		connectServer.EXPECT().
@@ -150,6 +158,10 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	reg := make(chan struct{})
 	regCnt := 0
 	connectServer.EXPECT().
@@ -206,6 +218,10 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Recv().
@@ -238,6 +254,14 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
+	connectServer1.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
+	connectServer2.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	var regWg sync.WaitGroup
 	regWg.Add(2)
 	d1 := descriptor()
@@ -308,6 +332,10 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
+	connectServer.EXPECT().
 		Recv().
 		Return(nil, status.Error(codes.DataLoss, "expected err"))
 	tunnelTracker := NewMockTracker(ctrl)
@@ -321,6 +349,10 @@ func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
@@ -366,6 +398,10 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
@@ -433,6 +469,10 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
@@ -539,6 +579,10 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(context.Background()).
+		MinTimes(1)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
