@@ -244,24 +244,24 @@ switched_rules_by_language(
 # nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 oci_pull(
     name = "distroless_static_nonroot",
-    digest = "sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f",
+    digest = "sha256:92d40eea0b5307a94f2ebee3e94095e704015fb41e35fc1fcbd1d151cc282222",
     image = "gcr.io/distroless/static-debian11",
     platforms = [
         "linux/amd64",
-        "linux/arm",
-        "linux/arm64",
+        "linux/arm/v7",
+        "linux/arm64/v8",
     ],
 )
 
 # debug-nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 oci_pull(
     name = "distroless_base_debug_nonroot",
-    digest = "sha256:de8fb012fc630b7cdea6861442a0185213b574c71e246ddc97e9eb1d047048e7",
+    digest = "sha256:6691be59b27dde70a2cec7b9794096b8bbf63eec7685062c06e327d1f06a773e",
     image = "gcr.io/distroless/base-debian11",
     platforms = [
         "linux/amd64",
-        "linux/arm",
-        "linux/arm64",
+        "linux/arm/v7",
+        "linux/arm64/v8",
     ],
 )
 

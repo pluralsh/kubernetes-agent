@@ -37,6 +37,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
     images.append(binary_and_image(
         name = name,
         arch = "amd64",
+        arch_variant = None,
         debug = False,
         race = "off",
         binary_embed = binary_embed,
@@ -45,6 +46,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
     debug_images.append(binary_and_image(
         name = name,
         arch = "amd64",
+        arch_variant = None,
         debug = True,
         race = "on",
         binary_embed = binary_embed,
@@ -54,6 +56,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         images.append(binary_and_image(
             name = name,
             arch = "arm",
+            arch_variant = "v7",
             debug = False,
             race = "off",
             binary_embed = binary_embed,
@@ -61,6 +64,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         debug_images.append(binary_and_image(
             name = name,
             arch = "arm",
+            arch_variant = "v7",
             debug = True,
             race = "off",
             binary_embed = binary_embed,
@@ -70,6 +74,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         images.append(binary_and_image(
             name = name,
             arch = "arm64",
+            arch_variant = "v8",
             debug = False,
             race = "off",
             binary_embed = binary_embed,
@@ -77,6 +82,7 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         debug_images.append(binary_and_image(
             name = name,
             arch = "arm64",
+            arch_variant = "v8",
             debug = True,
             race = "off",
             binary_embed = binary_embed,
@@ -110,13 +116,14 @@ def define_command_targets(name, binary_embed, arm_targets = True, arm64_targets
         tags = ["manual"],
     )
 
-def binary_and_image(name, arch, debug, race, binary_embed):
+def binary_and_image(name, arch, arch_variant, debug, race, binary_embed):
+    binary_arch = arch if arch_variant == None else "%s_%s" % (arch, arch_variant)
     if debug:
-        binary_name = "%s_linux_%s_debug" % (name, arch)
-        base = "@distroless_base_debug_nonroot_linux_%s" % arch
+        binary_name = "%s_linux_%s_debug" % (name, binary_arch)
+        base = "@distroless_base_debug_nonroot_linux_%s" % binary_arch
     else:
-        binary_name = "%s_linux_%s" % (name, arch)
-        base = "@distroless_static_nonroot_linux_%s" % arch
+        binary_name = "%s_linux_%s" % (name, binary_arch)
+        base = "@distroless_static_nonroot_linux_%s" % binary_arch
     go_binary(
         name = binary_name,
         embed = binary_embed,
