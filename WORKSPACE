@@ -248,8 +248,8 @@ oci_pull(
     image = "gcr.io/distroless/static-debian11",
     platforms = [
         "linux/amd64",
-        "linux/arm",
-        "linux/arm64",
+        "linux/arm/v7",
+        "linux/arm64/v8",
     ],
 )
 
@@ -260,8 +260,8 @@ oci_pull(
     image = "gcr.io/distroless/base-debian11",
     platforms = [
         "linux/amd64",
-        "linux/arm",
-        "linux/arm64",
+        "linux/arm/v7",
+        "linux/arm64/v8",
     ],
 )
 
