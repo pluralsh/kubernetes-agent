@@ -23,7 +23,7 @@ variables:
   FIPS_BUILD_IMAGE_SHA: "latest-fips@sha256:67e4589c009a3e51b3c41e42809d82cf2d3f6c21e20a6324d58314a376534a74"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
-  DOCKER_VERSION: "24.0.5" # https://hub.docker.com/_/docker
+  DOCKER_VERSION: "24.0.6" # https://hub.docker.com/_/docker
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
