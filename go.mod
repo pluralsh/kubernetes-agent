@@ -15,7 +15,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/go-cmp v0.5.9
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0-rc.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.5
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/prometheus/client_golang v1.16.0
 	github.com/redis/rueidis v1.0.17
@@ -38,7 +38,7 @@ require (
 	golang.org/x/time v0.3.0
 	google.golang.org/api v0.138.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.58.0
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.2
