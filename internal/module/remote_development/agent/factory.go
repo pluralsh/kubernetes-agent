@@ -91,7 +91,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				api:                 config.Api,
 				pollConfig:          pollFactory,
 				stateTracker:        newPersistedStateTracker(),
-				terminatingTracker:  newPersistedTerminatingWorkspacesTracker(),
+				terminationTracker:  newTerminationTracker(),
 				informer:            inf,
 				k8sClient:           k8sClient,
 				applierErrorTracker: newErrorTracker(),

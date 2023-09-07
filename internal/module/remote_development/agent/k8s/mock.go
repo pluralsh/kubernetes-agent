@@ -16,9 +16,9 @@ func NewMockClient() *MockClient {
 	}
 }
 
-func (m *MockClient) NamespaceExists(_ context.Context, name string) bool {
+func (m *MockClient) NamespaceExists(_ context.Context, name string) (bool, error) {
 	_, ok := m.NamespaceStore[name]
-	return ok
+	return ok, nil
 }
 
 func (m *MockClient) CreateNamespace(_ context.Context, name string) error {

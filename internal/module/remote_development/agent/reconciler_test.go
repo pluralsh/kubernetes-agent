@@ -37,6 +37,10 @@ func (r *ReconcilerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 	defer cancel()
 
 	existingWorkspaceA := r.newMockWorkspaceInAgent("workspaceA")
+	trackerKeyForWorkspace := terminationTrackerKey{
+		name:      existingWorkspaceA.Name,
+		namespace: existingWorkspaceA.Namespace,
+	}
 
 	r.mockInformer.Resources = map[string]*parsedWorkspace{
 		existingWorkspaceA.Name: existingWorkspaceA,
@@ -48,9 +52,9 @@ func (r *ReconcilerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 	workspaceChangesFromRails := r.generateInfoForWorkspaceChanges(existingWorkspaceA.Name, WorkspaceStateTerminated, "Running")
 	r.expectRequestAndReturnReply(r.mockApi, r.generateRailsRequest(WorkspaceUpdateTypeFull), r.generateRailsResponse(workspaceChangesFromRails))
 	err := r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().True(r.runner.terminatingTracker.isTerminating(existingWorkspaceA.Name, existingWorkspaceA.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
+	r.NoError(err)
+	r.ensureWorkspaceHasTerminationProgress(existingWorkspaceA.Name, existingWorkspaceA.Namespace, TerminationProgressTerminating)
+	r.Contains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
 
 	// simulate "Terminating" state for workspace i.e. create workspace if it doesn't already exist
 	r.ensureWorkspaceExists(ctx, r.runner.stateTracker, r.mockK8sClient, existingWorkspaceA)
@@ -64,9 +68,9 @@ func (r *ReconcilerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 		r.generateRailsResponse(workspaceChangesFromRails),
 	)
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().True(r.runner.terminatingTracker.isTerminating(existingWorkspaceA.Name, existingWorkspaceA.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
+	r.NoError(err)
+	r.ensureWorkspaceHasTerminationProgress(existingWorkspaceA.Name, existingWorkspaceA.Namespace, TerminationProgressTerminating)
+	r.Contains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
 
 	// In this cycle, agent will discover that the workspace has been deleted which will result in the workspace being
 	// removed from all the trackers after a successful exchange with rails
@@ -78,18 +82,18 @@ func (r *ReconcilerTestSuite) TestSuccessfulTerminationOfWorkspace() {
 		r.generateRailsResponse(workspaceChangesFromRails),
 	)
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(existingWorkspaceA.Name, existingWorkspaceA.Namespace))
-	r.Require().NotContains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
+	r.NoError(err)
+	r.NotContains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
 
 	// In the next cycle, no more information for the terminated workspace will be shared with rails as there
 	// no information about this workspace either in agent's internal state nor in the cluster
 	r.expectRequestAndReturnReply(r.mockApi, r.generateRailsRequest(WorkspaceUpdateTypePartial), r.generateRailsResponse())
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(existingWorkspaceA.Name, existingWorkspaceA.Namespace))
-	r.Require().NotContains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
-	r.Require().False(r.mockK8sClient.NamespaceExists(ctx, existingWorkspaceA.Namespace))
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
+	r.NotContains(r.runner.stateTracker.persistedVersion, existingWorkspaceA.Name)
+	r.False(r.mockK8sClient.NamespaceExists(ctx, existingWorkspaceA.Namespace))
 }
 
 func (r *ReconcilerTestSuite) TestSuccessfulCreationOfWorkspace() {
@@ -98,13 +102,17 @@ func (r *ReconcilerTestSuite) TestSuccessfulCreationOfWorkspace() {
 
 	workspace := "workspaceA"
 	currentWorkspaceState := r.newMockWorkspaceInAgent(workspace)
+	trackerKeyForWorkspace := terminationTrackerKey{
+		name:      currentWorkspaceState.Name,
+		namespace: currentWorkspaceState.Namespace,
+	}
 
 	// step1: expect nothing in rails req, get creation req in rails resp => expect changes to be applied
 	r.expectRequestAndReturnReply(r.mockApi, r.generateRailsRequest(WorkspaceUpdateTypeFull), r.generateRailsResponse(r.generateInfoForNewWorkspace(workspace)))
 	err := r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(currentWorkspaceState.Name, currentWorkspaceState.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
 
 	// step2: simulate transition to "Starting" step (modify resource version in informer), expect rails req to contain update
 	r.updateMockWorkspaceStateInInformer(r.mockInformer, currentWorkspaceState)
@@ -119,9 +127,9 @@ func (r *ReconcilerTestSuite) TestSuccessfulCreationOfWorkspace() {
 		r.generateRailsResponse(workspaceChangesFromRails),
 	)
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(currentWorkspaceState.Name, currentWorkspaceState.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
 
 	// step3: simulate transition to "Running" step(modify resource version in informer), expect rails req to contain update
 	r.updateMockWorkspaceStateInInformer(r.mockInformer, currentWorkspaceState)
@@ -134,16 +142,16 @@ func (r *ReconcilerTestSuite) TestSuccessfulCreationOfWorkspace() {
 		r.generateRailsResponse(workspaceChangesFromRails),
 	)
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(currentWorkspaceState.Name, currentWorkspaceState.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
 
 	// step4: nothing changes in resource, expect rails req to not contain workspace metadata, expect metadata to be present in tracker (but not in terminated tracker)
 	r.expectRequestAndReturnReply(r.mockApi, r.generateRailsRequest(WorkspaceUpdateTypePartial), r.generateRailsResponse())
 	err = r.runner.Run(ctx)
-	r.Require().NoError(err)
-	r.Require().False(r.runner.terminatingTracker.isTerminating(currentWorkspaceState.Name, currentWorkspaceState.Namespace))
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKeyForWorkspace)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
 }
 
 func (r *ReconcilerTestSuite) TestSuccessfulReportingOfApplierErrors() {
@@ -171,9 +179,9 @@ func (r *ReconcilerTestSuite) TestSuccessfulReportingOfApplierErrors() {
 	err := r.runner.Run(ctx)
 	r.runner.applierErrorTracker.waitForErrors()
 
-	r.Require().NoError(err)
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
-	r.Require().Contains(r.runner.applierErrorTracker.store, errorTrackerKey{
+	r.NoError(err)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.Contains(r.runner.applierErrorTracker.store, errorTrackerKey{
 		name:      currentWorkspaceState.Name,
 		namespace: currentWorkspaceState.Namespace,
 	})
@@ -194,12 +202,45 @@ func (r *ReconcilerTestSuite) TestSuccessfulReportingOfApplierErrors() {
 	err = r.runner.Run(ctx)
 	r.runner.applierErrorTracker.waitForErrors()
 
-	r.Require().NoError(err)
-	r.Require().Contains(r.runner.stateTracker.persistedVersion, workspace)
-	r.Require().NotContains(r.runner.applierErrorTracker.store, errorTrackerKey{
+	r.NoError(err)
+	r.Contains(r.runner.stateTracker.persistedVersion, workspace)
+	r.NotContains(r.runner.applierErrorTracker.store, errorTrackerKey{
 		name:      currentWorkspaceState.Name,
 		namespace: currentWorkspaceState.Namespace,
 	})
+}
+
+func (r *ReconcilerTestSuite) TestTerminationOfATerminatedWorkspace() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	terminatedWorkspace := &parsedWorkspace{
+		Name:      "terminated-workspace",
+		Namespace: "terminated-workspace-namespace",
+	}
+	trackerKey := terminationTrackerKey{
+		name:      terminatedWorkspace.Name,
+		namespace: terminatedWorkspace.Namespace,
+	}
+
+	// In the first cycle, the terminated workspace will be tracked by terminationTracker
+	workspaceChangesFromRails := r.generateInfoForWorkspaceChanges(terminatedWorkspace.Name, WorkspaceStateTerminated, "Running")
+	r.expectRequestAndReturnReply(r.mockApi, r.generateRailsRequest(WorkspaceUpdateTypeFull), r.generateRailsResponse(workspaceChangesFromRails))
+
+	err := r.runner.Run(ctx)
+	r.NoError(err)
+	r.ensureWorkspaceHasTerminationProgress(terminatedWorkspace.Name, terminatedWorkspace.Namespace, TerminationProgressTerminated)
+
+	// In the next partial sync, agent is expected to not find the workspace in the cluster and consequently
+	// inform Rails that the workspace has already been deleted
+	r.expectRequestAndReturnReply(
+		r.mockApi,
+		r.generateRailsRequest(WorkspaceUpdateTypePartial, r.agentInfoWithTerminationProgress(terminatedWorkspace, TerminationProgressTerminated)),
+		r.generateRailsResponse(r.generateInfoForWorkspaceChanges(terminatedWorkspace.Name, WorkspaceStateTerminated, WorkspaceStateTerminated)),
+	)
+	err = r.runner.Run(ctx)
+	r.NoError(err)
+	r.NotContains(r.runner.terminationTracker, trackerKey)
 }
 
 func (r *ReconcilerTestSuite) TestSerializationOfRailsRequests() {
@@ -259,6 +300,16 @@ func (r *ReconcilerTestSuite) TestSerializationOfRailsRequests() {
 		r.Equal(tc.expectedSerialization, string(raw))
 	}
 }
+
+func (r *ReconcilerTestSuite) ensureWorkspaceHasTerminationProgress(name, namespace string, expectedProgress TerminationProgress) {
+	trackerKey := terminationTrackerKey{
+		name:      name,
+		namespace: namespace,
+	}
+
+	r.Contains(r.runner.terminationTracker, trackerKey)
+	r.Equal(expectedProgress, r.runner.terminationTracker[trackerKey])
+}
 func (r *ReconcilerTestSuite) ensureK8sClientReturnsApplierError(err error) {
 	r.mockK8sClient.MockError = err
 }
@@ -278,7 +329,9 @@ func (r *ReconcilerTestSuite) ensureWorkspaceExists(ctx context.Context, stateTr
 		})
 	}
 
-	if !mockK8sClient.NamespaceExists(ctx, existingWorkspaceA.Namespace) {
+	namespaceExists, err := mockK8sClient.NamespaceExists(ctx, existingWorkspaceA.Namespace)
+	r.NoError(err)
+	if !namespaceExists {
 		_ = mockK8sClient.CreateNamespace(ctx, existingWorkspaceA.Namespace)
 	}
 }
@@ -292,10 +345,10 @@ func (r *ReconcilerTestSuite) expectRequestAndReturnReply(mockApi *mock_modagent
 		var request RequestPayload
 
 		raw, err := io.ReadAll(dataReader)
-		r.Require().NoError(err)
+		r.NoError(err)
 
 		err = json.Unmarshal(raw, &request)
-		r.Require().NoError(err)
+		r.NoError(err)
 
 		return request
 	}
@@ -304,15 +357,15 @@ func (r *ReconcilerTestSuite) expectRequestAndReturnReply(mockApi *mock_modagent
 		MakeGitLabRequest(gomock.Any(), "/reconcile", gomock.Any()).Times(1).
 		DoAndReturn(func(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 			requestConfig, err := modagent.ApplyRequestOptions(opts)
-			r.Require().NoError(err)
+			r.NoError(err)
 
 			requestBody := extractRequestPayload(requestConfig.Body)
-			r.Require().Equal(expectedRequest, requestBody)
+			r.Equal(expectedRequest, requestBody)
 
 			var body []byte
 
 			body, err = json.Marshal(response)
-			r.Require().NoError(err)
+			r.NoError(err)
 
 			return &modagent.GitLabResponse{
 				StatusCode: http.StatusCreated,
@@ -423,7 +476,7 @@ func (r *ReconcilerTestSuite) SetupTest() {
 		stateTracker:        newPersistedStateTracker(),
 		informer:            r.mockInformer,
 		k8sClient:           r.mockK8sClient,
-		terminatingTracker:  newPersistedTerminatingWorkspacesTracker(),
+		terminationTracker:  newTerminationTracker(),
 		applierErrorTracker: newErrorTracker(),
 	}
 }
