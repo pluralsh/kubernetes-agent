@@ -23,9 +23,7 @@ const (
 	refreshOverlap = 5 * time.Second
 	stopTimeout    = 5 * time.Second
 	stripeBits     = 8
-)
 
-const (
 	traceTunnelFoundAttr    attribute.Key = "found"
 	traceStoppedTunnelsAttr attribute.Key = "stoppedTunnels"
 	traceAbortedFTRAttr     attribute.Key = "abortedFTR"
