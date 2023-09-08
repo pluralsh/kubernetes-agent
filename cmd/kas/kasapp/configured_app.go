@@ -457,6 +457,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 				rate.Limit(g.PerServerApiRateLimit.RefillRatePerSecond),
 				int(g.PerServerApiRateLimit.BucketSize))
 			opts := []grpc.DialOption{
+				grpc.WithSharedWriteBuffer(true),
 				grpc.WithChainStreamInterceptor(
 					streamClientProm,
 					otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),

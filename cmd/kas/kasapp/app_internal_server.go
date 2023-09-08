@@ -31,6 +31,7 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 
 	// Construct connection to internal gRPC server
 	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
+		grpc.WithSharedWriteBuffer(true),
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
@@ -50,6 +51,7 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	return &internalServer{
 		server: grpc.NewServer(
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
+			grpc.SharedWriteBuffer(true),
 			grpc.ChainStreamInterceptor(
 				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
 					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 1. trace
