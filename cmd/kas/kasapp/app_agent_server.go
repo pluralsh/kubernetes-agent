@@ -90,6 +90,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
+		grpc.SharedWriteBuffer(true),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
 			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp),
