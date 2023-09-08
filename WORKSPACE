@@ -17,9 +17,9 @@ http_archive(
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "29218f8e0cebe583643cbf93cae6f971be8a2484cdcfa1e45057658df8d54002",
+    sha256 = "d3fa66a39028e97d76f9e2db8f1b0c11c099e8e01bf363a923074784e451f809",
     urls = [
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.32.0/bazel-gazelle-v0.32.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.33.0/bazel-gazelle-v0.33.0.tar.gz",
     ],
 )
 
@@ -89,9 +89,9 @@ http_archive(
 
 http_archive(
     name = "aspect_bazel_lib",
-    sha256 = "271d5f38c218a0c2fe2e94f94dfc0b497e931cbb335348bf1695015191be5367",
-    strip_prefix = "bazel-lib-1.34.1",
-    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.34.1/bazel-lib-v1.34.1.tar.gz",
+    sha256 = "09b51a9957adc56c905a2c980d6eb06f04beb1d85c665b467f659871403cf423",
+    strip_prefix = "bazel-lib-1.34.5",
+    url = "https://github.com/aspect-build/bazel-lib/releases/download/v1.34.5/bazel-lib-v1.34.5.tar.gz",
 )
 
 # Required for proto files. Needs to be compatible with generated code in org_golang_google_genproto.
