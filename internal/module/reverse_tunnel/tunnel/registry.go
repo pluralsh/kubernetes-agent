@@ -27,7 +27,6 @@ const (
 
 const (
 	traceTunnelFoundAttr    attribute.Key = "found"
-	traceDeletedKeysAttr    attribute.Key = "deletedKeys"
 	traceStoppedTunnelsAttr attribute.Key = "stoppedTunnels"
 	traceAbortedFTRAttr     attribute.Key = "abortedFTR"
 )
