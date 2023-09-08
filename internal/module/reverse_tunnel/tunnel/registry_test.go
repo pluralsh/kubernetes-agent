@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"io"
-	"sync"
 	"testing"
 	"time"
 
@@ -262,8 +261,6 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		Context().
 		Return(context.Background()).
 		MinTimes(1)
-	var regWg sync.WaitGroup
-	regWg.Add(2)
 	d1 := descriptor()
 	connectServer1.EXPECT().
 		Recv().
@@ -279,14 +276,12 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 				Descriptor_: descriptor(),
 			},
 		}, nil)
-	tunnelTracker.EXPECT().
-		RegisterTunnel(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, agentId int64) {
-			regWg.Done()
-		}).Times(2)
-	tunnelTracker.EXPECT().
-		UnregisterTunnel(gomock.Any(), gomock.Any()).
-		Times(2)
+	gomock.InOrder(
+		tunnelTracker.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelTracker.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
 	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
 	require.NoError(t, err)
 	defer r.stopInternal(context.Background())
@@ -304,7 +299,12 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		assert.NoError(t, r.HandleTunnel(ctx2, agentInfo, connectServer2))
 	})
 	// wait for both to register
-	regWg.Wait()
+	agentStripe := r.stripes.GetPointer(agentInfo.Id)
+	assert.Eventually(t, func() bool {
+		agentStripe.mu.Lock()
+		defer agentStripe.mu.Unlock()
+		return len(agentStripe.tunsByAgentId[agentInfo.Id]) == 2
+	}, time.Second, 10*time.Millisecond)
 	found, th := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	assert.True(t, found)
 	tun, err := th.Get(context.Background())
@@ -319,8 +319,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		t.FailNow()
 	}
 	assert.Eventually(t, func() bool {
-		r.stripes.GetPointer(agentInfo.Id).mu.Lock()
-		defer r.stripes.GetPointer(agentInfo.Id).mu.Unlock()
+		agentStripe.mu.Lock()
+		defer agentStripe.mu.Unlock()
 		return tun.(*tunnelImpl).state == stateContextDone
 	}, time.Second, 10*time.Millisecond)
 	tun.Done(context.Background())

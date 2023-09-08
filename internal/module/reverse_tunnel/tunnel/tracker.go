@@ -34,40 +34,23 @@ type Tracker interface {
 }
 
 type RedisTracker struct {
-	ownPrivateApiUrl      string
-	tunnelsByAgentIdCount map[int64]uint16
-	tunnelsByAgentId      redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
+	ownPrivateApiUrl string
+	tunnelsByAgentId redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
 }
 
 func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
-		ownPrivateApiUrl:      ownPrivateApiUrl,
-		tunnelsByAgentIdCount: make(map[int64]uint16),
-		tunnelsByAgentId:      redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
+		ownPrivateApiUrl: ownPrivateApiUrl,
+		tunnelsByAgentId: redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
 	}
 }
 
 func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
-	cnt := t.tunnelsByAgentIdCount[agentId]
-	cnt++
-	t.tunnelsByAgentIdCount[agentId] = cnt
-	if cnt == 1 {
-		// First tunnel for this agentId
-		return t.tunnelsByAgentId.Set(ctx, agentId, t.ownPrivateApiUrl, nil)
-	}
-	return nil
+	return t.tunnelsByAgentId.Set(ctx, agentId, t.ownPrivateApiUrl, nil)
 }
 
 func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
-	cnt := t.tunnelsByAgentIdCount[agentId]
-	cnt--
-	if cnt == 0 {
-		delete(t.tunnelsByAgentIdCount, agentId)
-		return t.tunnelsByAgentId.Unset(ctx, agentId, t.ownPrivateApiUrl)
-	} else {
-		t.tunnelsByAgentIdCount[agentId] = cnt
-		return nil
-	}
+	return t.tunnelsByAgentId.Unset(ctx, agentId, t.ownPrivateApiUrl)
 }
 
 func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]string, error) {

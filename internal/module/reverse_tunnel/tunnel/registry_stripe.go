@@ -237,15 +237,18 @@ func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnel
 	}
 
 	// 2. Register the tunnel
+	var err error
 	toReg.state = stateReady
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
 		tunsByAgentId = make(map[*tunnelImpl]struct{}, 1)
 		r.tunsByAgentId[agentId] = tunsByAgentId
+		// First tunnel for this agentId.
+		// Don't pass the original context to always register
+		err = r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), agentId)
 	}
 	tunsByAgentId[toReg] = struct{}{}
-	// don't pass the original context to always register
-	return r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), agentId)
+	return err
 }
 
 func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tunnelImpl) error {
@@ -254,9 +257,11 @@ func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tu
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
 		delete(r.tunsByAgentId, agentId)
+		// Last tunnel for this agentId.
+		// Don't pass the original context to always unregister
+		return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
 	}
-	// don't pass the original context to always unregister
-	return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
+	return nil
 }
 
 func (r *registryStripe) onTunnelForward(tun *tunnelImpl) error {

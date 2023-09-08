@@ -32,17 +32,6 @@ func TestRegisterConnection(t *testing.T) {
 	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
-func TestRegisterConnection_TwoConnections(t *testing.T) {
-	r, hash := setupTracker(t)
-
-	hash.EXPECT().
-		Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any())
-
-	// Two registrations result in a single Set() call
-	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // first
-	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId)) // second
-}
-
 func TestUnregisterConnection(t *testing.T) {
 	r, hash := setupTracker(t)
 
@@ -64,25 +53,16 @@ func TestUnregisterConnection_TwoConnections(t *testing.T) {
 		hash.EXPECT().
 			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
 		hash.EXPECT().
+			Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any()),
+		hash.EXPECT().
+			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
+		hash.EXPECT().
 			Unset(gomock.Any(), testhelpers.AgentId, selfUrl),
 	)
 
 	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
-}
-
-// This test ensures Unset() is only called when there are no registered connections i.e. it is NOT called
-// for two RegisterTunnel() and a single UnregisterTunnel().
-func TestUnregisterConnection_TwoConnections_OneSet(t *testing.T) {
-	r, hash := setupTracker(t)
-
-	hash.EXPECT().
-		Set(gomock.Any(), testhelpers.AgentId, selfUrl, gomock.Any())
-
-	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
-	assert.NoError(t, r.RegisterTunnel(context.Background(), testhelpers.AgentId))
 	assert.NoError(t, r.UnregisterTunnel(context.Background(), testhelpers.AgentId))
 }
 
@@ -122,8 +102,7 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 	ctrl := gomock.NewController(t)
 	hash := mock_redis.NewMockExpiringHashInterface[int64, string](ctrl)
 	return &RedisTracker{
-		ownPrivateApiUrl:      selfUrl,
-		tunnelsByAgentIdCount: make(map[int64]uint16),
-		tunnelsByAgentId:      hash,
+		ownPrivateApiUrl: selfUrl,
+		tunnelsByAgentId: hash,
 	}, hash
 }
