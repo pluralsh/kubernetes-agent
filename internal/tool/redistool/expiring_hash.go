@@ -22,10 +22,10 @@ const (
 type KeyToRedisKey[K any] func(key K) string
 type ScanCallback func(rawHashKey string, value []byte, err error) (bool /* done */, error)
 
-// ExpiringHashInterface represents a two-level hash: key K1 -> hashKey K2 -> value []byte.
+// ExpiringHash represents a two-level hash: key K1 -> hashKey K2 -> value []byte.
 // key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
 // It is not safe for concurrent use.
-type ExpiringHashInterface[K1 any, K2 any] interface {
+type ExpiringHash[K1 any, K2 any] interface {
 	Set(ctx context.Context, key K1, hashKey K2, value []byte) error
 	Unset(ctx context.Context, key K1, hashKey K2) error
 	// Forget only removes the item from the in-memory map.
@@ -48,7 +48,7 @@ type ExpiringHashInterface[K1 any, K2 any] interface {
 	Refresh(ctx context.Context, nextRefresh time.Time) error
 }
 
-type ExpiringHash[K1 comparable, K2 comparable] struct {
+type RedisExpiringHash[K1 comparable, K2 comparable] struct {
 	client         rueidis.Client
 	key1ToRedisKey KeyToRedisKey[K1]
 	key2ToRedisKey KeyToRedisKey[K2]
@@ -57,8 +57,8 @@ type ExpiringHash[K1 comparable, K2 comparable] struct {
 }
 
 func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1ToRedisKey KeyToRedisKey[K1],
-	key2ToRedisKey KeyToRedisKey[K2], ttl time.Duration) *ExpiringHash[K1, K2] {
-	return &ExpiringHash[K1, K2]{
+	key2ToRedisKey KeyToRedisKey[K2], ttl time.Duration) *RedisExpiringHash[K1, K2] {
+	return &RedisExpiringHash[K1, K2]{
 		client:         client,
 		key1ToRedisKey: key1ToRedisKey,
 		key2ToRedisKey: key2ToRedisKey,
@@ -67,7 +67,7 @@ func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1To
 	}
 }
 
-func (h *ExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, value []byte) error {
+func (h *RedisExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, value []byte) error {
 	ev := &ExpiringValue{
 		ExpiresAt: time.Now().Add(h.ttl).Unix(),
 		Value:     value,
@@ -81,17 +81,17 @@ func (h *ExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2, valu
 	})
 }
 
-func (h *ExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
+func (h *RedisExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
 	h.unsetData(key, hashKey)
 	hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
 	return h.client.Do(ctx, hdelCmd).Error()
 }
 
-func (h *ExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {
+func (h *RedisExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {
 	h.unsetData(key, hashKey)
 }
 
-func (h *ExpiringHash[K1, K2]) Len(ctx context.Context, key K1) (size int64, retErr error) {
+func (h *RedisExpiringHash[K1, K2]) Len(ctx context.Context, key K1) (size int64, retErr error) {
 	hlenCmd := h.client.B().Hlen().Key(h.key1ToRedisKey(key)).Build()
 	return h.client.Do(ctx, hlenCmd).AsInt64()
 }
@@ -128,7 +128,7 @@ func scan(ctx context.Context, redisKey string, c rueidis.CoreClient, cb scanCb)
 	return keysToDelete, nil
 }
 
-func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error) {
+func (h *RedisExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error) {
 	now := time.Now().Unix()
 	redisKey := h.key1ToRedisKey(key)
 	keysToDelete, scanErr := scan(ctx, redisKey, h.client,
@@ -161,7 +161,7 @@ func (h *ExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback
 	return len(keysToDelete), scanErr
 }
 
-func (h *ExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */, error) {
+func (h *RedisExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */, error) {
 	// Copy keys for safe concurrent access.
 	keys := make([]K1, 0, len(h.data))
 	for key := range h.data {
@@ -228,7 +228,7 @@ func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (in
 	return keysDeleted, errors.Join(errs...)
 }
 
-func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
+func (h *RedisExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 	var toDel []string
 	keysDeleted := 0
 	cmds := make([]rueidis.Completed, 0, len(h.data))
@@ -245,7 +245,7 @@ func (h *ExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 	return keysDeleted, errors.Join(errs...)
 }
 
-func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
+func (h *RedisExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
 	var wg errgroup.Group
 	for key, hashData := range h.data {
 		key := key
@@ -262,7 +262,7 @@ func (h *ExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Tim
 	return wg.Wait()
 }
 
-func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
+func (h *RedisExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
 	var args []refreshKey[K2] // nolint:prealloc
 	expiresAt := time.Now().Add(h.ttl).Unix()
 	nextRefreshUnix := nextRefresh.Unix()
@@ -280,7 +280,7 @@ func (h *ExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue,
 	return args
 }
 
-func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
+func (h *RedisExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
 	var errs []error
 	redisKey := h.key1ToRedisKey(key)
 	hsetCmd := h.client.B().Hset().Key(redisKey).FieldValue()
@@ -309,7 +309,7 @@ func (h *ExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []re
 	return errors.Join(errs...)
 }
 
-func (h *ExpiringHash[K1, K2]) setData(key K1, hashKey K2, value *ExpiringValue) {
+func (h *RedisExpiringHash[K1, K2]) setData(key K1, hashKey K2, value *ExpiringValue) {
 	nm := h.data[key]
 	if nm == nil {
 		nm = make(map[K2]*ExpiringValue, 1)
@@ -318,7 +318,7 @@ func (h *ExpiringHash[K1, K2]) setData(key K1, hashKey K2, value *ExpiringValue)
 	nm[hashKey] = value
 }
 
-func (h *ExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
+func (h *RedisExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
 	nm := h.data[key]
 	delete(nm, hashKey)
 	if len(nm) == 0 {

@@ -35,7 +35,7 @@ type Tracker interface {
 
 type RedisTracker struct {
 	ownPrivateApiUrl string
-	tunnelsByAgentId redistool.ExpiringHashInterface[int64, string] // agentId -> kas URL -> nil
+	tunnelsByAgentId redistool.ExpiringHash[int64, string] // agentId -> kas URL -> nil
 }
 
 func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {

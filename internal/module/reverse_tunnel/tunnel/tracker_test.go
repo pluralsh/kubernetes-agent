@@ -98,9 +98,9 @@ func TestKasUrlsByAgentId_ScanError(t *testing.T) {
 	assert.Empty(t, kasUrls)
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, string]) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHash[int64, string]) {
 	ctrl := gomock.NewController(t)
-	hash := mock_redis.NewMockExpiringHashInterface[int64, string](ctrl)
+	hash := mock_redis.NewMockExpiringHash[int64, string](ctrl)
 	return &RedisTracker{
 		ownPrivateApiUrl: selfUrl,
 		tunnelsByAgentId: hash,

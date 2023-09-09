@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	_ ExpiringHashInterface[int, int] = (*ExpiringHash[int, int])(nil)
+	_ ExpiringHash[int, int] = (*RedisExpiringHash[int, int])(nil)
 )
 
 func TestExpiringHash_Set(t *testing.T) {
@@ -421,7 +421,7 @@ func TestPrefixedInt64Key(t *testing.T) {
 	assert.Equal(t, prefix+"\x88\x77\x66\x55\x44\x33\x22\x11", key)
 }
 
-func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], string, []byte) {
+func setupHash(t *testing.T) (rueidis.Client, *RedisExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(client.Close)

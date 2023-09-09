@@ -417,12 +417,12 @@ func TestGetConnectedAgentsCount_LenError(t *testing.T) {
 	assert.Zero(t, size)
 }
 
-func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_redis.MockExpiringHashInterface[int64, int64], *mock_tool.MockErrReporter, *ConnectedAgentInfo) {
+func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHash[int64, int64], *mock_redis.MockExpiringHash[int64, int64], *mock_redis.MockExpiringHash[int64, int64], *mock_tool.MockErrReporter, *ConnectedAgentInfo) {
 	ctrl := gomock.NewController(t)
 	rep := mock_tool.NewMockErrReporter(ctrl)
-	connectedAgents := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
-	byAgentId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
-	byProjectId := mock_redis.NewMockExpiringHashInterface[int64, int64](ctrl)
+	connectedAgents := mock_redis.NewMockExpiringHash[int64, int64](ctrl)
+	byAgentId := mock_redis.NewMockExpiringHash[int64, int64](ctrl)
+	byProjectId := mock_redis.NewMockExpiringHash[int64, int64](ctrl)
 	tr := &RedisTracker{
 		log:                    zaptest.NewLogger(t),
 		errRep:                 rep,
