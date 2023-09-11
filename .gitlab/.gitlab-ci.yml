@@ -21,8 +21,6 @@ variables:
   # must use image digest to invalidate cache if image is updated.
   BUILD_IMAGE_SHA: "latest@sha256:2cc13054b82f3bbb2207859ae8f69b3f51632425778da96e6c76bbacbf2835a1"
   FIPS_BUILD_IMAGE_SHA: "latest-fips@sha256:d3e47f57307544abd062ced18cf36f83161891e3b335a89a5f5c5d35e7a841c9"
-  SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
-  CS_MAJOR_VERSION: 2
   DOCKER_VERSION: "24.0.6" # https://hub.docker.com/_/docker
   DOCKER_TLS_CERTDIR: "/certs"
 
