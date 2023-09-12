@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"github.com/redis/rueidis"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -253,67 +252,26 @@ func (h *RedisExpiringHash[K1, K2]) Clear(ctx context.Context) (int, error) {
 }
 
 func (h *RedisExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh time.Time) error {
-	var wg errgroup.Group
-	for key, hashData := range h.data {
-		key := key
-		hashData := hashData
-		wg.Go(func() error {
-			args := h.prepareRefreshKey(hashData, nextRefresh)
-			if len(args) == 0 {
-				// Nothing to do for this key.
-				return nil
-			}
-			return h.refreshKey(ctx, key, args)
-		})
-	}
-	return wg.Wait()
-}
-
-func (h *RedisExpiringHash[K1, K2]) prepareRefreshKey(hashData map[K2]*ExpiringValue, nextRefresh time.Time) []refreshKey[K2] {
-	var args []refreshKey[K2] // nolint:prealloc
 	expiresAt := time.Now().Add(h.ttl).Unix()
 	nextRefreshUnix := nextRefresh.Unix()
-	for hashKey, value := range hashData {
-		if value.ExpiresAt > nextRefreshUnix {
-			// Expires after next refresh. Will be refreshed later, no need to refresh now.
-			continue
+	b := h.api.SetBuilder()
+	var kvs []BuilderKV[K2]
+	for key, hashData := range h.data {
+		kvs = kvs[:0] // reuse backing array, but reset length
+		for hashKey, value := range hashData {
+			if value.ExpiresAt > nextRefreshUnix {
+				// Expires after next refresh. Will be refreshed later, no need to refresh now.
+				continue
+			}
+			value.ExpiresAt = expiresAt
+			kvs = append(kvs, BuilderKV[K2]{
+				HashKey: hashKey,
+				Value:   value,
+			})
 		}
-		value.ExpiresAt = expiresAt
-		args = append(args, refreshKey[K2]{
-			hashKey: hashKey,
-			value:   value,
-		})
+		b.Set(key, h.ttl, kvs...)
 	}
-	return args
-}
-
-func (h *RedisExpiringHash[K1, K2]) refreshKey(ctx context.Context, key K1, args []refreshKey[K2]) error {
-	var errs []error
-	redisKey := h.key1ToRedisKey(key)
-	hsetCmd := h.client.B().Hset().Key(redisKey).FieldValue()
-	empty := true
-	// Iterate indexes to avoid copying the value which has inlined proto message, which shouldn't be copied.
-	for i := range args {
-		redisValue, err := proto.Marshal(args[i].value)
-		if err != nil {
-			// This should never happen
-			errs = append(errs, fmt.Errorf("failed to marshal ExpiringValue: %w", err))
-			continue // skip this value
-		}
-		hsetCmd.FieldValue(h.key2ToRedisKey(args[i].hashKey), rueidis.BinaryString(redisValue))
-		empty = false
-	}
-	if empty {
-		return errors.Join(errs...) // nothing to do, all skipped. Return any accumulated errors.
-	}
-	resp := h.client.DoMulti(ctx,
-		h.client.B().Multi().Build(),
-		hsetCmd.Build(),
-		h.client.B().Pexpire().Key(redisKey).Milliseconds(h.ttl.Milliseconds()).Build(),
-		h.client.B().Exec().Build(),
-	)
-	errs = append(errs, MultiErrors(resp)...)
-	return errors.Join(errs...)
+	return b.Do(ctx)
 }
 
 func (h *RedisExpiringHash[K1, K2]) setData(key K1, hashKey K2, value *ExpiringValue) {
@@ -331,11 +289,6 @@ func (h *RedisExpiringHash[K1, K2]) unsetData(key K1, hashKey K2) {
 	if len(nm) == 0 {
 		delete(h.data, key)
 	}
-}
-
-type refreshKey[K2 any] struct {
-	hashKey K2
-	value   *ExpiringValue
 }
 
 func PrefixedInt64Key(prefix string, key int64) string {
