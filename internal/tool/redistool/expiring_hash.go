@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"time"
 	"unsafe"
 
@@ -134,36 +133,7 @@ func scan(ctx context.Context, redisKey string, c rueidis.CoreClient, cb scanCb)
 }
 
 func (h *RedisExpiringHash[K1, K2]) Scan(ctx context.Context, key K1, cb ScanCallback) (int /* keysDeleted */, error) {
-	now := time.Now().Unix()
-	redisKey := h.key1ToRedisKey(key)
-	keysToDelete, scanErr := scan(ctx, redisKey, h.client,
-		func(k, v string) (bool /*done*/, bool /*delete*/, error) {
-			var msg ExpiringValue
-			// Avoid creating a temporary copy
-			vBytes := unsafe.Slice(unsafe.StringData(v), len(v))
-			err := proto.Unmarshal(vBytes, &msg)
-			if err != nil {
-				done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
-				return done, false, cbErr
-			}
-			if msg.ExpiresAt < now {
-				return false, true, nil
-			}
-			done, cbErr := cb(k, msg.Value, nil)
-			return done, false, cbErr
-		})
-	if len(keysToDelete) == 0 {
-		return 0, scanErr
-	}
-	hdelCmd := h.client.B().Hdel().Key(redisKey).Field(keysToDelete...).Build()
-	err := h.client.Do(ctx, hdelCmd).Error()
-	if err != nil {
-		if scanErr != nil {
-			return 0, scanErr
-		}
-		return 0, err
-	}
-	return len(keysToDelete), scanErr
+	return h.api.Scan(ctx, key, cb)
 }
 
 func (h *RedisExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDeleted */, error) {
