@@ -1,6 +1,9 @@
 package redistool
 
 import (
+	"context"
+	"time"
+
 	"github.com/redis/rueidis"
 )
 
@@ -8,6 +11,7 @@ import (
 // key identifies the hash; hashKey identifies the key in the hash; value is the value for the hashKey.
 type ExpiringHashApi[K1 any, K2 any] interface {
 	SetBuilder() SetBuilder[K1, K2]
+	Unset(ctx context.Context, key K1, hashKey K2) error
 }
 
 type RedisExpiringHashApi[K1 any, K2 any] struct {
@@ -22,4 +26,9 @@ func (h *RedisExpiringHashApi[K1, K2]) SetBuilder() SetBuilder[K1, K2] {
 		key1ToRedisKey: h.Key1ToRedisKey,
 		key2ToRedisKey: h.Key2ToRedisKey,
 	}
+}
+
+func (h *RedisExpiringHashApi[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
+	hdelCmd := h.Client.B().Hdel().Key(h.Key1ToRedisKey(key)).Field(h.Key2ToRedisKey(hashKey)).Build()
+	return h.Client.Do(ctx, hdelCmd).Error()
 }

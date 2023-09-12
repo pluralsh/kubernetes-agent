@@ -89,8 +89,7 @@ func (h *RedisExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2,
 
 func (h *RedisExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {
 	h.unsetData(key, hashKey)
-	hdelCmd := h.client.B().Hdel().Key(h.key1ToRedisKey(key)).Field(h.key2ToRedisKey(hashKey)).Build()
-	return h.client.Do(ctx, hdelCmd).Error()
+	return h.api.Unset(ctx, key, hashKey)
 }
 
 func (h *RedisExpiringHash[K1, K2]) Forget(key K1, hashKey K2) {
