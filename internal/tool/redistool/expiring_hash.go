@@ -53,6 +53,7 @@ type RedisExpiringHash[K1 comparable, K2 comparable] struct {
 	key1ToRedisKey KeyToRedisKey[K1]
 	key2ToRedisKey KeyToRedisKey[K2]
 	ttl            time.Duration
+	api            RedisExpiringHashApi[K1, K2]
 	data           map[K1]map[K2]*ExpiringValue // key -> hash key -> value
 }
 
@@ -63,7 +64,12 @@ func NewRedisExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, k
 		key1ToRedisKey: key1ToRedisKey,
 		key2ToRedisKey: key2ToRedisKey,
 		ttl:            ttl,
-		data:           make(map[K1]map[K2]*ExpiringValue),
+		api: RedisExpiringHashApi[K1, K2]{
+			Client:         client,
+			Key1ToRedisKey: key1ToRedisKey,
+			Key2ToRedisKey: key2ToRedisKey,
+		},
+		data: make(map[K1]map[K2]*ExpiringValue),
 	}
 }
 
@@ -73,12 +79,13 @@ func (h *RedisExpiringHash[K1, K2]) Set(ctx context.Context, key K1, hashKey K2,
 		Value:     value,
 	}
 	h.setData(key, hashKey, ev)
-	return h.refreshKey(ctx, key, []refreshKey[K2]{
-		{
-			hashKey: hashKey,
-			value:   ev,
-		},
+
+	b := h.api.SetBuilder()
+	b.Set(key, h.ttl, BuilderKV[K2]{
+		HashKey: hashKey,
+		Value:   ev,
 	})
+	return b.Do(ctx)
 }
 
 func (h *RedisExpiringHash[K1, K2]) Unset(ctx context.Context, key K1, hashKey K2) error {

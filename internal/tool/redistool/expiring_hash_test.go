@@ -24,7 +24,8 @@ const (
 )
 
 var (
-	_ ExpiringHash[int, int] = (*RedisExpiringHash[int, int])(nil)
+	_ ExpiringHash[int, int]    = (*RedisExpiringHash[int, int])(nil)
+	_ ExpiringHashApi[int, int] = (*RedisExpiringHashApi[int, int])(nil)
 )
 
 func TestExpiringHash_Set(t *testing.T) {
