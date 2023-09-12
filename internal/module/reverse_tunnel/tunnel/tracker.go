@@ -41,7 +41,7 @@ type RedisTracker struct {
 func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
 		ownPrivateApiUrl: ownPrivateApiUrl,
-		tunnelsByAgentId: redistool.NewExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
+		tunnelsByAgentId: redistool.NewRedisExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
 	}
 }
 

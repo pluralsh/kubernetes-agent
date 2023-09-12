@@ -166,7 +166,7 @@ func TestExpiringHash_GCContinuesOnConflict(t *testing.T) {
 			}),
 	)
 
-	hash := NewExpiringHash[string, string](client, s2s, s2s, ttl)
+	hash := NewRedisExpiringHash[string, string](client, s2s, s2s, ttl)
 	err = hash.Set(context.Background(), "1", "key", nil)
 	require.NoError(t, err)
 	err = hash.Set(context.Background(), "2", "key", nil)
@@ -429,7 +429,7 @@ func setupHash(t *testing.T) (rueidis.Client, *RedisExpiringHash[string, int64],
 	_, err := rand.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash[string, int64](client, func(key string) string {
+	hash := NewRedisExpiringHash[string, int64](client, func(key string) string {
 		return key
 	}, int64ToStr, ttl)
 	return client, hash, key, []byte{1, 2, 3}

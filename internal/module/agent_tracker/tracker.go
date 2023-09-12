@@ -62,9 +62,9 @@ func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Cl
 		errRep:                 errRep,
 		refreshPeriod:          refreshPeriod,
 		gcPeriod:               gcPeriod,
-		connectionsByAgentId:   redistool.NewExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectionsByProjectId: redistool.NewExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectedAgents:        redistool.NewExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectionsByAgentId:   redistool.NewRedisExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectionsByProjectId: redistool.NewRedisExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectedAgents:        redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 

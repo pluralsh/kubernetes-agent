@@ -56,7 +56,7 @@ type RedisExpiringHash[K1 comparable, K2 comparable] struct {
 	data           map[K1]map[K2]*ExpiringValue // key -> hash key -> value
 }
 
-func NewExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1ToRedisKey KeyToRedisKey[K1],
+func NewRedisExpiringHash[K1 comparable, K2 comparable](client rueidis.Client, key1ToRedisKey KeyToRedisKey[K1],
 	key2ToRedisKey KeyToRedisKey[K2], ttl time.Duration) *RedisExpiringHash[K1, K2] {
 	return &RedisExpiringHash[K1, K2]{
 		client:         client,
