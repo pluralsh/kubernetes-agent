@@ -2,7 +2,6 @@ package grpctool
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -40,7 +39,19 @@ func RequestCanceled(err error) bool {
 		if code == codes.Canceled {
 			return true
 		}
-		err = errors.Unwrap(err)
+		switch x := err.(type) { // nolint:errorlint
+		case interface{ Unwrap() error }:
+			err = x.Unwrap()
+		case interface{ Unwrap() []error }: // support errors produced by errors.Join()
+			for _, err = range x.Unwrap() {
+				if RequestCanceled(err) {
+					return true
+				}
+			}
+			return false
+		default:
+			return false
+		}
 	}
 	return false
 }
@@ -54,7 +65,19 @@ func RequestTimedOut(err error) bool {
 		if code == codes.DeadlineExceeded {
 			return true
 		}
-		err = errors.Unwrap(err)
+		switch x := err.(type) { // nolint:errorlint
+		case interface{ Unwrap() error }:
+			err = x.Unwrap()
+		case interface{ Unwrap() []error }: // support errors produced by errors.Join()
+			for _, err = range x.Unwrap() {
+				if RequestTimedOut(err) {
+					return true
+				}
+			}
+			return false
+		default:
+			return false
+		}
 	}
 	return false
 }
