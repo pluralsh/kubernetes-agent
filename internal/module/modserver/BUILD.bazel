@@ -11,6 +11,7 @@ go_library(
     visibility = [
         "//cmd/kas:__subpackages__",
         "//internal/module/agent_configuration/server:__subpackages__",
+        "//internal/module/agent_registrar/server:__subpackages__",
         "//internal/module/agent_tracker/server:__subpackages__",
         "//internal/module/configuration_project/rpc:__subpackages__",
         "//internal/module/configuration_project/server:__subpackages__",

@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
+	agent_registrar_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
 	configuration_project_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/configuration_project/server"
@@ -244,6 +245,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			UsageTracker: usageTracker,
 		},
 		&gitlab_access_server.Factory{},
+		&agent_registrar_server.Factory{
+			AgentRegisterer: agentTracker,
+		},
 		&agent_tracker_server.Factory{
 			AgentQuerier: agentTracker,
 		},

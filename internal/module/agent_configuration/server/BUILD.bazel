@@ -61,7 +61,6 @@ go_custom_test(
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
-        "//pkg/entity",
         "//pkg/event",
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",

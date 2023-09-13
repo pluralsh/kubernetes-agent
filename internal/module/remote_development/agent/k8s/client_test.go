@@ -17,7 +17,6 @@ import (
 
 func setupK8sClient(t *testing.T) *K8sClient {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockFactory := mock_k8s.NewMockFactory(ctrl)
 	mockFactory.EXPECT().KubernetesClientSet().AnyTimes()

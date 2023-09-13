@@ -19,6 +19,7 @@ go_library(
         "//internal/tool/retry",
         "//internal/tool/syncz",
         "//internal/tool/testing/testhelpers",
+        "//pkg/entity",
         "//pkg/event",
         "@org_uber_go_mock//gomock",
         "@org_uber_go_zap//:zap",
