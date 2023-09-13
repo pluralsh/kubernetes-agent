@@ -27,7 +27,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
@@ -174,7 +173,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			Return(configToBytes(t, configFile), nil),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
@@ -195,7 +194,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
 		CommitId:  revision, // same commit id
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
@@ -212,7 +211,7 @@ func TestGetConfiguration_RefNotFound(t *testing.T) {
 			Return(nil, gitaly.NewNotFoundError("Bla", "some/ref")),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	require.EqualError(t, err, "rpc error: code = NotFound desc = Config: repository poll failed: NotFound: Bla: file/directory/ref not found: some/ref")
 }
@@ -249,7 +248,7 @@ func TestGetConfiguration_ConfigNotFound(t *testing.T) {
 			Return(nil, gitaly.NewNotFoundError("Bla", "some/file")),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
@@ -268,7 +267,7 @@ func TestGetConfiguration_EmptyRepository(t *testing.T) {
 			}, nil),
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
@@ -305,7 +304,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr))),
 			)
 			err := s.GetConfiguration(&rpc.ConfigurationRequest{
-				AgentMeta: agentMeta(),
+				AgentMeta: mock_modserver.AgentMeta(),
 			}, resp)
 			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = Config: agent configuration file: %v", gitalyErr))
 		})
@@ -318,7 +317,7 @@ func TestGetConfiguration_GetAgentInfo_Error(t *testing.T) {
 		AgentInfo(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.PermissionDenied, "expected err")) // code doesn't matter, we test that we return on error
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
 }
@@ -334,7 +333,7 @@ func TestGetConfiguration_GetAgentInfo_RetriableError(t *testing.T) {
 			Return(nil, status.Error(codes.PermissionDenied, "expected err")), // code doesn't matter, we test that we return on error
 	)
 	err := s.GetConfiguration(&rpc.ConfigurationRequest{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 	}, resp)
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = expected err")
 }
@@ -368,7 +367,7 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 	s, ctrl, gitalyPool, resp, mockRpcApi, mockApi, agentTracker := setupServerBare(t, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
-		AgentMeta: agentMeta(),
+		AgentMeta: mock_modserver.AgentMeta(),
 		AgentId:   agentInfo.Id,
 		ProjectId: agentInfo.ProjectId,
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
@@ -406,14 +405,5 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 				},
 			},
 		},
-	}
-}
-
-func agentMeta() *entity.AgentMeta {
-	return &entity.AgentMeta{
-		Version:      "v1.2.3",
-		CommitId:     "32452345",
-		PodNamespace: "ns1",
-		PodName:      "n1",
 	}
 }

@@ -18,14 +18,16 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	rpc.RegisterAgentTrackerServer(config.ApiServer, &server{
-		agentQuerier: f.AgentQuerier,
-	})
 	connectedAgentsCountGaugeFunc := f.constructConnectedAgentsCountGaugeFunc()
 	err := metric.Register(config.Registerer, connectedAgentsCountGaugeFunc)
 	if err != nil {
 		return nil, err
 	}
+
+	rpc.RegisterAgentTrackerServer(config.ApiServer, &server{
+		agentQuerier: f.AgentQuerier,
+	})
+
 	return &module{}, nil
 }
 

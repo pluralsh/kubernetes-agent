@@ -45,6 +45,7 @@ go_library(
         "//internal/gitlab",
         "//internal/gitlab/api",
         "//internal/module/agent_configuration/server",
+        "//internal/module/agent_registrar/server",
         "//internal/module/agent_tracker",
         "//internal/module/agent_tracker/server",
         "//internal/module/configuration_project/server",
