@@ -6,6 +6,8 @@ go_library(
     srcs = [
         "doc.go",
         "expiring_hash.go",
+        "expiring_hash_api.go",
+        "expiring_hash_api_set_builder.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_redis",
     visibility = ["//:__subpackages__"],

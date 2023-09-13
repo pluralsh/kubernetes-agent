@@ -7,6 +7,7 @@ import (
 
 	"github.com/redis/rueidis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	"k8s.io/utils/clock"
 )
 
 type Querier interface {
@@ -21,11 +22,11 @@ type Querier interface {
 // Not safe for concurrent use.
 type Registerer interface {
 	// RegisterTunnel registers tunnel with the tracker.
-	RegisterTunnel(ctx context.Context, agentId int64) error
+	RegisterTunnel(ctx context.Context, ttl time.Duration, agentId int64) error
 	// UnregisterTunnel unregisters tunnel with the tracker.
 	UnregisterTunnel(ctx context.Context, agentId int64) error
 	// Refresh refreshes registered tunnels in the underlying storage.
-	Refresh(ctx context.Context, nextRefresh time.Time) error
+	Refresh(ctx context.Context, ttl time.Duration, agentIds ...int64) error
 }
 
 type Tracker interface {
@@ -35,18 +36,26 @@ type Tracker interface {
 
 type RedisTracker struct {
 	ownPrivateApiUrl string
-	tunnelsByAgentId redistool.ExpiringHash[int64, string] // agentId -> kas URL -> nil
+	clock            clock.PassiveClock
+	tunnelsByAgentId redistool.ExpiringHashApi[int64, string] // agentId -> kas URL -> nil
 }
 
-func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ttl time.Duration, ownPrivateApiUrl string) *RedisTracker {
+func NewRedisTracker(client rueidis.Client, agentKeyPrefix string, ownPrivateApiUrl string) *RedisTracker {
 	return &RedisTracker{
 		ownPrivateApiUrl: ownPrivateApiUrl,
-		tunnelsByAgentId: redistool.NewRedisExpiringHash(client, tunnelsByAgentIdHashKey(agentKeyPrefix), strToStr, ttl),
+		clock:            clock.RealClock{},
+		tunnelsByAgentId: &redistool.RedisExpiringHashApi[int64, string]{
+			Client:         client,
+			Key1ToRedisKey: tunnelsByAgentIdHashKey(agentKeyPrefix),
+			Key2ToRedisKey: strToStr,
+		},
 	}
 }
 
-func (t *RedisTracker) RegisterTunnel(ctx context.Context, agentId int64) error {
-	return t.tunnelsByAgentId.Set(ctx, agentId, t.ownPrivateApiUrl, nil)
+func (t *RedisTracker) RegisterTunnel(ctx context.Context, ttl time.Duration, agentId int64) error {
+	b := t.tunnelsByAgentId.SetBuilder()
+	b.Set(agentId, ttl, t.kv(t.clock.Now().Add(ttl)))
+	return b.Do(ctx)
 }
 
 func (t *RedisTracker) UnregisterTunnel(ctx context.Context, agentId int64) error {
@@ -70,8 +79,24 @@ func (t *RedisTracker) KasUrlsByAgentId(ctx context.Context, agentId int64) ([]s
 	return urls, errors.Join(errs...)
 }
 
-func (t *RedisTracker) Refresh(ctx context.Context, nextRefresh time.Time) error {
-	return t.tunnelsByAgentId.Refresh(ctx, nextRefresh)
+func (t *RedisTracker) Refresh(ctx context.Context, ttl time.Duration, agentIds ...int64) error {
+	b := t.tunnelsByAgentId.SetBuilder()
+	// allocate once. Slice is passed as-is to variadic funcs vs individual args allocate a new one on each call
+	kvs := []redistool.BuilderKV[string]{t.kv(t.clock.Now().Add(ttl))}
+	for _, agentId := range agentIds {
+		b.Set(agentId, ttl, kvs...)
+	}
+	return b.Do(ctx)
+}
+
+func (t *RedisTracker) kv(expiresAt time.Time) redistool.BuilderKV[string] {
+	return redistool.BuilderKV[string]{
+		HashKey: t.ownPrivateApiUrl,
+		Value: &redistool.ExpiringValue{
+			ExpiresAt: expiresAt.Unix(),
+			Value:     nil, // nothing to store.
+		},
+	}
 }
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (kasUrl -> nil).
