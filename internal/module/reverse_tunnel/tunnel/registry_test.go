@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"io"
-	"sync"
 	"testing"
 	"time"
 
@@ -61,13 +60,13 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 				},
 			}, nil),
 		tunnelTracker.EXPECT().
-			RegisterTunnel(gomock.Any(), gomock.Any()),
+			RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -108,25 +107,25 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 				},
 			}, nil),
 		tunnelTracker.EXPECT(). // HandleTunnel()
-					RegisterTunnel(gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, agentId int64) {
+					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
 				close(reg)
 			}),
 		tunnelTracker.EXPECT(). // FindTunnel()
 					UnregisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT(). // Done()
-					RegisterTunnel(gomock.Any(), gomock.Any()),
+					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT(). // FindTunnel()
 					UnregisterTunnel(gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT(). // Done()
-					RegisterTunnel(gomock.Any(), gomock.Any()),
+					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT(). // stopInternal()
 					UnregisterTunnel(gomock.Any(), gomock.Any()),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
 	agentInfo := testhelpers.AgentInfoObj()
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -172,8 +171,8 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 			},
 		}, nil)
 	tunnelTracker.EXPECT().
-		RegisterTunnel(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, agentId int64) {
+		RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
 			regCnt++
 			if regCnt == 1 {
 				close(reg)
@@ -186,7 +185,7 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	mockApi.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	agentInfo := testhelpers.AgentInfoObj()
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -231,11 +230,11 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 				},
 			}, nil),
 		tunnelTracker.EXPECT().
-			RegisterTunnel(gomock.Any(), gomock.Any()),
+			RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	err = r.HandleTunnel(ctxConn, testhelpers.AgentInfoObj(), connectServer)
 	assert.NoError(t, err)
@@ -262,8 +261,6 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		Context().
 		Return(context.Background()).
 		MinTimes(1)
-	var regWg sync.WaitGroup
-	regWg.Add(2)
 	d1 := descriptor()
 	connectServer1.EXPECT().
 		Recv().
@@ -279,15 +276,13 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 				Descriptor_: descriptor(),
 			},
 		}, nil)
-	tunnelTracker.EXPECT().
-		RegisterTunnel(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, agentId int64) {
-			regWg.Done()
-		}).Times(2)
-	tunnelTracker.EXPECT().
-		UnregisterTunnel(gomock.Any(), gomock.Any()).
-		Times(2)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	gomock.InOrder(
+		tunnelTracker.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
+		tunnelTracker.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	defer r.stopInternal(context.Background())
 	var wg wait.Group
@@ -304,7 +299,12 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		assert.NoError(t, r.HandleTunnel(ctx2, agentInfo, connectServer2))
 	})
 	// wait for both to register
-	regWg.Wait()
+	agentStripe := r.stripes.GetPointer(agentInfo.Id)
+	assert.Eventually(t, func() bool {
+		agentStripe.mu.Lock()
+		defer agentStripe.mu.Unlock()
+		return len(agentStripe.tunsByAgentId[agentInfo.Id]) == 2
+	}, time.Second, 10*time.Millisecond)
 	found, th := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	assert.True(t, found)
 	tun, err := th.Get(context.Background())
@@ -319,8 +319,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 		t.FailNow()
 	}
 	assert.Eventually(t, func() bool {
-		r.stripes.GetPointer(agentInfo.Id).mu.Lock()
-		defer r.stripes.GetPointer(agentInfo.Id).mu.Unlock()
+		agentStripe.mu.Lock()
+		defer agentStripe.mu.Unlock()
 		return tun.(*tunnelImpl).state == stateContextDone
 	}, time.Second, 10*time.Millisecond)
 	tun.Done(context.Background())
@@ -339,7 +339,7 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 		Recv().
 		Return(nil, status.Error(codes.DataLoss, "expected err"))
 	tunnelTracker := NewMockTracker(ctrl)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = DataLoss desc = expected err")
@@ -361,7 +361,7 @@ func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 			},
 		}, nil)
 	tunnelTracker := NewMockTracker(ctrl)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
@@ -411,13 +411,13 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 		}, nil)
 	gomock.InOrder(
 		tunnelTracker.EXPECT().
-			RegisterTunnel(gomock.Any(), gomock.Any()),
+			RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
@@ -482,13 +482,13 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 		}, nil)
 	gomock.InOrder(
 		tunnelTracker.EXPECT().
-			RegisterTunnel(gomock.Any(), gomock.Any()),
+			RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 		tunnelTracker.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
 	)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
@@ -516,7 +516,7 @@ func TestFindTunnelIsUnblockedByContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	found, th := r.FindTunnel(context.Background(), testhelpers.AgentId, serviceName, methodName)
 	defer th.Done(context.Background())
@@ -529,15 +529,14 @@ func TestRefreshRegistrations(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker {
-		tunnelTracker := NewMockTracker(ctrl)
-		tunnelTracker.EXPECT().
-			Refresh(gomock.Any(), gomock.Any())
-		return tunnelTracker
-	})
+	tunnelTracker := NewMockTracker(ctrl)
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
+	tunnelTracker.EXPECT().
+		Refresh(gomock.Any(), gomock.Any()).
+		Times(len(r.stripes.Stripes))
 
-	r.refreshRegistrations(context.Background(), time.Now())
+	r.refreshRegistrations(context.Background())
 }
 
 func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver.MockAgentRpcApi, *MockDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *Registry) {
@@ -574,7 +573,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 	if expectRegisterTunnel {
 		gomock.InOrder(
 			tunnelTracker.EXPECT().
-				RegisterTunnel(gomock.Any(), gomock.Any()),
+				RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
 			tunnelTracker.EXPECT().
 				UnregisterTunnel(gomock.Any(), gomock.Any()),
 		)
@@ -666,7 +665,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 			Return(io.EOF),
 	)
 
-	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, func() Tracker { return tunnelTracker })
+	r, err := NewRegistry(zaptest.NewLogger(t), mockApi, nt(), time.Minute, time.Minute, tunnelTracker)
 	require.NoError(t, err)
 	return incomingStream, rpcApi, cb, connectServer, r
 }

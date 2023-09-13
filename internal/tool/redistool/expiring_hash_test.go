@@ -24,7 +24,8 @@ const (
 )
 
 var (
-	_ ExpiringHashInterface[int, int] = (*ExpiringHash[int, int])(nil)
+	_ ExpiringHash[int, int]    = (*RedisExpiringHash[int, int])(nil)
+	_ ExpiringHashApi[int, int] = (*RedisExpiringHashApi[int, int])(nil)
 )
 
 func TestExpiringHash_Set(t *testing.T) {
@@ -166,7 +167,7 @@ func TestExpiringHash_GCContinuesOnConflict(t *testing.T) {
 			}),
 	)
 
-	hash := NewExpiringHash[string, string](client, s2s, s2s, ttl)
+	hash := NewRedisExpiringHash[string, string](client, s2s, s2s, ttl)
 	err = hash.Set(context.Background(), "1", "key", nil)
 	require.NoError(t, err)
 	err = hash.Set(context.Background(), "2", "key", nil)
@@ -421,7 +422,7 @@ func TestPrefixedInt64Key(t *testing.T) {
 	assert.Equal(t, prefix+"\x88\x77\x66\x55\x44\x33\x22\x11", key)
 }
 
-func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], string, []byte) {
+func setupHash(t *testing.T) (rueidis.Client, *RedisExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
 	client := redisClient(t)
 	t.Cleanup(client.Close)
@@ -429,7 +430,7 @@ func setupHash(t *testing.T) (rueidis.Client, *ExpiringHash[string, int64], stri
 	_, err := rand.Read(prefix)
 	require.NoError(t, err)
 	key := string(prefix)
-	hash := NewExpiringHash[string, int64](client, func(key string) string {
+	hash := NewRedisExpiringHash[string, int64](client, func(key string) string {
 		return key
 	}, int64ToStr, ttl)
 	return client, hash, key, []byte{1, 2, 3}

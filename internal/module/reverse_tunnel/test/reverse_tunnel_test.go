@@ -285,7 +285,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 		MinTimes(1)
 
 	tunnelRegisterer.EXPECT().
-		RegisterTunnel(gomock.Any(), gomock.Any()).
+		RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes() // may be 0 if incoming connections arrive before tunnel connections
 	tunnelRegisterer.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any()).

@@ -51,9 +51,9 @@ type RedisTracker struct {
 
 	// mu protects fields below
 	mu                     sync.Mutex
-	connectionsByAgentId   redistool.ExpiringHashInterface[int64, int64] // agentId -> connectionId -> info
-	connectionsByProjectId redistool.ExpiringHashInterface[int64, int64] // projectId -> connectionId -> info
-	connectedAgents        redistool.ExpiringHashInterface[int64, int64] // hash name -> agentId -> ""
+	connectionsByAgentId   redistool.ExpiringHash[int64, int64] // agentId -> connectionId -> info
+	connectionsByProjectId redistool.ExpiringHash[int64, int64] // projectId -> connectionId -> info
+	connectedAgents        redistool.ExpiringHash[int64, int64] // hash name -> agentId -> ""
 }
 
 func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Client, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -62,9 +62,9 @@ func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Cl
 		errRep:                 errRep,
 		refreshPeriod:          refreshPeriod,
 		gcPeriod:               gcPeriod,
-		connectionsByAgentId:   redistool.NewExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectionsByProjectId: redistool.NewExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectedAgents:        redistool.NewExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectionsByAgentId:   redistool.NewRedisExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectionsByProjectId: redistool.NewRedisExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectedAgents:        redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 
@@ -147,7 +147,7 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 	wg.Wait()
 }
 
-func (t *RedisTracker) refreshHash(ctx context.Context, wg *wait.Group, h redistool.ExpiringHashInterface[int64, int64], nextRefresh time.Time) {
+func (t *RedisTracker) refreshHash(ctx context.Context, wg *wait.Group, h redistool.ExpiringHash[int64, int64], nextRefresh time.Time) {
 	wg.Start(func() {
 		err := h.Refresh(ctx, nextRefresh)
 		if err != nil {
@@ -185,7 +185,7 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 	return keysDeleted
 }
 
-func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface[int64, int64], key int64, cb ConnectedAgentInfoCallback) error {
+func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHash[int64, int64], key int64, cb ConnectedAgentInfoCallback) error {
 	_, err := hash.Scan(ctx, key, func(rawHashKey string, value []byte, err error) (bool, error) {
 		if err != nil {
 			t.errRep.HandleProcessingError(ctx, t.log, "Redis hash scan", err)

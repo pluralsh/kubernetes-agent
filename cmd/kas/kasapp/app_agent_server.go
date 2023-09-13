@@ -65,11 +65,14 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		return nil, err
 	}
 	// Tunnel registry
-	prefix := cfg.Redis.KeyPrefix + ":tunnel_tracker2"
-	ttl := cfg.Agent.RedisConnInfoTtl.AsDuration()
-	tunnelRegistry, err := tunnel.NewRegistry(log, srvApi, dt, cfg.Agent.RedisConnInfoRefresh.AsDuration(), func() tunnel.Tracker {
-		return tunnel.NewRedisTracker(redisClient, prefix, ttl, ownPrivateApiUrl)
-	})
+	tunnelRegistry, err := tunnel.NewRegistry(
+		log,
+		srvApi,
+		dt,
+		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoTtl.AsDuration(),
+		tunnel.NewRedisTracker(redisClient, cfg.Redis.KeyPrefix+":tunnel_tracker2", ownPrivateApiUrl),
+	)
 	if err != nil {
 		return nil, err
 	}

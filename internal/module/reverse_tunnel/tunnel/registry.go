@@ -18,16 +18,10 @@ import (
 )
 
 const (
-	// refreshOverlap is the duration of an "overlap" between two refresh periods. It's a safety measure so that
-	// a concurrent GC from another kas instance doesn't delete the data that is about to be refreshed.
-	refreshOverlap = 5 * time.Second
-	stopTimeout    = 5 * time.Second
-	stripeBits     = 8
-)
+	stopTimeout = 5 * time.Second
+	stripeBits  = 8
 
-const (
 	traceTunnelFoundAttr    attribute.Key = "found"
-	traceDeletedKeysAttr    attribute.Key = "deletedKeys"
 	traceStoppedTunnelsAttr attribute.Key = "stoppedTunnels"
 	traceAbortedFTRAttr     attribute.Key = "abortedFTR"
 )
@@ -68,8 +62,8 @@ type Registry struct {
 	stripes       syncz.StripedValue[registryStripe]
 }
 
-func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refreshPeriod time.Duration,
-	newTunnelTracker func() Tracker) (*Registry, error) {
+func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refreshPeriod, ttl time.Duration,
+	tunnelTracker Tracker) (*Registry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
@@ -85,7 +79,8 @@ func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refres
 				api:                   api,
 				tracer:                tracer,
 				tunnelStreamVisitor:   tunnelStreamVisitor,
-				tunnelTracker:         newTunnelTracker(),
+				tunnelTracker:         tunnelTracker,
+				ttl:                   ttl,
 				tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
 				findRequestsByAgentId: make(map[int64]map[*findTunnelRequest]struct{}),
 			}
@@ -121,7 +116,7 @@ func (r *Registry) Run(ctx context.Context) error {
 		case <-done:
 			return nil
 		case <-refreshTicker.C:
-			r.refreshRegistrations(ctx, time.Now().Add(r.refreshPeriod-refreshOverlap))
+			r.refreshRegistrations(ctx)
 		}
 	}
 }
@@ -159,7 +154,7 @@ func (r *Registry) stopInternal(ctx context.Context) (int /*stoppedTun*/, int /*
 	return v1, v2
 }
 
-func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Time) {
+func (r *Registry) refreshRegistrations(ctx context.Context) {
 	ctx, span := r.tracer.Start(ctx, "Registry.refreshRegistrations", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
@@ -168,7 +163,7 @@ func (r *Registry) refreshRegistrations(ctx context.Context, nextRefresh time.Ti
 			refreshCtx, refreshSpan := r.tracer.Start(ctx, "registryStripe.Refresh", trace.WithSpanKind(trace.SpanKindInternal))
 			defer refreshSpan.End()
 
-			err := r.stripes.Stripes[s].Refresh(refreshCtx, nextRefresh)
+			err := r.stripes.Stripes[s].Refresh(refreshCtx)
 			if err != nil {
 				r.api.HandleProcessingError(refreshCtx, r.log, modshared.NoAgentId, "Failed to refresh data", err)
 				refreshSpan.SetStatus(otelcodes.Error, "Failed to refresh data")

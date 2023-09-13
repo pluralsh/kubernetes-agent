@@ -170,31 +170,36 @@ func (mr *MockTrackerMockRecorder) KasUrlsByAgentId(arg0, arg1 interface{}) *gom
 }
 
 // Refresh mocks base method.
-func (m *MockTracker) Refresh(arg0 context.Context, arg1 time.Time) error {
+func (m *MockTracker) Refresh(arg0 context.Context, arg1 time.Duration, arg2 ...int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Refresh", arg0, arg1)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Refresh", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockTrackerMockRecorder) Refresh(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockTrackerMockRecorder) Refresh(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockTracker)(nil).Refresh), arg0, arg1)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockTracker)(nil).Refresh), varargs...)
 }
 
 // RegisterTunnel mocks base method.
-func (m *MockTracker) RegisterTunnel(arg0 context.Context, arg1 int64) error {
+func (m *MockTracker) RegisterTunnel(arg0 context.Context, arg1 time.Duration, arg2 int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterTunnel", arg0, arg1)
+	ret := m.ctrl.Call(m, "RegisterTunnel", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterTunnel indicates an expected call of RegisterTunnel.
-func (mr *MockTrackerMockRecorder) RegisterTunnel(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockTrackerMockRecorder) RegisterTunnel(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterTunnel", reflect.TypeOf((*MockTracker)(nil).RegisterTunnel), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterTunnel", reflect.TypeOf((*MockTracker)(nil).RegisterTunnel), arg0, arg1, arg2)
 }
 
 // UnregisterTunnel mocks base method.

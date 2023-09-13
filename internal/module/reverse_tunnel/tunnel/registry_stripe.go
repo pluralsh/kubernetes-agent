@@ -64,20 +64,26 @@ func (h *findHandle) Done(ctx context.Context) {
 }
 
 type registryStripe struct {
-	log                   *zap.Logger
-	api                   modshared.Api
-	tracer                trace.Tracer
-	tunnelStreamVisitor   *grpctool.StreamVisitor
+	log                 *zap.Logger
+	api                 modshared.Api
+	tracer              trace.Tracer
+	tunnelStreamVisitor *grpctool.StreamVisitor
+	tunnelTracker       Tracker
+	ttl                 time.Duration
+
 	mu                    sync.Mutex
-	tunnelTracker         Tracker
 	tunsByAgentId         map[int64]map[*tunnelImpl]struct{}
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
-func (r *registryStripe) Refresh(ctx context.Context, nextRefresh time.Time) error {
+func (r *registryStripe) Refresh(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.tunnelTracker.Refresh(ctx, nextRefresh)
+	agentIds := make([]int64, 0, len(r.tunsByAgentId))
+	for agentId := range r.tunsByAgentId {
+		agentIds = append(agentIds, agentId)
+	}
+	return r.tunnelTracker.Refresh(ctx, r.ttl, agentIds...)
 }
 
 func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
@@ -237,15 +243,18 @@ func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnel
 	}
 
 	// 2. Register the tunnel
+	var err error
 	toReg.state = stateReady
 	tunsByAgentId := r.tunsByAgentId[agentId]
 	if tunsByAgentId == nil {
 		tunsByAgentId = make(map[*tunnelImpl]struct{}, 1)
 		r.tunsByAgentId[agentId] = tunsByAgentId
+		// First tunnel for this agentId.
+		// Don't pass the original context to always register
+		err = r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), r.ttl, agentId)
 	}
 	tunsByAgentId[toReg] = struct{}{}
-	// don't pass the original context to always register
-	return r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), agentId)
+	return err
 }
 
 func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tunnelImpl) error {
@@ -254,9 +263,11 @@ func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tu
 	delete(tunsByAgentId, toUnreg)
 	if len(tunsByAgentId) == 0 {
 		delete(r.tunsByAgentId, agentId)
+		// Last tunnel for this agentId.
+		// Don't pass the original context to always unregister
+		return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
 	}
-	// don't pass the original context to always unregister
-	return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
+	return nil
 }
 
 func (r *registryStripe) onTunnelForward(tun *tunnelImpl) error {
