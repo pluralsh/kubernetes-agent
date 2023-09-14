@@ -2,6 +2,7 @@ package grpctool_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -40,6 +41,16 @@ func TestRequestCanceledOrTimedOut(t *testing.T) {
 		assert.True(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", status.Error(codes.DeadlineExceeded, "bla"))))
 		assert.False(t, grpctool.RequestCanceledOrTimedOut(fmt.Errorf("bla: %w", status.Error(codes.Unavailable, "bla"))))
 	})
+	t.Run("multierror", func(t *testing.T) {
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(context.Canceled)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(context.DeadlineExceeded)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(context.Canceled, io.EOF)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(context.DeadlineExceeded, io.EOF)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(io.EOF, context.Canceled)))
+		assert.True(t, grpctool.RequestCanceledOrTimedOut(errors.Join(io.EOF, context.DeadlineExceeded)))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(errors.Join(io.EOF)))
+		assert.False(t, grpctool.RequestCanceledOrTimedOut(errors.Join(io.EOF, io.ErrUnexpectedEOF)))
+	})
 }
 
 func TestRequestCanceled(t *testing.T) {
@@ -63,6 +74,16 @@ func TestRequestCanceled(t *testing.T) {
 		assert.False(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", status.Error(codes.DeadlineExceeded, "bla"))))
 		assert.False(t, grpctool.RequestCanceled(fmt.Errorf("bla: %w", status.Error(codes.Unavailable, "bla"))))
 	})
+	t.Run("multierror", func(t *testing.T) {
+		assert.True(t, grpctool.RequestCanceled(errors.Join(context.Canceled)))
+		assert.False(t, grpctool.RequestCanceled(errors.Join(context.DeadlineExceeded)))
+		assert.True(t, grpctool.RequestCanceled(errors.Join(context.Canceled, io.EOF)))
+		assert.False(t, grpctool.RequestCanceled(errors.Join(context.DeadlineExceeded, io.EOF)))
+		assert.True(t, grpctool.RequestCanceled(errors.Join(io.EOF, context.Canceled)))
+		assert.False(t, grpctool.RequestCanceled(errors.Join(io.EOF, context.DeadlineExceeded)))
+		assert.False(t, grpctool.RequestCanceled(errors.Join(io.EOF)))
+		assert.False(t, grpctool.RequestCanceled(errors.Join(io.EOF, io.ErrUnexpectedEOF)))
+	})
 }
 
 func TestRequestTimedOut(t *testing.T) {
@@ -85,6 +106,16 @@ func TestRequestTimedOut(t *testing.T) {
 		assert.False(t, grpctool.RequestTimedOut(fmt.Errorf("bla: %w", status.Error(codes.Canceled, "bla"))))
 		assert.True(t, grpctool.RequestTimedOut(fmt.Errorf("bla: %w", status.Error(codes.DeadlineExceeded, "bla"))))
 		assert.False(t, grpctool.RequestTimedOut(fmt.Errorf("bla: %w", status.Error(codes.Unavailable, "bla"))))
+	})
+	t.Run("multierror", func(t *testing.T) {
+		assert.False(t, grpctool.RequestTimedOut(errors.Join(context.Canceled)))
+		assert.True(t, grpctool.RequestTimedOut(errors.Join(context.DeadlineExceeded)))
+		assert.False(t, grpctool.RequestTimedOut(errors.Join(context.Canceled, io.EOF)))
+		assert.True(t, grpctool.RequestTimedOut(errors.Join(context.DeadlineExceeded, io.EOF)))
+		assert.False(t, grpctool.RequestTimedOut(errors.Join(io.EOF, context.Canceled)))
+		assert.True(t, grpctool.RequestTimedOut(errors.Join(io.EOF, context.DeadlineExceeded)))
+		assert.False(t, grpctool.RequestTimedOut(errors.Join(io.EOF)))
+		assert.False(t, grpctool.RequestTimedOut(errors.Join(io.EOF, io.ErrUnexpectedEOF)))
 	})
 }
 
