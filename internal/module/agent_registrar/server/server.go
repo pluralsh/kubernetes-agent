@@ -6,7 +6,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/mathz"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -30,7 +29,7 @@ func (s *server) Register(ctx context.Context, req *rpc.RegisterRequest) (*rpc.R
 	connectedAgentInfo := &agent_tracker.ConnectedAgentInfo{
 		AgentMeta:    req.AgentMeta,
 		ConnectedAt:  timestamppb.Now(),
-		ConnectionId: mathz.Int63(),
+		ConnectionId: req.PodId,
 		AgentId:      agentInfo.Id,
 		ProjectId:    agentInfo.ProjectId,
 	}
