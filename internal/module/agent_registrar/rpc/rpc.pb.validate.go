@@ -86,6 +86,8 @@ func (m *RegisterRequest) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for PodId
+
 	if len(errors) > 0 {
 		return RegisterRequestMultiError(errors)
 	}

@@ -10,6 +10,9 @@ import "pkg/entity/entity.proto";
 
 message RegisterRequest {
   entity.AgentMeta agent_meta = 1;
+  // Uniquely identifies a particular agentk pods.
+  // Randomly generated when an agentk pod starts working.
+  int64 pod_id = 2;
 }
 
 message RegisterResponse {

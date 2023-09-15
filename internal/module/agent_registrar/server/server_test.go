@@ -26,6 +26,7 @@ func TestRegister(t *testing.T) {
 	mockAgentTracker.EXPECT().RegisterConnection(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
 		assert.EqualValues(t, 123, connectedAgentInfo.AgentId)
 		assert.EqualValues(t, 456, connectedAgentInfo.ProjectId)
+		assert.EqualValues(t, 123456789, connectedAgentInfo.ConnectionId)
 	})
 
 	resp, err := s.Register(ctx, req)
@@ -72,6 +73,7 @@ func setupServer(t *testing.T) (*mock_modserver.MockAgentRpcApi,
 
 	req := &rpc.RegisterRequest{
 		AgentMeta: mock_modserver.AgentMeta(),
+		PodId:     123456789,
 	}
 
 	ctx := modserver.InjectAgentRpcApi(context.Background(), mockRpcApi)
