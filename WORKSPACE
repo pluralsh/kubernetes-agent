@@ -25,9 +25,9 @@ http_archive(
 
 http_archive(
     name = "rules_oci",
-    sha256 = "fc8551ccbfe4e716c8a3876b1b42d37e80f0bbd5045ec4de3bed88f0dc1ff0aa",
-    strip_prefix = "rules_oci-1.3.2",
-    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.3.2/rules_oci-v1.3.2.tar.gz",
+    sha256 = "c71c25ed333a4909d2dd77e0b16c39e9912525a98c7fa85144282be8d04ef54c",
+    strip_prefix = "rules_oci-1.3.4",
+    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v1.3.4/rules_oci-v1.3.4.tar.gz",
 )
 
 http_archive(
@@ -64,9 +64,9 @@ http_archive(
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "928e4205f701b7798ce32f3d2171c1918b363e9a600390a25c876f075f1efc0a",
-    strip_prefix = "rules_proto_grpc-4.4.0",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/releases/download/4.4.0/rules_proto_grpc-4.4.0.tar.gz"],
+    #sha256 = "928e4205f701b7798ce32f3d2171c1918b363e9a600390a25c876f075f1efc0a",
+    strip_prefix = "rules_proto_grpc-4.5.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/releases/download/4.5.0/rules_proto_grpc-4.5.0.tar.gz"],
 )
 
 http_archive(
@@ -118,8 +118,8 @@ go_repository(
     ],  # keep
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel",
-    sum = "h1:MW+phZ6WZ5/uk2nd93ANk/6yJ+dVrvNWUjGhnnFU5jM=",
-    version = "v1.17.0",
+    sum = "h1:TgVozPGZ01nHyDZxK5WGPFB9QexeTMXEH7+tIClWfzs=",
+    version = "v1.18.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -131,8 +131,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
-    sum = "h1:U5GYackKpVKlPrd/5gKMlrTlP2dCESAAFU682VCpieY=",
-    version = "v1.17.0",
+    sum = "h1:IAtl+7gua134xcV3NieDhJHjjOVeJhXAnYf/0hswjUY=",
+    version = "v1.18.0",
 )
 
 # See https://github.com/open-telemetry/opentelemetry-go-contrib/issues/872
@@ -143,8 +143,8 @@ go_repository(
     ],
     build_file_proto_mode = "disable_global",
     importpath = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
-    sum = "h1:kvWMtSUNVylLVrOE4WLUmBtgziYoCIYUNSpTYtMzVJI=",
-    version = "v1.17.0",
+    sum = "h1:6pu8ttx76BxHf+xz/H77AUZkPF3cwWzXqAUsXhVKI18=",
+    version = "v1.18.0",
 )
 
 # Copied from rules_go to keep patches in place
