@@ -58,10 +58,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	promexp "go.opentelemetry.io/otel/exporters/prometheus"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -104,7 +105,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	mp := otel.GetMeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
 	csh := grpctool.NewClientRequestsInFlightStatsHandler()
 	goCollector := collectors.NewGoCollector()
@@ -123,17 +123,25 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Probe Registry
 	probeRegistry := observability.NewProbeRegistry()
 
-	// Tracing
-	tp, p, tpStop, err := a.constructTracingTools(ctx)
+	// OTEL resource
+	r, err := constructOTELResource()
 	if err != nil {
 		return err
 	}
-	defer func() {
-		tpErr := tpStop()
-		if retErr == nil && tpErr != nil {
-			retErr = tpErr
-		}
-	}()
+
+	// OTEL metrics
+	mp, mpStop, err := a.constructOTELMeterProvider(r, reg)
+	if err != nil {
+		return err
+	}
+	defer errz.SafeCall(mpStop, &retErr)
+
+	// OTEL Tracing
+	tp, p, tpStop, err := a.constructOTELTracingTools(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer errz.SafeCall(tpStop, &retErr)
 	dt := tp.Tracer(kasTracerName) // defaultTracer
 
 	// GitLab REST client
@@ -622,14 +630,23 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 	return otlptracehttp.New(ctx, otlpOptions...)
 }
 
-func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
+func (a *ConfiguredApp) constructOTELMeterProvider(r *resource.Resource, reg prometheus.Registerer) (*metricsdk.MeterProvider, func() error, error) {
+	otelPromExp, err := promexp.New(promexp.WithRegisterer(reg))
+	if err != nil {
+		return nil, nil, err
+	}
+	mp := metricsdk.NewMeterProvider(metricsdk.WithReader(otelPromExp), metricsdk.WithResource(r))
+	mpStop := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return mp.Shutdown(ctx)
+	}
+	return mp, mpStop, nil
+}
+
+func (a *ConfiguredApp) constructOTELTracingTools(ctx context.Context, r *resource.Resource) (trace.TracerProvider, propagation.TextMapPropagator, func() error, error) {
 	if !a.isTracingEnabled() {
 		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
-	}
-
-	r, err := constructResource()
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
 	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,
@@ -651,6 +668,7 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 	}
 	return tp, p, tpStop, nil
 }
+
 func (a *ConfiguredApp) isTracingEnabled() bool {
 	return a.Configuration.Observability.Tracing != nil
 }
@@ -679,7 +697,7 @@ func constructRedisReadinessProbe(redisClient rueidis.Client) observability.Prob
 	}
 }
 
-func constructResource() (*resource.Resource, error) {
+func constructOTELResource() (*resource.Resource, error) {
 	return resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(

@@ -2744,6 +2744,13 @@ def go_repositories():
         version = "v1.10.0",
     )
     go_repository(
+        name = "io_opentelemetry_go_otel_exporters_prometheus",
+        build_file_proto_mode = "disable_global",
+        importpath = "go.opentelemetry.io/otel/exporters/prometheus",
+        sum = "h1:A3/bhjP5SmELy8dcpK+uttHeh9Qrh+YnS16/VzrztRQ=",
+        version = "v0.41.0",
+    )
+    go_repository(
         name = "io_opentelemetry_go_otel_metric",
         build_file_proto_mode = "disable_global",
         importpath = "go.opentelemetry.io/otel/metric",
@@ -2761,8 +2768,8 @@ def go_repositories():
         name = "io_opentelemetry_go_otel_sdk_metric",
         build_file_proto_mode = "disable_global",
         importpath = "go.opentelemetry.io/otel/sdk/metric",
-        sum = "h1:Kun8i1eYf48kHH83RucG93ffz0zGV1sh46FAScOTuDI=",
-        version = "v0.39.0",
+        sum = "h1:c3sAt9/pQ5fSIUfl0gPtClV3HhE18DCVzByD33R/zsk=",
+        version = "v0.41.0",
     )
     go_repository(
         name = "io_opentelemetry_go_otel_trace",
