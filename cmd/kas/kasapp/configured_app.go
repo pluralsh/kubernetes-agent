@@ -58,6 +58,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	promexp "go.opentelemetry.io/otel/exporters/prometheus"
 	otelmetric "go.opentelemetry.io/otel/metric"
@@ -90,6 +91,11 @@ const (
 	kasName = "gitlab-kas"
 
 	kasTracerName = "kas"
+	kasMeterName  = "kas"
+
+	gitlabBuildInfoGaugeMetricName               = "gitlab_build_info"
+	kasVersionAttr                 attribute.Key = "version"
+	kasBuiltAttr                   attribute.Key = "built"
 )
 
 type ConfiguredApp struct {
@@ -111,7 +117,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
 	clientProm := grpc_prometheus.NewClientMetrics()
-	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm, gitlabBuildInfoGauge())
+	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
 	if err != nil {
 		return err
 	}
@@ -135,6 +141,11 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 	defer errz.SafeCall(mpStop, &retErr)
+	dm := mp.Meter(kasMeterName)
+	err = gitlabBuildInfoGauge(dm)
+	if err != nil {
+		return err
+	}
 
 	// OTEL Tracing
 	tp, p, tpStop, err := a.constructOTELTracingTools(ctx, r)
@@ -713,18 +724,17 @@ func constructOTELResource() (*resource.Resource, error) {
 	)
 }
 
-func gitlabBuildInfoGauge() prometheus.Gauge {
-	const GitlabBuildInfoGaugeMetricName = "gitlab_build_info"
-	buildInfoGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: GitlabBuildInfoGaugeMetricName,
-		Help: "Current build info for this GitLab Service",
-		ConstLabels: prometheus.Labels{
-			"version": cmd.Version,
-			"built":   cmd.BuildTime,
-		},
-	})
-	buildInfoGauge.Set(1)
-	return buildInfoGauge
+func gitlabBuildInfoGauge(m otelmetric.Meter) error {
+	_, err := m.Int64ObservableGauge(gitlabBuildInfoGaugeMetricName,
+		otelmetric.WithDescription("Current build info for this GitLab Service"),
+		otelmetric.WithInt64Callback(func(ctx context.Context, observer otelmetric.Int64Observer) error {
+			observer.Observe(1,
+				otelmetric.WithAttributes(kasVersionAttr.String(cmd.Version), kasBuiltAttr.String(cmd.BuildTime)),
+			)
+			return nil
+		}),
+	)
+	return err
 }
 
 func maybeTLSCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {
