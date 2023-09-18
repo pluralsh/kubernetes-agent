@@ -130,7 +130,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// OTEL metrics
-	mp, mpStop, err := a.constructOTELMeterProvider(r, reg)
+	mp, mpStop, err := a.constructOTELMeterProvider(r, reg) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
@@ -145,13 +145,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	dt := tp.Tracer(kasTracerName) // defaultTracer
 
 	// GitLab REST client
-	gitLabClient, err := a.constructGitLabClient()
+	gitLabClient, err := a.constructGitLabClient(tp, mp, p)
 	if err != nil {
 		return err
 	}
 
 	// Sentry
-	sentryHub, err := a.constructSentryHub(p)
+	sentryHub, err := a.constructSentryHub(tp, mp, p)
 	if err != nil {
 		return fmt.Errorf("error tracker: %w", err)
 	}
@@ -380,7 +380,7 @@ func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClie
 	)
 }
 
-func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*sentry.Hub, error) {
+func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
@@ -401,7 +401,10 @@ func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*se
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 20 * time.Second,
 				ForceAttemptHTTP2:     true,
-			}, otelhttp.WithPropagators(p),
+			},
+			otelhttp.WithPropagators(p),
+			otelhttp.WithTracerProvider(tp),
+			otelhttp.WithMeterProvider(mp),
 		),
 	})
 	if err != nil {
@@ -421,7 +424,7 @@ func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
+func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*gitlab.Client, error) {
 	cfg := a.Configuration
 
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
@@ -441,7 +444,9 @@ func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
 	return gitlab.NewClient(
 		gitLabUrl,
 		decodedAuthSecret,
-		gitlab.WithTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})),
+		gitlab.WithTextMapPropagator(p),
+		gitlab.WithTracerProvider(tp),
+		gitlab.WithMeterProvider(mp),
 		gitlab.WithUserAgent(kasServerName()),
 		gitlab.WithTLSConfig(clientTLSConfig),
 		gitlab.WithRateLimiter(rate.NewLimiter(

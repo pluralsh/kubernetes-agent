@@ -59,6 +59,8 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 		Transport: otelhttp.NewTransport(
 			transport,
 			otelhttp.WithPropagators(o.tracePropagator),
+			otelhttp.WithTracerProvider(o.traceProvider),
+			otelhttp.WithMeterProvider(o.meterProvider),
 		),
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
