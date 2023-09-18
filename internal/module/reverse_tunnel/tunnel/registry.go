@@ -81,7 +81,7 @@ func NewRegistry(log *zap.Logger, api modshared.Api, tracer trace.Tracer, refres
 				tunnelStreamVisitor:   tunnelStreamVisitor,
 				tunnelTracker:         tunnelTracker,
 				ttl:                   ttl,
-				tunsByAgentId:         make(map[int64]map[*tunnelImpl]struct{}),
+				tunsByAgentId:         make(map[int64]agentId2tunInfo),
 				findRequestsByAgentId: make(map[int64]map[*findTunnelRequest]struct{}),
 			}
 		}),

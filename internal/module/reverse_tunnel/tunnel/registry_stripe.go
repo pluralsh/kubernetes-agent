@@ -19,6 +19,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	unregistrationDelay = time.Second
+)
+
 type findTunnelRequest struct {
 	agentId         int64
 	service, method string
@@ -63,6 +67,14 @@ func (h *findHandle) Done(ctx context.Context) {
 	h.done(ctx)
 }
 
+type agentId2tunInfo struct {
+	tuns      map[*tunnelImpl]struct{}
+	waitForIO chan struct{}
+	// stopIO can be called to stop a pending (un)registration if it hasn't started yet
+	stopIO        func() bool
+	missedRefresh bool
+}
+
 type registryStripe struct {
 	log                 *zap.Logger
 	api                 modshared.Api
@@ -72,18 +84,40 @@ type registryStripe struct {
 	ttl                 time.Duration
 
 	mu                    sync.Mutex
-	tunsByAgentId         map[int64]map[*tunnelImpl]struct{}
+	tunsByAgentId         map[int64]agentId2tunInfo
 	findRequestsByAgentId map[int64]map[*findTunnelRequest]struct{}
 }
 
 func (r *registryStripe) Refresh(ctx context.Context) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	agentIds := make([]int64, 0, len(r.tunsByAgentId))
-	for agentId := range r.tunsByAgentId {
-		agentIds = append(agentIds, agentId)
-	}
-	return r.tunnelTracker.Refresh(ctx, r.ttl, agentIds...)
+	var refresh []int64
+	waitForIO := make(chan struct{})
+	defer close(waitForIO)
+	func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		refresh = make([]int64, 0, len(r.tunsByAgentId))
+		for agentId, info := range r.tunsByAgentId {
+			if len(info.tuns) == 0 {
+				select {
+				case <-info.waitForIO:
+					// Unregistration IO has completed already.
+					// Remove from map.
+					delete(r.tunsByAgentId, agentId)
+				default:
+					// Unregistration IO has not run yet or is running but has not completed yet.
+					// Mark it as missed refresh.
+					info.missedRefresh = true
+					r.tunsByAgentId[agentId] = info // save mutated field
+				}
+				continue // do not refresh this id
+			}
+			refresh = append(refresh, agentId)
+			info.waitForIO = waitForIO
+			info.stopIO = unstoppableIO
+			r.tunsByAgentId[agentId] = info
+		}
+	}()
+	return r.tunnelTracker.Refresh(ctx, r.ttl, refresh...)
 }
 
 func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service, method string) (bool, FindHandle) {
@@ -99,12 +133,12 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 		retTun:  retTun,
 	}
 	found := false
-	err := func() error {
+	func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 
 		// 1. Check if we have a suitable tunnel
-		for tun := range r.tunsByAgentId[agentId] {
+		for tun := range r.tunsByAgentId[agentId].tuns {
 			if !tun.agentDescriptor.SupportsServiceAndMethod(service, method) {
 				continue
 			}
@@ -112,7 +146,8 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 			tun.state = stateFound
 			retTun <- tun // must not block because the reception is below
 			found = true
-			return r.unregisterTunnelLocked(ctx, tun)
+			r.unregisterTunnelLocked(ctx, tun)
+			return
 		}
 		// 2. No suitable tunnel found, add to the queue
 		findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -121,31 +156,21 @@ func (r *registryStripe) FindTunnel(ctx context.Context, agentId int64, service,
 			r.findRequestsByAgentId[agentId] = findRequestsForAgentId
 		}
 		findRequestsForAgentId[ftr] = struct{}{}
-		return nil
 	}()
 	span.SetAttributes(traceTunnelFoundAttr.Bool(found))
-	if err != nil {
-		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
-	}
 	return found, &findHandle{
 		tracer: r.tracer,
 		retTun: retTun,
 		done: func(ctx context.Context) {
-			err := func() error {
-				r.mu.Lock()
-				defer r.mu.Unlock()
-				close(retTun)
-				tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
-				if tun != nil {
-					// Got the tunnel, but it's too late so return it to the registry.
-					return r.onTunnelDoneLocked(ctx, tun)
-				} else {
-					r.deleteFindRequestLocked(ftr)
-				}
-				return nil
-			}()
-			if err != nil {
-				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err)
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			close(retTun)
+			tun := <-retTun // will get nil if there was nothing in the channel or if registry is shutting down.
+			if tun != nil {
+				// Got the tunnel, but it's too late so return it to the registry.
+				r.onTunnelDoneLocked(ctx, tun)
+			} else {
+				r.deleteFindRequestLocked(ftr)
 			}
 		},
 	}
@@ -180,11 +205,8 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 	func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		err = r.registerTunnelLocked(ctx, tun)
+		r.registerTunnelLocked(ctx, tun)
 	}()
-	if err != nil {
-		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err) // nolint:contextcheck
-	}
 	// Wait for return error or for cancellation
 	select {
 	case <-ageCtx.Done():
@@ -193,11 +215,8 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 		switch tun.state {
 		case stateReady:
 			tun.state = stateContextDone
-			err = r.unregisterTunnelLocked(ctx, tun) // nolint: contextcheck
+			r.unregisterTunnelLocked(ctx, tun) // nolint: contextcheck
 			r.mu.Unlock()
-			if err != nil {
-				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err) // nolint:contextcheck
-			}
 			return nil
 		case stateFound:
 			// Tunnel was found but hasn't been used yet, Done() hasn't been called.
@@ -227,7 +246,7 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 	}
 }
 
-func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnelImpl) error {
+func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnelImpl) {
 	agentId := toReg.agentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
 	findRequestsForAgentId := r.findRequestsByAgentId[agentId]
@@ -239,35 +258,82 @@ func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnel
 		toReg.state = stateFound
 		ftr.retTun <- toReg            // Satisfy the waiting request ASAP
 		r.deleteFindRequestLocked(ftr) // Remove it from the queue
-		return nil
+		return
 	}
 
 	// 2. Register the tunnel
-	var err error
+	shouldRegister := false
 	toReg.state = stateReady
-	tunsByAgentId := r.tunsByAgentId[agentId]
-	if tunsByAgentId == nil {
-		tunsByAgentId = make(map[*tunnelImpl]struct{}, 1)
-		r.tunsByAgentId[agentId] = tunsByAgentId
-		// First tunnel for this agentId.
-		// Don't pass the original context to always register
-		err = r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), r.ttl, agentId)
+	info, ok := r.tunsByAgentId[agentId]
+	if ok {
+		if len(info.tuns) == 0 { // no tunnels
+			if info.stopIO() { // Try to stop unregistration
+				// Succeeded, close the channel to signal any waiters that I/O "has been done".
+				close(info.waitForIO)
+				shouldRegister = info.missedRefresh // register if it missed refresh to ensure it's not GCed
+			} else {
+				<-info.waitForIO // Failed, wait for it to finish.
+				shouldRegister = true
+			}
+		}
+	} else {
+		shouldRegister = true
+		info = agentId2tunInfo{
+			tuns: make(map[*tunnelImpl]struct{}),
+		}
 	}
-	tunsByAgentId[toReg] = struct{}{}
-	return err
+	info.tuns[toReg] = struct{}{}
+	if shouldRegister {
+		// First tunnel for this agentId. Register it asynchronously.
+		register, waitForIO := r.registerTunnelIO()
+		info.waitForIO = waitForIO
+		info.stopIO = unstoppableIO
+		info.missedRefresh = false
+		r.tunsByAgentId[agentId] = info
+		go register(ctx, agentId)
+	}
 }
 
-func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tunnelImpl) error {
+func (r *registryStripe) registerTunnelIO() (func(ctx context.Context, agentId int64), chan struct{}) {
+	waitForIO := make(chan struct{})
+	return func(ctx context.Context, agentId int64) {
+		// Don't pass the original context to always register
+		err := r.tunnelTracker.RegisterTunnel(contextWithoutCancel(ctx), r.ttl, agentId)
+		close(waitForIO) // ASAP
+		if err != nil {
+			r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to register tunnel", err) // nolint:contextcheck
+		}
+	}, waitForIO
+}
+
+func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tunnelImpl) {
 	agentId := toUnreg.agentId
-	tunsByAgentId := r.tunsByAgentId[agentId]
-	delete(tunsByAgentId, toUnreg)
-	if len(tunsByAgentId) == 0 {
-		delete(r.tunsByAgentId, agentId)
-		// Last tunnel for this agentId.
-		// Don't pass the original context to always unregister
-		return r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
+	info := r.tunsByAgentId[agentId]
+	delete(info.tuns, toUnreg)
+	if len(info.tuns) == 0 {
+		// Last tunnel for this agentId had been used. However, don't unregister it immediately. Agentk will
+		// almost certainly establish more connections to compensate for the lack of available ones. If we
+		// unregister it now, we'll have to re-register it in a moment again, causing useless I/O and delays.
+		// To avoid the issue we schedule unregistration to happen in 1s. If a new tunnel is established before,
+		// it will cancel unregistration, and we'd avoid this I/O.
+		<-info.waitForIO // wait for the current I/O (if any) to finish. May be in-flight registration I/O.
+		unregister, waitForIO := r.unregisterTunnelIO(ctx, agentId)
+		info.waitForIO = waitForIO
+		info.stopIO = time.AfterFunc(unregistrationDelay, unregister).Stop
+		r.tunsByAgentId[agentId] = info // not a pointer, so put back into map to preserve modifications
 	}
-	return nil
+}
+
+func (r *registryStripe) unregisterTunnelIO(ctx context.Context, agentId int64) (func(), chan struct{}) {
+	waitForIO := make(chan struct{})
+	return func() {
+		// Don't pass the original context to always unregister
+		err := r.tunnelTracker.UnregisterTunnel(contextWithoutCancel(ctx), agentId)
+		close(waitForIO) // ASAP
+		if err != nil {
+			r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err) // nolint:contextcheck
+		}
+	}, waitForIO
 }
 
 func (r *registryStripe) onTunnelForward(tun *tunnelImpl) error {
@@ -294,24 +360,18 @@ func (r *registryStripe) onTunnelDone(ctx context.Context, tun *tunnelImpl) {
 	ctx, span := r.tracer.Start(ctx, "registryStripe.onTunnelDone", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
-	var err error
-	func() {
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		err = r.onTunnelDoneLocked(ctx, tun)
-	}()
-	if err != nil {
-		r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(tun.agentId)), tun.agentId, "Failed to register tunnel", err)
-	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.onTunnelDoneLocked(ctx, tun)
 }
 
-func (r *registryStripe) onTunnelDoneLocked(ctx context.Context, tun *tunnelImpl) error {
+func (r *registryStripe) onTunnelDoneLocked(ctx context.Context, tun *tunnelImpl) {
 	switch tun.state {
 	case stateReady:
 		panic(errors.New("unreachable: ready -> done should never happen"))
 	case stateFound:
 		// Tunnel was found but was not used, Done() was called. Just put it back.
-		return r.registerTunnelLocked(ctx, tun)
+		r.registerTunnelLocked(ctx, tun)
 	case stateForwarding:
 		tun.state = stateDone
 	case stateDone:
@@ -322,7 +382,6 @@ func (r *registryStripe) onTunnelDoneLocked(ctx context.Context, tun *tunnelImpl
 		// Should never happen
 		panic(fmt.Errorf("invalid state: %d", tun.state))
 	}
-	return nil
 }
 
 func (r *registryStripe) deleteFindRequestLocked(ftr *findTunnelRequest) {
@@ -344,17 +403,21 @@ func (r *registryStripe) Stop(ctx context.Context) (int /*stoppedTun*/, int /*ab
 	defer r.mu.Unlock()
 
 	// 1. Abort all tunnels
-	for agentId, tunSet := range r.tunsByAgentId {
-		for tun := range tunSet {
-			stoppedTun++
-			tun.state = stateDone
-			tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
-			err := r.unregisterTunnelLocked(ctx, tun)
-			if err != nil {
-				r.api.HandleProcessingError(ctx, r.log.With(logz.AgentId(agentId)), agentId, "Failed to unregister tunnel", err)
+	for agentId, info := range r.tunsByAgentId {
+		if len(info.tuns) == 0 {
+			<-info.waitForIO // wait for the current unregistration I/O to finish.
+		} else {
+			for tun := range info.tuns {
+				stoppedTun++
+				tun.state = stateDone
+				tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
 			}
+			<-info.waitForIO // wait for the current registration I/O to finish.
+			unregister, _ := r.unregisterTunnelIO(ctx, agentId)
+			unregister()
 		}
 	}
+	r.tunsByAgentId = make(map[int64]agentId2tunInfo) // TODO use clear() in Go 1.21
 
 	// 2. Abort all waiting new stream requests
 	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
@@ -374,4 +437,8 @@ func (r *registryStripe) Stop(ctx context.Context) (int /*stoppedTun*/, int /*ab
 // TODO use https://pkg.go.dev/context#WithoutCancel after upgrading to Go 1.21.
 func contextWithoutCancel(ctx context.Context) context.Context {
 	return trace.ContextWithSpan(context.Background(), trace.SpanFromContext(ctx))
+}
+
+func unstoppableIO() bool {
+	return false
 }
