@@ -111,14 +111,8 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 					Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
 				close(reg)
 			}),
-		tunnelTracker.EXPECT(). // FindTunnel()
-					UnregisterTunnel(gomock.Any(), gomock.Any()),
-		tunnelTracker.EXPECT(). // Done()
-					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
-		tunnelTracker.EXPECT(). // FindTunnel()
-					UnregisterTunnel(gomock.Any(), gomock.Any()),
-		tunnelTracker.EXPECT(). // Done()
-					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()),
+		// UnregisterTunnel, RegisterTunnel, UnregisterTunnel, RegisterTunnel don't happen here
+		// because they are optimized away into no calls.
 		tunnelTracker.EXPECT(). // stopInternal()
 					UnregisterTunnel(gomock.Any(), gomock.Any()),
 		mockApi.EXPECT().
@@ -162,7 +156,6 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		Return(context.Background()).
 		MinTimes(1)
 	reg := make(chan struct{})
-	regCnt := 0
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
@@ -173,15 +166,10 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	tunnelTracker.EXPECT().
 		RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
-			regCnt++
-			if regCnt == 1 {
-				close(reg)
-			}
-		}).
-		Times(2)
+			close(reg)
+		})
 	tunnelTracker.EXPECT().
-		UnregisterTunnel(gomock.Any(), gomock.Any()).
-		Times(2)
+		UnregisterTunnel(gomock.Any(), gomock.Any())
 	mockApi.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	agentInfo := testhelpers.AgentInfoObj()
@@ -303,7 +291,7 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		agentStripe.mu.Lock()
 		defer agentStripe.mu.Unlock()
-		return len(agentStripe.tunsByAgentId[agentInfo.Id]) == 2
+		return len(agentStripe.tunsByAgentId[agentInfo.Id].tuns) == 2
 	}, time.Second, 10*time.Millisecond)
 	found, th := r.FindTunnel(context.Background(), agentInfo.Id, serviceName, methodName)
 	assert.True(t, found)
