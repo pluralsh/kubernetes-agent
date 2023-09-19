@@ -11,6 +11,6 @@ import (
 // If it fails, make sure you've updated the version of go.opentelemetry.io/otel/semconv that's imported to match
 // what OTEL SDK uses internally.
 func TestConstructResource(t *testing.T) {
-	_, err := constructResource()
+	_, err := constructOTELResource()
 	require.NoError(t, err)
 }

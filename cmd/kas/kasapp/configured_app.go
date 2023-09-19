@@ -58,10 +58,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	promexp "go.opentelemetry.io/otel/exporters/prometheus"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -89,6 +91,11 @@ const (
 	kasName = "gitlab-kas"
 
 	kasTracerName = "kas"
+	kasMeterName  = "kas"
+
+	gitlabBuildInfoGaugeMetricName               = "gitlab_build_info"
+	kasVersionAttr                 attribute.Key = "version"
+	kasBuiltAttr                   attribute.Key = "built"
 )
 
 type ConfiguredApp struct {
@@ -104,14 +111,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	mp := otel.GetMeterProvider() // TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/359
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
 	csh := grpctool.NewClientRequestsInFlightStatsHandler()
 	goCollector := collectors.NewGoCollector()
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
 	clientProm := grpc_prometheus.NewClientMetrics()
-	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm, gitlabBuildInfoGauge())
+	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
 	if err != nil {
 		return err
 	}
@@ -123,27 +129,40 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Probe Registry
 	probeRegistry := observability.NewProbeRegistry()
 
-	// Tracing
-	tp, p, tpStop, err := a.constructTracingTools(ctx)
+	// OTEL resource
+	r, err := constructOTELResource()
 	if err != nil {
 		return err
 	}
-	defer func() {
-		tpErr := tpStop()
-		if retErr == nil && tpErr != nil {
-			retErr = tpErr
-		}
-	}()
+
+	// OTEL metrics
+	mp, mpStop, err := a.constructOTELMeterProvider(r, reg) // nolint: contextcheck
+	if err != nil {
+		return err
+	}
+	defer errz.SafeCall(mpStop, &retErr)
+	dm := mp.Meter(kasMeterName)
+	err = gitlabBuildInfoGauge(dm)
+	if err != nil {
+		return err
+	}
+
+	// OTEL Tracing
+	tp, p, tpStop, err := a.constructOTELTracingTools(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer errz.SafeCall(tpStop, &retErr)
 	dt := tp.Tracer(kasTracerName) // defaultTracer
 
 	// GitLab REST client
-	gitLabClient, err := a.constructGitLabClient()
+	gitLabClient, err := a.constructGitLabClient(tp, mp, p)
 	if err != nil {
 		return err
 	}
 
 	// Sentry
-	sentryHub, err := a.constructSentryHub(p)
+	sentryHub, err := a.constructSentryHub(tp, mp, p)
 	if err != nil {
 		return fmt.Errorf("error tracker: %w", err)
 	}
@@ -372,7 +391,7 @@ func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClie
 	)
 }
 
-func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*sentry.Hub, error) {
+func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
@@ -393,7 +412,10 @@ func (a *ConfiguredApp) constructSentryHub(p propagation.TextMapPropagator) (*se
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 20 * time.Second,
 				ForceAttemptHTTP2:     true,
-			}, otelhttp.WithPropagators(p),
+			},
+			otelhttp.WithPropagators(p),
+			otelhttp.WithTracerProvider(tp),
+			otelhttp.WithMeterProvider(mp),
 		),
 	})
 	if err != nil {
@@ -413,7 +435,7 @@ func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
+func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*gitlab.Client, error) {
 	cfg := a.Configuration
 
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
@@ -433,7 +455,9 @@ func (a *ConfiguredApp) constructGitLabClient() (*gitlab.Client, error) {
 	return gitlab.NewClient(
 		gitLabUrl,
 		decodedAuthSecret,
-		gitlab.WithTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})),
+		gitlab.WithTextMapPropagator(p),
+		gitlab.WithTracerProvider(tp),
+		gitlab.WithMeterProvider(mp),
 		gitlab.WithUserAgent(kasServerName()),
 		gitlab.WithTLSConfig(clientTLSConfig),
 		gitlab.WithRateLimiter(rate.NewLimiter(
@@ -622,14 +646,23 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 	return otlptracehttp.New(ctx, otlpOptions...)
 }
 
-func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.TracerProvider, propagation.TextMapPropagator, func() error /* stop */, error) {
+func (a *ConfiguredApp) constructOTELMeterProvider(r *resource.Resource, reg prometheus.Registerer) (*metricsdk.MeterProvider, func() error, error) {
+	otelPromExp, err := promexp.New(promexp.WithRegisterer(reg))
+	if err != nil {
+		return nil, nil, err
+	}
+	mp := metricsdk.NewMeterProvider(metricsdk.WithReader(otelPromExp), metricsdk.WithResource(r))
+	mpStop := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return mp.Shutdown(ctx)
+	}
+	return mp, mpStop, nil
+}
+
+func (a *ConfiguredApp) constructOTELTracingTools(ctx context.Context, r *resource.Resource) (trace.TracerProvider, propagation.TextMapPropagator, func() error, error) {
 	if !a.isTracingEnabled() {
 		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
-	}
-
-	r, err := constructResource()
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
 	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,
@@ -651,6 +684,7 @@ func (a *ConfiguredApp) constructTracingTools(ctx context.Context) (trace.Tracer
 	}
 	return tp, p, tpStop, nil
 }
+
 func (a *ConfiguredApp) isTracingEnabled() bool {
 	return a.Configuration.Observability.Tracing != nil
 }
@@ -679,7 +713,7 @@ func constructRedisReadinessProbe(redisClient rueidis.Client) observability.Prob
 	}
 }
 
-func constructResource() (*resource.Resource, error) {
+func constructOTELResource() (*resource.Resource, error) {
 	return resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -690,18 +724,17 @@ func constructResource() (*resource.Resource, error) {
 	)
 }
 
-func gitlabBuildInfoGauge() prometheus.Gauge {
-	const GitlabBuildInfoGaugeMetricName = "gitlab_build_info"
-	buildInfoGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: GitlabBuildInfoGaugeMetricName,
-		Help: "Current build info for this GitLab Service",
-		ConstLabels: prometheus.Labels{
-			"version": cmd.Version,
-			"built":   cmd.BuildTime,
-		},
-	})
-	buildInfoGauge.Set(1)
-	return buildInfoGauge
+func gitlabBuildInfoGauge(m otelmetric.Meter) error {
+	_, err := m.Int64ObservableGauge(gitlabBuildInfoGaugeMetricName,
+		otelmetric.WithDescription("Current build info for this GitLab Service"),
+		otelmetric.WithInt64Callback(func(ctx context.Context, observer otelmetric.Int64Observer) error {
+			observer.Observe(1,
+				otelmetric.WithAttributes(kasVersionAttr.String(cmd.Version), kasBuiltAttr.String(cmd.BuildTime)),
+			)
+			return nil
+		}),
+	)
+	return err
 }
 
 func maybeTLSCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {

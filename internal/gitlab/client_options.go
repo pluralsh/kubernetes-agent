@@ -12,7 +12,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -65,6 +67,8 @@ type clientConfig struct {
 	retryConfig     RetryConfig
 	transportConfig transportConfig
 	tracePropagator propagation.TextMapPropagator
+	traceProvider   trace.TracerProvider
+	meterProvider   metric.MeterProvider
 	limiter         httpz.Limiter
 	userAgent       string
 }
@@ -97,6 +101,8 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 			ForceAttemptHTTP2:     true,
 		},
 		tracePropagator: otel.GetTextMapPropagator(),
+		traceProvider:   otel.GetTracerProvider(),
+		meterProvider:   otel.GetMeterProvider(),
 		userAgent:       "",
 	}
 	for _, v := range opts {
@@ -113,10 +119,24 @@ func WithRetryConfig(retryConfig RetryConfig) ClientOption {
 	}
 }
 
-// WithTextMapPropagator sets a custom tracer to be used, otherwise the OTEL's global TextMapPropagator is used.
+// WithTextMapPropagator sets a custom trace propagator to be used, otherwise the OTEL's global TextMapPropagator is used.
 func WithTextMapPropagator(p propagation.TextMapPropagator) ClientOption {
 	return func(config *clientConfig) {
 		config.tracePropagator = p
+	}
+}
+
+// WithTracerProvider sets a custom trace provider to be used, otherwise the OTEL's global TracerProvider is used.
+func WithTracerProvider(traceProvider trace.TracerProvider) ClientOption {
+	return func(config *clientConfig) {
+		config.traceProvider = traceProvider
+	}
+}
+
+// WithMeterProvider sets a custom meter provider to be used, otherwise the OTEL's global MeterProvider is used.
+func WithMeterProvider(meterProvider metric.MeterProvider) ClientOption {
+	return func(config *clientConfig) {
+		config.meterProvider = meterProvider
 	}
 }
 
