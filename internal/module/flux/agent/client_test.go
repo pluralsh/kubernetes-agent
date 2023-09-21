@@ -288,7 +288,7 @@ func TestClient_SuccessfullyReconcileProjects(t *testing.T) {
 		Return(receiversToUnstructuredInterfaceSlice(t, receiverObjs), nil)
 	mockReconcileTrigger.EXPECT().
 		reconcile(gomock.Any(), "/some/webhook/path").
-		DoAndReturn(func(_, _ interface{}) error {
+		Do(func(_ context.Context, _ string) error {
 			cancel()
 			return nil
 		})

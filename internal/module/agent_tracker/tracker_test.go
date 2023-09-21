@@ -273,7 +273,7 @@ func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	byProjectId.EXPECT().
 		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			var done bool
 			done, err = cb("k2", infoBytes, nil)
 			if err != nil || done {
@@ -296,7 +296,7 @@ func TestGetConnectionsByProjectId_ScanError(t *testing.T) {
 	gomock.InOrder(
 		byProjectId.EXPECT().
 			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
-			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("", nil, errors.New("intended error"))
 				require.NoError(t, err)
 				assert.False(t, done)
@@ -317,7 +317,7 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 	gomock.InOrder(
 		byProjectId.EXPECT().
 			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
-			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
 				require.NoError(t, err)                     // ignores error to keep going
 				assert.False(t, done)
@@ -339,7 +339,7 @@ func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	byAgentId.EXPECT().
 		Scan(gomock.Any(), info.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			var done bool
 			done, err = cb("k2", infoBytes, nil)
 			if err != nil || done {
@@ -362,7 +362,7 @@ func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
 	gomock.InOrder(
 		byAgentId.EXPECT().
 			Scan(gomock.Any(), info.AgentId, gomock.Any()).
-			Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("", nil, errors.New("intended error"))
 				require.NoError(t, err)
 				assert.False(t, done)
@@ -382,7 +382,7 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 	r, _, byAgentId, _, rep, info := setupTracker(t)
 	byAgentId.EXPECT().
 		Scan(gomock.Any(), info.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
 			require.NoError(t, err)                     // ignores error to keep going
 			assert.False(t, done)
