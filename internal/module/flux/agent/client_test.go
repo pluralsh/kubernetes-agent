@@ -166,7 +166,7 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 					return nil, errors.New("just for testing, it's okay")
 				})
 			c2 := mockAgentApi.EXPECT().HandleProcessingError(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-			calls := []*gomock.Call{c1, c2}
+			calls := []any{c1, c2}
 
 			// we need this to abort the PollWithBackoff in reconcileProjects eventually
 			if tc.expectedIsUpdateRequired {

@@ -169,7 +169,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 					},
 				},
 			}
-			calls := []*gomock.Call{
+			calls := []any{
 				client.EXPECT().
 					GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
 					Return(stream1, nil),

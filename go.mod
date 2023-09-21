@@ -33,7 +33,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.41.0
 	go.opentelemetry.io/otel/trace v1.18.0
 	// Make sure to update build/mockgen.sh when updating
-	go.uber.org/mock v0.2.0
+	go.uber.org/mock v0.3.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sync v0.3.0

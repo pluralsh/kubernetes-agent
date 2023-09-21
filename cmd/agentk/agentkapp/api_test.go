@@ -263,8 +263,8 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 	}, client, clientStream
 }
 
-func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...proto.Message) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...proto.Message) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -278,8 +278,8 @@ func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClien
 	return res
 }
 
-func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...*grpctool.HttpRequest) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))
