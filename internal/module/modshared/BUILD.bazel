@@ -12,6 +12,7 @@ go_library(
         "//cmd/kas:__subpackages__",
         "//internal/module/agent_configuration/rpc:__subpackages__",
         "//internal/module/agent_configuration/server:__subpackages__",
+        "//internal/module/agent_registrar/agent:__subpackages__",
         "//internal/module/agent_registrar/server:__subpackages__",
         "//internal/module/agent_tracker:__pkg__",
         "//internal/module/agent_tracker/server:__subpackages__",
