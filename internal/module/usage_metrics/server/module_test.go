@@ -149,7 +149,7 @@ func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request))
 	}
 	config := &kascfg.ConfigurationFile{}
 	ApplyDefaults(config)
-	config.Observability.UsageReportingPeriod = durationpb.New(50 * time.Millisecond)
+	config.Observability.UsageReportingPeriod = durationpb.New(100 * time.Millisecond)
 	m, err := f.New(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
