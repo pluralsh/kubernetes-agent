@@ -1306,8 +1306,8 @@ def go_repositories():
         name = "com_github_redis_rueidis",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/redis/rueidis",
-        sum = "h1:RyjiBVnPcKxjgiUpkyqbRw/OFJV5vX2bMM/oMPdz8JE=",
-        version = "v1.0.17",
+        sum = "h1:yfqQ22QCfIey+w1LHAp006dlJXwATePVUM+1w2ePrIo=",
+        version = "v1.0.18",
     )
     go_repository(
         name = "com_github_robfig_cron_v3",
@@ -1587,8 +1587,8 @@ def go_repositories():
         name = "com_google_cloud_go",
         build_file_proto_mode = "disable_global",
         importpath = "cloud.google.com/go",
-        sum = "h1:8uYAkj3YHTP/1iwReuHPxLSbdcyc+dSBbzFMrVwDR6Q=",
-        version = "v0.110.6",
+        sum = "h1:rJyC7nWRg2jWGZ4wSJ5nY65GTdYJkg0cd/uXb+ACI6o=",
+        version = "v0.110.7",
     )
     go_repository(
         name = "com_google_cloud_go_accessapproval",
@@ -1938,8 +1938,8 @@ def go_repositories():
         name = "com_google_cloud_go_firestore",
         build_file_proto_mode = "disable_global",
         importpath = "cloud.google.com/go/firestore",
-        sum = "h1:PPgtwcYUOXV2jFe1bV3nda3RCrOa8cvBjTOn2MQVfW8=",
-        version = "v1.11.0",
+        sum = "h1:aeEA/N7DW7+l2u5jtkO8I0qv0D95YwjggD8kUHrTHO4=",
+        version = "v1.12.0",
     )
     go_repository(
         name = "com_google_cloud_go_functions",
@@ -2796,8 +2796,8 @@ def go_repositories():
         name = "org_golang_google_api",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/api",
-        sum = "h1:Df6vfMgDoIM6ss0m7H4MPwFwY87WNXHfBIda/Bmfl4E=",
-        version = "v0.141.0",
+        sum = "h1:mf+7EJ94fi5ZcnpPy+m0Yv2dkz8bKm+UL0snTCuwXlY=",
+        version = "v0.142.0",
     )
     go_repository(
         name = "org_golang_google_appengine",
@@ -2810,8 +2810,8 @@ def go_repositories():
         name = "org_golang_google_genproto",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/genproto",
-        sum = "h1:L6iMMGrtzgHsWofoFcihmDEMYeDR9KN/ThbPWGrh++g=",
-        version = "v0.0.0-20230803162519-f966b187b2e5",
+        sum = "h1:XFBgcDwm7irdHTbz4Zk2h7Mh+eis4nfJEFQFYzJzuIA=",
+        version = "v0.0.0-20230913181813-007df8e322eb",
     )
     go_repository(
         name = "org_golang_google_genproto_googleapis_api",
@@ -2824,16 +2824,16 @@ def go_repositories():
         name = "org_golang_google_genproto_googleapis_bytestream",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/genproto/googleapis/bytestream",
-        sum = "h1:nIr9/K8YHRMDxNRkSrwKmAomPB421/nXGHaElGT0xdU=",
-        version = "v0.0.0-20230911183012-2d3300fd4832",
+        sum = "h1:pdtJ5zsLbgj70rn904TMpEuPAkNBdDoUIXdQ8hFZaW0=",
+        version = "v0.0.0-20230913181813-007df8e322eb",
     )
 
     go_repository(
         name = "org_golang_google_genproto_googleapis_rpc",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/genproto/googleapis/rpc",
-        sum = "h1:Isk1sSH7bovx8Rti2wZK0UZF6oraBDK74uoyLEEVFN0=",
-        version = "v0.0.0-20230913181813-007df8e322eb",
+        sum = "h1:N3bU/SQDCDyD6R528GJ/PwW9KjYcJA3dgyH+MovAkIM=",
+        version = "v0.0.0-20230920204549-e6e6cdab5c13",
     )
 
     go_repository(
