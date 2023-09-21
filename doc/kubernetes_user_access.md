@@ -125,6 +125,25 @@ curl "https://kas.gitlab.example.com/k8s-proxy/version" \
     --header "Authorization: Bearer <personal access token>"
 ```
 
+**Example flow:**
+
+```mermaid
+sequenceDiagram
+note over kubectl: can be any kind of client
+kubectl->>+KAS: Kube API call to /k8s-proxy
+note over kubectl,KAS: with an `Authorization: Bearer pat:<agent-id>:<pat>`<br>header. The PAT must have `k8s_proxy` scope.
+KAS->>+Rails Internal Kubernetes API: call to internal/kubernetes/authorize_proxy_user API
+note over KAS,Rails Internal Kubernetes API: forward Agent Id and PAT
+Rails Internal Kubernetes API-->>-KAS: user access information
+note over KAS,Rails Internal Kubernetes API: information if the user was authorized or not + impersonation data
+alt is authorized
+    KAS->>+Kubernetes Cluster (via KAS and agentk): impersonated Kube API call
+    note over KAS,Kubernetes Cluster (via KAS and agentk): the actual Kube API call from the client (e.g. kubectl)
+    Kubernetes Cluster (via KAS and agentk)-->>-KAS: Kube API response
+end
+KAS-->>-kubectl: Kube API response or unauthorized error
+```
+
 #### OpenID Connect (OIDC)
 
 An OIDC-compliant ID issued by GitLab, where KAS behaves as if it were a
