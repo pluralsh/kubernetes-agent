@@ -21,15 +21,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	envVarOwnPrivateApiUrl  = "OWN_PRIVATE_API_URL"
-	envVarOwnPrivateApiHost = "OWN_PRIVATE_API_HOST"
-)
-
 type App struct {
 	ConfigurationFile string
-	OwnPrivateApiUrl  string
-	OwnPrivateApiHost string
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
@@ -55,10 +48,8 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	otel.SetLogger(logrLogger)
 	otel.SetErrorHandler((*metric.OtelErrorHandler)(log))
 	app := ConfiguredApp{
-		Log:               log,
-		Configuration:     cfg,
-		OwnPrivateApiUrl:  a.OwnPrivateApiUrl,
-		OwnPrivateApiHost: a.OwnPrivateApiHost,
+		Log:           log,
+		Configuration: cfg,
 	}
 	return app.Run(ctx)
 }
@@ -85,10 +76,7 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 }
 
 func NewCommand() *cobra.Command {
-	a := App{
-		OwnPrivateApiUrl:  os.Getenv(envVarOwnPrivateApiUrl),
-		OwnPrivateApiHost: os.Getenv(envVarOwnPrivateApiHost),
-	}
+	a := App{}
 	c := &cobra.Command{
 		Use:   "kas",
 		Short: "GitLab Kubernetes Agent Server",

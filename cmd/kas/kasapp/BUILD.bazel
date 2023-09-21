@@ -138,6 +138,7 @@ go_custom_test(
     name = "kasapp_test",
     srcs = [
         "agent_rpc_api_test.go",
+        "app_private_api_server_test.go",
         "configured_app_test.go",
         "mock_for_test.go",
         "router_kas_stream_forwarder_test.go",
