@@ -99,16 +99,11 @@ const (
 )
 
 type ConfiguredApp struct {
-	Log               *zap.Logger
-	Configuration     *kascfg.ConfigurationFile
-	OwnPrivateApiUrl  string
-	OwnPrivateApiHost string
+	Log           *zap.Logger
+	Configuration *kascfg.ConfigurationFile
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
-	if a.OwnPrivateApiUrl == "" {
-		return fmt.Errorf("%s environment variable is required so that kas instance is accessible to other kas instances", envVarOwnPrivateApiUrl)
-	}
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
@@ -182,9 +177,16 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// RPC API factory
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
+	// Server for handling API requests from other kas instances
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
+		probeRegistry, streamProm, unaryProm, streamClientProm, unaryClientProm, grpcServerErrorReporter)
+	if err != nil {
+		return fmt.Errorf("private API server: %w", err)
+	}
+
 	// Server for handling agentk requests
 	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
-		a.OwnPrivateApiUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
+		privateApiSrv.ownUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
@@ -194,14 +196,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
-	}
-
-	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
-		a.OwnPrivateApiUrl, a.OwnPrivateApiHost, probeRegistry,
-		streamProm, unaryProm, streamClientProm, unaryClientProm, grpcServerErrorReporter)
-	if err != nil {
-		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Construct internal gRPC server
@@ -224,7 +218,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		privateApiSrv.kasPool,
 		tunnelQuerier,
 		agentSrv.tunnelRegistry,
-		a.OwnPrivateApiUrl,
+		privateApiSrv.ownUrl,
 		internalSrv.server,
 		privateApiSrv,
 		pollConfig,

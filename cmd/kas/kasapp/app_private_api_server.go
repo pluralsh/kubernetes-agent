@@ -3,7 +3,10 @@ package kasapp
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/ash2k/stager"
@@ -28,13 +31,18 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-var (
-	_ grpc.ServiceRegistrar = (*privateApiServer)(nil)
+const (
+	envVarOwnPrivateApiUrl    = "OWN_PRIVATE_API_URL"
+	envVarOwnPrivateApiCidr   = "OWN_PRIVATE_API_CIDR"
+	envVarOwnPrivateApiScheme = "OWN_PRIVATE_API_SCHEME"
+	envVarOwnPrivateApiPort   = "OWN_PRIVATE_API_PORT"
+	envVarOwnPrivateApiHost   = "OWN_PRIVATE_API_HOST"
 )
 
 type privateApiServer struct {
 	log           *zap.Logger
 	listenCfg     *kascfg.ListenPrivateApiCF
+	ownUrl        string
 	server        *grpc.Server
 	inMemServer   *grpc.Server
 	inMemListener net.Listener
@@ -45,7 +53,7 @@ type privateApiServer struct {
 
 func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
 	p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
-	ownPrivateApiUrl, ownPrivateApiHost string, probeRegistry *observability.ProbeRegistry,
+	probeRegistry *observability.ProbeRegistry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*privateApiServer, error) {
@@ -55,11 +63,27 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 
+	ownUrl, err := constructOwnUrl(
+		net.InterfaceAddrs,
+		os.Getenv(envVarOwnPrivateApiUrl),
+		os.Getenv(envVarOwnPrivateApiCidr),
+		os.Getenv(envVarOwnPrivateApiScheme),
+		os.Getenv(envVarOwnPrivateApiPort),
+		*listenCfg.Network,
+		listenCfg.Address,
+	)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("Using own private API URL", logz.Url(ownUrl))
+
+	ownHost := os.Getenv(envVarOwnPrivateApiHost)
+
 	// In-memory gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
 
 	// Client pool
-	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownPrivateApiUrl, ownPrivateApiHost,
+	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownUrl, ownHost,
 		listenCfg.CaCertificateFile, listener.DialContext, streamClientProm, unaryClientProm)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
@@ -67,13 +91,14 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownPrivateApiHost, streamProm, unaryProm, grpcServerErrorReporter)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownHost, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
 	return &privateApiServer{
 		log:           log,
 		listenCfg:     listenCfg,
+		ownUrl:        ownUrl,
 		server:        server,
 		inMemServer:   inMemServer,
 		inMemListener: listener,
@@ -224,4 +249,127 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 	tlsCreds.ServerName = ownPrivateApiHost
 	kasPool := grpctool.NewPool(log, errRep, credentials.NewTLS(tlsCreds), sharedPoolOpts...)
 	return grpctool.NewPoolSelf(kasPool, ownPrivateApiUrl, inMemConn), nil
+}
+
+func constructOwnUrl(interfaceAddrs func() ([]net.Addr, error),
+	ownUrl, ownCidr, ownScheme, ownPort, listenNetwork, listenAddress string) (string, error) {
+
+	if ownUrl != "" {
+		return ownUrl, nil
+	}
+
+	// Determine port. 0 means not set
+	port, err := detectOwnPort(ownPort)
+	if err != nil {
+		return "", err
+	}
+
+	// Determine scheme
+	scheme, err := detectOwnScheme(ownScheme)
+	if err != nil {
+		return "", err
+	}
+
+	if ownCidr != "" {
+		return detectUrlByCIDR(interfaceAddrs, ownCidr, scheme, port, listenNetwork, listenAddress)
+	}
+
+	return detectUrlFromListenAddress(scheme, listenNetwork, listenAddress)
+}
+
+func detectOwnScheme(ownScheme string) (string, error) {
+	switch ownScheme {
+	case "grpc", "grpcs":
+		return ownScheme, nil
+	case "":
+		return "grpc", nil
+	default:
+		return "", fmt.Errorf("%s environment variable schould be either grpc or grpcs, got: %s", envVarOwnPrivateApiScheme, ownScheme)
+	}
+}
+
+func detectOwnPort(ownPort string) (uint16, error) {
+	if ownPort == "" {
+		return 0, nil
+	}
+	port, err := strconv.ParseUint(ownPort, 10, 16)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing %s environment variable: %w", envVarOwnPrivateApiPort, err)
+	}
+	if port == 0 || port > math.MaxUint16 { // mostly to check for 0, but do a full range check for completeness.
+		return 0, fmt.Errorf("invalid port in %s environment variable: %d", envVarOwnPrivateApiPort, port)
+	}
+	return uint16(port), nil
+}
+
+func detectUrlByCIDR(interfaceAddrs func() ([]net.Addr, error),
+	ownCidr, scheme string, port uint16, listenNetwork, listenAddress string) (string, error) {
+	_, ipNet, err := net.ParseCIDR(ownCidr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse %s environment variable: %w", envVarOwnPrivateApiCidr, err)
+	}
+	addrs, err := interfaceAddrs()
+	if err != nil {
+		return "", fmt.Errorf("net.InterfaceAddrs(): %w", err)
+	}
+	var foundIPs []net.IP
+	for _, addr := range addrs {
+		addrIP, ok := addr.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		if ipNet.Contains(addrIP.IP) {
+			foundIPs = append(foundIPs, addrIP.IP)
+		}
+	}
+	var ownIP net.IP
+	switch len(foundIPs) {
+	case 0:
+		return "", fmt.Errorf("no IPs matched CIDR specified in the %s environment variable", envVarOwnPrivateApiCidr)
+	case 1:
+		ownIP = foundIPs[0]
+	default:
+		return "", fmt.Errorf("multiple IPs matched CIDR specified in the %s environment variable: %s", envVarOwnPrivateApiCidr, foundIPs)
+	}
+	var portStr string
+	if port == 0 { // not specified, use port from listener
+		switch listenNetwork {
+		case "tcp", "tcp4", "tcp6": // assume listenAddress is a ip:port or name:port
+			_, listenPort, err := net.SplitHostPort(listenAddress)
+			if err != nil {
+				return "", fmt.Errorf("listener address: %w", err)
+			}
+			portStr = listenPort
+		//case "unix": We don't handle unix scheme here because we got OWN_PRIVATE_API_CIDR and hence presumably
+		// user wants to use network, not unix socket.
+		default:
+			return "", fmt.Errorf("cannot determine port for own URL. Specify %s", envVarOwnPrivateApiPort)
+		}
+	} else {
+		portStr = strconv.FormatInt(int64(port), 10)
+	}
+	return scheme + "://" + net.JoinHostPort(ownIP.String(), portStr), nil
+}
+
+func detectUrlFromListenAddress(scheme, listenNetwork, listenAddress string) (string, error) {
+	switch listenNetwork {
+	case "tcp", "tcp4", "tcp6": // assume listenAddress is a ip:port or name:port
+		listenHost, _, err := net.SplitHostPort(listenAddress)
+		if err != nil {
+			return "", fmt.Errorf("listener address: %w", err)
+		}
+		ip := net.ParseIP(listenHost)
+		if ip == nil || !ip.IsUnspecified() {
+			// not an IP address or not a wildcard ip, use as is.
+			return scheme + "://" + listenAddress, nil
+		}
+		// Which IP will be used for listening in case of a wildcard listen address depends on many things.
+		// See https://github.com/golang/go/blob/go1.21.1/src/net/ipsock_posix.go#L73-L111.
+		// Just report an error.
+		return "", fmt.Errorf("could't determine own URL. Please set %s or %s environment variable", envVarOwnPrivateApiUrl, envVarOwnPrivateApiCidr)
+	case "unix":
+		return "unix://" + listenAddress, nil
+	default:
+		return "", fmt.Errorf("unsupported network type specified in the listener config: %s", listenNetwork)
+	}
 }

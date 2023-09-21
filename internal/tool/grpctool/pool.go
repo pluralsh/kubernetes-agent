@@ -73,6 +73,10 @@ func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
 			// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
 			target = "dns:" + HostWithPort(u)
 			creds = p.tlsCreds
+		case "unix":
+			// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
+			target = targetUrl
+			creds = insecure.NewCredentials()
 		default:
 			return nil, fmt.Errorf("unsupported URL scheme in %s", targetUrl)
 		}
