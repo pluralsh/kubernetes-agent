@@ -351,8 +351,8 @@ func verifyHeaderAndTrailer(t *testing.T, stream grpc.ClientStream, responseMD, 
 	mdContains(t, trailersMD, stream.Trailer())
 }
 
-func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, tunnel.RpcApi, grpc.ServerStream, tunnel.DataCallback) {
-	return func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) {
+func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payloadReq *test.Request, response *test.Response, responseMD, trailersMD metadata.MD) func(*zap.Logger, tunnel.RpcApi, grpc.ServerStream, tunnel.DataCallback) error {
+	return func(log *zap.Logger, rpcApi tunnel.RpcApi, incomingStream grpc.ServerStream, cb tunnel.DataCallback) error {
 		verifyMeta(t, incomingStream, routingMetadata, payloadMD)
 		var req test.Request
 		err := incomingStream.RecvMsg(&req)
@@ -363,6 +363,7 @@ func forwardStream(t *testing.T, routingMetadata, payloadMD metadata.MD, payload
 		assert.NoError(t, cb.Header(grpctool.MetaToValuesMap(responseMD)))
 		assert.NoError(t, cb.Message(data))
 		assert.NoError(t, cb.Trailer(grpctool.MetaToValuesMap(trailersMD)))
+		return nil
 	}
 }
 

@@ -108,8 +108,9 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 			}, nil),
 		tunnelTracker.EXPECT(). // HandleTunnel()
 					RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
+					Do(func(ctx context.Context, ttl time.Duration, agentId int64) error {
 				close(reg)
+				return nil
 			}),
 		// UnregisterTunnel, RegisterTunnel, UnregisterTunnel, RegisterTunnel don't happen here
 		// because they are optimized away into no calls.
@@ -165,8 +166,9 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 		}, nil)
 	tunnelTracker.EXPECT().
 		RegisterTunnel(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, ttl time.Duration, agentId int64) {
+		Do(func(ctx context.Context, ttl time.Duration, agentId int64) error {
 			close(reg)
+			return nil
 		})
 	tunnelTracker.EXPECT().
 		UnregisterTunnel(gomock.Any(), gomock.Any())

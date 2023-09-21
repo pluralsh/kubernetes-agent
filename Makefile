@@ -100,7 +100,7 @@ update-bazel: gazelle
 
 .PHONY: fmt
 fmt:
-	go run github.com/daixiang0/gci@v0.10.1 write cmd internal pkg -s standard -s default
+	go run github.com/daixiang0/gci@v0.11.2 write cmd internal pkg -s standard -s default
 
 .PHONY: test
 test: fmt update-bazel

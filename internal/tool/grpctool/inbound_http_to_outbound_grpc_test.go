@@ -35,7 +35,7 @@ func TestHttp2Grpc_HappyPath(t *testing.T) {
 	headerExtra := &test.Request{}
 	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -105,7 +105,7 @@ func TestHttp2Grpc_UpgradeHappyPath(t *testing.T) {
 	setReadDeadlineCall := conn.EXPECT().
 		SetReadDeadline(time.Time{})
 	send := mockSendHappy(t, mrClient, headerExtra, true)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -263,7 +263,7 @@ func TestHttp2Grpc_ServerRefusesToUpgrade(t *testing.T) {
 			},
 		},
 	)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -316,7 +316,7 @@ func TestHttp2Grpc_HeaderRecvError(t *testing.T) {
 	mrClient, w, r, x := setupHttp2grpc(t, false)
 	headerExtra := &test.Request{}
 	send := mockSendHappy(t, mrClient, headerExtra, false)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("no headers for you")),
@@ -335,7 +335,7 @@ func TestHttp2Grpc_ErrorAfterHeaderWritten(t *testing.T) {
 	headerExtra := &test.Request{}
 	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -384,7 +384,7 @@ func TestHttp2Grpc_ErrorAfterBodyWritten(t *testing.T) {
 	headerExtra := &test.Request{}
 	send := mockSendHappy(t, mrClient, headerExtra, false)
 	wh := make(http.Header)
-	recv := []*gomock.Call{
+	recv := []any{
 		mrClient.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
@@ -481,7 +481,7 @@ func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKube
 	return mrClient, w, r, x
 }
 
-func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message, isUpgrade bool) []*gomock.Call {
+func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message, isUpgrade bool) []any {
 	extra, err := anypb.New(headerExtra)
 	require.NoError(t, err)
 	header := map[string]*prototool.Values{
@@ -532,8 +532,8 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 	)
 }
 
-func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, close bool, msgs ...*grpctool.HttpRequest) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, close bool, msgs ...*grpctool.HttpRequest) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))

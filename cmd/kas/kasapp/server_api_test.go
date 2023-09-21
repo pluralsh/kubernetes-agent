@@ -38,12 +38,13 @@ func TestHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
-		Do(func(event *sentry.Event) {
+		Do(func(event *sentry.Event) *sentry.EventID {
 			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
 			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+			return nil
 		})
 	apiObj.HandleProcessingError(ctx, log, testhelpers.AgentId, "Bla", err)
 }
@@ -53,12 +54,13 @@ func TestHandleProcessingError_NonUserError_NoAgentId_NoTraceId(t *testing.T) {
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
-		Do(func(event *sentry.Event) {
+		Do(func(event *sentry.Event) *sentry.EventID {
 			assert.NotContains(t, event.Tags, modserver.SentryFieldTraceId)
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
 			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+			return nil
 		})
 	apiObj.HandleProcessingError(context.Background(), log, modshared.NoAgentId, "Bla", err)
 }

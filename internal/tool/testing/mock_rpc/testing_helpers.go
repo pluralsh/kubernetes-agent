@@ -8,9 +8,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func InitMockClientStream(ctrl *gomock.Controller, eof bool, msgs ...proto.Message) (*MockClientStream, []*gomock.Call) {
+func InitMockClientStream(ctrl *gomock.Controller, eof bool, msgs ...proto.Message) (*MockClientStream, []any) {
 	stream := NewMockClientStream(ctrl)
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := stream.EXPECT().
 			RecvMsg(gomock.Any()).

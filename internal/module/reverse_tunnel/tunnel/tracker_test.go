@@ -119,7 +119,7 @@ func TestKasUrlsByAgentId_HappyPath(t *testing.T) {
 	r, hash := setupTracker(t)
 	hash.EXPECT().
 		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			var done bool
 			done, err := cb(selfUrl, nil, nil)
 			if err != nil || done {
@@ -136,7 +136,7 @@ func TestKasUrlsByAgentId_ScanError(t *testing.T) {
 	r, hash := setupTracker(t)
 	hash.EXPECT().
 		Scan(gomock.Any(), testhelpers.AgentId, gomock.Any()).
-		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			done, err := cb("", nil, errors.New("intended error"))
 			require.NoError(t, err)
 			assert.False(t, done)

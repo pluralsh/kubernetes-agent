@@ -73,12 +73,13 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 			if tc.captureErr != "" {
 				hub.EXPECT().
 					CaptureEvent(gomock.Any()).
-					Do(func(event *sentry.Event) {
+					Do(func(event *sentry.Event) *sentry.EventID {
 						assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 						assert.Empty(t, event.User.ID)
 						assert.Equal(t, sentry.LevelError, event.Level)
 						assert.Equal(t, "*gitlab.ClientError", event.Exception[0].Type)
 						assert.Equal(t, "AgentInfo(): "+tc.captureErr, event.Exception[0].Value)
+						return nil
 					})
 			}
 			info, err := rpcApi.AgentInfo(ctx, log)
@@ -99,12 +100,13 @@ func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
-		Do(func(event *sentry.Event) {
+		Do(func(event *sentry.Event) *sentry.EventID {
 			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
 			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+			return nil
 		})
 	rpcApi.HandleProcessingError(log, testhelpers.AgentId, "Bla", err)
 }
@@ -114,12 +116,13 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	err := errors.New("boom")
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
-		Do(func(event *sentry.Event) {
+		Do(func(event *sentry.Event) *sentry.EventID {
 			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
 			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
+			return nil
 		})
 	rpcApi.HandleProcessingError(log, modshared.NoAgentId, "Bla", err)
 }

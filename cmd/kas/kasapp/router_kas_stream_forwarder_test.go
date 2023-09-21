@@ -92,8 +92,9 @@ func TestStreamForwarder_VisitorErrorPreferredToGatewayError(t *testing.T) {
 			}),
 		kasStream.EXPECT().
 			CloseSend().
-			Do(func() {
+			Do(func() error {
 				close(stopped)
+				return nil
 			}),
 	)
 	err := f.ForwardStream(kasStream, stream)
@@ -145,14 +146,15 @@ func TestStreamForwarder_GatewayError(t *testing.T) {
 	gomock.InOrder( // pipeFromStreamToKas
 		stream.EXPECT().
 			RecvMsg(gomock.Any()).
-			DoAndReturn(func(m interface{}) error {
+			DoAndReturn(func(m any) error {
 				<-stop // as if this method is blocked on reading from the client
 				return io.EOF
 			}),
 		kasStream.EXPECT().
 			CloseSend().
-			Do(func() {
+			Do(func() error {
 				close(stopped)
+				return nil
 			}),
 	)
 	err := f.ForwardStream(kasStream, stream)

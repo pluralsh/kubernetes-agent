@@ -181,7 +181,7 @@ func TestMakeGitLabRequest_RecvError(t *testing.T) {
 		})
 	clientStream.EXPECT().
 		Send(gomock.Any()).
-		DoAndReturn(func(m interface{}) error {
+		DoAndReturn(func(m *grpctool.HttpRequest) error {
 			<-clientCtx.Done() // Blocks until context is canceled because of the send error.
 			// Also return an error - this one must be ignored, the one from RecvMsg() should be used.
 			return clientCtx.Err()
@@ -208,7 +208,7 @@ func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
 		})
 	clientStream.EXPECT().
 		Send(gomock.Any()).
-		DoAndReturn(func(m interface{}) error {
+		DoAndReturn(func(m *grpctool.HttpRequest) error {
 			<-clientCtx.Done() // Blocks until context is canceled because of the send error.
 			// Also return an error - this one must be ignored, the one from RecvMsg() should be used.
 			return clientCtx.Err()
@@ -263,8 +263,8 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 	}, client, clientStream
 }
 
-func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...proto.Message) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...proto.Message) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -278,8 +278,8 @@ func mockRecvStream(server *mock_gitlab_access.MockGitlabAccess_MakeRequestClien
 	return res
 }
 
-func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_MakeRequestClient, msgs ...*grpctool.HttpRequest) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))
@@ -288,8 +288,9 @@ func mockSendStream(t *testing.T, client *mock_gitlab_access.MockGitlabAccess_Ma
 	streamDone := make(chan struct{})
 	res = append(res, client.EXPECT().
 		CloseSend().
-		Do(func() {
+		Do(func() error {
 			close(streamDone)
+			return nil
 		}))
 	t.Cleanup(func() {
 		// The sending is done concurrently and test can finish earlier than the sending goroutine is done sending.

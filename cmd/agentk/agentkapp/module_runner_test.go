@@ -49,7 +49,7 @@ func TestConfigurationIsApplied(t *testing.T) {
 	defer cancel2()
 	m.EXPECT().
 		Run(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) {
+		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 			c := <-cfg
 			cancel1()
 			assert.Empty(t, cmp.Diff(c, cfg1, protocmp.Transform()))
@@ -57,6 +57,7 @@ func TestConfigurationIsApplied(t *testing.T) {
 			cancel2()
 			assert.Empty(t, cmp.Diff(c, cfg2, protocmp.Transform()))
 			<-ctx.Done()
+			return nil
 		})
 	gomock.InOrder(
 		watcher.EXPECT().
@@ -112,12 +113,13 @@ func TestConfigurationIsSquashed(t *testing.T) {
 	defer cancel1()
 	m.EXPECT().
 		Run(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) {
+		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 			<-ctx1.Done()
 			c := <-cfg
 			cancel()
 			assert.Empty(t, cmp.Diff(c, cfg2, protocmp.Transform()))
 			<-ctx.Done()
+			return nil
 		})
 	gomock.InOrder(
 		watcher.EXPECT().

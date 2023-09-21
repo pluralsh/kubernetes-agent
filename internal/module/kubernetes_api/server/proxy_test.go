@@ -968,7 +968,7 @@ func testProxyHappyPath(t *testing.T, prepareRequest func(*http.Request), expect
 			},
 		},
 	)
-	calls := []*gomock.Call{mrCall}
+	calls := []any{mrCall}
 	calls = append(calls, send...)
 	calls = append(calls, recv...)
 	gomock.InOrder(calls...)
@@ -1176,8 +1176,8 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	return mockApi, k8sClient, client, req, requestCount, ciTunnelUsageSet, mockCiAccessRequestCounter, mockCiAccessUsersCounter, mockCiAccessAgentsCounter, mockUserAccessRequestCounter, mockUserAccessUsersCounter, mockUserAccessAgentsCounter, mockPatAccessRequestCounter, mockPatAccessUsersCounter, mockPatAccessAgentsCounter
 }
 
-func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...proto.Message) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...proto.Message) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -1191,8 +1191,8 @@ func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestCli
 	return res
 }
 
-func mockSendStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockSendStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))

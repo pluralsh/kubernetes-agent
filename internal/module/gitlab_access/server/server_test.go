@@ -137,8 +137,8 @@ func TestMakeRequest(t *testing.T) {
 	require.NoError(t, s.MakeRequest(server))
 }
 
-func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof bool, msgs ...proto.Message) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs)+1)
+func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof bool, msgs ...proto.Message) []any {
+	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -154,8 +154,8 @@ func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof boo
 	return res
 }
 
-func mockSendStream(t *testing.T, server *mock_rpc.MockGitlabAccess_MakeRequestServer, msgs ...*grpctool.HttpResponse) []*gomock.Call {
-	res := make([]*gomock.Call, 0, len(msgs))
+func mockSendStream(t *testing.T, server *mock_rpc.MockGitlabAccess_MakeRequestServer, msgs ...*grpctool.HttpResponse) []any {
+	res := make([]any, 0, len(msgs))
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			Send(matcher.ProtoEq(t, msg))

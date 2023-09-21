@@ -183,8 +183,9 @@ func TestNoTrailerAfterHeaderError(t *testing.T) {
 			})),
 		tunnel.EXPECT().
 			CloseSend().
-			Do(func() {
+			Do(func() error {
 				close(done)
+				return nil
 			}),
 	)
 
@@ -248,8 +249,9 @@ func TestTrailerAfterRecvMsgEof(t *testing.T) {
 			})),
 		tunnel.EXPECT().
 			CloseSend().
-			Do(func() {
+			Do(func() error {
 				close(done)
+				return nil
 			}),
 	)
 
@@ -322,8 +324,9 @@ func TestTrailerAndErrorAfterRecvMsgError(t *testing.T) {
 			})),
 		tunnel.EXPECT().
 			CloseSend().
-			Do(func() {
+			Do(func() error {
 				close(done)
+				return nil
 			}),
 	)
 
