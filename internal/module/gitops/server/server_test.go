@@ -261,7 +261,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
-			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("manifest.yaml"),
 					Type:      gitalypb.TreeEntry_BLOB,
@@ -277,6 +277,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objs[1:])
 				require.NoError(t, err)
 				assert.False(t, done)
+				return nil
 			}),
 	)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
@@ -365,7 +366,7 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(manifestRevision), []byte("."), true, gomock.Any()).
-			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("manifest.yaml"),
 					Type:      gitalypb.TreeEntry_BLOB,
@@ -381,6 +382,7 @@ func TestGetObjectsToSynchronize_SpecificCommit(t *testing.T) {
 				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objs[1:])
 				require.NoError(t, err)
 				assert.False(t, done)
+				return nil
 			}),
 	)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
@@ -449,7 +451,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("path"), false, gomock.Any()).
-			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("path/manifest.yaml"),
 					Type:      gitalypb.TreeEntry_BLOB,
@@ -462,6 +464,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 				done, err := visitor.StreamChunk([]byte("path/manifest.yaml"), objs)
 				require.NoError(t, err)
 				assert.False(t, done)
+				return nil
 			}),
 	)
 	err := s.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{

@@ -643,7 +643,7 @@ func TestGrpc2Http_ErrorReceivingHttpResponse(t *testing.T) {
 			})),
 		server.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(func(msg interface{}) {
+			Do(func(msg any) error {
 				testhelpers.SetValue(msg, &grpctool.HttpRequest{
 					Message: &grpctool.HttpRequest_UpgradeData_{
 						UpgradeData: &grpctool.HttpRequest_UpgradeData{
@@ -652,6 +652,7 @@ func TestGrpc2Http_ErrorReceivingHttpResponse(t *testing.T) {
 					},
 				})
 				close(block)
+				return nil
 			}),
 	)
 	grpc2http := makeGrpc2http(t, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (grpctool.DoResponse, error) {

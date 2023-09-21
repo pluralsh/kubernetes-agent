@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -161,7 +162,7 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 			c1r := &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.cachedProjects)}
 			c1 := mockGitLabFluxClient.EXPECT().
 				ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, c1r), gomock.Any()).
-				DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
+				DoAndReturn(func(context.Context, *rpc.ReconcileProjectsRequest, ...grpc.CallOption) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 					close(next)
 					return nil, errors.New("just for testing, it's okay")
 				})
@@ -173,7 +174,7 @@ func TestClient_OnlyRestartReconcilingIndexedProjectsWhenNecessary(t *testing.T)
 				c3r := &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(tc.projects)}
 				c3 := mockGitLabFluxClient.EXPECT().
 					ReconcileProjects(gomock.Any(), matcher.ProtoEq(nil, c3r), gomock.Any()).
-					DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
+					DoAndReturn(func(context.Context, *rpc.ReconcileProjectsRequest, ...grpc.CallOption) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 						close(done)
 						return nil, errors.New("just for testing, it's okay")
 					})
@@ -240,7 +241,7 @@ func TestClient_RestartsProjectReconciliationOnProjectsUpdate(t *testing.T) {
 		Return(nil, errors.New("just for testing, it's okay"))
 	mockGitLabFluxClient.EXPECT().
 		ReconcileProjects(gomock.Any(), &rpc.ReconcileProjectsRequest{Project: rpc.ReconcileProjectsFromSlice(secondProjects)}, gomock.Any()).
-		DoAndReturn(func(_, _ interface{}, _ ...interface{}) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
+		DoAndReturn(func(context.Context, *rpc.ReconcileProjectsRequest, ...grpc.CallOption) (rpc.GitLabFlux_ReconcileProjectsClient, error) {
 			cancel()
 			return nil, errors.New("just for testing, it's okay")
 		})

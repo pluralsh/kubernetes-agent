@@ -195,9 +195,10 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 						Do(testhelpers.RecvMsg(streamItem)),
 					)
 				}
-				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(func(msg interface{}) {
+				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(func(msg any) error {
 					testhelpers.SetValue(msg, tc.stream[len(tc.stream)-1])
 					cancel()
+					return nil
 				}))
 			}
 			calls = append(calls, stream1.EXPECT().Header().MaxTimes(1)) // exact number not important for this test

@@ -152,9 +152,10 @@ func AgentInfoObj() *api.AgentInfo {
 	}
 }
 
-func RecvMsg(value interface{}) func(interface{}) {
-	return func(msg interface{}) {
+func RecvMsg(value interface{}) func(any) error {
+	return func(msg any) error {
 		SetValue(msg, value)
+		return nil
 	}
 }
 
