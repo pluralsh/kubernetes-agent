@@ -100,6 +100,12 @@ func TestConstructOwnUrl(t *testing.T) {
 			listenAddress: "10.1.2.3:9090",
 			expectedUrl:   "grpcs://10.1.2.3:9090",
 		},
+		{
+			name:        "URL and CIDR",
+			ownUrl:      "grpc://127.0.0.1:900",
+			ownCidr:     "10.0.0.0/8",
+			expectedErr: "either OWN_PRIVATE_API_URL or OWN_PRIVATE_API_CIDR should be specified, not both",
+		},
 	}
 
 	for _, tc := range tests {
