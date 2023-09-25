@@ -88,6 +88,8 @@ func (m *ConfigurationRequest) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for SkipRegister
+
 	if len(errors) > 0 {
 		return ConfigurationRequestMultiError(errors)
 	}

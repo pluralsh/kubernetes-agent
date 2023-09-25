@@ -51,7 +51,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	ctx := server.Context()
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
-	defer s.maybeUnregisterAgent(log, rpcApi, connectedAgentInfo)
+	defer s.maybeUnregisterAgent(log, rpcApi, connectedAgentInfo, req.SkipRegister)
 
 	pollCfg := s.getConfigurationPollConfig()
 
@@ -84,7 +84,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		wh.ApplyConfig(ctx, agentInfo.Repository.GlProjectPath)
 		// re-define log to avoid accidentally using the old one
 		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
-		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo)
+		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo, req.SkipRegister)
 		info, err := s.poll(ctx, agentInfo, lastProcessedCommitId)
 		if err != nil {
 			switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
@@ -196,7 +196,12 @@ func (s *server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 }
 
 func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, rpcApi modserver.AgentRpcApi,
-	connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo) {
+	connectedAgentInfo *agent_tracker.ConnectedAgentInfo, agentInfo *api.AgentInfo, skipRegister bool) {
+	// Skip registering agent if skipRegister is true. The agent will call "Register" gRPC method instead.
+	if skipRegister {
+		return
+	}
+
 	if connectedAgentInfo.AgentId != 0 {
 		return
 	}
@@ -208,7 +213,13 @@ func (s *server) maybeRegisterAgent(ctx context.Context, log *zap.Logger, rpcApi
 	}
 }
 
-func (s *server) maybeUnregisterAgent(log *zap.Logger, rpcApi modserver.AgentRpcApi, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) {
+func (s *server) maybeUnregisterAgent(log *zap.Logger, rpcApi modserver.AgentRpcApi,
+	connectedAgentInfo *agent_tracker.ConnectedAgentInfo, skipRegister bool) {
+	// Skip unregistering agent if skipRegister is true. GC will clean up the agent from the storage.
+	if skipRegister {
+		return
+	}
+
 	if connectedAgentInfo.AgentId == 0 {
 		return
 	}

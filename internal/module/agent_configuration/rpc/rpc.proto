@@ -19,6 +19,8 @@ message ConfigurationRequest {
   string commit_id = 1;
   // Information about the agent.
   entity.AgentMeta agent_meta = 2;
+  // Flag to skip agent registration.
+  bool skip_register = 3;
 }
 
 message ConfigurationResponse {

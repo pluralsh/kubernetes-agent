@@ -30,7 +30,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {
-				m.Log.Error("Failed to register agent pod", logz.Error(err))
+				m.Log.Error("Failed to register agent pod. Please make sure the agent version matches the server version", logz.Error(err))
 			}
 			return nil, retry.Backoff
 		}

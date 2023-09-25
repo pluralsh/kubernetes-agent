@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
+	agent_registrar_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/agent"
 	flux_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops"
@@ -34,6 +35,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
@@ -108,6 +110,9 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
+	// podId is used to distinguish agentk pods from each other.
+	podId := mathz.Int63()
+
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	goCollector := collectors.NewGoCollector()
@@ -171,7 +176,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	})
 
 	// Construct agent modules
-	beforeServersModules, afterServersModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr, reg)
+	beforeServersModules, afterServersModules, err := a.constructModules(internalSrv.server, kasConn, internalSrv.conn, k8sFactory, lr, reg, podId)
 	if err != nil {
 		return err
 	}
@@ -243,7 +248,7 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 }
 
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface,
-	k8sFactory util.Factory, lr *leaderRunner, reg *prometheus.Registry) ([]modagent.Module, []modagent.Module, error) {
+	k8sFactory util.Factory, lr *leaderRunner, reg *prometheus.Registry, podId int64) ([]modagent.Module, []modagent.Module, error) {
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		&observability_agent.Factory{
@@ -265,6 +270,9 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&kubernetes_api_agent.Factory{},
 		&remote_development_agent.Factory{},
 		&flux_agent.Factory{},
+		&agent_registrar_agent.Factory{
+			PodId: podId,
+		},
 	}
 	var beforeServersModules, afterServersModules []modagent.Module
 	for _, f := range factories {
