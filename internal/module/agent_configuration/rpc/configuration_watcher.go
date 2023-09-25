@@ -39,8 +39,9 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
 		res, err := w.Client.GetConfiguration(ctx, &ConfigurationRequest{
-			CommitId:  lastProcessedCommitId,
-			AgentMeta: w.AgentMeta,
+			CommitId:     lastProcessedCommitId,
+			AgentMeta:    w.AgentMeta,
+			SkipRegister: true,
 		}, grpc.WaitForReady(true))
 		if err != nil {
 			if !grpctool.RequestCanceledOrTimedOut(err) {

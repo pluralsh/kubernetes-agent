@@ -46,7 +46,9 @@ func TestConfigurationWatcher(t *testing.T) {
 	cfg2 := &agentcfg.AgentConfiguration{}
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
+				SkipRegister: true,
+			}), gomock.Any()).
 			Return(configStream, nil),
 		configStream.EXPECT().
 			Recv().
@@ -97,7 +99,9 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
+				SkipRegister: true,
+			}), gomock.Any()).
 			Return(configStream1, nil),
 		configStream1.EXPECT().
 			Recv().
@@ -110,7 +114,8 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 			Return(nil, io.EOF),
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
-				CommitId: revision1,
+				CommitId:     revision1,
+				SkipRegister: true,
 			}), gomock.Any()).
 			Return(configStream2, nil),
 		configStream2.EXPECT().
@@ -149,7 +154,9 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 	}
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
+				SkipRegister: true,
+			}), gomock.Any()).
 			Return(configStream1, nil),
 		configStream1.EXPECT().
 			Recv().
@@ -162,7 +169,8 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 			Return(nil, io.EOF), // immediately retries after EOF
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
-				CommitId: revision1,
+				CommitId:     revision1,
+				SkipRegister: true,
 			}), gomock.Any()).
 			Return(configStream2, nil),
 		configStream2.EXPECT().
