@@ -255,6 +255,9 @@ func constructOwnUrl(interfaceAddrs func() ([]net.Addr, error),
 	ownUrl, ownCidr, ownScheme, ownPort, listenNetwork, listenAddress string) (string, error) {
 
 	if ownUrl != "" {
+		if ownCidr != "" {
+			return "", fmt.Errorf("either %s or %s should be specified, not both", envVarOwnPrivateApiUrl, envVarOwnPrivateApiCidr)
+		}
 		return ownUrl, nil
 	}
 
