@@ -19,8 +19,8 @@ variables:
   # and pushed into https://hub.docker.com/repository/docker/gitlab/gitlab-agent-ci-image
   BUILD_IMAGE_NAME: "gitlab/gitlab-agent-ci-image"
   # must use image digest to invalidate cache if image is updated.
-  BUILD_IMAGE_SHA: "latest@sha256:2cc13054b82f3bbb2207859ae8f69b3f51632425778da96e6c76bbacbf2835a1"
-  FIPS_BUILD_IMAGE_SHA: "latest-fips@sha256:d3e47f57307544abd062ced18cf36f83161891e3b335a89a5f5c5d35e7a841c9"
+  BUILD_IMAGE_SHA: "latest@sha256:fbc33acf773f1c48591e1f8e2a9ba03ad35903add19e895098603a9450ae87bf"
+  FIPS_BUILD_IMAGE_SHA: "latest-fips@sha256:52a3cf474a75fea15725e679f58b5d50a77eef6f0b252b4d037d5ff2af000e66"
   DOCKER_VERSION: "24.0.6" # https://hub.docker.com/_/docker
   DOCKER_TLS_CERTDIR: "/certs"
 
