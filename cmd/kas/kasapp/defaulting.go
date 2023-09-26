@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	defaultGitLabApiRateLimitRefillRate = 10.0
-	defaultGitLabApiRateLimitBucketSize = 50
+	defaultGitLabApiRateLimitRefillRate = 50.0
+	defaultGitLabApiRateLimitBucketSize = 250
 
 	defaultListenGracePeriod = 5 * time.Second
 

@@ -6,8 +6,8 @@ gitlab:
   authentication_secret_file: /some/file # required
   # ca_certificate_file: /server-ca.pem
   api_rate_limit:
-    refill_rate_per_second: 10.0
-    bucket_size: 50
+    refill_rate_per_second: 50
+    bucket_size: 250
 agent:
   listen:
     network: tcp
