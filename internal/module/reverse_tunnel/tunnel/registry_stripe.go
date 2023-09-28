@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	unregistrationDelay = time.Second
+	unregistrationDelay = 5 * time.Second
 )
 
 type findTunnelRequest struct {
