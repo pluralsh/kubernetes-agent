@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -402,31 +403,46 @@ func (r *registryStripe) Stop(ctx context.Context) (int /*stoppedTun*/, int /*ab
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// 1. Abort all tunnels
+	// 1. Abort all waiting new stream requests
+	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
+		for ftr := range findRequestsForAgentId {
+			abortedFtr++
+			ftr.retTun <- nil
+		}
+	}
+	r.findRequestsByAgentId = map[int64]map[*findTunnelRequest]struct{}{} // TODO use clear() in Go 1.21
+
+	// 2. Abort all tunnels
+	var wg wait.Group
+	defer wg.Wait()
+	var waitForIOs []<-chan struct{} // nolint: prealloc
 	for agentId, info := range r.tunsByAgentId {
 		if len(info.tuns) == 0 {
-			<-info.waitForIO // wait for the current unregistration I/O to finish.
+			if info.stopIO() { // Try to stop delayed unregistration to unregister ASAP instead
+				// Succeeded, close the channel to signal any waiters that I/O "has been done".
+				close(info.waitForIO)
+			} else {
+				waitForIOs = append(waitForIOs, info.waitForIO) // wait for the current unregistration I/O to finish.
+				continue                                        // unregistered this one, so go to the next tunnel
+			}
 		} else {
 			for tun := range info.tuns {
 				stoppedTun++
 				tun.state = stateDone
 				tun.tunnelRetErr <- nil // nil so that HandleTunnel() returns cleanly and agent immediately retries
 			}
-			<-info.waitForIO // wait for the current registration I/O to finish.
-			unregister, _ := r.unregisterTunnelIO(ctx, agentId)
-			unregister()
+			waitForIOs = append(waitForIOs, info.waitForIO)
 		}
+		unregister, waitForIO := r.unregisterTunnelIO(ctx, agentId)
+		wg.Start(unregister) // do I/O concurrently
+		waitForIOs = append(waitForIOs, waitForIO)
 	}
 	r.tunsByAgentId = make(map[int64]agentId2tunInfo) // TODO use clear() in Go 1.21
 
-	// 2. Abort all waiting new stream requests
-	for _, findRequestsForAgentId := range r.findRequestsByAgentId {
-		for ftr := range findRequestsForAgentId {
-			abortedFtr++
-			ftr.retTun <- nil // respond ASAP, then do all the bookkeeping
-			r.deleteFindRequestLocked(ftr)
-		}
+	for _, w := range waitForIOs {
+		<-w // wait for the current (un)registration I/O to finish
 	}
+
 	if stoppedTun > 0 || abortedFtr > 0 {
 		r.api.HandleProcessingError(ctx, r.log, modshared.NoAgentId, "Stopped tunnels and aborted find requests", fmt.Errorf("num_tunnels=%d, num_find_requests=%d", stoppedTun, abortedFtr))
 	}
