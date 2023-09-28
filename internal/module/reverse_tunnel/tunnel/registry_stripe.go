@@ -202,11 +202,7 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 		onDone:              r.onTunnelDone,
 	}
 	// Register
-	func() {
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		r.registerTunnelLocked(ctx, tun)
-	}()
+	r.registerTunnel(ctx, tun) // nolint: contextcheck
 	// Wait for return error or for cancellation
 	select {
 	case <-ageCtx.Done():
@@ -246,6 +242,12 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 	}
 }
 
+func (r *registryStripe) registerTunnel(ctx context.Context, toReg *tunnelImpl) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.registerTunnelLocked(ctx, toReg)
+}
+
 func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnelImpl) {
 	agentId := toReg.agentId
 	// 1. Before registering the tunnel see if there is a find tunnel request waiting for it
@@ -272,7 +274,9 @@ func (r *registryStripe) registerTunnelLocked(ctx context.Context, toReg *tunnel
 				close(info.waitForIO)
 				shouldRegister = info.missedRefresh // register if it missed refresh to ensure it's not GCed
 			} else {
+				_, span := r.tracer.Start(ctx, "registryStripe.registerTunnelLocked(wait for io)", trace.WithSpanKind(trace.SpanKindInternal))
 				<-info.waitForIO // Failed, wait for it to finish.
+				span.End()
 				shouldRegister = true
 			}
 		}
@@ -316,7 +320,9 @@ func (r *registryStripe) unregisterTunnelLocked(ctx context.Context, toUnreg *tu
 		// unregister it now, we'll have to re-register it in a moment again, causing useless I/O and delays.
 		// To avoid the issue we schedule unregistration to happen in 1s. If a new tunnel is established before,
 		// it will cancel unregistration, and we'd avoid this I/O.
+		_, span := r.tracer.Start(ctx, "registryStripe.unregisterTunnelLocked(wait for io)", trace.WithSpanKind(trace.SpanKindInternal))
 		<-info.waitForIO // wait for the current I/O (if any) to finish. May be in-flight registration I/O.
+		span.End()
 		unregister, waitForIO := r.unregisterTunnelIO(ctx, agentId)
 		info.waitForIO = waitForIO
 		info.stopIO = time.AfterFunc(unregistrationDelay, unregister).Stop
