@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -24,7 +25,7 @@ type internalServer struct {
 	listener net.Listener
 }
 
-func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.TextMapPropagator,
+func newInternalServer(log *zap.Logger, tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor) (*internalServer, error) {
 	// Internal gRPC client->listener pipe
 	listener := grpctool.NewDialListener()
@@ -49,20 +50,22 @@ func newInternalServer(log *zap.Logger, tp trace.TracerProvider, p propagation.T
 	}
 	return &internalServer{
 		server: grpc.NewServer(
+			grpc.StatsHandler(otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(tp),
+				otelgrpc.WithMeterProvider(mp),
+				otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+			)),
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.SharedWriteBuffer(true),
 			grpc.ChainStreamInterceptor(
 				streamProm, // 1. measure all invocations
-				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-				modagent.StreamRpcApiInterceptor(factory), // 3. inject RPC API
+				modagent.StreamRpcApiInterceptor(factory), // 2. inject RPC API
 				grpc_validator.StreamServerInterceptor(),  // x. wrap with validator
 			),
 			grpc.ChainUnaryInterceptor(
-				unaryProm, // 1. measure all invocations
-				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-				modagent.UnaryRpcApiInterceptor(factory), // 3. inject RPC API
+				unaryProm,                                // 1. measure all invocations
+				modagent.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
 				grpc_validator.UnaryServerInterceptor(),  // x. wrap with validator
 			),
 		),

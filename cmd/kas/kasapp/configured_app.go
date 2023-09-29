@@ -178,28 +178,28 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, mp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
 		probeRegistry, streamProm, unaryProm, streamClientProm, unaryClientProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, mp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
 		privateApiSrv.ownUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, mp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
 		streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(tp, p, rpcApiFactory, probeRegistry, grpcServerErrorReporter) // nolint: contextcheck
+	internalSrv, err := newInternalServer(tp, mp, p, rpcApiFactory, probeRegistry, grpcServerErrorReporter) // nolint: contextcheck
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(csh, tp, p, streamClientProm, unaryClientProm)
+	gitalyClientPool := a.constructGitalyPool(csh, tp, mp, p, streamClientProm, unaryClientProm)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
@@ -461,8 +461,8 @@ func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelme
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, p propagation.TextMapPropagator,
-	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, mp otelmetric.MeterProvider,
+	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) *client.Pool {
 	g := a.Configuration.Gitaly
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
@@ -472,6 +472,22 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 		client.WithDialOptions(
 			grpc.WithUserAgent(kasServerName()),
 			grpc.WithStatsHandler(csh),
+			grpc.WithStatsHandler(otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(tp),
+				otelgrpc.WithMeterProvider(mp),
+				otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+			)),
+			grpc.WithSharedWriteBuffer(true),
+			// In https://gitlab.com/groups/gitlab-org/-/epics/8971, we added DNS discovery support to Praefect. This was
+			// done by making two changes:
+			// - Configure client-side round-robin load-balancing in client dial options. We added that as a default option
+			// inside gitaly client in gitaly client since v15.9.0
+			// - Configure DNS resolving. Due to some technical limitations, we don't use gRPC's built-in DNS resolver.
+			// Instead, we implement our own DNS resolver. This resolver is exposed via the following configuration.
+			// Afterward, workhorse can detect and handle DNS discovery automatically. The user needs to setup and set
+			// Gitaly address to something like "dns:gitaly.service.dc1.consul"
+			client.WithGitalyDNSResolver(client.DefaultDNSResolverBuilderConfig()),
 			// Don't put interceptors here as order is important. Put them below.
 		),
 		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {
@@ -479,30 +495,16 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 				rate.Limit(g.PerServerApiRateLimit.RefillRatePerSecond),
 				int(g.PerServerApiRateLimit.BucketSize))
 			opts := []grpc.DialOption{
-				grpc.WithSharedWriteBuffer(true),
 				grpc.WithChainStreamInterceptor(
 					streamClientProm,
-					otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-						otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 					grpctool.StreamClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.StreamClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
 				grpc.WithChainUnaryInterceptor(
 					unaryClientProm,
-					otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-						otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 					grpctool.UnaryClientLimitingInterceptor(globalGitalyRpcLimiter),
 					grpctool.UnaryClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
-				// In https://gitlab.com/groups/gitlab-org/-/epics/8971, we added DNS discovery support to Praefect. This was
-				// done by making two changes:
-				// - Configure client-side round-robin load-balancing in client dial options. We added that as a default option
-				// inside gitaly client in gitaly client since v15.9.0
-				// - Configure DNS resolving. Due to some technical limitations, we don't use gRPC's built-in DNS resolver.
-				// Instead, we implement our own DNS resolver. This resolver is exposed via the following configuration.
-				// Afterward, workhorse can detect and handle DNS discovery automatically. The user needs to setup and set
-				// Gitaly address to something like "dns:gitaly.service.dc1.consul"
-				client.WithGitalyDNSResolver(client.DefaultDNSResolverBuilderConfig()),
 			}
 			opts = append(opts, dialOptions...)
 			return client.DialContext(ctx, address, opts)
