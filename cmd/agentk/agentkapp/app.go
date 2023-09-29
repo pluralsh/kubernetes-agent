@@ -44,6 +44,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -136,7 +137,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	mp := otel.GetMeterProvider()
 
 	// Construct gRPC connection to gitlab-kas
-	kasConn, err := a.constructKasConnection(ctx, tp, p, streamClientProm, unaryClientProm)
+	kasConn, err := a.constructKasConnection(ctx, tp, mp, p, streamClientProm, unaryClientProm)
 	if err != nil {
 		return err
 	}
@@ -314,8 +315,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	return beforeServersModules, afterServersModules, nil
 }
 
-func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, p propagation.TextMapPropagator,
-	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, mp otelmetric.MeterProvider,
+	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
 	tokenData, err := os.ReadFile(a.TokenFile)
 	if err != nil {
 		return nil, fmt.Errorf("token file: %w", err)
@@ -337,6 +338,12 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	}
 	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
+		grpc.WithStatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(tp),
+			otelgrpc.WithMeterProvider(mp),
+			otelgrpc.WithPropagators(p),
+			otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+		)),
 		// Default gRPC parameters are good, no need to change them at the moment.
 		// Specify them explicitly for discoverability.
 		// See https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md.
@@ -358,14 +365,10 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		}),
 		grpc.WithChainStreamInterceptor(
 			streamClientProm,
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			unaryClientProm,
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}

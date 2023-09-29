@@ -84,7 +84,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 	listener := grpctool.NewDialListener()
 
 	// Client pool
-	kasPool, err := newKasPool(log, errRep, tp, p, csh, jwtSecret, ownUrl, ownHost,
+	kasPool, err := newKasPool(log, errRep, tp, mp, p, csh, jwtSecret, ownUrl, ownHost,
 		listenCfg.CaCertificateFile, listener.DialContext, streamClientProm, unaryClientProm)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
@@ -195,8 +195,8 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	return server, inMemServer, nil
 }
 
-func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, p propagation.TextMapPropagator,
-	csh stats.Handler, jwtSecret []byte, ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string,
+func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvider, mp otelmetric.MeterProvider,
+	p propagation.TextMapPropagator, csh stats.Handler, jwtSecret []byte, ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string,
 	dialer func(context.Context, string) (net.Conn, error),
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (grpctool.PoolInterface, error) {
 
@@ -209,6 +209,12 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 			Backoff:           backoff.DefaultConfig,
 			MinConnectTimeout: 20 * time.Second, // matches the default gRPC value.
 		}),
+		grpc.WithStatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(tp),
+			otelgrpc.WithMeterProvider(mp),
+			otelgrpc.WithPropagators(p),
+			otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+		)),
 		grpc.WithStatsHandler(csh),
 		grpc.WithUserAgent(kasServerName()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -223,14 +229,10 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 		}),
 		grpc.WithChainStreamInterceptor(
 			streamClientProm,
-			otelgrpc.StreamClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			unaryClientProm,
-			otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}
