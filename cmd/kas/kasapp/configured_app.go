@@ -178,28 +178,28 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
 
 	// Server for handling API requests from other kas instances
-	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
+	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, mp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
 		probeRegistry, streamProm, unaryProm, streamClientProm, unaryClientProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, mp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
 		privateApiSrv.ownUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
+	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, mp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
 		streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(tp, p, rpcApiFactory, probeRegistry, grpcServerErrorReporter) // nolint: contextcheck
+	internalSrv, err := newInternalServer(tp, mp, p, rpcApiFactory, probeRegistry, grpcServerErrorReporter) // nolint: contextcheck
 	if err != nil {
 		return err
 	}

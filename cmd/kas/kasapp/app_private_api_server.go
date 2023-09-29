@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -52,7 +53,7 @@ type privateApiServer struct {
 }
 
 func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
+	mp otelmetric.MeterProvider, p propagation.TextMapPropagator, csh, ssh stats.Handler, factory modserver.RpcApiFactory,
 	probeRegistry *observability.ProbeRegistry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor,
@@ -91,7 +92,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 
 	// Server
 	auxCtx, auxCancel := context.WithCancel(context.Background()) // nolint: govet
-	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, p, ssh, jwtSecret, factory, ownHost, streamProm, unaryProm, grpcServerErrorReporter)
+	server, inMemServer, err := newPrivateApiServerImpl(auxCtx, cfg, tp, mp, p, ssh, jwtSecret, factory, ownHost, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err) // nolint: govet
 	}
@@ -141,7 +142,7 @@ func (s *privateApiServer) RegisterService(desc *grpc.ServiceDesc, impl interfac
 }
 
 func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider,
-	p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory,
+	mp otelmetric.MeterProvider, p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory,
 	ownPrivateApiHost string, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*grpc.Server, *grpc.Server, error) {
 	listenCfg := cfg.PrivateApi.Listen
@@ -160,24 +161,26 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	sharedOpts := []grpc.ServerOption{
 		keepaliveOpt,
+		grpc.StatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(tp),
+			otelgrpc.WithMeterProvider(mp),
+			otelgrpc.WithPropagators(p),
+			otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+		)),
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.SharedWriteBuffer(true),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-			modserver.StreamRpcApiInterceptor(factory),                             // 3. inject RPC API
-			jwtAuther.StreamServerInterceptor,                                      // 4. auth and maybe log
+			modserver.StreamRpcApiInterceptor(factory),                             // 2. inject RPC API
+			jwtAuther.StreamServerInterceptor,                                      // 3. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),                               // x. wrap with validator
 			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter), // nolint:contextcheck
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-			modserver.UnaryRpcApiInterceptor(factory), // 3. inject RPC API
-			jwtAuther.UnaryServerInterceptor,          // 4. auth and maybe log
+			modserver.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
+			jwtAuther.UnaryServerInterceptor,          // 3. auth and maybe log
 			grpc_validator.UnaryServerInterceptor(),   // x. wrap with validator
 			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),

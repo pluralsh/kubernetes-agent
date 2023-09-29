@@ -132,6 +132,9 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	tp := trace.NewNoopTracerProvider()
 	p := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 
+	// TODO metrics via OTEL
+	mp := otel.GetMeterProvider()
+
 	// Construct gRPC connection to gitlab-kas
 	kasConn, err := a.constructKasConnection(ctx, tp, p, streamClientProm, unaryClientProm)
 	if err != nil {
@@ -140,7 +143,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeClose(kasConn, &retErr)
 
 	// Construct internal gRPC server
-	internalSrv, err := newInternalServer(a.Log, tp, p, streamProm, unaryProm) // nolint: contextcheck
+	internalSrv, err := newInternalServer(a.Log, tp, mp, p, streamProm, unaryProm) // nolint: contextcheck
 	if err != nil {
 		return err
 	}

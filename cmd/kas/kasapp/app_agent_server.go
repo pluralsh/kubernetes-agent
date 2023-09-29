@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -47,7 +48,7 @@ type agentServer struct {
 }
 
 func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, dt trace.Tracer,
-	tp trace.TracerProvider, redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
+	tp trace.TracerProvider, mp otelmetric.MeterProvider, redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
 	ownPrivateApiUrl string, probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
@@ -91,23 +92,25 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(tp),
+			otelgrpc.WithMeterProvider(mp),
+			otelgrpc.WithPropagators(traceContextProp),
+			otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+		)),
 		grpc.StatsHandler(ssh),
 		grpc.StatsHandler(sh),
 		grpc.SharedWriteBuffer(true),
 		grpc.ChainStreamInterceptor(
 			streamProm, // 1. measure all invocations
-			otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-			modserver.StreamAgentRpcApiInterceptor(factory), // 3. inject RPC API
+			modserver.StreamAgentRpcApiInterceptor(factory), // 2. inject RPC API
 			grpc_validator.StreamServerInterceptor(),        // x. wrap with validator
 			grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter),
 			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
-			otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(traceContextProp),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 2. trace
-			modserver.UnaryAgentRpcApiInterceptor(factory), // 3. inject RPC API
+			modserver.UnaryAgentRpcApiInterceptor(factory), // 2. inject RPC API
 			grpc_validator.UnaryServerInterceptor(),        // x. wrap with validator
 			grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter),
 			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),

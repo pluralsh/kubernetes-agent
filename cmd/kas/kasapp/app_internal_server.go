@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -22,7 +23,7 @@ type internalServer struct {
 	ready         func()
 }
 
-func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
+func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator,
 	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*internalServer, error) {
 
@@ -50,17 +51,19 @@ func newInternalServer(tp trace.TracerProvider, p propagation.TextMapPropagator,
 	}
 	return &internalServer{
 		server: grpc.NewServer(
+			grpc.StatsHandler(otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(tp),
+				otelgrpc.WithMeterProvider(mp),
+				otelgrpc.WithPropagators(p),
+				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
+			)),
 			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.SharedWriteBuffer(true),
 			grpc.ChainStreamInterceptor(
-				otelgrpc.StreamServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 1. trace
 				modserver.StreamRpcApiInterceptor(factory), // 2. inject RPC API
 				grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ChainUnaryInterceptor(
-				otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp), otelgrpc.WithPropagators(p),
-					otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents)), // 1. trace
 				modserver.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
 				grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
