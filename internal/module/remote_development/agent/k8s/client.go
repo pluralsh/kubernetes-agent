@@ -119,10 +119,13 @@ func (k *K8sClient) Apply(ctx context.Context, config string) <-chan error {
 		return rdutil.ToAsync(err)
 	}
 
-	eventChannels := make([]<-chan event.Event, 0, len(parsedApplierInfo))
+	errorChannels := make([]<-chan error, 0, len(parsedApplierInfo))
 	for _, applierInfo := range parsedApplierInfo {
+		inventoryName := applierInfo.invInfo.GetName()
+		namespace := applierInfo.invInfo.GetNamespace()
+
 		// process work - apply to cluster
-		k.log.Debug("Applying work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
+		k.log.Debug("Applying work to cluster", logz.InventoryName(inventoryName), logz.InventoryNamespace(namespace))
 		applierOptions := apply.ApplierOptions{
 			ServerSideOptions: common.ServerSideOptions{
 				ServerSideApply: true,
@@ -136,28 +139,28 @@ func (k *K8sClient) Apply(ctx context.Context, config string) <-chan error {
 			WatcherRESTScopeStrategy: watcher.RESTScopeNamespace,
 		}
 		events := k.applier.Run(ctx, inventory.WrapInventoryInfoObj(applierInfo.invInfo), applierInfo.objects, applierOptions)
-		eventChannels = append(eventChannels, events)
+		errCh := rdutil.RunWithAsyncResult[error](func(outCh chan<- error) {
+			for e := range events {
+				k.log.Debug("Applied event", applyEvent(e))
+				if e.Type == event.ErrorType {
+					k.log.Error(
+						"Error when applying config",
+						logz.Error(e.ErrorEvent.Err),
+						logz.InventoryName(inventoryName),
+						logz.InventoryNamespace(namespace),
+					)
+					outCh <- e.ErrorEvent.Err
+				}
+			}
+		})
+		errorChannels = append(errorChannels, errCh)
 
-		k.log.Debug("Applied work to cluster", logz.InventoryName(applierInfo.invInfo.GetName()))
+		k.log.Debug("Applied work to cluster", logz.InventoryName(inventoryName), logz.InventoryNamespace(namespace))
 	}
 
-	// Event channels received for each invocation of Run are combined to pipe incoming values
-	// through a single event channel. This event channel will be asynchronously consumed to
-	// log events and capture errors
-	combinedEventsCh := rdutil.CombineChannels(eventChannels)
-
-	return rdutil.RunWithAsyncResult(func(outCh chan<- error) {
-		for e := range combinedEventsCh {
-			k.log.Debug("Applied event", applyEvent(e))
-			if e.Type == event.ErrorType {
-				// TODO: it would be useful to log supplementary information like inventory name,
-				// workspace, namespace here
-				// issue: https://gitlab.com/gitlab-org/gitlab/-/issues/420980
-				k.log.Error("Error when applying config", logz.Error(err))
-				outCh <- e.ErrorEvent.Err
-			}
-		}
-	})
+	// Error channels created for each invocation of Run are combined to pipe incoming values
+	// through a single error channel. This channel will be asynchronously consumed to capture errors
+	return rdutil.CombineChannels(errorChannels)
 }
 
 func (k *K8sClient) decode(data io.Reader) ([]*unstructured.Unstructured, error) {

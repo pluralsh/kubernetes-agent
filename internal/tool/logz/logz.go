@@ -237,3 +237,7 @@ func K8sResource(resourceName string) zap.Field {
 func InventoryName(name string) zap.Field {
 	return zap.String("inventory_name", name)
 }
+
+func InventoryNamespace(namespace string) zap.Field {
+	return zap.String("inventory_namespace", namespace)
+}
