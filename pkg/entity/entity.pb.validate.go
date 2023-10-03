@@ -65,6 +65,35 @@ func (m *AgentMeta) validate(all bool) error {
 
 	// no validation rules for PodName
 
+	if all {
+		switch v := interface{}(m.GetKubernetesVersion()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, AgentMetaValidationError{
+					field:  "KubernetesVersion",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, AgentMetaValidationError{
+					field:  "KubernetesVersion",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetKubernetesVersion()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentMetaValidationError{
+				field:  "KubernetesVersion",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return AgentMetaMultiError(errors)
 	}
@@ -141,6 +170,116 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = AgentMetaValidationError{}
+
+// Validate checks the field values on KubernetesVersion with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *KubernetesVersion) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on KubernetesVersion with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// KubernetesVersionMultiError, or nil if none found.
+func (m *KubernetesVersion) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *KubernetesVersion) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Major
+
+	// no validation rules for Minor
+
+	// no validation rules for GitVersion
+
+	// no validation rules for Platform
+
+	if len(errors) > 0 {
+		return KubernetesVersionMultiError(errors)
+	}
+
+	return nil
+}
+
+// KubernetesVersionMultiError is an error wrapping multiple validation errors
+// returned by KubernetesVersion.ValidateAll() if the designated constraints
+// aren't met.
+type KubernetesVersionMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m KubernetesVersionMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m KubernetesVersionMultiError) AllErrors() []error { return m }
+
+// KubernetesVersionValidationError is the validation error returned by
+// KubernetesVersion.Validate if the designated constraints aren't met.
+type KubernetesVersionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e KubernetesVersionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e KubernetesVersionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e KubernetesVersionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e KubernetesVersionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e KubernetesVersionValidationError) ErrorName() string {
+	return "KubernetesVersionValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e KubernetesVersionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sKubernetesVersion.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = KubernetesVersionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = KubernetesVersionValidationError{}
 
 // Validate checks the field values on GitalyInfo with the rules defined in the
 // proto definition for this message. If any rules are violated, the first

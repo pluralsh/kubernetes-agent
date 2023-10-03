@@ -439,8 +439,9 @@ func NewCommand() *cobra.Command {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	a := App{
 		AgentMeta: &entity.AgentMeta{
-			Version:  cmd.Version,
-			CommitId: cmd.Commit,
+			Version:           cmd.Version,
+			CommitId:          cmd.Commit,
+			KubernetesVersion: &entity.KubernetesVersion{},
 		},
 		AgentId:            NewValueHolder[int64](),
 		GitLabExternalUrl:  NewValueHolder[url.URL](),

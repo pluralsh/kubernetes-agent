@@ -19,6 +19,8 @@ go_library(
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "//pkg/entity",
+        "@io_k8s_client_go//discovery",
+        "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -33,6 +35,7 @@ go_custom_test(
         "//internal/tool/testing/mock_agent_registrar",
         "//internal/tool/testing/testhelpers",
         "//pkg/entity",
+        "@io_k8s_client_go//kubernetes/fake",
         "@org_golang_google_grpc//:grpc",
         "@org_uber_go_mock//gomock",
         "@org_uber_go_zap//zaptest",

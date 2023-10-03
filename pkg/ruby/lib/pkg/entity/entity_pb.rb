@@ -12,6 +12,13 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       optional :commit_id, :string, 2, json_name: "commit_id"
       optional :pod_namespace, :string, 3, json_name: "pod_namespace"
       optional :pod_name, :string, 4, json_name: "pod_name"
+      optional :kubernetes_version, :message, 5, "gitlab.agent.entity.KubernetesVersion", json_name: "kubernetes_version"
+    end
+    add_message "gitlab.agent.entity.KubernetesVersion" do
+      optional :major, :string, 1, json_name: "major"
+      optional :minor, :string, 2, json_name: "minor"
+      optional :git_version, :string, 3, json_name: "git_version"
+      optional :platform, :string, 4, json_name: "platform"
     end
     add_message "gitlab.agent.entity.GitalyInfo" do
       optional :address, :string, 1, json_name: "address"
@@ -33,6 +40,7 @@ module Gitlab
   module Agent
     module Entity
       AgentMeta = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.entity.AgentMeta").msgclass
+      KubernetesVersion = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.entity.KubernetesVersion").msgclass
       GitalyInfo = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.entity.GitalyInfo").msgclass
       GitalyRepository = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("gitlab.agent.entity.GitalyRepository").msgclass
     end
