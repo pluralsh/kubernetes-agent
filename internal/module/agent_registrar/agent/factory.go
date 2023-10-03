@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar"
@@ -32,6 +33,11 @@ func (f *Factory) Name() string {
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
+	kubeClientset, err := config.K8sUtilFactory.KubernetesClientSet()
+	if err != nil {
+		return nil, fmt.Errorf("could not create kubernetes clientset: %w", err)
+	}
+
 	m := &module{
 		Log:       config.Log,
 		AgentMeta: config.AgentMeta,
@@ -43,7 +49,8 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			registerBackoffFactor,
 			registerJitter,
 		)),
-		Client: rpc.NewAgentRegistrarClient(config.KasConn),
+		Client:      rpc.NewAgentRegistrarClient(config.KasConn),
+		KubeVersion: kubeClientset.Discovery(),
 	}
 	return m, nil
 }

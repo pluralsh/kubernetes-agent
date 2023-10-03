@@ -12,6 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestModule_Run(t *testing.T) {
@@ -28,11 +29,12 @@ func TestModule_Run(t *testing.T) {
 		})
 
 	m := &module{
-		Log:        zaptest.NewLogger(t),
-		AgentMeta:  &entity.AgentMeta{},
-		PodId:      mathz.Int63(),
-		PollConfig: testhelpers.NewPollConfig(0),
-		Client:     client,
+		Log:         zaptest.NewLogger(t),
+		AgentMeta:   &entity.AgentMeta{KubernetesVersion: &entity.KubernetesVersion{}},
+		PodId:       mathz.Int63(),
+		PollConfig:  testhelpers.NewPollConfig(0),
+		Client:      client,
+		KubeVersion: fake.NewSimpleClientset().Discovery(),
 	}
 	_ = m.Run(ctx, nil)
 }
