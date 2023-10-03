@@ -11,3 +11,6 @@ go_build_agentk*
 go_build_kas*
 
 .DS_Store
+
+# settings for Jetbrains Goland
+.idea
