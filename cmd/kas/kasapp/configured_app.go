@@ -85,6 +85,7 @@ const (
 	routingJitter            = 1.0
 	routingTunnelFindTimeout = 20 * time.Second
 	routingCachePeriod       = 5 * time.Minute
+	routingTryNewKasInterval = 10 * time.Millisecond
 
 	authSecretLength = 32
 
