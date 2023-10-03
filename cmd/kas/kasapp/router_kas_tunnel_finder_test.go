@@ -200,6 +200,7 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_
 		ctx,
 		testhelpers.NewPollConfig(100*time.Millisecond),
 		gatewayKasVisitor,
+		routingTryNewKasInterval,
 	)
 	return tf, querier, rpcApi, kasPool
 }

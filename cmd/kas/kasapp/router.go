@@ -51,6 +51,7 @@ type router struct {
 	kasRoutingDurationAborted prometheus.Observer
 	kasRoutingDurationTimeout prometheus.Counter
 	tunnelFindTimeout         time.Duration
+	tryNewKasInterval         time.Duration
 }
 
 func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
@@ -80,6 +81,7 @@ func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQueri
 		kasRoutingDurationAborted: routingDuration.WithLabelValues(kasRoutingStatusAbortedLabelValue),
 		kasRoutingDurationTimeout: timeoutCounter,
 		tunnelFindTimeout:         routingTunnelFindTimeout,
+		tryNewKasInterval:         routingTryNewKasInterval,
 	}, nil
 }
 

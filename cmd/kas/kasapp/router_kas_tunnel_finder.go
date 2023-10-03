@@ -19,10 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-const (
-	tryNewKasInterval = 10 * time.Millisecond
-)
-
 var (
 	proxyStreamDesc = grpc.StreamDesc{
 		ServerStreams: true,
@@ -64,6 +60,7 @@ type tunnelFinder struct {
 	noTunnel          chan struct{}
 	wg                wait.Group
 	pollCancel        context.CancelFunc
+	tryNewKasInterval time.Duration
 
 	mu          sync.Mutex                // protects the fields below
 	connections map[string]kasConnAttempt // kas URL -> conn info
@@ -73,7 +70,7 @@ type tunnelFinder struct {
 
 func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
 	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
-	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool.StreamVisitor) *tunnelFinder {
+	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool.StreamVisitor, tryNewKasInterval time.Duration) *tunnelFinder {
 	return &tunnelFinder{
 		log:               log,
 		kasPool:           kasPool,
@@ -85,6 +82,7 @@ func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuer
 		outgoingCtx:       outgoingCtx,
 		pollConfig:        pollConfig,
 		gatewayKasVisitor: gatewayKasVisitor,
+		tryNewKasInterval: tryNewKasInterval,
 		foundTunnel:       make(chan readyTunnel),
 		noTunnel:          make(chan struct{}),
 		connections:       make(map[string]kasConnAttempt),
@@ -109,7 +107,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 	// another instance if it has been discovered.
 	// If, for some reason, our own private API server doesn't respond with noTunnel/startStreaming in time, we
 	// want to proceed with normal flow too.
-	t := time.NewTimer(tryNewKasInterval)
+	t := time.NewTimer(f.tryNewKasInterval)
 	defer t.Stop()
 	kasUrlsC := make(chan []string)
 	f.kasUrls = f.tunnelQuerier.CachedKasUrlsByAgentId(f.agentId)
@@ -120,7 +118,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 		if f.tryNextKas() { // nolint: contextcheck
 			// Connected to an instance.
 			needToTryNewKas = false
-			t.Reset(tryNewKasInterval)
+			t.Reset(f.tryNewKasInterval)
 		} else {
 			// Couldn't find a kas instance we haven't connected to already.
 			needToTryNewKas = true
@@ -159,7 +157,7 @@ func (f *tunnelFinder) Find(ctx context.Context) (readyTunnel, error) {
 				// Connected to a new kas instance.
 				needToTryNewKas = false
 				stopAndDrain(t)
-				t.Reset(tryNewKasInterval)
+				t.Reset(f.tryNewKasInterval)
 			}
 		case <-t.C:
 			tryNextKasWhenTimerNotRunning()

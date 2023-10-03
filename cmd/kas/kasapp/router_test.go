@@ -306,6 +306,7 @@ func TestRouter_FindTunnelTimeout(t *testing.T) {
 		kasRoutingDurationTimeout: prometheus.NewCounter(prometheus.CounterOpts{}),
 		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),
 		tunnelFindTimeout:         100 * time.Millisecond,
+		tryNewKasInterval:         routingTryNewKasInterval,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group
@@ -457,6 +458,8 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel_tunnel.MockTunnel, 
 		kasRoutingDurationTimeout: prometheus.NewCounter(prometheus.CounterOpts{}),
 		kasRoutingDurationAborted: prometheus.ObserverFunc(func(f float64) {}),
 		tunnelFindTimeout:         routingTunnelFindTimeout,
+		// We don't want any nondeterministic polls to other KAS
+		tryNewKasInterval: 5 * time.Second,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group

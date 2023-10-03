@@ -60,6 +60,7 @@ func (r *router) findReadyTunnel(ctx context.Context, rpcApi modserver.RpcApi, m
 		metadata.NewOutgoingContext(ctx, md),
 		r.pollConfig,
 		r.gatewayKasVisitor,
+		r.tryNewKasInterval,
 	)
 	findCtx, findCancel := context.WithTimeout(findCtx, r.tunnelFindTimeout)
 	defer findCancel()
