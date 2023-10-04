@@ -6,7 +6,6 @@ go_library(
     srcs = [
         "client.go",
         "k8s.go",
-        "mock.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s",
     visibility = ["//:__subpackages__"],

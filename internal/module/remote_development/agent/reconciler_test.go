@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent/k8s"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
@@ -25,7 +24,7 @@ type ReconcilerTestSuite struct {
 	runner        reconciler
 	mockApi       *mock_modagent.MockApi
 	mockInformer  *mockInformer
-	mockK8sClient *k8s.MockClient
+	mockK8sClient *MockClient
 }
 
 func TestRemoteDevModuleReconciler(t *testing.T) {
@@ -320,7 +319,7 @@ func (r *ReconcilerTestSuite) updateMockWorkspaceStateInInformer(mockInformer *m
 	mockInformer.Resources[workspace.Name] = workspace
 }
 
-func (r *ReconcilerTestSuite) ensureWorkspaceExists(ctx context.Context, stateTracker *persistedStateTracker, mockK8sClient *k8s.MockClient, existingWorkspaceA *parsedWorkspace) {
+func (r *ReconcilerTestSuite) ensureWorkspaceExists(ctx context.Context, stateTracker *persistedStateTracker, mockK8sClient *MockClient, existingWorkspaceA *parsedWorkspace) {
 	if _, ok := stateTracker.persistedVersion[existingWorkspaceA.Name]; !ok {
 		stateTracker.recordVersion(&WorkspaceRailsInfo{
 			Name:                      existingWorkspaceA.Name,
@@ -458,7 +457,7 @@ func (r *ReconcilerTestSuite) SetupTest() {
 	ctrl := gomock.NewController(r.T())
 	r.mockApi = mock_modagent.NewMockApi(ctrl)
 
-	r.mockK8sClient = k8s.NewMockClient()
+	r.mockK8sClient = NewMockClient()
 	r.mockInformer = newMockInformer()
 
 	// this should ideally be called once per run
