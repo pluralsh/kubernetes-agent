@@ -80,6 +80,7 @@ const (
 	envVarPodNamespace       = "POD_NAMESPACE"
 	envVarPodName            = "POD_NAME"
 	envVarServiceAccountName = "SERVICE_ACCOUNT_NAME"
+	envVarAgentkToken        = "AGENTK_TOKEN"
 
 	getConfigurationInitBackoff   = 10 * time.Second
 	getConfigurationMaxBackoff    = 5 * time.Minute
@@ -107,6 +108,7 @@ type App struct {
 	ObservabilityCertFile      string
 	ObservabilityKeyFile       string
 	TokenFile                  string
+	AgentToken                 api.AgentToken
 	K8sClientGetter            genericclioptions.RESTClientGetter
 }
 
@@ -317,11 +319,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 
 func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvider, mp otelmetric.MeterProvider,
 	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
-	tokenData, err := os.ReadFile(a.TokenFile)
-	if err != nil {
-		return nil, fmt.Errorf("token file: %w", err)
-	}
-	tokenData = bytes.TrimSuffix(tokenData, []byte{'\n'})
 	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.KasCACertFile)
 	if err != nil {
 		return nil, err
@@ -427,7 +424,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if !secure {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(api.AgentToken(tokenData), !secure)))
+	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(a.AgentToken, !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %w", err)
@@ -461,6 +458,28 @@ func NewCommand() *cobra.Command {
 			if podName == "" {
 				return fmt.Errorf("%s environment variable is required but is empty", envVarPodName)
 			}
+
+			tokenFromEnv, ok := os.LookupEnv(envVarAgentkToken)
+			switch {
+			case a.TokenFile != "" && ok:
+				return fmt.Errorf("unable to use both token file and %s environment variable to set the agent token", envVarAgentkToken)
+			case a.TokenFile != "":
+				tokenData, err := os.ReadFile(a.TokenFile)
+				if err != nil {
+					return fmt.Errorf("token file: %w", err)
+				}
+				tokenData = bytes.TrimSuffix(tokenData, []byte{'\n'})
+				a.AgentToken = api.AgentToken(tokenData)
+			case ok:
+				a.AgentToken = api.AgentToken(tokenFromEnv)
+				err := os.Unsetenv(envVarAgentkToken)
+				if err != nil {
+					return fmt.Errorf("failed to unset env var: %w", err)
+				}
+			default:
+				return fmt.Errorf("agent token not set. Please set either token file or %s environment variable", envVarAgentkToken)
+			}
+
 			a.AgentMeta.PodNamespace = podNs
 			a.AgentMeta.PodName = podName
 			lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
@@ -507,7 +526,6 @@ func NewCommand() *cobra.Command {
 
 	kubeConfigFlags.AddFlags(f)
 	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
-	cobra.CheckErr(c.MarkFlagRequired("token-file"))
 	return c
 }
 
