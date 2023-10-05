@@ -90,6 +90,7 @@ message GitopsCF {
 
 message ObservabilityCF {
   LoggingCF logging = 1 [json_name = "logging"];
+  GoogleProfilerCF google_profiler = 2 [json_name = "google_profiler"];
 }
 
 enum log_level_enum {
@@ -103,6 +104,14 @@ message LoggingCF {
   log_level_enum level = 1 [json_name = "level"];
   optional log_level_enum grpc_level = 2 [json_name = "grpc_level"]; // optional to be able to tell when not set and use a different default value.
 }
+
+message GoogleProfilerCF {
+  bool enabled = 1 [json_name = "enabled"];
+  string project_id = 2 [json_name = "project_id"];
+  string credentials_file = 3 [json_name = "credentials_file"];
+  bool debug_logging = 4 [json_name = "debug_logging"];
+}
+
 
 // https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
 message CiAccessCF {

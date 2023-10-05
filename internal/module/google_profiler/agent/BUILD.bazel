@@ -1,0 +1,41 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "agent",
+    srcs = [
+        "doc.go",
+        "factory.go",
+        "mock_profiler_runner.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/agent",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/google_profiler",
+        "//internal/module/modagent",
+        "//internal/module/modshared",
+        "//internal/tool/logz",
+        "//internal/tool/prototool",
+        "//pkg/agentcfg",
+        "@com_google_cloud_go_profiler//:profiler",
+        "@org_golang_google_api//option",
+        "@org_golang_google_protobuf//proto",
+        "@org_uber_go_mock//gomock",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_custom_test(
+    name = "agent_test",
+    srcs = ["module_test.go"],
+    embed = [":agent"],
+    deps = [
+        "//internal/module/modagent",
+        "//internal/tool/testing/matcher",
+        "//pkg/agentcfg",
+        "@com_github_stretchr_testify//require",
+        "@org_uber_go_mock//gomock",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

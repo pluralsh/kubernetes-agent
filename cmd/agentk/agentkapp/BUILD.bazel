@@ -25,6 +25,7 @@ go_library(
         "//internal/module/flux/agent",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/gitops/agent/manifestops",
+        "//internal/module/google_profiler/agent",
         "//internal/module/kubernetes_api/agent",
         "//internal/module/modagent",
         "//internal/module/modshared",
