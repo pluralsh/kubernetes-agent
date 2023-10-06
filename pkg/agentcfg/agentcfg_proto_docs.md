@@ -20,6 +20,7 @@
     - [GitLabWorkspacesProxy](#gitlab-agent-agentcfg-GitLabWorkspacesProxy)
     - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
     - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
+    - [GoogleProfilerCF](#gitlab-agent-agentcfg-GoogleProfilerCF)
     - [LoggingCF](#gitlab-agent-agentcfg-LoggingCF)
     - [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF)
     - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
@@ -317,6 +318,24 @@ GitRef in the repository to fetch manifests from.
 
 
 
+<a name="gitlab-agent-agentcfg-GoogleProfilerCF"></a>
+
+### GoogleProfilerCF
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| enabled | [bool](#bool) |  |  |
+| project_id | [string](#string) |  |  |
+| credentials_file | [string](#string) |  |  |
+| debug_logging | [bool](#bool) |  |  |
+
+
+
+
+
+
 <a name="gitlab-agent-agentcfg-LoggingCF"></a>
 
 ### LoggingCF
@@ -366,6 +385,7 @@ Project with Kubernetes object manifests.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | logging | [LoggingCF](#gitlab-agent-agentcfg-LoggingCF) |  |  |
+| google_profiler | [GoogleProfilerCF](#gitlab-agent-agentcfg-GoogleProfilerCF) |  |  |
 
 
 

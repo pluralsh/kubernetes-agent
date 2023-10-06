@@ -59,6 +59,7 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/starboard_vulnerability/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool" \
