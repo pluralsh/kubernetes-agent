@@ -256,7 +256,7 @@ oci_pull(
 # debug-nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 oci_pull(
     name = "distroless_base_debug_nonroot",
-    digest = "sha256:6691be59b27dde70a2cec7b9794096b8bbf63eec7685062c06e327d1f06a773e",
+    digest = "sha256:9f627714e64e82c32d33818775775c132441c405334696db9cfd4229ce2b8af9",
     image = "gcr.io/distroless/base-debian11",
     platforms = [
         "linux/amd64",
