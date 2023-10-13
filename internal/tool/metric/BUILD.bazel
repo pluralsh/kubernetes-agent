@@ -3,14 +3,21 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "metric",
     srcs = [
+        "allow_limiter.go",
         "counter.go",
+        "limiter_wrapper.go",
         "metric.go",
+        "wait_limiter.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/logz",
         "@com_github_prometheus_client_golang//prometheus",
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel//codes",
+        "@io_opentelemetry_go_otel_metric//:metric",
+        "@io_opentelemetry_go_otel_trace//:trace",
         "@org_uber_go_zap//:zap",
     ],
 )

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/wstunnel"
@@ -47,7 +48,7 @@ type agentServer struct {
 	ready          func()
 }
 
-func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, dt trace.Tracer,
+func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modserver.Api, dt trace.Tracer, dm otelmetric.Meter,
 	tp trace.TracerProvider, mp otelmetric.MeterProvider, redisClient rueidis.Client, ssh stats.Handler, factory modserver.AgentRpcApiFactory,
 	ownPrivateApiUrl string, probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
@@ -77,7 +78,8 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	if err != nil {
 		return nil, err
 	}
-	agentConnectionLimiter := redistool.NewTokenLimiter(
+	var agentConnectionLimiter grpctool.ServerLimiter
+	agentConnectionLimiter = redistool.NewTokenLimiter(
 		redisClient,
 		cfg.Redis.KeyPrefix+":agent_limit",
 		uint64(listenCfg.ConnectionsPerTokenPerMinute),
@@ -88,6 +90,17 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 			}
 		},
 	)
+	agentConnectionLimiter, err = metric.NewAllowLimiterInstrumentation(
+		"agent_connection",
+		float64(listenCfg.ConnectionsPerTokenPerMinute),
+		"{connection/token/m}",
+		dt,
+		dm,
+		agentConnectionLimiter,
+	)
+	if err != nil {
+		return nil, err
+	}
 	auxCtx, auxCancel := context.WithCancel(context.Background())
 	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
 	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
