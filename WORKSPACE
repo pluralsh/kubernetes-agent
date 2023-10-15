@@ -147,6 +147,16 @@ go_repository(
     version = "v1.19.0",
 )
 
+# Import the latest plugin version.
+# keep
+go_repository(
+    name = "org_golang_google_grpc_cmd_protoc_gen_go_grpc",
+    build_file_proto_mode = "disable_global",
+    importpath = "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+    sum = "h1:rNBFJjBCOgVr9pWD7rs/knKL4FRTKgpZmsRfV214zcA=",  # keep
+    version = "v1.3.0",  # keep
+)
+
 # Copied from rules_go to keep patches in place
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
 http_archive(
