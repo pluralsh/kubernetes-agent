@@ -152,7 +152,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	dt := tp.Tracer(kasTracerName) // defaultTracer
 
 	// GitLab REST client
-	gitLabClient, err := a.constructGitLabClient(tp, mp, p)
+	gitLabClient, err := a.constructGitLabClient(dt, dm, tp, mp, p)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Server for handling agentk requests
-	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, tp, mp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
+	agentSrv, err := newAgentServer(a.Log, a.Configuration, srvApi, dt, dm, tp, mp, redisClient, ssh, agentRpcApiFactory, // nolint: contextcheck
 		privateApiSrv.ownUrl, probeRegistry, reg, streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
@@ -236,7 +236,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(csh, tp, mp, p, streamClientProm, unaryClientProm)
+	gitalyClientPool, err := a.constructGitalyPool(csh, dt, dm, tp, mp, p, streamClientProm, unaryClientProm)
+	if err != nil {
+		return err
+	}
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
@@ -430,7 +433,8 @@ func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*gitlab.Client, error) {
+func (a *ConfiguredApp) constructGitLabClient(dt trace.Tracer, dm otelmetric.Meter,
+	tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*gitlab.Client, error) {
 	cfg := a.Configuration
 
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
@@ -447,6 +451,22 @@ func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelme
 	if err != nil {
 		return nil, fmt.Errorf("authentication secret: %w", err)
 	}
+	var limiter httpz.Limiter
+	limiter = rate.NewLimiter(
+		rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
+		int(cfg.Gitlab.ApiRateLimit.BucketSize),
+	)
+	limiter, err = metric.NewWaitLimiterInstrumentation(
+		"gitlab_client",
+		cfg.Gitlab.ApiRateLimit.RefillRatePerSecond,
+		"{refill/s}",
+		dt,
+		dm,
+		limiter,
+	)
+	if err != nil {
+		return nil, err
+	}
 	return gitlab.NewClient(
 		gitLabUrl,
 		decodedAuthSecret,
@@ -455,20 +475,30 @@ func (a *ConfiguredApp) constructGitLabClient(tp trace.TracerProvider, mp otelme
 		gitlab.WithMeterProvider(mp),
 		gitlab.WithUserAgent(kasServerName()),
 		gitlab.WithTLSConfig(clientTLSConfig),
-		gitlab.WithRateLimiter(rate.NewLimiter(
-			rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
-			int(cfg.Gitlab.ApiRateLimit.BucketSize),
-		)),
+		gitlab.WithRateLimiter(limiter),
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerProvider, mp otelmetric.MeterProvider,
-	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, dt trace.Tracer, dm otelmetric.Meter,
+	tp trace.TracerProvider, mp otelmetric.MeterProvider,
+	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*client.Pool, error) {
 	g := a.Configuration.Gitaly
-	globalGitalyRpcLimiter := rate.NewLimiter(
+	var globalGitalyRpcLimiter grpctool.ClientLimiter
+	globalGitalyRpcLimiter = rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
 		int(g.GlobalApiRateLimit.BucketSize),
 	)
+	globalGitalyRpcLimiter, err := metric.NewWaitLimiterInstrumentation(
+		"gitaly_client_global",
+		g.GlobalApiRateLimit.RefillRatePerSecond,
+		"{refill/s}",
+		dt,
+		dm,
+		globalGitalyRpcLimiter,
+	)
+	if err != nil {
+		return nil, err
+	}
 	return client.NewPoolWithOptions(
 		client.WithDialOptions(
 			grpc.WithUserAgent(kasServerName()),
@@ -492,9 +522,21 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 			// Don't put interceptors here as order is important. Put them below.
 		),
 		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {
-			perServerGitalyRpcLimiter := rate.NewLimiter(
+			var perServerGitalyRpcLimiter grpctool.ClientLimiter
+			perServerGitalyRpcLimiter = rate.NewLimiter(
 				rate.Limit(g.PerServerApiRateLimit.RefillRatePerSecond),
 				int(g.PerServerApiRateLimit.BucketSize))
+			perServerGitalyRpcLimiter, err := metric.NewWaitLimiterInstrumentation(
+				"gitaly_client_"+address,
+				g.GlobalApiRateLimit.RefillRatePerSecond,
+				"{refill/s}",
+				dt,
+				dm,
+				perServerGitalyRpcLimiter,
+			)
+			if err != nil {
+				return nil, err
+			}
 			opts := []grpc.DialOption{
 				grpc.WithChainStreamInterceptor(
 					streamClientProm,
@@ -510,7 +552,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tp trace.TracerPr
 			opts = append(opts, dialOptions...)
 			return client.DialContext(ctx, address, opts)
 		}),
-	)
+	), nil
 }
 
 func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
@@ -715,19 +757,19 @@ func constructOTELResource() (*resource.Resource, error) {
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(kasName),
-			semconv.ServiceVersionKey.String(cmd.Version),
+			semconv.ServiceName(kasName),
+			semconv.ServiceVersion(cmd.Version),
 		),
 	)
 }
 
 func gitlabBuildInfoGauge(m otelmetric.Meter) error {
+	// Only allocate the option once
+	attributes := otelmetric.WithAttributeSet(attribute.NewSet(kasVersionAttr.String(cmd.Version), kasBuiltAttr.String(cmd.BuildTime)))
 	_, err := m.Int64ObservableGauge(gitlabBuildInfoGaugeMetricName,
 		otelmetric.WithDescription("Current build info for this GitLab Service"),
 		otelmetric.WithInt64Callback(func(ctx context.Context, observer otelmetric.Int64Observer) error {
-			observer.Observe(1,
-				otelmetric.WithAttributes(kasVersionAttr.String(cmd.Version), kasBuiltAttr.String(cmd.BuildTime)),
-			)
+			observer.Observe(1, attributes)
 			return nil
 		}),
 	)
