@@ -244,7 +244,7 @@ switched_rules_by_language(
 # nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian11
 oci_pull(
     name = "distroless_static_nonroot",
-    digest = "sha256:92d40eea0b5307a94f2ebee3e94095e704015fb41e35fc1fcbd1d151cc282222",
+    digest = "sha256:91ca4720011393f4d4cab3a01fa5814ee2714b7d40e6c74f2505f74168398ca9",
     image = "gcr.io/distroless/static-debian11",
     platforms = [
         "linux/amd64",
@@ -256,7 +256,7 @@ oci_pull(
 # debug-nonroot from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
 oci_pull(
     name = "distroless_base_debug_nonroot",
-    digest = "sha256:9f627714e64e82c32d33818775775c132441c405334696db9cfd4229ce2b8af9",
+    digest = "sha256:22426ecb9e941701e2d66d16859b8241994ad94dbd087b527376a2de789ffb1e",
     image = "gcr.io/distroless/base-debian11",
     platforms = [
         "linux/amd64",
