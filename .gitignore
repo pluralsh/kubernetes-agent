@@ -14,3 +14,7 @@ go_build_kas*
 
 # settings for Jetbrains Goland
 .idea
+
+# Dist binaries
+agentk
+kas

@@ -19,7 +19,27 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/redis/rueidis"
 	"github.com/redis/rueidis/rueidisotel"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	promexp "go.opentelemetry.io/otel/exporters/prometheus"
+	otelmetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
+	"google.golang.org/grpc/stats"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp/fake"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/client"
@@ -56,24 +76,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	promexp "go.opentelemetry.io/otel/exporters/prometheus"
-	otelmetric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
-	metricsdk "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
-	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
-	"google.golang.org/grpc/stats"
 )
 
 const (
@@ -176,7 +178,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	grpcServerErrorReporter := &serverErrorReporter{log: a.Log, errReporter: errRep}
 
 	// RPC API factory
-	rpcApiFactory, agentRpcApiFactory := a.constructRpcApiFactory(errRep, sentryHub, gitLabClient, redisClient, dt)
+	// Plural: Use fake factory
+	rpcApiFactory, agentRpcApiFactory := a.constructFakeRpcApiFactory(errRep, sentryHub, redisClient, dt)
 
 	// Server for handling API requests from other kas instances
 	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, mp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
@@ -358,6 +361,33 @@ func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHu
 		rpcApiFactory: f.New,
 		gitLabClient:  gitLabClient,
 		agentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
+			aCfg.InfoCacheTtl.AsDuration(),
+			aCfg.InfoCacheErrorTtl.AsDuration(),
+			&redistool.ErrCacher[api.AgentToken]{
+				Log:          a.Log,
+				ErrRep:       errRep,
+				Client:       redisClient,
+				ErrMarshaler: prototool.ProtoErrMarshaler{},
+				KeyToRedisKey: func(key api.AgentToken) string {
+					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
+				},
+			},
+			dt,
+			gapi.IsCacheableError,
+		),
+	}
+	return f.New, fAgent.New
+}
+
+func (a *ConfiguredApp) constructFakeRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+	aCfg := a.Configuration.Agent
+	f := serverRpcApiFactory{
+		log:       a.Log,
+		sentryHub: sentryHub,
+	}
+	fAgent := fake.ServerAgentRpcApiFactory{
+		RPCApiFactory: f.New,
+		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
 			aCfg.InfoCacheTtl.AsDuration(),
 			aCfg.InfoCacheErrorTtl.AsDuration(),
 			&redistool.ErrCacher[api.AgentToken]{
