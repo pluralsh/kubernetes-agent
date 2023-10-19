@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 )
 
 type server struct {
@@ -41,5 +43,6 @@ func (s *server) Register(ctx context.Context, req *rpc.RegisterRequest) (*rpc.R
 		return nil, status.Error(codes.Unavailable, "Failed to register agent")
 	}
 
+	log.Info("Successfully registered agent", zap.String("name", agentInfo.Name), zap.Int64("id", agentInfo.Id))
 	return &rpc.RegisterResponse{}, nil
 }

@@ -12,6 +12,17 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
@@ -25,16 +36,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
 )
 
 const (
@@ -292,21 +293,23 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		p.userAccessUsersCounter.Add(userId)
 		p.userAccessAgentsCounter.Add(agentId)
 	case patAuthn:
-		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "personal_access_token", c.token, "")
-		if eResp != nil {
-			return log, agentId, 0, nil, eResp
-		}
-		userId = auth.User.Id
-		impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
-		if err != nil {
-			msg := "Failed to construct user impersonation config"
-			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-			return log, agentId, userId, nil, &grpctool.ErrResp{
-				StatusCode: http.StatusInternalServerError,
-				Msg:        msg,
-				Err:        err,
-			}
-		}
+		// TODO: Figure out our authorization logic
+		//auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "personal_access_token", c.token, "")
+		//if eResp != nil {
+		//	return log, agentId, 0, nil, eResp
+		//}
+		//userId = auth.User.Id
+		//impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
+		//if err != nil {
+		//	msg := "Failed to construct user impersonation config"
+		//	p.api.HandleProcessingError(ctx, log, agentId, msg, err)
+		//	return log, agentId, userId, nil, &grpctool.ErrResp{
+		//		StatusCode: http.StatusInternalServerError,
+		//		Msg:        msg,
+		//		Err:        err,
+		//	}
+		//}
+		impConfig = nil
 
 		// update usage metrics for PAT requests using the CI tunnel
 		p.patAccessRequestCounter.Inc()
