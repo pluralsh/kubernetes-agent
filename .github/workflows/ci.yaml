@@ -10,6 +10,26 @@ env:
   GOPATH: /home/runner/go/
   GOPROXY: "https://proxy.golang.org"
 jobs:
+  build-kas:
+    name: Build kas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: TARGET_DIRECTORY=. make kas
+  build-agentk:
+    name: Build agentk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: TARGET_DIRECTORY=. make agentk
   lint:
     name: Lint
     runs-on: ubuntu-latest
