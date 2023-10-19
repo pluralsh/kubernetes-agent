@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -14,7 +15,7 @@ const (
 
 func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, opts ...gitlab.DoOption) (*api.AgentInfo, error) {
 	return &api.AgentInfo{
-		Id:            0,
+		Id:            123456,
 		ProjectId:     0,
 		Name:          "fake-agent",
 		Repository:    nil,
