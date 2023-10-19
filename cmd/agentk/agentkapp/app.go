@@ -70,7 +70,7 @@ import (
 )
 
 const (
-	defaultLogLevel     agentcfg.LogLevelEnum = 0 // whatever is 0 is the default value
+	defaultLogLevel     agentcfg.LogLevelEnum = 3 // whatever is 0 is the default value
 	defaultGrpcLogLevel                       = agentcfg.LogLevelEnum_error
 
 	defaultObservabilityListenNetwork = "tcp"
