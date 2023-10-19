@@ -112,22 +112,6 @@ verify:
   script:
     - make verify-ci
 
-lint:
-  image: golangci/golangci-lint:v1.54.0-alpine
-  stage: test
-  tags:
-    - saas-linux-large-amd64
-  script:
-    # Write the code coverage report to gl-code-quality-report.json
-    # and print linting issues to stdout in the format: path/to/file:line description
-    - apk --no-cache add jq
-    - golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
-  artifacts:
-    reports:
-      codequality: gl-code-quality-report.json
-    paths:
-      - gl-code-quality-report.json
-
 # You can override the included template(s) by including variable overrides
 # See https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
 # Note that environment variables can be set in several places
