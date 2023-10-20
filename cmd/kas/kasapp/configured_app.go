@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/alicebob/miniredis/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -38,7 +39,6 @@ import (
 	"github.com/pluralsh/kuberentes-agent/cmd"
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/fake"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
 	agent_configuration_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/server"
 	agent_registrar_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/server"
@@ -77,8 +77,6 @@ const (
 	routingCachePeriod       = 5 * time.Minute
 	routingTryNewKasInterval = 10 * time.Millisecond
 
-	authSecretLength = 32
-
 	kasName = "gitlab-kas"
 
 	kasTracerName = "kas"
@@ -95,6 +93,10 @@ type ConfiguredApp struct {
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
+	s, err := miniredis.Run()
+	if err != nil {
+		return err
+	}
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
@@ -103,7 +105,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
 	clientProm := grpc_prometheus.NewClientMetrics()
-	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
+	err = metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
 	if err != nil {
 		return err
 	}
@@ -148,7 +150,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Redis
-	redisClient, err := a.constructRedisClient(tp, mp)
+	redisClient, err := a.constructRedisClient(tp, mp, s.Addr())
 	if err != nil {
 		return err
 	}
@@ -311,34 +313,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
-	aCfg := a.Configuration.Agent
-	f := serverRpcApiFactory{
-		log:       a.Log,
-		sentryHub: sentryHub,
-	}
-	fAgent := serverAgentRpcApiFactory{
-		rpcApiFactory: f.New,
-		gitLabClient:  gitLabClient,
-		agentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
-			aCfg.InfoCacheTtl.AsDuration(),
-			aCfg.InfoCacheErrorTtl.AsDuration(),
-			&redistool.ErrCacher[api.AgentToken]{
-				Log:          a.Log,
-				ErrRep:       errRep,
-				Client:       redisClient,
-				ErrMarshaler: prototool.ProtoErrMarshaler{},
-				KeyToRedisKey: func(key api.AgentToken) string {
-					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
-				},
-			},
-			dt,
-			gapi.IsCacheableError,
-		),
-	}
-	return f.New, fAgent.New
-}
-
 func (a *ConfiguredApp) constructFakeRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
@@ -412,7 +386,7 @@ func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetri
 	return sentry.NewHub(sentryClient, sentry.NewScope()), nil
 }
 
-func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
+func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, address string) (rueidis.Client, error) {
 	cfg := a.Configuration.Redis
 	dialTimeout := cfg.DialTimeout.AsDuration()
 	writeTimeout := cfg.WriteTimeout.AsDuration()
@@ -450,7 +424,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 	}
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
-		opts.InitAddress = []string{v.Server.Address}
+		opts.InitAddress = []string{address}
 		if opts.TLSConfig != nil {
 			opts.TLSConfig.ServerName, _, _ = strings.Cut(v.Server.Address, ":")
 		}

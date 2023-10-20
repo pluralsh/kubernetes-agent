@@ -1,3 +1,7 @@
+LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
+LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
+LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
+
 include tools.mk
 
 ifndef GOPATH
@@ -12,23 +16,40 @@ PRE = --ensure
 help: ## show help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+.PHONY: go-dep-updates
+go-dep-updates: ## show possible go dependency updates
+	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' -m all
+
 ##@ Run
 
 ##@ Build
 
 .PHONY: build-kas
-build-kas:
+build-kas: ## build kas
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o bin/kas ./cmd/kas
 
 .PHONY: build-agentk
-build-agentk:
+build-agentk: ## build agentk
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o bin/agentk ./cmd/agentk
+
+.PHONY: build-gem
+build-gem: ## build kas grpc ruby gem
+	cd pkg/ruby && gem build kas-grpc.gemspec
+
+##@ Codegen
+
+.PHONY: delete-codegen
+delete-codegen: ## delete generated files
+	find . -name '*.pb.go' -type f -delete
+	find . -name '*.pb.validate.go' -type f -delete
+	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
+	find . -name '*_proto_docs.md' -type f -delete
 
 ##@ Tests
 
@@ -62,19 +83,9 @@ FIPS_TAG_GIT_ARCH = $(FIPS_TAG_GIT)-$(ARCH)
 FIPS_TAG_STABLE = $(CI_REGISTRY_IMAGE)/agentk-fips:stable
 FIPS_TAG_STABLE_ARCH = $(FIPS_TAG_STABLE)-$(ARCH)
 
-LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
-
 CI_REGISTRY ?= registry.gitlab.com
 CI_PROJECT_PATH ?= gitlab-org/cluster-integration/gitlab-agent
 OCI_REPO = $(CI_REGISTRY)/$(CI_PROJECT_PATH)/agentk
-
-# Install using your package manager, as recommended by
-# https://golangci-lint.run/usage/install/#local-installation
-.PHONY: lint
-lint:
-	golangci-lint run
 
 .PHONY: internal-regenerate-proto
 internal-regenerate-proto:
@@ -143,15 +154,9 @@ test-ci-fips:
 	go test -v ./...
 
 .PHONY: verify-ci
-verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks update-bazel update-repos
+verify-ci: internal-regenerate-proto internal-regenerate-mocks update-repos
 	git add .
 	git diff --cached --quiet ':(exclude).bazelrc' || (echo "Error: uncommitted changes detected:" && git --no-pager diff --cached && exit 1)
-
-.PHONY: quick-test
-quick-test:
-	bazel test \
-		--build_tests_only \
-		-- //...
 
 # Build and push all docker images tagged as "latest".
 # This only works on a linux machine
@@ -228,22 +233,3 @@ release-commit:
 gdk-install:
 	bazel run //cmd/kas:extract_kas_race
 	mv 'cmd/kas/kas_race' '$(TARGET_DIRECTORY)'
-
-# https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
-.PHONY: show-go-dependency-updates
-show-go-dependency-updates:
-	go list \
-		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' -m all
-
-.PHONY: delete-generated-files
-delete-generated-files:
-	find . -name '*.pb.go' -type f -delete
-	find . -name '*.pb.validate.go' -type f -delete
-	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
-	find . -name '*_proto_docs.md' -type f -delete
-
-# Build the KAS gRPC ruby gem
-.PHONY: build-gem
-build-gem:
-	cd pkg/ruby && gem build kas-grpc.gemspec
-

@@ -1076,7 +1076,7 @@ func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *
 	}
 }
 
-func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (
+func setupProxyWithHandler(t *testing.T, urlPathPrefix string, _ func(http.ResponseWriter, *http.Request)) (
 	*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockApi(ctrl)

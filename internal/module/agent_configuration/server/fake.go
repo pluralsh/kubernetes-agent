@@ -2,13 +2,11 @@ package server
 
 import (
 	"context"
-	"errors"
+
 	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/mathz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
@@ -23,7 +21,6 @@ import (
 type fakeServer struct {
 	rpc.UnimplementedAgentConfigurationServer
 	serverApi                  modserver.Api
-	gitLabClient               gitlab.ClientInterface
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
 	getConfigurationPollConfig retry.PollConfigFactory
@@ -68,44 +65,16 @@ func (s *fakeServer) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.
 		log := log.With(logz.AgentId(agentInfo.Id)) // nolint:govet
 		s.maybeRegisterAgent(ctx, log, rpcApi, connectedAgentInfo, agentInfo, req.SkipRegister)
 
-		_, err = s.fetchConfiguration(ctx, agentInfo)
-		if err != nil {
-			rpcApi.HandleProcessingError(log, agentInfo.Id, "Config: failed to fetch", err)
-			var ue errz.UserError
-			if errors.As(err, &ue) {
-				// return the error to the client because it's a user error
-				return status.Errorf(codes.FailedPrecondition, "Config: %v", err), retry.Done
-			}
-			return nil, retry.Backoff
-		}
+		_ = s.fetchConfiguration(ctx, agentInfo)
 
 		return nil, retry.Continue
-	})
-}
-
-func (s *fakeServer) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurationServer,
-	agentInfo *api.AgentInfo, configFile *agentcfg.ConfigurationFile, commitId string) error {
-	return server.Send(&rpc.ConfigurationResponse{
-		Configuration: &agentcfg.AgentConfiguration{
-			Gitops:            configFile.Gitops,
-			Observability:     configFile.Observability,
-			AgentId:           agentInfo.Id,
-			ProjectId:         agentInfo.ProjectId,
-			CiAccess:          configFile.CiAccess,
-			ContainerScanning: configFile.ContainerScanning,
-			RemoteDevelopment: configFile.RemoteDevelopment,
-			Flux:              configFile.Flux,
-			GitlabExternalUrl: s.gitLabExternalUrl,
-		},
-		CommitId: commitId,
 	})
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (s *fakeServer) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo) (*agentcfg.ConfigurationFile, error) {
-
+func (s *fakeServer) fetchConfiguration(_ context.Context, _ *api.AgentInfo) *agentcfg.ConfigurationFile {
 	return &agentcfg.ConfigurationFile{
 		Gitops:            nil,
 		Observability:     nil,
@@ -118,7 +87,7 @@ func (s *fakeServer) fetchConfiguration(ctx context.Context, agentInfo *api.Agen
 		},
 		RemoteDevelopment: nil,
 		Flux:              nil,
-	}, nil
+	}
 }
 
 func (s *fakeServer) maybeRegisterAgent(ctx context.Context, log *zap.Logger, rpcApi modserver.AgentRpcApi,
