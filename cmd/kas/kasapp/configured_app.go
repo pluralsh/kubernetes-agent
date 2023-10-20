@@ -48,7 +48,6 @@ import (
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	notifications_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/notifications/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
@@ -231,10 +230,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
-		},
-		&notifications_server.Factory{
-			PublishEvent:      srvApi.publishEvent,
-			SubscribeToEvents: srvApi.subscribeToEvents,
 		},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
