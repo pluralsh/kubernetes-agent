@@ -62,8 +62,6 @@ import (
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
-	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -235,9 +233,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
-	// Usage tracker
-	usageTracker := usage_metrics.NewUsageTracker()
-
 	// Gitaly client
 	gitalyClientPool, err := a.constructGitalyPool(csh, dt, dm, tp, mp, p, streamClientProm, unaryClientProm)
 	if err != nil {
@@ -261,9 +256,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&flux_server.Factory{},
 		&gitops_server.Factory{},
-		&usage_metrics_server.Factory{
-			UsageTracker: usageTracker,
-		},
 		&gitlab_access_server.Factory{},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
@@ -292,7 +284,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
 			Registerer:       reg,
-			UsageTracker:     usageTracker,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,

@@ -48,10 +48,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		return nil, err
 	}
 	rpc.RegisterGitLabFluxServer(config.AgentServer, &server{
-		serverApi:               config.Api,
-		notifiedCounter:         metric.NewMultiCounter(promNotifiedCounter, config.UsageTracker.RegisterCounter(fluxNotifiedCounterMetricName)),
-		notifiedProjectsCounter: config.UsageTracker.RegisterUniqueCounter(fluxNotifiedProjectsCounterMetricName),
-		droppedCounter:          promDroppedCounter,
+		serverApi:      config.Api,
+		droppedCounter: promDroppedCounter,
 		pollCfgFactory: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			reconcileProjectsInitBackoff, reconcileProjectsMaxBackoff, reconcileProjectsResetDuration, reconcileProjectsBackoffFactor, reconcileProjectsJitter)),
 		projectAccessClient: &projectAccessClient{

@@ -72,7 +72,6 @@ func newServerFromConfig(config *modserver.Config) *server {
 				gapi.IsCacheableError,
 			),
 		},
-		syncCount: config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		getObjectsPollConfig: retry.NewPollConfigFactory(gitopsCfg.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,

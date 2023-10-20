@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
@@ -40,7 +39,6 @@ type server struct {
 	serverApi                modserver.Api
 	gitalyPool               gitaly.PoolInterface
 	projectInfoClient        *projectInfoClient
-	syncCount                usage_metrics.Counter
 	getObjectsPollConfig     retry.PollConfigFactory
 	maxManifestFileSize      int64
 	maxTotalManifestFileSize int64
@@ -159,7 +157,6 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 			return rpcApi.HandleIoError(log, "GitOps: failed to send trailer for objects to synchronize", err), retry.Done
 		}
 		log.Info("GitOps: fetched files", logz.NumberOfFilesVisited(filesVisited), logz.NumberOfFilesSent(filesSent))
-		s.syncCount.Inc()
 		return nil, retry.Done
 	})
 }
