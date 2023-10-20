@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
@@ -140,13 +139,6 @@ func AgentInfoObj() *api.AgentInfo {
 			Features: map[string]string{
 				"bla": "true",
 			},
-		},
-		Repository: &gitalypb.Repository{
-			StorageName:        "StorageName",
-			RelativePath:       "RelativePath",
-			GitObjectDirectory: "GitObjectDirectory",
-			GlRepository:       "GlRepository",
-			GlProjectPath:      "GlProjectPath",
 		},
 		DefaultBranch: "main",
 	}
