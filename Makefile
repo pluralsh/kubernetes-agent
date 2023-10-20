@@ -242,6 +242,26 @@ gdk-install:
 	bazel run //cmd/kas:extract_kas_race
 	mv 'cmd/kas/kas_race' '$(TARGET_DIRECTORY)'
 
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+# Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
+# This target is used by:
+# - CNG: https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-kas
+# - Omnibus: https://gitlab.com/gitlab-org/omnibus-gitlab/-/blob/master/config/software/gitlab-kas.rb
+.PHONY: kas
+kas:
+	go build \
+		-ldflags '$(LDFLAGS)' \
+		-o '$(TARGET_DIRECTORY)' ./cmd/kas
+
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+# Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
+# This target is used by FIPS build in this repo.
+.PHONY: agentk
+agentk:
+	go build \
+		-ldflags '$(LDFLAGS)' \
+		-o '$(TARGET_DIRECTORY)' ./cmd/agentk
+
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
