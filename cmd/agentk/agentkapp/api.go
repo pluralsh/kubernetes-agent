@@ -3,22 +3,14 @@ package agentkapp
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/url"
 	"sync"
 
-	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/anypb"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // agentAPI is an implementation of modagent.API.
@@ -26,7 +18,6 @@ type agentAPI struct {
 	moduleName        string
 	agentId           *ValueHolder[int64]
 	gitLabExternalUrl *ValueHolder[url.URL]
-	client            gitlab_access_rpc.GitlabAccessClient
 }
 
 func (a *agentAPI) GetAgentId(ctx context.Context) (int64, error) {
@@ -43,160 +34,6 @@ func (a *agentAPI) TryGetAgentId() (int64, bool) {
 
 func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) {
 	handleProcessingError(ctx, log, agentId, msg, err)
-}
-
-func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
-	config, err := modagent.ApplyRequestOptions(opts)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	client, errReq := a.client.MakeRequest(ctx)
-	if errReq != nil {
-		cancel()
-		if config.Body != nil {
-			_ = config.Body.Close()
-		}
-		return nil, errReq
-	}
-	pr, pw := io.Pipe()
-	val := newValueOrError[*modagent.GitLabResponse](func(err error) error {
-		cancel()                   // 1. Cancel the other goroutine and the client.
-		_ = pw.CloseWithError(err) // 2. Close the "write side" of the pipe
-		return err
-	})
-
-	var wg wait.Group
-	// Write request
-	wg.Start(func() {
-		writeErr := a.makeRequest(client, path, config)
-		if writeErr != nil {
-			val.SetError(writeErr)
-		}
-	})
-	// Read response
-	wg.Start(func() {
-		readErr := grpctool.HttpResponseStreamVisitor.Get().Visit(client,
-			grpctool.WithCallback(grpctool.HttpResponseHeaderFieldNumber, func(header *grpctool.HttpResponse_Header) error {
-				val.SetValue(&modagent.GitLabResponse{
-					Status:     header.Response.Status,
-					StatusCode: header.Response.StatusCode,
-					Header:     header.Response.HttpHeader(),
-					Body: cancelingReadCloser{
-						ReadCloser: pr,
-						cancel:     cancel,
-					},
-				})
-				return nil
-			}),
-			grpctool.WithCallback(grpctool.HttpResponseDataFieldNumber, func(data *grpctool.HttpResponse_Data) error {
-				_, pwErr := pw.Write(data.Data)
-				return pwErr
-			}),
-			grpctool.WithCallback(grpctool.HttpResponseTrailerFieldNumber, func(trailer *grpctool.HttpResponse_Trailer) error {
-				return nil
-			}),
-			grpctool.WithEOFCallback(pw.Close),
-			grpctool.WithNotExpectingToGet(codes.Internal, grpctool.HttpResponseUpgradeDataFieldNumber),
-		)
-		if readErr != nil {
-			val.SetError(readErr)
-		}
-	})
-	resp, err := val.Wait()
-	if err != nil {
-		wg.Wait() // Wait for both goroutines to finish before returning
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
-	var body io.ReadCloser
-	if config.Body != nil {
-		body = &onceReadCloser{
-			ReadCloser: config.Body,
-		}
-		defer errz.SafeClose(body, &retErr)
-	}
-	extra, err := anypb.New(&gitlab_access_rpc.HeaderExtra{
-		ModuleName: a.moduleName,
-	})
-	if err != nil {
-		return err
-	}
-	err = client.Send(&grpctool.HttpRequest{
-		Message: &grpctool.HttpRequest_Header_{
-			Header: &grpctool.HttpRequest_Header{
-				Request: &prototool.HttpRequest{
-					Method:  config.Method,
-					Header:  prototool.HttpHeaderToValuesMap(config.Header),
-					UrlPath: path,
-					Query:   prototool.UrlValuesToValuesMap(config.Query),
-				},
-				Extra: extra,
-			},
-		},
-	})
-	if err != nil {
-		if err == io.EOF { // nolint:errorlint
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return fmt.Errorf("send request header: %w", err) // wrap
-	}
-	if body != nil {
-		err = a.sendRequestBody(client, body)
-		if err != nil {
-			return err
-		}
-	}
-	err = client.Send(&grpctool.HttpRequest{
-		Message: &grpctool.HttpRequest_Trailer_{
-			Trailer: &grpctool.HttpRequest_Trailer{},
-		},
-	})
-	if err != nil {
-		if err == io.EOF { // nolint:errorlint
-			return nil // the other goroutine will receive the error in RecvMsg()
-		}
-		return fmt.Errorf("send request trailer: %w", err) // wrap
-	}
-	err = client.CloseSend()
-	if err != nil {
-		return fmt.Errorf("close request stream: %w", err) // wrap
-	}
-	return nil
-}
-
-func (a *agentAPI) sendRequestBody(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, body io.ReadCloser) (retErr error) {
-	defer errz.SafeClose(body, &retErr) // close ASAP
-	buffer := memz.Get32k()
-	defer memz.Put32k(buffer)
-	for {
-		n, readErr := body.Read(buffer)
-		if n > 0 { // handle n>0 before readErr != nil to ensure any consumed data gets forwarded
-			sendErr := client.Send(&grpctool.HttpRequest{
-				Message: &grpctool.HttpRequest_Data_{
-					Data: &grpctool.HttpRequest_Data{
-						Data: buffer[:n],
-					}},
-			})
-			if sendErr != nil {
-				if sendErr == io.EOF { // nolint:errorlint
-					// the other goroutine will receive the error in RecvMsg()
-					return nil
-				}
-				return fmt.Errorf("send request data: %w", sendErr) // wrap
-			}
-		}
-		if readErr != nil {
-			if readErr == io.EOF { // nolint:errorlint
-				break
-			}
-			return fmt.Errorf("read request body: %w", readErr) // wrap
-		}
-	}
-	return nil
 }
 
 func handleProcessingError(ctx context.Context, log *zap.Logger, agentId int64, msg string, err error) { // nolint:unparam

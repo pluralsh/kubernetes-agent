@@ -157,27 +157,6 @@ func (c *ApiHandleProcessingErrorCall) DoAndReturn(f func(context.Context, *zap.
 	return c
 }
 
-// MakeGitLabRequest mocks base method.
-func (m *MockApi) MakeGitLabRequest(arg0 context.Context, arg1 string, arg2 ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "MakeGitLabRequest", varargs...)
-	ret0, _ := ret[0].(*modagent.GitLabResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// MakeGitLabRequest indicates an expected call of MakeGitLabRequest.
-func (mr *MockApiMockRecorder) MakeGitLabRequest(arg0, arg1 any, arg2 ...any) *ApiMakeGitLabRequestCall {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeGitLabRequest", reflect.TypeOf((*MockApi)(nil).MakeGitLabRequest), varargs...)
-	return &ApiMakeGitLabRequestCall{Call: call}
-}
-
 // ApiMakeGitLabRequestCall wrap *gomock.Call
 type ApiMakeGitLabRequestCall struct {
 	*gomock.Call

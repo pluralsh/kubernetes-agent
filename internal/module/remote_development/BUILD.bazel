@@ -1,8 +1,0 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "remote_development",
-    srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development",
-    visibility = ["//:__subpackages__"],
-)

@@ -22,12 +22,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
 	agent_registrar_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/agent"
 	flux_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent"
-	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
 	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/agent"
-	remote_development_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -253,7 +251,6 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface,
 	k8sFactory util.Factory, lr *leaderRunner, reg *prometheus.Registry, podId int64) ([]modagent.Module, []modagent.Module, error) {
-	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		&observability_agent.Factory{
 			LogLevel:            a.LogLevel,
@@ -270,7 +267,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			InternalServerConn: internalServerConn,
 		},
 		&kubernetes_api_agent.Factory{},
-		&remote_development_agent.Factory{},
 		&flux_agent.Factory{},
 		&agent_registrar_agent.Factory{
 			PodId: podId,
@@ -286,7 +282,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 				moduleName:        moduleName,
 				agentId:           a.AgentId,
 				gitLabExternalUrl: a.GitLabExternalUrl,
-				client:            accessClient,
 			},
 			K8sUtilFactory:     k8sFactory,
 			KasConn:            kasConn,

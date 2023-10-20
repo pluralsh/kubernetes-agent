@@ -36,7 +36,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 
-
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp/fake"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
@@ -47,7 +46,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
 	flux_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server"
-	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -240,7 +238,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			SubscribeToEvents: srvApi.subscribeToEvents,
 		},
 		&flux_server.Factory{},
-		&gitlab_access_server.Factory{},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
@@ -478,8 +475,6 @@ func (a *ConfiguredApp) constructGitLabClient(dt trace.Tracer, dm otelmetric.Met
 		gitlab.WithRateLimiter(limiter),
 	), nil
 }
-
-
 
 func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
 	cfg := a.Configuration.Redis

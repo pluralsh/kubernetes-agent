@@ -57,7 +57,6 @@ type GitLabResponse struct {
 // Api provides the API for the module to use.
 type Api interface {
 	modshared.Api
-	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 	GetAgentId(ctx context.Context) (int64, error)
 	TryGetAgentId() (int64, bool)
 	GetGitLabExternalUrl(ctx context.Context) (url.URL, error)

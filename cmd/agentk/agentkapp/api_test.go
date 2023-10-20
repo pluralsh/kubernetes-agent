@@ -1,29 +1,21 @@
 package agentkapp
 
 import (
-	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab_access"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -39,209 +31,6 @@ const (
 	queryParamValue = "query-param-value with a space"
 	queryParamName  = "q with a space"
 )
-
-func TestMakeGitLabRequest_HappyPath(t *testing.T) {
-	api, clientStream := setupApiWithStream(t)
-	// Send goroutine
-	extra, err := anypb.New(&gitlab_access_rpc.HeaderExtra{
-		ModuleName: moduleName,
-	})
-	require.NoError(t, err)
-	gomock.InOrder(mockSendStream(t, clientStream,
-		&grpctool.HttpRequest{
-			Message: &grpctool.HttpRequest_Header_{
-				Header: &grpctool.HttpRequest_Header{
-					Request: &prototool.HttpRequest{
-						Method: http.MethodPost,
-						Header: map[string]*prototool.Values{
-							"Req-Header": {
-								Value: []string{"x1", "x2"},
-							},
-							"Content-Type": {
-								Value: []string{"text/plain"},
-							},
-						},
-						UrlPath: urlPath,
-						Query: map[string]*prototool.Values{
-							queryParamName: {
-								Value: []string{queryParamValue},
-							},
-						},
-					},
-					Extra: extra,
-				},
-			},
-		},
-		&grpctool.HttpRequest{
-			Message: &grpctool.HttpRequest_Data_{
-				Data: &grpctool.HttpRequest_Data{
-					Data: []byte(requestPayload),
-				},
-			},
-		},
-		&grpctool.HttpRequest{
-			Message: &grpctool.HttpRequest_Trailer_{
-				Trailer: &grpctool.HttpRequest_Trailer{},
-			},
-		},
-	)...)
-	gomock.InOrder(mockRecvStream(clientStream,
-		&grpctool.HttpResponse{
-			Message: &grpctool.HttpResponse_Header_{
-				Header: &grpctool.HttpResponse_Header{
-					Response: &prototool.HttpResponse{
-						StatusCode: http.StatusOK,
-						Status:     http.StatusText(http.StatusOK),
-						Header: map[string]*prototool.Values{
-							"Resp-Header": {
-								Value: []string{"a1", "a2"},
-							},
-						},
-					},
-				},
-			},
-		},
-		&grpctool.HttpResponse{
-			Message: &grpctool.HttpResponse_Data_{
-				Data: &grpctool.HttpResponse_Data{
-					Data: []byte(responsePayload),
-				},
-			},
-		},
-		&grpctool.HttpResponse{
-			Message: &grpctool.HttpResponse_Trailer_{
-				Trailer: &grpctool.HttpResponse_Trailer{},
-			},
-		})...)
-	resp, err := api.MakeGitLabRequest(context.Background(), urlPath,
-		modagent.WithRequestMethod(httpMethod),
-		modagent.WithRequestQueryParam(queryParamName, queryParamValue),
-		modagent.WithRequestHeader("Req-Header", "x1", "x2"),
-		modagent.WithRequestBody(strings.NewReader(requestPayload), "text/plain"),
-	)
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, resp.Body.Close())
-	}()
-	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
-	assert.Empty(t, cmp.Diff(map[string][]string{
-		"Resp-Header": {"a1", "a2"},
-	}, (map[string][]string)(resp.Header)))
-}
-
-func TestMakeGitLabRequest_MakeRequestErrorClosesBody(t *testing.T) {
-	api, client, _ := setupApi(t)
-	body := newFailingReaderCloser()
-	client.EXPECT().
-		MakeRequest(gomock.Any()).
-		Return(nil, errors.New("expected error"))
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
-	assert.EqualError(t, err, "expected error")
-	assert.True(t, body.CloseCalled())
-	assert.False(t, body.ReadCalled())
-}
-
-func TestMakeGitLabRequest_SendError(t *testing.T) {
-	api, client, clientStream := setupApi(t)
-	body := newFailingReaderCloser()
-	var clientCtx context.Context
-	client.EXPECT().
-		MakeRequest(gomock.Any()).
-		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (gitlab_access_rpc.GitlabAccess_MakeRequestClient, error) {
-			clientCtx = ctx
-			return clientStream, nil
-		})
-	clientStream.EXPECT().
-		Send(gomock.Any()).
-		Return(errors.New("expected error"))
-	clientStream.EXPECT().
-		RecvMsg(gomock.Any()).
-		DoAndReturn(func(m interface{}) error {
-			<-clientCtx.Done() // Blocks until context is canceled because of the send error.
-			// Also return an error - this one must be ignored, the one from Send() should be used.
-			return clientCtx.Err()
-		})
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
-	assert.EqualError(t, err, "send request header: expected error")
-	assert.True(t, body.CloseCalled())
-	assert.False(t, body.ReadCalled())
-	assert.EqualError(t, err, "send request header: expected error")
-}
-
-func TestMakeGitLabRequest_RecvError(t *testing.T) {
-	api, client, clientStream := setupApi(t)
-	body := newFailingReaderCloser()
-	var clientCtx context.Context
-	client.EXPECT().
-		MakeRequest(gomock.Any()).
-		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (gitlab_access_rpc.GitlabAccess_MakeRequestClient, error) {
-			clientCtx = ctx
-			return clientStream, nil
-		})
-	clientStream.EXPECT().
-		Send(gomock.Any()).
-		DoAndReturn(func(m *grpctool.HttpRequest) error {
-			<-clientCtx.Done() // Blocks until context is canceled because of the send error.
-			// Also return an error - this one must be ignored, the one from RecvMsg() should be used.
-			return clientCtx.Err()
-		})
-	clientStream.EXPECT().
-		RecvMsg(gomock.Any()).
-		Return(errors.New("expected error"))
-	_, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
-	assert.EqualError(t, err, "expected error")
-	assert.True(t, body.CloseCalled())
-	assert.False(t, body.ReadCalled())
-	assert.EqualError(t, err, "expected error")
-}
-
-func TestMakeGitLabRequest_LateRecvError(t *testing.T) {
-	api, client, clientStream := setupApi(t)
-	body := newFailingReaderCloser()
-	var clientCtx context.Context
-	client.EXPECT().
-		MakeRequest(gomock.Any()).
-		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (gitlab_access_rpc.GitlabAccess_MakeRequestClient, error) {
-			clientCtx = ctx
-			return clientStream, nil
-		})
-	clientStream.EXPECT().
-		Send(gomock.Any()).
-		DoAndReturn(func(m *grpctool.HttpRequest) error {
-			<-clientCtx.Done() // Blocks until context is canceled because of the send error.
-			// Also return an error - this one must be ignored, the one from RecvMsg() should be used.
-			return clientCtx.Err()
-		})
-	gomock.InOrder(
-		clientStream.EXPECT().
-			RecvMsg(gomock.Any()).
-			Do(testhelpers.RecvMsg(&grpctool.HttpResponse{
-				Message: &grpctool.HttpResponse_Header_{
-					Header: &grpctool.HttpResponse_Header{
-						Response: &prototool.HttpResponse{
-							StatusCode: http.StatusOK,
-							Status:     http.StatusText(http.StatusOK),
-						},
-					},
-				},
-			})),
-		clientStream.EXPECT().
-			RecvMsg(gomock.Any()).
-			Return(errors.New("expected error")),
-	)
-	resp, err := api.MakeGitLabRequest(context.Background(), urlPath, modagent.WithRequestBody(body, "text/plain"))
-	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, resp.Body.Close())
-	}()
-	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
-	_, err = io.ReadAll(resp.Body)
-	assert.EqualError(t, err, "expected error")
-	<-body.closeCalled // wait for async close
-	assert.False(t, body.ReadCalled())
-	assert.EqualError(t, err, "expected error")
-}
 
 func setupApiWithStream(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccess_MakeRequestClient) {
 	api, client, clientStream := setupApi(t)
@@ -259,7 +48,6 @@ func setupApi(t *testing.T) (*agentAPI, *mock_gitlab_access.MockGitlabAccessClie
 		moduleName:        moduleName,
 		agentId:           NewValueHolder[int64](),
 		gitLabExternalUrl: NewValueHolder[url.URL](),
-		client:            client,
 	}, client, clientStream
 }
 

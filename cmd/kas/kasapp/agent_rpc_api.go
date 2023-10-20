@@ -7,8 +7,8 @@ import (
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	fake "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/fake/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
-	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
@@ -57,7 +57,7 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *serverAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return gapi.GetAgentInfo(ctx, a.GitLabClient, a.Token, gitlab.WithoutRetries())
+		return fake.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
 	})
 }
 
