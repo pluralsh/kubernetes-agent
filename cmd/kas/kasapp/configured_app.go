@@ -53,7 +53,6 @@ import (
 	flux_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/server"
-	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -245,7 +244,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&observability_server.Factory{
 			Gatherer: reg,
 		},
-		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
