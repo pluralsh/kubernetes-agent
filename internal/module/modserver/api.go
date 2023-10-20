@@ -5,7 +5,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
@@ -42,10 +41,9 @@ type ApplyDefaults func(*kascfg.ConfigurationFile)
 type Config struct {
 	// Log can be used for logging from the module.
 	// It should not be used for logging from gRPC Api methods. Use grpctool.LoggerFromContext(ctx) instead.
-	Log          *zap.Logger
-	Api          Api
-	Config       *kascfg.ConfigurationFile
-	GitLabClient gitlab.ClientInterface
+	Log    *zap.Logger
+	Api    Api
+	Config *kascfg.ConfigurationFile
 	// Registerer allows to register metrics.
 	// Metrics should be registered in Run and unregistered before Run returns.
 	Registerer prometheus.Registerer

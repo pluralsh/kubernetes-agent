@@ -20,23 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-const (
-	k8sApiRequestCountKnownMetric        = "k8s_api_proxy_request"
-	usersCiTunnelInteractionsCountMetric = "agent_users_using_ci_tunnel"
-	// `ci_access` metric names
-	k8sApiProxyRequestsViaCiAccessMetricName             = "k8s_api_proxy_requests_via_ci_access"
-	k8sApiProxyRequestsUniqueUsersViaCiAccessMetricName  = "k8s_api_proxy_requests_unique_users_via_ci_access"
-	k8sApiProxyRequestsUniqueAgentsViaCiAccessMetricName = "k8s_api_proxy_requests_unique_agents_via_ci_access"
-	// `user_access` metric names
-	k8sApiProxyRequestsViaUserAccessMetricName             = "k8s_api_proxy_requests_via_user_access"
-	k8sApiProxyRequestsUniqueUsersViaUserAccessMetricName  = "k8s_api_proxy_requests_unique_users_via_user_access"
-	k8sApiProxyRequestsUniqueAgentsViaUserAccessMetricName = "k8s_api_proxy_requests_unique_agents_via_user_access"
-	// PAT access metric names
-	k8sApiProxyRequestsViaPatAccessMetricName             = "k8s_api_proxy_requests_via_pat_access"
-	k8sApiProxyRequestsUniqueUsersViaPatAccessMetricName  = "k8s_api_proxy_requests_unique_users_via_pat_access"
-	k8sApiProxyRequestsUniqueAgentsViaPatAccessMetricName = "k8s_api_proxy_requests_unique_agents_via_pat_access"
-)
-
 type Factory struct {
 }
 
@@ -77,7 +60,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			log:                 config.Log,
 			api:                 config.Api,
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
-			gitLabClient:        config.GitLabClient,
 			allowedOriginUrls:   allowedOriginUrls,
 			allowedAgentsCache: cache.NewWithError[string, *gapi.AllowedAgentsForJob](
 				allowedAgentCacheTtl,

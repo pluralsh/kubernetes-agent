@@ -31,7 +31,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
@@ -56,7 +55,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
@@ -140,12 +138,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeCall(tpStop, &retErr)
 	dt := tp.Tracer(kasTracerName) // defaultTracer
-
-	// GitLab REST client
-	gitLabClient, err := a.constructGitLabClient(dt, dm, tp, mp, p)
-	if err != nil {
-		return err
-	}
 
 	// Sentry
 	sentryHub, err := a.constructSentryHub(tp, mp, p)
@@ -252,7 +244,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Log:              a.Log.With(logz.ModuleName(moduleName)),
 			Api:              srvApi,
 			Config:           a.Configuration,
-			GitLabClient:     gitLabClient,
 			Registerer:       reg,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
@@ -410,63 +401,6 @@ func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetri
 		return nil, err
 	}
 	return sentry.NewHub(sentryClient, sentry.NewScope()), nil
-}
-
-func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
-	decodedAuthSecret, err := ioz.LoadBase64Secret(a.Configuration.Gitlab.AuthenticationSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("read file: %w", err)
-	}
-	if len(decodedAuthSecret) != authSecretLength {
-		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretLength, len(decodedAuthSecret))
-	}
-	return decodedAuthSecret, nil
-}
-
-func (a *ConfiguredApp) constructGitLabClient(dt trace.Tracer, dm otelmetric.Meter,
-	tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*gitlab.Client, error) {
-	cfg := a.Configuration
-
-	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
-	if err != nil {
-		return nil, err
-	}
-	// TLS cert for talking to GitLab/Workhorse.
-	clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(cfg.Gitlab.CaCertificateFile)
-	if err != nil {
-		return nil, err
-	}
-	// Secret for JWT signing
-	decodedAuthSecret, err := a.loadGitLabClientAuthSecret()
-	if err != nil {
-		return nil, fmt.Errorf("authentication secret: %w", err)
-	}
-	var limiter httpz.Limiter
-	limiter = rate.NewLimiter(
-		rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
-		int(cfg.Gitlab.ApiRateLimit.BucketSize),
-	)
-	limiter, err = metric.NewWaitLimiterInstrumentation(
-		"gitlab_client",
-		cfg.Gitlab.ApiRateLimit.RefillRatePerSecond,
-		"{refill/s}",
-		dt,
-		dm,
-		limiter,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return gitlab.NewClient(
-		gitLabUrl,
-		decodedAuthSecret,
-		gitlab.WithTextMapPropagator(p),
-		gitlab.WithTracerProvider(tp),
-		gitlab.WithMeterProvider(mp),
-		gitlab.WithUserAgent(kasServerName()),
-		gitlab.WithTLSConfig(clientTLSConfig),
-		gitlab.WithRateLimiter(limiter),
-	), nil
 }
 
 func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
