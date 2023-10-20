@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/info"
+	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/info"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

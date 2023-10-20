@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/ioz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/ioz"
 	"go.uber.org/zap"
 )
 

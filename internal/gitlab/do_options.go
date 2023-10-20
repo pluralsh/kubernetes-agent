@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
+	"github.com/pluralsh/kuberentes-agent/internal/api"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

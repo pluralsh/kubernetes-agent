@@ -11,8 +11,8 @@ import (
 	sync "sync"
 
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
-	entity "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	agentcfg "github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	entity "github.com/pluralsh/kuberentes-agent/pkg/entity"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )

@@ -10,18 +10,19 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/matcher"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
 )
 
 var (

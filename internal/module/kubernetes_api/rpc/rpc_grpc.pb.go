@@ -9,7 +9,7 @@ package rpc
 import (
 	context "context"
 
-	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	grpctool "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

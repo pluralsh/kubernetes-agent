@@ -3,7 +3,7 @@ package api
 import (
 	"crypto/sha256"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 	"go.opentelemetry.io/otel/attribute"
 )
 

@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.event;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/event";
 
 import "validate/validate.proto";
 

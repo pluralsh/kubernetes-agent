@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

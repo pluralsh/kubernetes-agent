@@ -4,11 +4,11 @@ import (
 	"context"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

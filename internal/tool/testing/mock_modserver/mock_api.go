@@ -1,7 +1,7 @@
 package mock_modserver
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 	"go.uber.org/mock/gomock"
 )
 

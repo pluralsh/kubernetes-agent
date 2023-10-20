@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/rpc"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"

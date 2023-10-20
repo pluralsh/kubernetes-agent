@@ -9,12 +9,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 )

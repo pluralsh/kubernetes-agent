@@ -3,7 +3,7 @@ package rpc
 import (
 	"testing"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"google.golang.org/genproto/googleapis/rpc/status"
 )
 

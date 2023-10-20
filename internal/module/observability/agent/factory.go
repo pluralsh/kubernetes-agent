@@ -6,11 +6,11 @@ import (
 	"net"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )
 

@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	agentcfg "github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	gomock "go.uber.org/mock/gomock"
 	proto "google.golang.org/protobuf/proto"
 )

@@ -1,10 +1,10 @@
 package agentkapp
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.uber.org/zap"
 )
 

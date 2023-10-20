@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
 )
 
 func TestDefaultErrorHandlerWithReason_DiscardUnknownFields(t *testing.T) {

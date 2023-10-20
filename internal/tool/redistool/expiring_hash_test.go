@@ -13,7 +13,7 @@ import (
 	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/proto"
 )

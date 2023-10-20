@@ -1,3 +1,3 @@
 package mock_modagent
 
-//go:generate mockgen.sh -destination "api.go" -package "mock_modagent" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent" "Api,Factory,Module"
+//go:generate mockgen.sh -destination "api.go" -package "mock_modagent" "github.com/pluralsh/kuberentes-agent/internal/module/modagent" "Api,Factory,Module"

@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	redistool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	redistool "github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
 	gomock "go.uber.org/mock/gomock"
 )
 

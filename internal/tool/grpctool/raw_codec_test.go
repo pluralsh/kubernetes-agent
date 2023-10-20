@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/protobuf/testing/protocmp"
 )

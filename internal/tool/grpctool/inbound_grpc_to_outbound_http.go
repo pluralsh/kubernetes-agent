@@ -8,9 +8,9 @@ import (
 	"net"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/memz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

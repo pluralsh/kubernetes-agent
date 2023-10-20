@@ -1,9 +1,9 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
 )
 
 type Factory struct {

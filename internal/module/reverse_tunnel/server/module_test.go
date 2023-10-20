@@ -1,7 +1,7 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 )
 
 var (

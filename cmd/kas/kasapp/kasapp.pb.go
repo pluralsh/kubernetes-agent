@@ -11,8 +11,8 @@ import (
 	sync "sync"
 
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/automata"
-	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	_ "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/automata"
+	prototool "github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/util/wait"

@@ -3,12 +3,12 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 )
 
 const (
