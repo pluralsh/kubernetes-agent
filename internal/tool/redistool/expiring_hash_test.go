@@ -3,17 +3,19 @@ package redistool
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"net/url"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"github.com/redis/rueidis"
 	rmock "github.com/redis/rueidis/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/proto"
 )
@@ -424,6 +426,8 @@ func TestPrefixedInt64Key(t *testing.T) {
 
 func setupHash(t *testing.T) (rueidis.Client, *RedisExpiringHash[string, int64], string, []byte) {
 	t.Parallel()
+	s := miniredis.RunT(t)
+	os.Setenv("REDIS_URL", fmt.Sprintf("localhost:%s", s.Port()))
 	client := redisClient(t)
 	t.Cleanup(client.Close)
 	prefix := make([]byte, 32)
