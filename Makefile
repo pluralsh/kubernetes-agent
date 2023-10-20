@@ -18,13 +18,15 @@ help: ## show help
 
 .PHONY: build-kas
 build-kas:
-	go build \
+	CGO_ENABLED=0 go build \
+    	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o bin/kas ./cmd/kas
 
 .PHONY: build-agentk
 build-agentk:
-	go build \
+	CGO_ENABLED=0 go build \
+    	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o bin/agentk ./cmd/agentk
 
