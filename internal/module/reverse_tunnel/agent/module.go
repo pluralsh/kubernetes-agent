@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/info"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel"
+	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/info"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"google.golang.org/grpc"
 )
 

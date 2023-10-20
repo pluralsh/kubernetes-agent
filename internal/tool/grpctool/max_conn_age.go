@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/mathz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/mathz"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"

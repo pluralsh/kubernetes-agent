@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
 	"k8s.io/utils/clock"
 )
 

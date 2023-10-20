@@ -3,8 +3,8 @@ package agentkapp
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

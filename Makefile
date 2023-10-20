@@ -62,28 +62,19 @@ FIPS_TAG_GIT_ARCH = $(FIPS_TAG_GIT)-$(ARCH)
 FIPS_TAG_STABLE = $(CI_REGISTRY_IMAGE)/agentk-fips:stable
 FIPS_TAG_STABLE_ARCH = $(FIPS_TAG_STABLE)-$(ARCH)
 
-LDFLAGS := -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Version=$(GIT_TAG)"
-LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.Commit=$(GIT_COMMIT)"
-LDFLAGS += -X "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd.BuildTime=$(BUILD_TIME)"
+LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
+LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
+LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
 
 CI_REGISTRY ?= registry.gitlab.com
 CI_PROJECT_PATH ?= gitlab-org/cluster-integration/gitlab-agent
 OCI_REPO = $(CI_REGISTRY)/$(CI_PROJECT_PATH)/agentk
 
-.PHONY: buildozer
-buildozer:
-	bazel run //:buildozer
-
-.PHONY: buildifier
-buildifier:
-	bazel run //:buildifier
-
-.PHONY: fmt-bazel
-fmt-bazel: gazelle buildozer buildifier
-
-.PHONY: gazelle
-gazelle:
-	bazel run //:gazelle
+# Install using your package manager, as recommended by
+# https://golangci-lint.run/usage/install/#local-installation
+.PHONY: lint
+lint:
+	golangci-lint run
 
 .PHONY: internal-regenerate-proto
 internal-regenerate-proto:
@@ -95,34 +86,34 @@ regenerate-proto: internal-regenerate-proto update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	PATH="${PATH}:$(shell pwd)/build" go generate -x -v \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/agentk/agentkapp" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/agent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/starboard_vulnerability/agent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_agent_registrar" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_agent_tracker" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_cache" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab_access" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_internalgitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_k8s" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_kubernetes_api" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modshared" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_redis" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_reverse_tunnel_tunnel" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics"
+		"github.com/pluralsh/kuberentes-agent/cmd/agentk/agentkapp" \
+		"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/modagent" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/flux/agent" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/flux/rpc" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/gitops/agent/manifestops" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/google_profiler/agent" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/starboard_vulnerability/agent" \
+		"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/redistool" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_agent_registrar" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_agent_tracker" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_gitaly" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_gitlab_access" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_internalgitaly" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_k8s" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_kubernetes_api" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modshared" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_redis" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_rpc" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_tool" \
+		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_usage_metrics"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks update-bazel

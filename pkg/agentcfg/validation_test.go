@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 

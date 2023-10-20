@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"go.uber.org/mock/gomock"
 )
 

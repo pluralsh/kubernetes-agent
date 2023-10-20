@@ -7,11 +7,11 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )
 

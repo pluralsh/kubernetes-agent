@@ -3,8 +3,8 @@ package agent
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api"
+	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 )
 
 type module struct {

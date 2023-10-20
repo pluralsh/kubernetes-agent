@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
-	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"go.uber.org/zap"
+
+	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
+	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 )
 
 type module struct {

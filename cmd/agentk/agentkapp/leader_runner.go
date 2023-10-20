@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"

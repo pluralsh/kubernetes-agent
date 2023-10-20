@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool/test"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

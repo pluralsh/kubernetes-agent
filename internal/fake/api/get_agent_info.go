@@ -3,10 +3,10 @@ package api
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
+	"github.com/pluralsh/kuberentes-agent/internal/api"
+	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 )
 
 const (
