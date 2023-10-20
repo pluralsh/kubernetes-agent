@@ -97,6 +97,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	a.Log.Info(fmt.Sprintf("Redis address %s", s.Addr()))
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
