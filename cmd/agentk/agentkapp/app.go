@@ -31,7 +31,6 @@ import (
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/agent"
 	remote_development_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/remote_development/agent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/agent"
-	starboard_vulnerability "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/starboard_vulnerability/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
@@ -271,7 +270,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		},
 		&google_profiler_agent.Factory{},
 		&manifestops.Factory{},
-		&starboard_vulnerability.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,
 		},
