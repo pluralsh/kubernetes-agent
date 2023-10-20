@@ -23,7 +23,6 @@ import (
 	agent_registrar_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/agent"
 	flux_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/agent/manifestops"
 	google_profiler_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/google_profiler/agent"
 	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
@@ -270,7 +269,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			KeyFile:             a.ObservabilityKeyFile,
 		},
 		&google_profiler_agent.Factory{},
-		&manifestops.Factory{},
 		&starboard_vulnerability.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,

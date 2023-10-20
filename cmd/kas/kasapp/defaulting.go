@@ -54,11 +54,6 @@ var (
 		observability_server.ApplyDefaults,
 		google_profiler_server.ApplyDefaults,
 		agent_configuration_server.ApplyDefaults,
-<<<<<<< HEAD
-		gitops_server.ApplyDefaults,
-=======
-		usage_metrics_server.ApplyDefaults,
->>>>>>> ee890343 (cleanup gitops)
 		kubernetes_api_server.ApplyDefaults,
 	}
 )
