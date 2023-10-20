@@ -92,6 +92,10 @@ internal-regenerate-proto:
 	# generate go from proto
 	#bazel run //build:extract_generated_proto
 
+.PHONY: protoc
+protoc:
+	@build/protoc.sh
+
 .PHONY: regenerate-proto
 regenerate-proto: internal-regenerate-proto
 
