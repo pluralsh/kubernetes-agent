@@ -19,7 +19,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: TARGET_DIRECTORY=. make kas
+      - run: TARGET_DIRECTORY=. make build-kas
   build-agentk:
     name: Build agentk
     runs-on: ubuntu-latest
@@ -29,7 +29,17 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: TARGET_DIRECTORY=. make agentk
+      - run: TARGET_DIRECTORY=. make build-agentk
+  test:
+    name: Unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: make test
   lint:
     name: Lint
     runs-on: ubuntu-latest
