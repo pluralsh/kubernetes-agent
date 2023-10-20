@@ -1,21 +1,12 @@
-# git invocations must be conditional because git is not available in e.g. CNG and variables are supplied manually.
-GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
-GIT_TAG ?= $(shell git tag --points-at HEAD 2>/dev/null || true)
-BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
-ifeq ($(GIT_TAG), )
-	GIT_TAG = v0.0.0
-endif
+ROOT_DIRECTORY := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
+include $(ROOT_DIRECTORY)/build/include/config.mk
+include $(ROOT_DIRECTORY)/build/include/deploy.mk
+include $(ROOT_DIRECTORY)/build/include/tools.mk
 
-include tools.mk
+MAKEFLAGS += -j2
 
-ifndef GOPATH
-$(error $$GOPATH environment variable not set)
-endif
-
+# List of targets that should be executed before other targets
 PRE = --ensure
 
 ##@ General
@@ -36,18 +27,42 @@ go-dep-updates: ## show possible go dependency updates
 build: build-kas build-agentk ## build both kas and agentk
 
 .PHONY: build-kas
+build-kas: TARGET_DIRECTORY=bin/kas
 build-kas: ## build kas
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
-		-o bin/kas ./cmd/kas
+		-o $(TARGET_DIRECTORY) ./cmd/kas
 
 .PHONY: build-agentk
+build-agentk: TARGET_DIRECTORY=bin/agentk
 build-agentk: ## build agentk
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
-		-o bin/agentk ./cmd/agentk
+		-o $(TARGET_DIRECTORY) ./cmd/agentk
+
+##@ Docker
+
+.PHONY: docker-kas
+docker-kas: APP_NAME=kas
+docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.Dockerfile
+docker-kas: --image ## build docker kas image
+
+.PHONY: docker-kas-debug
+docker-kas: APP_NAME=kas
+docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.debug.Dockerfile
+docker-kas-debug: --image-debug ## build docker kas debug image with embedded delve
+
+.PHONY: docker-agentk
+docker-agentk: APP_NAME=agentk
+docker-agentk: DOCKERFILE=${DOCKER_DIRECTORY}/agentk.Dockerfile
+docker-agentk: --image ## build docker agentk
+
+.PHONY: docker-agentk-debug
+docker-agentk-debug: APP_NAME=agentk
+docker-agentk-debug: DOCKERFILE=${DOCKER_DIRECTORY}/agentk.debug.Dockerfile
+docker-agentk-debug: --image-debug ## build docker agentk debug image with embedded delve
 
 ##@ Codegen
 

@@ -7,9 +7,9 @@ FROM docker.io/golang:1.21 as builder
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 WORKDIR /src
-COPY .. .
+COPY . .
 
-RUN GCFLAGS="all=-N -l" TARGET_DIRECTORY=/agentk make agentk
+RUN GCFLAGS="all=-N -l" make TARGET_DIRECTORY=/agentk build-agentk
 
 FROM gcr.io/distroless/base-debian12:nonroot
 LABEL source="https://github.com/pluralsh/kas" \

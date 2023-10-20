@@ -3,9 +3,9 @@
 FROM docker.io/golang:1.21 as builder
 
 WORKDIR /src
-COPY .. .
+COPY . .
 
-RUN TARGET_DIRECTORY=. make kas
+RUN make TARGET_DIRECTORY=. build-kas
 
 FROM gcr.io/distroless/static-debian12:nonroot
 LABEL source="https://github.com/pluralsh/kas" \
