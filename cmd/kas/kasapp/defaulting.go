@@ -7,6 +7,7 @@ import (
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 )
@@ -52,6 +53,7 @@ var (
 	defaulters = []modserver.ApplyDefaults{
 		observability_server.ApplyDefaults,
 		agent_configuration_server.ApplyDefaults,
+		usage_metrics_server.ApplyDefaults,
 		kubernetes_api_server.ApplyDefaults,
 	}
 )

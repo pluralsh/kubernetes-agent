@@ -51,6 +51,8 @@ import (
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -215,6 +217,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
+	// Usage tracker
+	usageTracker := usage_metrics.NewUsageTracker()
+
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
@@ -222,6 +227,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
+		},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
 		},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
@@ -245,6 +253,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Api:              srvApi,
 			Config:           a.Configuration,
 			Registerer:       reg,
+			UsageTracker:     usageTracker,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,
