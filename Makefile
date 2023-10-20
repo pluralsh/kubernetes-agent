@@ -208,21 +208,19 @@ gdk-install:
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 # Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
-# This target is used by:
-# - CNG: https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-kas
-# - Omnibus: https://gitlab.com/gitlab-org/omnibus-gitlab/-/blob/master/config/software/gitlab-kas.rb
 .PHONY: kas
 kas:
-	go build \
+	CGO_ENABLED=0 go build \
+		-gcflags '$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o '$(TARGET_DIRECTORY)' ./cmd/kas
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 # Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
-# This target is used by FIPS build in this repo.
 .PHONY: agentk
 agentk:
-	go build \
+	CGO_ENABLED=0 go build \
+		-gcflags='$(GCFLAGS)' \
 		-ldflags '$(LDFLAGS)' \
 		-o '$(TARGET_DIRECTORY)' ./cmd/agentk
 
