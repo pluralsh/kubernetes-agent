@@ -2,7 +2,6 @@ package fake
 
 import (
 	"context"
-	"sync"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"go.uber.org/zap"
@@ -16,9 +15,8 @@ import (
 
 type ServerAgentRpcApi struct {
 	modserver.RpcApi
-	Token           api.AgentToken
-	AgentInfoCache  *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
-	agentIdAttrOnce sync.Once
+	Token          api.AgentToken
+	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 }
 
 func (a *ServerAgentRpcApi) AgentToken() api.AgentToken {

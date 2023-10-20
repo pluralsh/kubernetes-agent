@@ -43,8 +43,6 @@ const (
 	redisResetDuration   = 20 * time.Second
 	redisBackoffFactor   = 2.0
 	redisJitter          = 1.0
-
-	eventsRedisChannel = "kas_events"
 )
 
 type SentryHub interface {
@@ -84,49 +82,6 @@ func (a *serverApi) hub() (SentryHub, string) {
 
 func (a *serverApi) OnGitPushEvent(ctx context.Context, cb syncz.EventCallback[*event.GitPushEvent]) {
 	a.gitPushEvent.On(ctx, cb)
-}
-
-func (a *serverApi) publishEvent(ctx context.Context, e proto.Message) error {
-	payload, err := redisProtoMarshal(e)
-	if err != nil {
-		return fmt.Errorf("failed to marshal proto message to publish: %w", err)
-	}
-	publishCmd := a.redisClient.B().Publish().Channel(eventsRedisChannel).Message(rueidis.BinaryString(payload)).Build()
-	return a.redisClient.Do(ctx, publishCmd).Error()
-}
-
-// subscribeToEvents subscribes to the events Redis channel
-// and will dispatch each event to the registered callbacks.
-func (a *serverApi) subscribeToEvents(ctx context.Context) {
-	_ = retry.PollWithBackoff(ctx, a.redisPollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
-		subCmd := a.redisClient.B().Subscribe().Channel(eventsRedisChannel).Build()
-		err := a.redisClient.Receive(ctx, subCmd, func(msg rueidis.PubSubMessage) {
-			protoMessage, err := redisProtoUnmarshal(msg.Message)
-			if err != nil {
-				a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, fmt.Sprintf("receiver message in channel %q cannot be unmarshalled into proto message", eventsRedisChannel), err)
-				return
-			}
-
-			switch e := (protoMessage).(type) {
-			case *event.GitPushEvent:
-				a.gitPushEvent.Dispatch(ctx, e)
-			default:
-				a.HandleProcessingError(
-					ctx,
-					a.log,
-					modshared.NoAgentId,
-					"Unable to handle received event",
-					fmt.Errorf("failed to cast proto message of type %T to concrete type", e))
-			}
-		})
-		switch err { // nolint:errorlint
-		case nil, context.Canceled, context.DeadlineExceeded:
-			return nil, retry.ContinueImmediately
-		default:
-			a.HandleProcessingError(ctx, a.log, modshared.NoAgentId, "Error handling Redis SUBSCRIBE", err)
-			return nil, retry.Backoff
-		}
-	})
 }
 
 func redisProtoMarshal(m proto.Message) ([]byte, error) {

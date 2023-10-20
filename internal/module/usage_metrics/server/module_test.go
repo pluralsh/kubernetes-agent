@@ -138,7 +138,7 @@ func TestSendUsageHttp(t *testing.T) {
 	require.NoError(t, m.Run(ctx))
 }
 
-func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*module, *mock_usage_metrics.MockUsageTrackerInterface, *mock_modserver.MockApi) {
+func setupModule(t *testing.T, _ func(http.ResponseWriter, *http.Request)) (*module, *mock_usage_metrics.MockUsageTrackerInterface, *mock_modserver.MockApi) {
 	ctrl := gomock.NewController(t)
 	tracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
 	mockApi := mock_modserver.NewMockApi(ctrl)

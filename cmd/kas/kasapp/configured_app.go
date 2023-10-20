@@ -38,7 +38,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp/fake"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
 	agent_registrar_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/server"
@@ -76,8 +75,6 @@ const (
 	routingTunnelFindTimeout = 20 * time.Second
 	routingCachePeriod       = 5 * time.Minute
 	routingTryNewKasInterval = 10 * time.Millisecond
-
-	authSecretLength = 32
 
 	kasName = "gitlab-kas"
 
@@ -309,34 +306,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			startModules(stage, afterServersModules)
 		},
 	)
-}
-
-func (a *ConfiguredApp) constructRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, gitLabClient gitlab.ClientInterface, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
-	aCfg := a.Configuration.Agent
-	f := serverRpcApiFactory{
-		log:       a.Log,
-		sentryHub: sentryHub,
-	}
-	fAgent := serverAgentRpcApiFactory{
-		rpcApiFactory: f.New,
-		gitLabClient:  gitLabClient,
-		agentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
-			aCfg.InfoCacheTtl.AsDuration(),
-			aCfg.InfoCacheErrorTtl.AsDuration(),
-			&redistool.ErrCacher[api.AgentToken]{
-				Log:          a.Log,
-				ErrRep:       errRep,
-				Client:       redisClient,
-				ErrMarshaler: prototool.ProtoErrMarshaler{},
-				KeyToRedisKey: func(key api.AgentToken) string {
-					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
-				},
-			},
-			dt,
-			gapi.IsCacheableError,
-		),
-	}
-	return f.New, fAgent.New
 }
 
 func (a *ConfiguredApp) constructFakeRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {

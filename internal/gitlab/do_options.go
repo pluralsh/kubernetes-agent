@@ -3,13 +3,10 @@ package gitlab
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -31,7 +28,6 @@ type ValidatableMessage interface {
 type doConfig struct {
 	method          string
 	path            string
-	query           url.Values
 	header          http.Header
 	body            io.Reader
 	responseHandler ResponseHandler
@@ -48,23 +44,6 @@ func (c *doConfig) ensureHeaderNotNil() {
 // DoOption to configure the Do call of the client.
 type DoOption func(*doConfig) error
 
-func applyDoOptions(opts []DoOption) (doConfig, error) {
-	config := doConfig{
-		method: http.MethodGet,
-	}
-	for _, v := range opts {
-		err := v(&config)
-		if err != nil {
-			return doConfig{}, err
-		}
-	}
-	if config.responseHandler == nil {
-		return doConfig{}, errors.New("missing response handler")
-	}
-
-	return config, nil
-}
-
 func WithMethod(method string) DoOption {
 	return func(config *doConfig) error {
 		config.method = method
@@ -79,38 +58,9 @@ func WithPath(path string) DoOption {
 	}
 }
 
-func WithQuery(query url.Values) DoOption {
-	return func(config *doConfig) error {
-		config.query = query
-		return nil
-	}
-}
-
-func WithHeader(header http.Header) DoOption {
-	return func(config *doConfig) error {
-		clone := header.Clone()
-		if config.header == nil {
-			config.header = clone
-		} else {
-			for k, v := range clone {
-				config.header[k] = v // overwrite
-			}
-		}
-		return nil
-	}
-}
-
 func WithJWT(withJWT bool) DoOption {
 	return func(config *doConfig) error {
 		config.withJWT = withJWT
-		return nil
-	}
-}
-
-func WithAgentToken(agentToken api.AgentToken) DoOption {
-	return func(config *doConfig) error {
-		config.ensureHeaderNotNil()
-		config.header[httpz.AuthorizationHeader] = []string{"Bearer " + string(agentToken)}
 		return nil
 	}
 }

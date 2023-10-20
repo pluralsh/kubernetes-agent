@@ -125,7 +125,7 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	rpcApi.HandleProcessingError(log, modshared.NoAgentId, "Bla", err)
 }
 
-func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, trace.TraceID) {
+func setupAgentRpcApi(t *testing.T, _ int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, trace.TraceID) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	hub := NewMockSentryHub(ctrl)
