@@ -62,6 +62,8 @@ import (
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
@@ -74,6 +76,22 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	promexp "go.opentelemetry.io/otel/exporters/prometheus"
+	otelmetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 )
 
 const (
@@ -233,6 +251,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
+	// Usage tracker
+	usageTracker := usage_metrics.NewUsageTracker()
+
 	// Gitaly client
 	gitalyClientPool, err := a.constructGitalyPool(csh, dt, dm, tp, mp, p, streamClientProm, unaryClientProm)
 	if err != nil {
@@ -256,6 +277,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&flux_server.Factory{},
 		&gitops_server.Factory{},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
+		},
 		&gitlab_access_server.Factory{},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
@@ -284,6 +308,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Config:           a.Configuration,
 			GitLabClient:     gitLabClient,
 			Registerer:       reg,
+			UsageTracker:     usageTracker,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,

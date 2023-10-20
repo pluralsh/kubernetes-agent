@@ -3,7 +3,6 @@ package api
 import (
 	"crypto/sha256"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/gitalypb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -27,7 +26,6 @@ type AgentInfo struct {
 	// Can contain only /a-z\d-/
 	Name       string
 	GitalyInfo *entity.GitalyInfo
-	Repository *gitalypb.Repository
 	// DefaultBranch is the name of the default branch in the agent's configuration repository.
 	DefaultBranch string
 }
@@ -35,7 +33,6 @@ type AgentInfo struct {
 type ProjectInfo struct {
 	ProjectId  int64
 	GitalyInfo *entity.GitalyInfo
-	Repository *gitalypb.Repository
 	// DefaultBranch is the name of the default branch in a repository.
 	DefaultBranch string
 }

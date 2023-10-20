@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
@@ -24,7 +23,6 @@ import (
 type fakeServer struct {
 	rpc.UnimplementedAgentConfigurationServer
 	serverApi                  modserver.Api
-	gitaly                     gitaly.PoolInterface
 	gitLabClient               gitlab.ClientInterface
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
@@ -85,14 +83,6 @@ func (s *fakeServer) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.
 	})
 }
 
-func (s *fakeServer) poll(ctx context.Context, agentInfo *api.AgentInfo, lastProcessedCommitId string) (*gitaly.PollInfo, error) {
-	p, err := s.gitaly.Poller(ctx, agentInfo.GitalyInfo)
-	if err != nil {
-		return nil, err
-	}
-	return p.Poll(ctx, agentInfo.Repository, lastProcessedCommitId, "refs/heads/"+agentInfo.DefaultBranch)
-}
-
 func (s *fakeServer) sendConfigResponse(server rpc.AgentConfiguration_GetConfigurationServer,
 	agentInfo *api.AgentInfo, configFile *agentcfg.ConfigurationFile, commitId string) error {
 	return server.Send(&rpc.ConfigurationResponse{
@@ -101,7 +91,6 @@ func (s *fakeServer) sendConfigResponse(server rpc.AgentConfiguration_GetConfigu
 			Observability:     configFile.Observability,
 			AgentId:           agentInfo.Id,
 			ProjectId:         agentInfo.ProjectId,
-			ProjectPath:       agentInfo.Repository.GlProjectPath,
 			CiAccess:          configFile.CiAccess,
 			ContainerScanning: configFile.ContainerScanning,
 			RemoteDevelopment: configFile.RemoteDevelopment,
