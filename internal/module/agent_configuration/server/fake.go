@@ -2,13 +2,11 @@ package server
 
 import (
 	"context"
-	"errors"
+
 	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/mathz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"

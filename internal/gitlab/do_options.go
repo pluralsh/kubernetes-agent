@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"

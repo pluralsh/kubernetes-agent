@@ -38,7 +38,6 @@ import (
 	"github.com/pluralsh/kuberentes-agent/cmd"
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/fake"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
 	agent_configuration_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/server"
 	agent_registrar_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/server"

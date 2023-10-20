@@ -11,7 +11,7 @@ package mock_usage_metrics
 import (
 	reflect "reflect"
 
-	usage_metrics "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	usage_metrics "github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
 	gomock "go.uber.org/mock/gomock"
 )
 
