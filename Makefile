@@ -78,10 +78,11 @@ lint:
 
 .PHONY: internal-regenerate-proto
 internal-regenerate-proto:
-	bazel run //build:extract_generated_proto
+	# generate go from proto
+	#bazel run //build:extract_generated_proto
 
 .PHONY: regenerate-proto
-regenerate-proto: internal-regenerate-proto update-bazel
+regenerate-proto: internal-regenerate-proto
 
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
@@ -116,7 +117,7 @@ internal-regenerate-mocks:
 		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_usage_metrics"
 
 .PHONY: regenerate-mocks
-regenerate-mocks: internal-regenerate-mocks update-bazel
+regenerate-mocks: internal-regenerate-mocks
 
 .PHONY: update-repos
 update-repos:
@@ -129,13 +130,6 @@ update-repos:
 		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
 	go mod tidy
-
-.PHONY: update-bazel
-update-bazel: gazelle
-
-#.PHONY: test
-#test: update-bazel
-#	bazel test -- //...
 
 .PHONY: test-ci
 test-ci:
