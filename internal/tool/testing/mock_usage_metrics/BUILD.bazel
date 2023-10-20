@@ -1,16 +1,16 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "mock_tool",
+    name = "mock_usage_metrics",
     testonly = True,
     srcs = [
+        "api.go",
         "doc.go",
-        "tool.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_tool",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_usage_metrics",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/module/usage_metrics",
         "@org_uber_go_mock//gomock",
-        "@org_uber_go_zap//:zap",
     ],
 )

@@ -1,3 +1,3 @@
-package mock_usage_metrics
+package mock_tool
 
-//go:generate mockgen.sh -destination "api.go" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics" "UsageTrackerInterface,Counter,UniqueCounter"
+//go:generate mockgen.sh -destination "tool.go" -package "mock_tool" "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz" "ErrReporter"
