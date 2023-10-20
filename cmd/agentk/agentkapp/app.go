@@ -21,7 +21,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
 	agent_registrar_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/agent"
-	flux_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/agent"
 	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -267,7 +266,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			InternalServerConn: internalServerConn,
 		},
 		&kubernetes_api_agent.Factory{},
-		&flux_agent.Factory{},
 		&agent_registrar_agent.Factory{
 			PodId: podId,
 		},

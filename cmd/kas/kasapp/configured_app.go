@@ -45,7 +45,6 @@ import (
 	agent_registrar_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
-	flux_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -237,7 +236,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			PublishEvent:      srvApi.publishEvent,
 			SubscribeToEvents: srvApi.subscribeToEvents,
 		},
-		&flux_server.Factory{},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
