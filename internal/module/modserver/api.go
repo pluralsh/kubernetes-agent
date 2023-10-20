@@ -5,11 +5,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
-	"github.com/pluralsh/kuberentes-agent/pkg/event"
-	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -46,7 +47,8 @@ type Config struct {
 	Config *kascfg.ConfigurationFile
 	// Registerer allows to register metrics.
 	// Metrics should be registered in Run and unregistered before Run returns.
-	Registerer prometheus.Registerer
+	Registerer   prometheus.Registerer
+	UsageTracker usage_metrics.UsageTrackerRegisterer
 	// AgentServer is the gRPC server agentk is talking to.
 	// This can be used to add endpoints in Factory.New.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).

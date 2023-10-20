@@ -35,33 +35,35 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 
-	"github.com/pluralsh/kuberentes-agent/cmd"
-	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/fake"
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
-	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
-	agent_configuration_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/server"
-	agent_registrar_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
-	agent_tracker_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker/server"
-	kubernetes_api_server "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
-	observability_server "github.com/pluralsh/kuberentes-agent/internal/module/observability/server"
-	reverse_tunnel_server "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
-	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp/fake"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
+	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
+	agent_registrar_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
+	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
+	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
+	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
+	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/tlstool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 )
 
 const (
@@ -215,6 +217,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
+	// Usage tracker
+	usageTracker := usage_metrics.NewUsageTracker()
+
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
@@ -222,6 +227,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
+		},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
 		},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
@@ -245,6 +253,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			Api:              srvApi,
 			Config:           a.Configuration,
 			Registerer:       reg,
+			UsageTracker:     usageTracker,
 			AgentServer:      agentSrv.server,
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,

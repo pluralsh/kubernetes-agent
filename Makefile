@@ -1,3 +1,51 @@
+include tools.mk
+
+ifndef GOPATH
+$(error $$GOPATH environment variable not set)
+endif
+
+PRE = --ensure
+
+##@ General
+
+.PHONY: help
+help: ## show help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ Run
+
+##@ Build
+
+.PHONY: build-kas
+build-kas:
+	CGO_ENABLED=0 go build \
+    	-gcflags='$(GCFLAGS)' \
+		-ldflags '$(LDFLAGS)' \
+		-o bin/kas ./cmd/kas
+
+.PHONY: build-agentk
+build-agentk:
+	CGO_ENABLED=0 go build \
+    	-gcflags='$(GCFLAGS)' \
+		-ldflags '$(LDFLAGS)' \
+		-o bin/agentk ./cmd/agentk
+
+##@ Tests
+
+.PHONY: test
+test: ## run tests
+	go test ./... -v
+
+.PHONY: lint
+lint: $(PRE) ## run linters
+	golangci-lint run ./...
+
+.PHONY: fix
+fix: $(PRE) ## fix issues found by linters
+	golangci-lint run --fix ./...
+
+################################ Old definitions
+
 SHELL = /usr/bin/env bash -eo pipefail
 
 # git invocations must be conditional because git is not available in e.g. CNG and variables are supplied manually.
@@ -33,7 +81,7 @@ internal-regenerate-proto:
 	bazel run //build:extract_generated_proto
 
 .PHONY: regenerate-proto
-regenerate-proto: internal-regenerate-proto fmt update-bazel
+regenerate-proto: internal-regenerate-proto update-bazel
 
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
@@ -68,7 +116,7 @@ internal-regenerate-mocks:
 		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_usage_metrics"
 
 .PHONY: regenerate-mocks
-regenerate-mocks: internal-regenerate-mocks fmt update-bazel
+regenerate-mocks: internal-regenerate-mocks update-bazel
 
 .PHONY: update-repos
 update-repos:
@@ -85,13 +133,9 @@ update-repos:
 .PHONY: update-bazel
 update-bazel: gazelle
 
-.PHONY: fmt
-fmt:
-	go run github.com/daixiang0/gci@v0.11.2 write cmd internal pkg -s standard -s default
-
-.PHONY: test
-test: fmt update-bazel
-	bazel test -- //...
+#.PHONY: test
+#test: update-bazel
+#	bazel test -- //...
 
 .PHONY: test-ci
 test-ci:
@@ -105,7 +149,7 @@ test-ci-fips:
 	go test -v ./...
 
 .PHONY: verify-ci
-verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks fmt update-bazel update-repos
+verify-ci: delete-generated-files internal-regenerate-proto internal-regenerate-mocks update-bazel update-repos
 	git add .
 	git diff --cached --quiet ':(exclude).bazelrc' || (echo "Error: uncommitted changes detected:" && git --no-pager diff --cached && exit 1)
 
@@ -191,24 +235,6 @@ gdk-install:
 	bazel run //cmd/kas:extract_kas_race
 	mv 'cmd/kas/kas_race' '$(TARGET_DIRECTORY)'
 
-# Set TARGET_DIRECTORY variable to the target directory before running this target
-# Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
-.PHONY: kas
-kas:
-	CGO_ENABLED=0 go build \
-		-gcflags '$(GCFLAGS)' \
-		-ldflags '$(LDFLAGS)' \
-		-o '$(TARGET_DIRECTORY)' ./cmd/kas
-
-# Set TARGET_DIRECTORY variable to the target directory before running this target
-# Optional: set GIT_TAG and GIT_COMMIT variables to supply those values manually.
-.PHONY: agentk
-agentk:
-	CGO_ENABLED=0 go build \
-		-gcflags='$(GCFLAGS)' \
-		-ldflags '$(LDFLAGS)' \
-		-o '$(TARGET_DIRECTORY)' ./cmd/agentk
-
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
@@ -226,3 +252,4 @@ delete-generated-files:
 .PHONY: build-gem
 build-gem:
 	cd pkg/ruby && gem build kas-grpc.gemspec
+

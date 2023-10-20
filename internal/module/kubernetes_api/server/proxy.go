@@ -23,18 +23,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
 
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
-	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
-	"github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/rpc"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/memz"
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/memz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
 )
 
 const (
@@ -79,19 +80,30 @@ type proxyUserCacheKey struct {
 }
 
 type kubernetesApiProxy struct {
-	log                     *zap.Logger
-	api                     modserver.Api
-	kubernetesApiClient     rpc.KubernetesApiClient
-	gitLabClient            gitlab.ClientInterface
-	allowedOriginUrls       []string
-	allowedAgentsCache      *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
-	authorizeProxyUserCache *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]
-	responseSerializer      runtime.NegotiatedSerializer
-	traceProvider           trace.TracerProvider
-	tracePropagator         propagation.TextMapPropagator
-	meterProvider           metric.MeterProvider
-	serverName              string
-	serverVia               string
+	log                      *zap.Logger
+	api                      modserver.Api
+	kubernetesApiClient      rpc.KubernetesApiClient
+	gitLabClient             gitlab.ClientInterface
+	allowedOriginUrls        []string
+	allowedAgentsCache       *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
+	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]
+	requestCounter           usage_metrics.Counter
+	ciTunnelUsersCounter     usage_metrics.UniqueCounter
+	ciAccessRequestCounter   usage_metrics.Counter
+	ciAccessUsersCounter     usage_metrics.UniqueCounter
+	ciAccessAgentsCounter    usage_metrics.UniqueCounter
+	userAccessRequestCounter usage_metrics.Counter
+	userAccessUsersCounter   usage_metrics.UniqueCounter
+	userAccessAgentsCounter  usage_metrics.UniqueCounter
+	patAccessRequestCounter  usage_metrics.Counter
+	patAccessUsersCounter    usage_metrics.UniqueCounter
+	patAccessAgentsCounter   usage_metrics.UniqueCounter
+	responseSerializer       runtime.NegotiatedSerializer
+	traceProvider            trace.TracerProvider
+	tracePropagator          propagation.TextMapPropagator
+	meterProvider            metric.MeterProvider
+	serverName               string
+	serverVia                string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
 	urlPathPrefix       string
 	listenerGracePeriod time.Duration
@@ -176,7 +188,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	log, agentId, _, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
+	log, agentId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
 	if eResp != nil {
 		// If GitLab doesn't authorize the proxy user to make the call,
 		// we send an extra header to indicate that, so that the client
@@ -187,6 +199,9 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 		return log, agentId, eResp
 	}
+
+	p.requestCounter.Inc() // Count only authenticated and authorized requests
+	p.ciTunnelUsersCounter.Add(userId)
 
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
@@ -252,6 +267,10 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 			}
 		}
 
+		// update usage metrics for `ci_access` requests using the CI tunnel
+		p.ciAccessRequestCounter.Inc()
+		p.ciAccessUsersCounter.Add(userId)
+		p.ciAccessAgentsCounter.Add(agentId)
 	case sessionCookieAuthn:
 		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "session_cookie", c.encryptedPublicSessionId, c.csrfToken)
 		if eResp != nil {
@@ -269,6 +288,10 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 			}
 		}
 
+		// update usage metrics for `user_access` requests using the CI tunnel
+		p.userAccessRequestCounter.Inc()
+		p.userAccessUsersCounter.Add(userId)
+		p.userAccessAgentsCounter.Add(agentId)
 	case patAuthn:
 		// TODO: Figure out our authorization logic
 		//auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "personal_access_token", c.token, "")
@@ -288,6 +311,10 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		//}
 		impConfig = nil
 
+		// update usage metrics for PAT requests using the CI tunnel
+		p.patAccessRequestCounter.Inc()
+		p.patAccessUsersCounter.Add(userId)
+		p.patAccessAgentsCounter.Add(agentId)
 	default: // This should never happen
 		msg := "Invalid authorization type"
 		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
