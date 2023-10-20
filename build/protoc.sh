@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 ROOT_DIR="$(cd $(dirname "${BASH_SOURCE}")/.. && pwd -P)"
 
@@ -85,7 +85,7 @@ function plrl::protoc::generate() {
 
     protoc \
       -I"${ROOT_DIR}" \
-      -I"${ROOT_DIR}/external_proto" \
+      -I"${ROOT_DIR}/build/proto" \
       --proto_path="${baseDir}" \
       --go_out="${ROOT_DIR}" \
       --go_opt=paths=source_relative \

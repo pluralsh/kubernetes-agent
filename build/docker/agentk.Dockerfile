@@ -3,7 +3,7 @@
 FROM docker.io/golang:1.21 as builder
 
 WORKDIR /src
-COPY . .
+COPY .. .
 
 RUN TARGET_DIRECTORY=. make agentk
 
