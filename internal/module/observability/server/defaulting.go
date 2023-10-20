@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
+	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
 )
 
 const (

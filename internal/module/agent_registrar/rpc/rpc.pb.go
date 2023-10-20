@@ -10,7 +10,7 @@ import (
 	reflect "reflect"
 	sync "sync"
 
-	entity "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	entity "github.com/pluralsh/kuberentes-agent/pkg/entity"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )

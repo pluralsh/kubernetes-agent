@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp"
+	"github.com/pluralsh/kuberentes-agent/cmd"
+	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp"
 )
 
 func main() {

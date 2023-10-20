@@ -12,8 +12,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/rpc"
-	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	rpc "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/rpc"
+	grpctool "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"

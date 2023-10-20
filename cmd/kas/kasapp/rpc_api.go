@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/getsentry/sentry-go"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )

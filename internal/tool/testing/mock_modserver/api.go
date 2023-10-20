@@ -12,10 +12,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	modserver "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	syncz "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
-	event "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
+	modserver "github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	modshared "github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	syncz "github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
+	event "github.com/pluralsh/kuberentes-agent/pkg/event"
 	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )

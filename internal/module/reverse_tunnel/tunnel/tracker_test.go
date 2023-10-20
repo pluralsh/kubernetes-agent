@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_redis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_redis"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
 	clocktesting "k8s.io/utils/clock/testing"
 )

@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar"
 )
 
 type module struct{}

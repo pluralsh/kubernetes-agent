@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_stdlib"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib"
 	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/util/wait"
 )

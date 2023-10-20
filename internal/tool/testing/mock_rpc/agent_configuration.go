@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/rpc"
+	rpc "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
 	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"

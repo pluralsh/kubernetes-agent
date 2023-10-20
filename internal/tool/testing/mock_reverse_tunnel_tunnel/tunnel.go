@@ -13,9 +13,9 @@ import (
 	reflect "reflect"
 	time "time"
 
-	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/rpc"
-	tunnel "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/tunnel"
+	api "github.com/pluralsh/kuberentes-agent/internal/api"
+	rpc "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/rpc"
+	tunnel "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 	grpc "google.golang.org/grpc"

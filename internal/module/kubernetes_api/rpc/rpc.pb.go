@@ -10,7 +10,7 @@ import (
 	reflect "reflect"
 	sync "sync"
 
-	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	grpctool "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )

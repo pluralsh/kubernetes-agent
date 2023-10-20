@@ -13,9 +13,9 @@ import (
 	url "net/url"
 	reflect "reflect"
 
-	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/agentcfg"
+	modagent "github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	modshared "github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	agentcfg "github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )

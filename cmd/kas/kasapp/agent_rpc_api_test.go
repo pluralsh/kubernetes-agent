@@ -9,21 +9,20 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/pluralsh/kuberentes-agent/internal/api"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 )
 
 var (
@@ -133,10 +132,6 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 	hub := NewMockSentryHub(ctrl)
 	errCacher := mock_cache.NewMockErrCacher[api.AgentToken](ctrl)
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
-	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, traceId)
-		w.WriteHeader(statusCode)
-	})
 	sra := &serverRpcApi{
 		RpcApiStub: modshared.RpcApiStub{
 			Logger:    log,
@@ -150,9 +145,8 @@ func setupAgentRpcApi(t *testing.T, statusCode int) (context.Context, *zap.Logge
 	sra.sentryHub = hub
 
 	rpcApi := &serverAgentRpcApi{
-		RpcApi:       sra,
-		Token:        testhelpers.AgentkToken,
-		GitLabClient: gitLabClient,
+		RpcApi: sra,
+		Token:  testhelpers.AgentkToken,
 		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](0, 0, errCacher,
 			trace.NewNoopTracerProvider().Tracer(kasTracerName),
 			func(err error) bool { return false }), // no cache!

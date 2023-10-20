@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/redistool"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"

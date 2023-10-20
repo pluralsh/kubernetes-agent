@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apimachinery/pkg/util/wait"

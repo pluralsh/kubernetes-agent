@@ -3,12 +3,12 @@ package kasapp
 import (
 	"time"
 
-	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
-	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
+	agent_configuration_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/server"
+	kubernetes_api_server "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/server"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	observability_server "github.com/pluralsh/kuberentes-agent/internal/module/observability/server"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
+	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
 )
 
 const (

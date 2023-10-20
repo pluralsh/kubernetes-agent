@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.uber.org/zap"
 )
 

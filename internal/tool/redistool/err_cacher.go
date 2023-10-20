@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"go.uber.org/zap"
 )
 

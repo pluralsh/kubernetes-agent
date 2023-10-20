@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/grpctool"
+	grpctool "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"

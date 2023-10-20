@@ -8,9 +8,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/rpc"
+	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 )
 
 type server struct {

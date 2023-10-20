@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
+	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 )
 
 const (

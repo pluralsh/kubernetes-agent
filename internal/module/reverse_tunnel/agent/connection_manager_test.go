@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/reverse_tunnel/info"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/info"
 )
 
 var (

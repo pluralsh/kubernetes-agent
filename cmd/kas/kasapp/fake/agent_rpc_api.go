@@ -7,11 +7,11 @@ import (
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"go.uber.org/zap"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	fake "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/fake/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/cache"
+	"github.com/pluralsh/kuberentes-agent/internal/api"
+	fake "github.com/pluralsh/kuberentes-agent/internal/fake/api"
+	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
 )
 
 type ServerAgentRpcApi struct {

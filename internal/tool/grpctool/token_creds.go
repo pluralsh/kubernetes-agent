@@ -3,7 +3,7 @@ package grpctool
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
+	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"google.golang.org/grpc/credentials"
 )
 

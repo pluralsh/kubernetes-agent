@@ -4,8 +4,8 @@ import (
 	"context"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/api"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

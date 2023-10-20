@@ -12,8 +12,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/retry"
+	api "github.com/pluralsh/kuberentes-agent/internal/api"
+	retry "github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 	gomock "go.uber.org/mock/gomock"
 	zap "go.uber.org/zap"
 )

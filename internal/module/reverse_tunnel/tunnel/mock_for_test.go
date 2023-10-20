@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/prototool"
+	prototool "github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	gomock "go.uber.org/mock/gomock"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 )

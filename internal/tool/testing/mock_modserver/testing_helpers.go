@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/testing/testhelpers"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/entity"
+	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 	"go.uber.org/zap/zaptest"
 )
 

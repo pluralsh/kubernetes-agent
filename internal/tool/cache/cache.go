@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
 )
 
 type Entry[V any] struct {
