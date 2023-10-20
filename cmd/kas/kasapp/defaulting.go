@@ -4,7 +4,6 @@ import (
 	"time"
 
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
-	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability/server"
@@ -53,7 +52,6 @@ var (
 	defaulters = []modserver.ApplyDefaults{
 		observability_server.ApplyDefaults,
 		agent_configuration_server.ApplyDefaults,
-		gitops_server.ApplyDefaults,
 		kubernetes_api_server.ApplyDefaults,
 	}
 )

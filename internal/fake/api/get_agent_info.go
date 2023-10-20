@@ -18,7 +18,6 @@ func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, opts ...gitlab
 		Id:            123456,
 		ProjectId:     0,
 		Name:          "fake-agent",
-		Repository:    nil,
 		DefaultBranch: "",
 		GitalyInfo: &entity.GitalyInfo{
 			Address:  "127.0.0.1",

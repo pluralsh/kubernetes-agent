@@ -19,7 +19,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/redis/rueidis"
 	"github.com/redis/rueidis/rueidisotel"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -36,23 +35,19 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
-	"google.golang.org/grpc/stats"
+
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/cmd/kas/kasapp/fake"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly/vendored/client"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab/api"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_configuration/server"
 	agent_registrar_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_registrar/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/agent_tracker/server"
-	configuration_project_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/configuration_project/server"
 	flux_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/flux/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitlab_access/server"
-	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/gitops/server"
 	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
@@ -232,13 +227,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(errRep, redisClient)
 
-	// Gitaly client
-	gitalyClientPool, err := a.constructGitalyPool(csh, dt, dm, tp, mp, p, streamClientProm, unaryClientProm)
-	if err != nil {
-		return err
-	}
-	defer errz.SafeClose(gitalyClientPool, &retErr)
-
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
@@ -247,13 +235,11 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
-		&configuration_project_server.Factory{},
 		&notifications_server.Factory{
 			PublishEvent:      srvApi.publishEvent,
 			SubscribeToEvents: srvApi.subscribeToEvents,
 		},
 		&flux_server.Factory{},
-		&gitops_server.Factory{},
 		&gitlab_access_server.Factory{},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
@@ -267,10 +253,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&kubernetes_api_server.Factory{},
 	}
 
-	// Construct modules
-	poolWrapper := &gitaly.Pool{
-		ClientPool: gitalyClientPool,
-	}
 	var beforeServersModules, afterServersModules []modserver.Module
 	for _, factory := range factories {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
@@ -286,7 +268,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			ApiServer:        apiSrv.server,
 			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,
 			AgentConn:        internalSrv.inMemConn,
-			Gitaly:           poolWrapper,
 			TraceProvider:    tp,
 			TracePropagator:  p,
 			MeterProvider:    mp,
@@ -498,81 +479,7 @@ func (a *ConfiguredApp) constructGitLabClient(dt trace.Tracer, dm otelmetric.Met
 	), nil
 }
 
-func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, dt trace.Tracer, dm otelmetric.Meter,
-	tp trace.TracerProvider, mp otelmetric.MeterProvider,
-	p propagation.TextMapPropagator, streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (*client.Pool, error) {
-	g := a.Configuration.Gitaly
-	var globalGitalyRpcLimiter grpctool.ClientLimiter
-	globalGitalyRpcLimiter = rate.NewLimiter(
-		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
-		int(g.GlobalApiRateLimit.BucketSize),
-	)
-	globalGitalyRpcLimiter, err := metric.NewWaitLimiterInstrumentation(
-		"gitaly_client_global",
-		g.GlobalApiRateLimit.RefillRatePerSecond,
-		"{refill/s}",
-		dt,
-		dm,
-		globalGitalyRpcLimiter,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return client.NewPoolWithOptions(
-		client.WithDialOptions(
-			grpc.WithUserAgent(kasServerName()),
-			grpc.WithStatsHandler(csh),
-			grpc.WithStatsHandler(otelgrpc.NewServerHandler(
-				otelgrpc.WithTracerProvider(tp),
-				otelgrpc.WithMeterProvider(mp),
-				otelgrpc.WithPropagators(p),
-				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
-			)),
-			grpc.WithSharedWriteBuffer(true),
-			// In https://gitlab.com/groups/gitlab-org/-/epics/8971, we added DNS discovery support to Praefect. This was
-			// done by making two changes:
-			// - Configure client-side round-robin load-balancing in client dial options. We added that as a default option
-			// inside gitaly client in gitaly client since v15.9.0
-			// - Configure DNS resolving. Due to some technical limitations, we don't use gRPC's built-in DNS resolver.
-			// Instead, we implement our own DNS resolver. This resolver is exposed via the following configuration.
-			// Afterward, workhorse can detect and handle DNS discovery automatically. The user needs to setup and set
-			// Gitaly address to something like "dns:gitaly.service.dc1.consul"
-			client.WithGitalyDNSResolver(client.DefaultDNSResolverBuilderConfig()),
-			// Don't put interceptors here as order is important. Put them below.
-		),
-		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {
-			var perServerGitalyRpcLimiter grpctool.ClientLimiter
-			perServerGitalyRpcLimiter = rate.NewLimiter(
-				rate.Limit(g.PerServerApiRateLimit.RefillRatePerSecond),
-				int(g.PerServerApiRateLimit.BucketSize))
-			perServerGitalyRpcLimiter, err := metric.NewWaitLimiterInstrumentation(
-				"gitaly_client_"+address,
-				g.GlobalApiRateLimit.RefillRatePerSecond,
-				"{refill/s}",
-				dt,
-				dm,
-				perServerGitalyRpcLimiter,
-			)
-			if err != nil {
-				return nil, err
-			}
-			opts := []grpc.DialOption{
-				grpc.WithChainStreamInterceptor(
-					streamClientProm,
-					grpctool.StreamClientLimitingInterceptor(globalGitalyRpcLimiter),
-					grpctool.StreamClientLimitingInterceptor(perServerGitalyRpcLimiter),
-				),
-				grpc.WithChainUnaryInterceptor(
-					unaryClientProm,
-					grpctool.UnaryClientLimitingInterceptor(globalGitalyRpcLimiter),
-					grpctool.UnaryClientLimitingInterceptor(perServerGitalyRpcLimiter),
-				),
-			}
-			opts = append(opts, dialOptions...)
-			return client.DialContext(ctx, address, opts)
-		}),
-	), nil
-}
+
 
 func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
 	cfg := a.Configuration.Redis

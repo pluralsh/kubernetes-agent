@@ -5,7 +5,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
@@ -64,7 +63,6 @@ type Config struct {
 	// Agent Id must be specified in the request metadata in RoutingAgentIdMetadataKey field.
 	// Make sure factory returns modshared.ModuleStartAfterServers if module uses this connection.
 	AgentConn       grpc.ClientConnInterface
-	Gitaly          gitaly.PoolInterface
 	TraceProvider   trace.TracerProvider
 	TracePropagator propagation.TextMapPropagator
 	MeterProvider   metric.MeterProvider
