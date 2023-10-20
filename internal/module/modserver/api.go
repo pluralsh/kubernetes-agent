@@ -5,17 +5,18 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/module/usage_metrics"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/internal/tool/syncz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/event"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v16/pkg/kascfg"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
+	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
+	"github.com/pluralsh/kuberentes-agent/pkg/event"
+	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
 )
 
 const (
