@@ -65,9 +65,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	serverName := fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId)
 	var allowedOriginUrls []string
-	if u := config.Config.Gitlab.GetExternalUrl(); u != "" {
-		allowedOriginUrls = append(allowedOriginUrls, u)
-	}
 	allowedAgentCacheTtl := k8sApi.AllowedAgentCacheTtl.AsDuration()
 	allowedAgentCacheErrorTtl := k8sApi.AllowedAgentCacheErrorTtl.AsDuration()
 	tracer := config.TraceProvider.Tracer(kubernetes_api.ModuleName)

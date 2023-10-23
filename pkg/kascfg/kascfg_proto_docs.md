@@ -109,13 +109,12 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| gitlab | [GitLabCF](#gitlab-agent-kascfg-GitLabCF) |  | Configuration related to interaction with GitLab. |
 | agent | [AgentCF](#gitlab-agent-kascfg-AgentCF) |  | Configuration related to the agent. Generally all configuration for user-facing features should be here. |
 | observability | [ObservabilityCF](#gitlab-agent-kascfg-ObservabilityCF) |  | Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling. |
-| gitaly | [GitalyCF](#gitlab-agent-kascfg-GitalyCF) |  | Configuration related to interaction with Gitaly. |
 | redis | [RedisCF](#gitlab-agent-kascfg-RedisCF) |  | Redis configurations available to kas. |
 | api | [ApiCF](#gitlab-agent-kascfg-ApiCF) |  | Public API. |
 | private_api | [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
+| plural_token | [string](#string) |  |  |
 
 
 

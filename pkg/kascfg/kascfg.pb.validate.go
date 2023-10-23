@@ -4684,46 +4684,6 @@ func (m *ConfigurationFile) validate(all bool) error {
 
 	var errors []error
 
-	if m.GetGitlab() == nil {
-		err := ConfigurationFileValidationError{
-			field:  "Gitlab",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if all {
-		switch v := interface{}(m.GetGitlab()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Gitlab",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Gitlab",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetGitlab()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
-				field:  "Gitlab",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
 	if all {
 		switch v := interface{}(m.GetAgent()).(type) {
 		case interface{ ValidateAll() error }:
@@ -4776,35 +4736,6 @@ func (m *ConfigurationFile) validate(all bool) error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "Observability",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if all {
-		switch v := interface{}(m.GetGitaly()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Gitaly",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ConfigurationFileValidationError{
-					field:  "Gitaly",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetGitaly()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
-				field:  "Gitaly",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -4930,6 +4861,8 @@ func (m *ConfigurationFile) validate(all bool) error {
 			}
 		}
 	}
+
+	// no validation rules for PluralToken
 
 	if len(errors) > 0 {
 		return ConfigurationFileMultiError(errors)
