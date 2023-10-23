@@ -5,8 +5,6 @@
 
 - [pkg/entity/entity.proto](#pkg_entity_entity-proto)
     - [AgentMeta](#gitlab-agent-entity-AgentMeta)
-    - [GitalyInfo](#gitlab-agent-entity-GitalyInfo)
-    - [GitalyInfo.FeaturesEntry](#gitlab-agent-entity-GitalyInfo-FeaturesEntry)
     - [GitalyRepository](#gitlab-agent-entity-GitalyRepository)
     - [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion)
   
@@ -34,39 +32,6 @@ AgentMeta contains information about agentk.
 | pod_namespace | [string](#string) |  | Namespace of the Pod running the binary. |
 | pod_name | [string](#string) |  | Name of the Pod running the binary. |
 | kubernetes_version | [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion) |  | Version of the Kubernetes cluster. |
-
-
-
-
-
-
-<a name="gitlab-agent-entity-GitalyInfo"></a>
-
-### GitalyInfo
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| address | [string](#string) |  |  |
-| token | [string](#string) |  |  |
-| features | [GitalyInfo.FeaturesEntry](#gitlab-agent-entity-GitalyInfo-FeaturesEntry) | repeated |  |
-
-
-
-
-
-
-<a name="gitlab-agent-entity-GitalyInfo-FeaturesEntry"></a>
-
-### GitalyInfo.FeaturesEntry
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| key | [string](#string) |  |  |
-| value | [string](#string) |  |  |
 
 
 

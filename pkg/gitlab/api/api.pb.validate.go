@@ -1160,46 +1160,6 @@ func (m *GetAgentInfoResponse) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetGitalyInfo() == nil {
-		err := GetAgentInfoResponseValidationError{
-			field:  "GitalyInfo",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if all {
-		switch v := interface{}(m.GetGitalyInfo()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, GetAgentInfoResponseValidationError{
-					field:  "GitalyInfo",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, GetAgentInfoResponseValidationError{
-					field:  "GitalyInfo",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetGitalyInfo()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GetAgentInfoResponseValidationError{
-				field:  "GitalyInfo",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
 	if m.GetGitalyRepository() == nil {
 		err := GetAgentInfoResponseValidationError{
 			field:  "GitalyRepository",
@@ -1362,46 +1322,6 @@ func (m *GetProjectInfoResponse) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-	}
-
-	if m.GetGitalyInfo() == nil {
-		err := GetProjectInfoResponseValidationError{
-			field:  "GitalyInfo",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if all {
-		switch v := interface{}(m.GetGitalyInfo()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, GetProjectInfoResponseValidationError{
-					field:  "GitalyInfo",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, GetProjectInfoResponseValidationError{
-					field:  "GitalyInfo",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetGitalyInfo()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GetProjectInfoResponseValidationError{
-				field:  "GitalyInfo",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
 	}
 
 	if m.GetGitalyRepository() == nil {

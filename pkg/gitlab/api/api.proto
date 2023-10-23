@@ -59,14 +59,12 @@ message GetAgentInfoResponse {
   int64 project_id = 1 [json_name = "project_id", (validate.rules).int64.gt = 0];
   int64 agent_id = 2 [json_name = "agent_id", (validate.rules).int64.gt = 0];
   string agent_name = 3 [json_name = "agent_name", (validate.rules).string.min_bytes = 1];
-  entity.GitalyInfo gitaly_info = 4 [json_name = "gitaly_info", (validate.rules).message.required = true];
   entity.GitalyRepository gitaly_repository = 5 [json_name = "gitaly_repository", (validate.rules).message.required = true];
   string default_branch = 6 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
 }
 
 message GetProjectInfoResponse {
   int64 project_id = 1 [json_name = "project_id", (validate.rules).int64.gt = 0];
-  entity.GitalyInfo gitaly_info = 2 [json_name = "gitaly_info", (validate.rules).message.required = true];
   entity.GitalyRepository gitaly_repository = 3 [json_name = "gitaly_repository", (validate.rules).message.required = true];
   string default_branch = 4 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
 }

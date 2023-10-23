@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 # This command is used by bazel as the workspace_status_command
 # to implement build stamping with git information.
