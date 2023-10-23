@@ -33,16 +33,6 @@ func TestValidation_Valid(t *testing.T) {
 			},
 		},
 		{
-			Name: "GitopsCF",
-			Valid: &GitopsCF{
-				ProjectInfoCacheTtl:      durationpb.New(0), // zero means "disabled"
-				MaxManifestFileSize:      0,                 // zero means "use default value"
-				MaxTotalManifestFileSize: 0,                 // zero means "use default value"
-				MaxNumberOfPaths:         0,                 // zero means "use default value"
-				MaxNumberOfFiles:         0,                 // zero means "use default value"
-			},
-		},
-		{
 			Name: "AgentCF",
 			Valid: &AgentCF{
 				InfoCacheTtl: durationpb.New(0), // zero means "disabled"
