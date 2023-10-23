@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/info"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
@@ -17,6 +15,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"

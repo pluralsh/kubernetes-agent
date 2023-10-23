@@ -8,8 +8,6 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
@@ -21,6 +19,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/wstunnel"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/rueidis"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"

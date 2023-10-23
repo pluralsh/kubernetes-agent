@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultErrorHandlerWithReason_DiscardUnknownFields(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"math"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Factory struct {

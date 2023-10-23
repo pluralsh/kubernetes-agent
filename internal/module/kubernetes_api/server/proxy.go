@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 	"net"
 	"net/http"
 	"net/url"
@@ -84,6 +85,7 @@ type kubernetesApiProxy struct {
 	api                      modserver.Api
 	kubernetesApiClient      rpc.KubernetesApiClient
 	gitLabClient             gitlab.ClientInterface
+	pluralClient             *pluralclient.Client
 	allowedOriginUrls        []string
 	allowedAgentsCache       *cache.CacheWithErr[string, *gapi.AllowedAgentsForJob]
 	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *gapi.AuthorizeProxyUserResponse]

@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 )

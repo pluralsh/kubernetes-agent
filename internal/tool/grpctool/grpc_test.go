@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"

@@ -11,7 +11,6 @@ import (
 	"unsafe"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
@@ -20,6 +19,7 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
 	"github.com/pluralsh/kuberentes-agent/pkg/event"
+	"github.com/redis/rueidis"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"

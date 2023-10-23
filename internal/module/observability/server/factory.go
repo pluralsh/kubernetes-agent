@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Factory struct {
