@@ -157,7 +157,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// RPC API factory
 	// Plural: Use fake factory
-	rpcApiFactory, agentRpcApiFactory := a.constructFakeRpcApiFactory(errRep, sentryHub, redisClient, dt)
+	rpcApiFactory, agentRpcApiFactory := a.constructPluralRpcApiFactory(errRep, sentryHub, redisClient, dt)
 
 	// Server for handling API requests from other kas instances
 	privateApiSrv, err := newPrivateApiServer(a.Log, errRep, a.Configuration, tp, mp, p, csh, ssh, rpcApiFactory, // nolint: contextcheck
@@ -304,7 +304,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructFakeRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
