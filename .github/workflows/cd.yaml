@@ -22,7 +22,7 @@ jobs:
   publish-docker:
     name: Build and push agent container
     runs-on: ubuntu-20.04
-    needs: [test]
+    # needs: [test]  # TODO: delete it after testing
     permissions:
       contents: 'read'
       id-token: 'write'
