@@ -8,8 +8,6 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
@@ -21,6 +19,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/wstunnel"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/rueidis"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -53,8 +53,8 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	ownPrivateApiUrl string, probeRegistry *observability.ProbeRegistry, reg *prometheus.Registry,
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*agentServer, error) {
-	listenCfg := cfg.Agent.Listen
-	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.CertificateFile, listenCfg.KeyFile)
+	listenCfg := cfg.GetAgent().GetListen()
+	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.GetCertificateFile(), listenCfg.GetKeyFile())
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +71,9 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		log,
 		srvApi,
 		dt,
-		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
-		cfg.Agent.RedisConnInfoTtl.AsDuration(),
-		tunnel.NewRedisTracker(redisClient, cfg.Redis.KeyPrefix+":tunnel_tracker2", ownPrivateApiUrl),
+		cfg.GetAgent().GetRedisConnInfoRefresh().AsDuration(),
+		cfg.GetAgent().GetRedisConnInfoTtl().AsDuration(),
+		tunnel.NewRedisTracker(redisClient, cfg.GetRedis().GetKeyPrefix()+":tunnel_tracker2", ownPrivateApiUrl),
 	)
 	if err != nil {
 		return nil, err
@@ -81,8 +81,8 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	var agentConnectionLimiter grpctool.ServerLimiter
 	agentConnectionLimiter = redistool.NewTokenLimiter(
 		redisClient,
-		cfg.Redis.KeyPrefix+":agent_limit",
-		uint64(listenCfg.ConnectionsPerTokenPerMinute),
+		cfg.GetRedis().GetKeyPrefix()+":agent_limit",
+		uint64(listenCfg.GetConnectionsPerTokenPerMinute()),
 		rateExceededCounter,
 		func(ctx context.Context) redistool.RpcApi {
 			return &tokenLimiterApi{
@@ -92,7 +92,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	)
 	agentConnectionLimiter, err = metric.NewAllowLimiterInstrumentation(
 		"agent_connection",
-		float64(listenCfg.ConnectionsPerTokenPerMinute),
+		float64(listenCfg.GetConnectionsPerTokenPerMinute()),
 		"{connection/token/m}",
 		dt,
 		dm,
@@ -103,7 +103,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 	}
 	auxCtx, auxCancel := context.WithCancel(context.Background())
 	traceContextProp := propagation.TraceContext{} // only want trace id, not baggage from external clients/agents
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.GetMaxConnectionAge().AsDuration())
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),
@@ -135,7 +135,7 @@ func newAgentServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, srvApi modse
 		keepaliveOpt,
 	}
 
-	if !listenCfg.Websocket && tlsConfig != nil {
+	if !listenCfg.GetWebsocket() && tlsConfig != nil {
 		// If we are listening for WebSocket connections, gRPC server doesn't need TLS as it's handled by the
 		// HTTP/WebSocket server. Otherwise, we handle it here (if configured).
 		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
@@ -165,12 +165,12 @@ func (s *agentServer) Start(stage stager.Stage) {
 		}()
 		var lis net.Listener
 		var err error
-		if s.listenCfg.Websocket { // Explicitly handle TLS for a WebSocket server
+		if s.listenCfg.GetWebsocket() { // Explicitly handle TLS for a WebSocket server
 			if s.tlsConfig != nil {
 				s.tlsConfig.NextProtos = []string{httpz.TLSNextProtoH2, httpz.TLSNextProtoH1} // h2 for gRPC, http/1.1 for WebSocket
-				lis, err = tls.Listen(*s.listenCfg.Network, s.listenCfg.Address, s.tlsConfig)
+				lis, err = tls.Listen(*s.listenCfg.GetNetwork(), s.listenCfg.GetAddress(), s.tlsConfig)
 			} else {
-				lis, err = net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
+				lis, err = net.Listen(*s.listenCfg.GetNetwork(), s.listenCfg.GetAddress())
 			}
 			if err != nil {
 				return nil, err
@@ -185,7 +185,7 @@ func (s *agentServer) Start(stage stager.Stage) {
 			}
 			lis = wsWrapper.Wrap(lis, s.tlsConfig != nil)
 		} else {
-			lis, err = net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
+			lis, err = net.Listen(*s.listenCfg.GetNetwork(), s.listenCfg.GetAddress())
 			if err != nil {
 				return nil, err
 			}
@@ -194,14 +194,14 @@ func (s *agentServer) Start(stage stager.Stage) {
 		s.log.Info("Agentk API endpoint is up",
 			logz.NetNetworkFromAddr(addr),
 			logz.NetAddressFromAddr(addr),
-			logz.IsWebSocket(s.listenCfg.Websocket),
+			logz.IsWebSocket(s.listenCfg.GetWebsocket()),
 		)
 
 		s.ready()
 
 		return lis, nil
 	}, func() {
-		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		time.Sleep(s.listenCfg.GetListenGracePeriod().AsDuration())
 		s.auxCancel()
 		registryCancel()
 	})

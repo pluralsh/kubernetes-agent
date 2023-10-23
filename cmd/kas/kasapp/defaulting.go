@@ -52,16 +52,16 @@ var (
 
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	prototool.NotNil(&cfg.Agent)
-	defaultAgent(cfg.Agent)
+	defaultAgent(cfg.GetAgent())
 
 	prototool.NotNil(&cfg.Redis)
-	defaultRedis(cfg.Redis)
+	defaultRedis(cfg.GetRedis())
 
 	prototool.NotNil(&cfg.Api)
-	defaultApi(cfg.Api)
+	defaultApi(cfg.GetApi())
 
 	prototool.NotNil(&cfg.PrivateApi)
-	defaultPrivateApi(cfg.PrivateApi)
+	defaultPrivateApi(cfg.GetPrivateApi())
 
 	for _, defaulter := range defaulters {
 		defaulter(cfg)

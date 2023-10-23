@@ -62,8 +62,8 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 				return nil, retry.Backoff
 			}
 			data := ConfigurationData{
-				CommitId: config.CommitId,
-				Config:   config.Configuration,
+				CommitId: config.GetCommitId(),
+				Config:   config.GetConfiguration(),
 			}
 			err = w.ConfigPreProcessor(data)
 			if err != nil {
@@ -71,7 +71,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 				continue
 			}
 			callback(ctx, data)
-			lastProcessedCommitId = config.CommitId
+			lastProcessedCommitId = config.GetCommitId()
 		}
 	})
 }

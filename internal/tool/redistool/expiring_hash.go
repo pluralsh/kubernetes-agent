@@ -183,7 +183,7 @@ func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (in
 					errs = append(errs, err)
 					return false, false, nil
 				}
-				return false, msg.ExpiresAt < now, nil
+				return false, msg.GetExpiresAt() < now, nil
 			})
 		if err != nil {
 			errs = append(errs, err)
@@ -228,7 +228,7 @@ func (h *RedisExpiringHash[K1, K2]) Refresh(ctx context.Context, nextRefresh tim
 	for key, hashData := range h.data {
 		kvs = kvs[:0] // reuse backing array, but reset length
 		for hashKey, value := range hashData {
-			if value.ExpiresAt > nextRefreshUnix {
+			if value.GetExpiresAt() > nextRefreshUnix {
 				// Expires after next refresh. Will be refreshed later, no need to refresh now.
 				continue
 			}

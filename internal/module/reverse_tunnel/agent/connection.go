@@ -94,7 +94,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 		grpctool.WithCallback(requestInfoNumber, func(reqInfo *rpc.RequestInfo) error {
 			c.onActive(c)
 			outgoingCtx := metadata.NewOutgoingContext(ctx, reqInfo.Metadata())
-			clientStream, err = c.internalServerConn.NewStream(outgoingCtx, &proxyStreamDesc, reqInfo.MethodName)
+			clientStream, err = c.internalServerConn.NewStream(outgoingCtx, &proxyStreamDesc, reqInfo.GetMethodName())
 			if err != nil {
 				return fmt.Errorf("NewStream(): %w", err)
 			}
@@ -110,7 +110,7 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 		}),
 		grpctool.WithCallback(messageNumber, func(message *rpc.Message) error {
 			err = clientStream.SendMsg(&grpctool.RawFrame{
-				Data: message.Data,
+				Data: message.GetData(),
 			})
 			if err != nil {
 				if err == io.EOF { // nolint:errorlint

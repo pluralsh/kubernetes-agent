@@ -29,9 +29,9 @@ func (s *server) Register(ctx context.Context, req *rpc.RegisterRequest) (*rpc.R
 	}
 
 	connectedAgentInfo := &agent_tracker.ConnectedAgentInfo{
-		AgentMeta:    req.AgentMeta,
+		AgentMeta:    req.GetAgentMeta(),
 		ConnectedAt:  timestamppb.Now(),
-		ConnectionId: req.PodId,
+		ConnectionId: req.GetPodId(),
 		AgentId:      agentInfo.Id,
 		ProjectId:    agentInfo.ProjectId,
 	}

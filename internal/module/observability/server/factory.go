@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Factory struct {
@@ -17,7 +17,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	listenCfg := config.Config.Observability.Listen
+	listenCfg := config.Config.GetObservability().GetListen()
 	var listener func() (net.Listener, error)
 
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.GetCertificateFile(), listenCfg.GetKeyFile())
@@ -26,17 +26,17 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
-			return tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
+			return tls.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress(), tlsConfig)
 		}
 	} else {
 		listener = func() (net.Listener, error) {
-			return net.Listen(*listenCfg.Network, listenCfg.Address)
+			return net.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress())
 		}
 	}
 	return &module{
 		log:           config.Log,
 		api:           config.Api,
-		cfg:           config.Config.Observability,
+		cfg:           config.Config.GetObservability(),
 		listener:      listener,
 		gatherer:      f.Gatherer,
 		registerer:    config.Registerer,

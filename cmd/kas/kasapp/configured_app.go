@@ -156,7 +156,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	errRep := modshared.ApiToErrReporter(srvApi)
 	grpcServerErrorReporter := &serverErrorReporter{log: a.Log, errReporter: errRep}
 
-	pluralclient.New(a.Configuration.PluralToken, "")
+	pluralclient.New(a.Configuration.GetPluralToken(), "")
 
 	// RPC API factory
 	// Plural: Use fake factory
@@ -308,7 +308,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 }
 
 func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
-	aCfg := a.Configuration.Agent
+	aCfg := a.Configuration.GetAgent()
 	f := serverRpcApiFactory{
 		log:       a.Log,
 		sentryHub: sentryHub,
@@ -316,15 +316,15 @@ func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, se
 	fAgent := plural.ServerAgentRpcApiFactory{
 		RPCApiFactory: f.New,
 		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
-			aCfg.InfoCacheTtl.AsDuration(),
-			aCfg.InfoCacheErrorTtl.AsDuration(),
+			aCfg.GetInfoCacheTtl().AsDuration(),
+			aCfg.GetInfoCacheErrorTtl().AsDuration(),
 			&redistool.ErrCacher[api.AgentToken]{
 				Log:          a.Log,
 				ErrRep:       errRep,
 				Client:       redisClient,
 				ErrMarshaler: prototool.ProtoErrMarshaler{},
 				KeyToRedisKey: func(key api.AgentToken) string {
-					return a.Configuration.Redis.KeyPrefix + ":agent_info_errs:" + string(api.AgentToken2key(key))
+					return a.Configuration.GetRedis().GetKeyPrefix() + ":agent_info_errs:" + string(api.AgentToken2key(key))
 				},
 			},
 			dt,
@@ -340,24 +340,24 @@ func (a *ConfiguredApp) constructAgentTracker(errRep errz.ErrReporter, redisClie
 		a.Log,
 		errRep,
 		redisClient,
-		cfg.Redis.KeyPrefix+":agent_tracker2",
-		cfg.Agent.RedisConnInfoTtl.AsDuration(),
-		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
-		cfg.Agent.RedisConnInfoGc.AsDuration(),
+		cfg.GetRedis().GetKeyPrefix()+":agent_tracker2",
+		cfg.GetAgent().GetRedisConnInfoTtl().AsDuration(),
+		cfg.GetAgent().GetRedisConnInfoRefresh().AsDuration(),
+		cfg.GetAgent().GetRedisConnInfoGc().AsDuration(),
 	)
 }
 
 func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator) (*sentry.Hub, error) {
-	s := a.Configuration.Observability.Sentry
+	s := a.Configuration.GetObservability().GetSentry()
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:         s.Dsn, // empty DSN disables Sentry transport
-		SampleRate:  1,     // no sampling
+		Dsn:         s.GetDsn(), // empty DSN disables Sentry transport
+		SampleRate:  1,          // no sampling
 		Release:     cmd.Version,
-		Environment: s.Environment,
+		Environment: s.GetEnvironment(),
 		HTTPTransport: otelhttp.NewTransport(
 			&http.Transport{
 				Proxy:                 http.ProxyFromEnvironment,
@@ -381,20 +381,20 @@ func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetri
 }
 
 func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
-	cfg := a.Configuration.Redis
-	dialTimeout := cfg.DialTimeout.AsDuration()
-	writeTimeout := cfg.WriteTimeout.AsDuration()
+	cfg := a.Configuration.GetRedis()
+	dialTimeout := cfg.GetDialTimeout().AsDuration()
+	writeTimeout := cfg.GetWriteTimeout().AsDuration()
 	var err error
 	var tlsConfig *tls.Config
-	if cfg.Tls != nil && cfg.Tls.Enabled {
-		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.CertificateFile, cfg.Tls.KeyFile)
+	if cfg.GetTls() != nil && cfg.GetTls().GetEnabled() {
+		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.GetTls().GetCaCertificateFile(), cfg.GetTls().GetCertificateFile(), cfg.GetTls().GetKeyFile())
 		if err != nil {
 			return nil, err
 		}
 	}
 	var password string
-	if cfg.PasswordFile != "" {
-		passwordBytes, err := os.ReadFile(cfg.PasswordFile) // nolint:govet
+	if cfg.GetPasswordFile() != "" {
+		passwordBytes, err := os.ReadFile(cfg.GetPasswordFile()) // nolint:govet
 		if err != nil {
 			return nil, err
 		}
@@ -405,28 +405,28 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 			Timeout: dialTimeout,
 		},
 		TLSConfig:        tlsConfig,
-		Username:         cfg.Username,
+		Username:         cfg.GetUsername(),
 		Password:         password,
 		ClientName:       kasName,
 		ConnWriteTimeout: writeTimeout,
 		MaxFlushDelay:    20 * time.Microsecond,
 		DisableCache:     true,
-		SelectDB:         int(cfg.DatabaseIndex),
+		SelectDB:         int(cfg.GetDatabaseIndex()),
 	}
-	if cfg.Network == "unix" {
+	if cfg.GetNetwork() == "unix" {
 		opts.DialFn = redistool.UnixDialer
 	}
-	switch v := cfg.RedisConfig.(type) {
+	switch v := cfg.GetRedisConfig().(type) {
 	case *kascfg.RedisCF_Server:
-		opts.InitAddress = []string{v.Server.Address}
+		opts.InitAddress = []string{v.Server.GetAddress()}
 		if opts.TLSConfig != nil {
-			opts.TLSConfig.ServerName, _, _ = strings.Cut(v.Server.Address, ":")
+			opts.TLSConfig.ServerName, _, _ = strings.Cut(v.Server.GetAddress(), ":")
 		}
 	case *kascfg.RedisCF_Sentinel:
-		opts.InitAddress = v.Sentinel.Addresses
+		opts.InitAddress = v.Sentinel.GetAddresses()
 		var sentinelPassword string
-		if v.Sentinel.SentinelPasswordFile != "" {
-			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.SentinelPasswordFile) // nolint:govet
+		if v.Sentinel.GetSentinelPasswordFile() != "" {
+			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.GetSentinelPasswordFile()) // nolint:govet
 			if err != nil {
 				return nil, err
 			}
@@ -435,13 +435,13 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		opts.Sentinel = rueidis.SentinelOption{
 			Dialer:    opts.Dialer,
 			TLSConfig: opts.TLSConfig,
-			MasterSet: v.Sentinel.MasterName,
-			Username:  cfg.Username,
+			MasterSet: v.Sentinel.GetMasterName(),
+			Username:  cfg.GetUsername(),
 			Password:  sentinelPassword,
 		}
 	default:
 		// This should never happen
-		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
+		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.GetRedisConfig())
 	}
 	redisClient, err := rueidis.NewClient(opts)
 	if err != nil {
@@ -455,7 +455,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 }
 
 func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.TracingCF) (tracesdk.SpanExporter, error) {
-	otlpEndpoint := tracingConfig.OtlpEndpoint
+	otlpEndpoint := tracingConfig.GetOtlpEndpoint()
 
 	u, err := url.Parse(otlpEndpoint)
 	if err != nil {
@@ -475,7 +475,7 @@ func constructTracingExporter(ctx context.Context, tracingConfig *kascfg.Tracing
 	otlpOptions = append(otlpOptions, otlptracehttp.WithEndpoint(u.Host))
 	otlpOptions = append(otlpOptions, otlptracehttp.WithURLPath(u.Path))
 
-	otlpTokenSecretFile := tracingConfig.OtlpTokenSecretFile
+	otlpTokenSecretFile := tracingConfig.GetOtlpTokenSecretFile()
 	if otlpTokenSecretFile != nil {
 		token, err := os.ReadFile(*otlpTokenSecretFile) // nolint: gosec, govet
 		if err != nil {
@@ -531,7 +531,7 @@ func (a *ConfiguredApp) constructOTELTracingTools(ctx context.Context, r *resour
 
 	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,
 	// which TracerProvider does in its Shutdown() method.
-	exporter, err := constructTracingExporter(ctx, a.Configuration.Observability.Tracing)
+	exporter, err := constructTracingExporter(ctx, a.Configuration.GetObservability().GetTracing())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -550,7 +550,7 @@ func (a *ConfiguredApp) constructOTELTracingTools(ctx context.Context, r *resour
 }
 
 func (a *ConfiguredApp) isTracingEnabled() bool {
-	return a.Configuration.Observability.Tracing != nil
+	return a.Configuration.GetObservability().GetTracing() != nil
 }
 
 func startModules(stage stager.Stage, modules []modserver.Module) {

@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
@@ -15,6 +13,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
@@ -45,7 +45,7 @@ func TestStreamHappyPath(t *testing.T) {
 			if err != nil {
 				return status.Error(codes.Unavailable, "unavailable")
 			}
-			val, err := strconv.ParseInt(recv.S1, 10, 64)
+			val, err := strconv.ParseInt(recv.GetS1(), 10, 64)
 			if err != nil {
 				return status.Error(codes.Unavailable, "unavailable")
 			}
@@ -166,7 +166,7 @@ func testStreamHappyPath(ctx context.Context, t *testing.T, client test.TestingC
 func TestUnaryHappyPath(t *testing.T) {
 	ats := &test.GrpcTestingServer{
 		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
-			val, err := strconv.ParseInt(request.S1, 10, 64)
+			val, err := strconv.ParseInt(request.GetS1(), 10, 64)
 			if err != nil {
 				return nil, status.Error(codes.Unavailable, "unavailable")
 			}
@@ -210,7 +210,7 @@ func testUnaryHappyPath(ctx context.Context, t *testing.T, client test.TestingCl
 		S1: "123",
 	}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 	require.NoError(t, err)
-	assert.EqualValues(t, 123, resp.Message.(*test.Response_Scalar).Scalar)
+	assert.EqualValues(t, 123, resp.GetMessage().(*test.Response_Scalar).Scalar)
 	assert.Equal(t, meta.Get(metaKey), headerResp.Get(metaKey))
 	trailer := metadata.MD{}
 	trailer.Set(trailerKey, "1", "2")

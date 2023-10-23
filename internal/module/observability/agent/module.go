@@ -6,12 +6,12 @@ import (
 	"net"
 
 	"github.com/ash2k/stager"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -47,7 +47,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 						if !ok {
 							return nil
 						}
-						err := m.setConfigurationLogging(config.Observability.Logging)
+						err := m.setConfigurationLogging(config.GetObservability().GetLogging())
 						if err != nil {
 							m.log.Error("Failed to apply logging configuration", logz.Error(err))
 							continue
@@ -92,7 +92,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	prototool.NotNil(&config.Observability)
 	prototool.NotNil(&config.Observability.Logging)
-	err := m.defaultAndValidateLogging(config.Observability.Logging)
+	err := m.defaultAndValidateLogging(config.GetObservability().GetLogging())
 	if err != nil {
 		return fmt.Errorf("logging: %w", err)
 	}
@@ -104,14 +104,14 @@ func (m *module) Name() string {
 }
 
 func (m *module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {
-	if logging.GrpcLevel == nil {
+	if logging.GetGrpcLevel() == nil {
 		logging.GrpcLevel = &m.defaultGrpcLogLevel
 	}
-	_, err := logz.LevelFromString(logging.Level.String())
+	_, err := logz.LevelFromString(logging.GetLevel().String())
 	if err != nil {
 		return err
 	}
-	_, err = logz.LevelFromString(logging.GrpcLevel.String())
+	_, err = logz.LevelFromString(logging.GetGrpcLevel().String())
 	if err != nil {
 		return err
 	}
@@ -119,12 +119,12 @@ func (m *module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {
 }
 
 func (m *module) setConfigurationLogging(logging *agentcfg.LoggingCF) error {
-	err := setLogLevel(m.logLevel, logging.Level)
+	err := setLogLevel(m.logLevel, logging.GetLevel())
 	if err != nil {
 		return err
 	}
 
-	return setLogLevel(m.grpcLogLevel, *logging.GrpcLevel) // not nil after defaulting
+	return setLogLevel(m.grpcLogLevel, *logging.GetGrpcLevel()) // not nil after defaulting
 }
 
 func setLogLevel(logLevel zap.AtomicLevel, val agentcfg.LogLevelEnum) error {

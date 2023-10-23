@@ -18,7 +18,7 @@ import (
 func HandleIoError(msg string, err error) error {
 	if IsStatusError(err) {
 		s := status.Convert(err).Proto()
-		s.Message = fmt.Sprintf("%s: %s", msg, s.Message)
+		s.Message = fmt.Sprintf("%s: %s", msg, s.GetMessage())
 		err = status.ErrorProto(s)
 	} else {
 		err = status.Errorf(codes.Canceled, "%s: %v", msg, err)
@@ -128,11 +128,11 @@ func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
 	result := make(metadata.MD, len(vals))
 	keysLen := 0
 	for _, v := range vals {
-		keysLen += len(v.Value)
+		keysLen += len(v.GetValue())
 	}
 	keys := make([]string, 0, keysLen) // allocate backing array for all elements in one go
 	for k, v := range vals {
-		keys = append(keys, v.Value...)
+		keys = append(keys, v.GetValue()...)
 		// set capacity to length to protect against potential append overwriting next value
 		lk := len(keys)
 		result[k] = keys[:lk:lk]

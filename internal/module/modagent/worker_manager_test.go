@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -22,7 +22,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			ws := make([]WorkSource[proto.Message], 0, len(projects))
 			for _, project := range projects {
 				ws = append(ws, &mockWorkSource{
-					id:     *project.Id,
+					id:     *project.GetId(),
 					config: project,
 				})
 			}
@@ -83,7 +83,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				ws := make([]WorkSource[proto.Message], 0, len(projects))
 				for _, project := range projects {
 					ws = append(ws, &mockWorkSource{
-						id:     *project.Id,
+						id:     *project.GetId(),
 						config: project,
 					})
 				}
@@ -127,14 +127,14 @@ func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
 	projects := make(map[string]*agentcfg.ManifestProjectCF)
 	for _, config := range cfgs {
 		for _, proj := range config.GetGitops().GetManifestProjects() {
-			old, ok := projects[*proj.Id]
+			old, ok := projects[*proj.GetId()]
 			if ok {
 				if !proto.Equal(old, proj) {
-					projects[*proj.Id] = proj
+					projects[*proj.GetId()] = proj
 					num++
 				}
 			} else {
-				projects[*proj.Id] = proj
+				projects[*proj.GetId()] = proj
 				num++
 			}
 		}

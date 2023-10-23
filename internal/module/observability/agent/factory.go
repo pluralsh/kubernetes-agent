@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +54,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		gatherer:            f.Gatherer,
 		registerer:          f.Registerer,
 		listener:            listener,
-		serverName:          fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.Version, config.AgentMeta.CommitId),
+		serverName:          fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.GetVersion(), config.AgentMeta.GetCommitId()),
 	}, nil
 }
 

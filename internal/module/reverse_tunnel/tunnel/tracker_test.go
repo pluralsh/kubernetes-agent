@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_redis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	clocktesting "k8s.io/utils/clock/testing"
 )
@@ -45,7 +45,7 @@ func TestRegisterConnection(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),
@@ -185,7 +185,7 @@ func TestRefresh_OneAgent(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),
@@ -212,14 +212,14 @@ func TestRefresh_TwoAgents(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
 			}),
 		b.EXPECT().
 			Set(testhelpers.AgentId+1, gomock.Any(), gomock.Any()).
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),

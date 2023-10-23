@@ -4,10 +4,13 @@ include $(ROOT_DIRECTORY)/build/include/config.mk
 include $(ROOT_DIRECTORY)/build/include/deploy.mk
 include $(ROOT_DIRECTORY)/build/include/tools.mk
 
-MAKEFLAGS += -j2
+ifndef GOPATH
+$(error $$GOPATH environment variable not set)
+endif
 
-# List of targets that should be executed before other targets
-PRE = --ensure
+ifeq (,$(findstring $(GOPATH)/bin,$(PATH)))
+$(error $$GOPATH/bin directory is not in your $$PATH)
+endif
 
 ##@ General
 
@@ -82,7 +85,7 @@ docker-agentk-debug: --image-debug ## build docker agentk debug image with embed
 ##@ Codegen
 
 .PHONY: codegen
-codegen: --mocks --protoc ## regenerate protobuf and mocks
+codegen: --ensure-tools --mocks --protoc ## regenerate protobuf and mocks
 
 .PHONY: codegen-delete
 codegen-delete: ## delete generated files
@@ -126,9 +129,9 @@ test: ## run tests
 	go test ./... -v
 
 .PHONY: lint
-lint: $(PRE) ## run linters
+lint: --ensure-tools ## run linters
 	golangci-lint run ./...
 
 .PHONY: fix
-fix: $(PRE) ## fix issues found by linters
+fix: --ensure-tools ## fix issues found by linters
 	golangci-lint run --fix ./...

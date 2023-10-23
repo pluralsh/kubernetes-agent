@@ -6,9 +6,9 @@ import (
 )
 
 func (x *GatewayKasResponse_Header) Metadata() metadata.MD {
-	return grpctool.ValuesMapToMeta(x.Meta)
+	return grpctool.ValuesMapToMeta(x.GetMeta())
 }
 
 func (x *GatewayKasResponse_Trailer) Metadata() metadata.MD {
-	return grpctool.ValuesMapToMeta(x.Meta)
+	return grpctool.ValuesMapToMeta(x.GetMeta())
 }

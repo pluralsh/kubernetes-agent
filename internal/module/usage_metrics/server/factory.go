@@ -15,7 +15,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		log:                  config.Log,
 		api:                  config.Api,
 		usageTracker:         f.UsageTracker,
-		usageReportingPeriod: config.Config.Observability.UsageReportingPeriod.AsDuration(),
+		usageReportingPeriod: config.Config.GetObservability().GetUsageReportingPeriod().AsDuration(),
 	}, nil
 }
 

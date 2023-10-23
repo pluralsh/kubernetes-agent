@@ -157,16 +157,16 @@ func (t *tunnelImpl) forwardStream(log *zap.Logger, rpcApi RpcApi, incomingStrea
 		fromVisitor := t.tunnelStreamVisitor.Visit(t.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),
 			grpctool.WithCallback(headerNumber, func(header *rpc.Header) error {
-				return cb.Header(header.Meta)
+				return cb.Header(header.GetMeta())
 			}),
 			grpctool.WithCallback(messageNumber, func(message *rpc.Message) error {
-				return cb.Message(message.Data)
+				return cb.Message(message.GetData())
 			}),
 			grpctool.WithCallback(trailerNumber, func(trailer *rpc.Trailer) error {
-				return cb.Trailer(trailer.Meta)
+				return cb.Trailer(trailer.GetMeta())
 			}),
 			grpctool.WithCallback(errorNumber, func(rpcError *rpc.Error) error {
-				forIncomingStream = cb.Error(rpcError.Status)
+				forIncomingStream = cb.Error(rpcError.GetStatus())
 				// Not returning an error since we must be reading from the tunnel stream till io.EOF
 				// to properly consume it. There is no need to abort it in this scenario.
 				// The server is expected to close the stream (i.e. we'll get io.EOF) right after we got this message.

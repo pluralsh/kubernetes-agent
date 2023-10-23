@@ -6,11 +6,11 @@ import (
 	"os"
 
 	"github.com/go-logr/zapr"
-	"github.com/spf13/cobra"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -35,7 +35,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("kascfg.ValidateExtra: %w", err)
 	}
-	log, grpcLog, err := loggerFromConfig(cfg.Observability.Logging)
+	log, grpcLog, err := loggerFromConfig(cfg.GetObservability().GetLogging())
 	if err != nil {
 		return err
 	}
@@ -95,11 +95,11 @@ func NewCommand() *cobra.Command {
 
 func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, *zap.Logger, error) {
 	lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
-	level, err := logz.LevelFromString(loggingCfg.Level.String())
+	level, err := logz.LevelFromString(loggingCfg.GetLevel().String())
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcLevel, err := logz.LevelFromString(loggingCfg.GrpcLevel.String())
+	grpcLevel, err := logz.LevelFromString(loggingCfg.GetGrpcLevel().String())
 	if err != nil {
 		return nil, nil, err
 	}

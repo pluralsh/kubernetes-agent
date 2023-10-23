@@ -14,9 +14,6 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/spf13/cobra"
 	"github.com/pluralsh/kuberentes-agent/cmd"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
@@ -37,6 +34,9 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/wstunnel"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 	"github.com/pluralsh/kuberentes-agent/pkg/entity"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	otelmetric "go.opentelemetry.io/otel/metric"
@@ -160,7 +160,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 
 	// Construct leader runner
 	lr := newLeaderRunner(&leaseLeaderElector{
-		namespace: a.AgentMeta.PodNamespace,
+		namespace: a.AgentMeta.GetPodNamespace(),
 		name: func(ctx context.Context) (string, error) {
 			id, err := a.AgentId.get(ctx) // nolint: govet
 			if err != nil {
@@ -171,7 +171,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 			// with same agent id have the same lock name but with different id have different lock name.
 			return fmt.Sprintf("agent-%d-lock", id), nil
 		},
-		identity:           a.AgentMeta.PodName,
+		identity:           a.AgentMeta.GetPodName(),
 		coordinationClient: kubeClient.CoordinationV1(),
 		eventRecorder:      eventRecorder,
 	})
@@ -234,13 +234,13 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				getConfigurationJitter,
 			)),
 			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
-				err := a.AgentId.set(data.Config.AgentId)
+				err := a.AgentId.set(data.Config.GetAgentId())
 				if err != nil {
 					return err
 				}
-				u, err := url.Parse(data.Config.GitlabExternalUrl)
+				u, err := url.Parse(data.Config.GetGitlabExternalUrl())
 				if err != nil {
-					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GitlabExternalUrl, err)
+					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GetGitlabExternalUrl(), err)
 				}
 				return a.GitLabExternalUrl.set(*u)
 			},
@@ -322,7 +322,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if err != nil {
 		return nil, err
 	}
-	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
+	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.GetVersion(), a.AgentMeta.GetCommitId())
 	opts := []grpc.DialOption{
 		grpc.WithStatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),

@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_agent_tracker"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
@@ -30,9 +30,9 @@ func TestRegister(t *testing.T) {
 	mockAgentTracker.EXPECT().
 		RegisterConnection(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) error {
-			assert.EqualValues(t, 123, connectedAgentInfo.AgentId)
-			assert.EqualValues(t, 456, connectedAgentInfo.ProjectId)
-			assert.EqualValues(t, 123456789, connectedAgentInfo.ConnectionId)
+			assert.EqualValues(t, 123, connectedAgentInfo.GetAgentId())
+			assert.EqualValues(t, 456, connectedAgentInfo.GetProjectId())
+			assert.EqualValues(t, 123456789, connectedAgentInfo.GetConnectionId())
 			return nil
 		})
 

@@ -36,12 +36,12 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
 	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*apiServer, error) {
-	listenCfg := cfg.Api.Listen
-	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
+	listenCfg := cfg.GetApi().GetListen()
+	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.GetAuthenticationSecretFile())
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
-	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	credsOpt, err := maybeTLSCreds(listenCfg.GetCertificateFile(), listenCfg.GetKeyFile())
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 	})
 
 	auxCtx, auxCancel := context.WithCancel(context.Background())
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.GetMaxConnectionAge().AsDuration())
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),
@@ -96,7 +96,7 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 
 func (s *apiServer) Start(stage stager.Stage) {
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
-		lis, err := net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
+		lis, err := net.Listen(*s.listenCfg.GetNetwork(), s.listenCfg.GetAddress())
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +108,7 @@ func (s *apiServer) Start(stage stager.Stage) {
 		s.ready()
 		return lis, nil
 	}, func() {
-		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
+		time.Sleep(s.listenCfg.GetListenGracePeriod().AsDuration())
 		s.auxCancel()
 	})
 }

@@ -122,7 +122,7 @@ func defaultErrorHandlerWithReason(resp *http.Response) error {
 		return e
 	}
 
-	e.Reason = message.Message
+	e.Reason = message.GetMessage()
 	return e
 }
 

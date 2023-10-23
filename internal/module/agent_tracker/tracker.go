@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
+	"github.com/redis/rueidis"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
@@ -99,13 +99,13 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 	defer t.mu.Unlock()
 	var wg errgroup.Group
 	wg.Go(func() error {
-		return t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoBytes)
+		return t.connectionsByProjectId.Set(ctx, info.GetProjectId(), info.GetConnectionId(), infoBytes)
 	})
 	wg.Go(func() error {
-		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoBytes)
+		return t.connectionsByAgentId.Set(ctx, info.GetAgentId(), info.GetConnectionId(), infoBytes)
 	})
 	wg.Go(func() error {
-		return t.connectedAgents.Set(ctx, connectedAgentsKey, info.AgentId, nil)
+		return t.connectedAgents.Set(ctx, connectedAgentsKey, info.GetAgentId(), nil)
 	})
 	return wg.Wait()
 }
@@ -115,12 +115,12 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	defer t.mu.Unlock()
 	var wg errgroup.Group
 	wg.Go(func() error {
-		return t.connectionsByProjectId.Unset(ctx, info.ProjectId, info.ConnectionId)
+		return t.connectionsByProjectId.Unset(ctx, info.GetProjectId(), info.GetConnectionId())
 	})
 	wg.Go(func() error {
-		return t.connectionsByAgentId.Unset(ctx, info.AgentId, info.ConnectionId)
+		return t.connectionsByAgentId.Unset(ctx, info.GetAgentId(), info.GetConnectionId())
 	})
-	t.connectedAgents.Forget(connectedAgentsKey, info.AgentId)
+	t.connectedAgents.Forget(connectedAgentsKey, info.GetAgentId())
 	return wg.Wait()
 }
 

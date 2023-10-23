@@ -41,13 +41,13 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	k8sApi := config.Config.Agent.KubernetesApi
+	k8sApi := config.Config.GetAgent().GetKubernetesApi()
 	if k8sApi == nil {
 		return nopModule{}, nil
 	}
-	listenCfg := k8sApi.Listen
-	certFile := listenCfg.CertificateFile
-	keyFile := listenCfg.KeyFile
+	listenCfg := k8sApi.GetListen()
+	certFile := listenCfg.GetCertificateFile()
+	keyFile := listenCfg.GetKeyFile()
 	var listener func() (net.Listener, error)
 
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(certFile, keyFile)
@@ -56,17 +56,17 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
-			return tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
+			return tls.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress(), tlsConfig)
 		}
 	} else {
 		listener = func() (net.Listener, error) {
-			return net.Listen(*listenCfg.Network, listenCfg.Address)
+			return net.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress())
 		}
 	}
 	serverName := fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId)
 	var allowedOriginUrls []string
-	allowedAgentCacheTtl := k8sApi.AllowedAgentCacheTtl.AsDuration()
-	allowedAgentCacheErrorTtl := k8sApi.AllowedAgentCacheErrorTtl.AsDuration()
+	allowedAgentCacheTtl := k8sApi.GetAllowedAgentCacheTtl().AsDuration()
+	allowedAgentCacheErrorTtl := k8sApi.GetAllowedAgentCacheErrorTtl().AsDuration()
 	tracer := config.TraceProvider.Tracer(kubernetes_api.ModuleName)
 	m := &module{
 		log: config.Log,
@@ -88,7 +88,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 						// We do the same in api.AgentToken2key().
 						n := len(jobToken) / 2
 						tokenHash := sha256.Sum256([]byte(jobToken[:n]))
-						return config.Config.Redis.KeyPrefix + ":allowed_agents_errs:" + string(tokenHash[:])
+						return config.Config.GetRedis().GetKeyPrefix() + ":allowed_agents_errs:" + string(tokenHash[:])
 					},
 				},
 				tracer,
@@ -102,7 +102,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 					ErrRep:        modshared.ApiToErrReporter(config.Api),
 					Client:        config.RedisClient,
 					ErrMarshaler:  prototool.ProtoErrMarshaler{},
-					KeyToRedisKey: getAuthorizedProxyUserCacheKey(config.Config.Redis.KeyPrefix),
+					KeyToRedisKey: getAuthorizedProxyUserCacheKey(config.Config.GetRedis().GetKeyPrefix()),
 				},
 				tracer,
 				gapi.IsCacheableError,
@@ -124,9 +124,9 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			meterProvider:            config.MeterProvider,
 			serverName:               serverName,
 			serverVia:                "gRPC/1.0 " + serverName,
-			urlPathPrefix:            k8sApi.UrlPathPrefix,
-			listenerGracePeriod:      listenCfg.ListenGracePeriod.AsDuration(),
-			shutdownGracePeriod:      listenCfg.ShutdownGracePeriod.AsDuration(),
+			urlPathPrefix:            k8sApi.GetUrlPathPrefix(),
+			listenerGracePeriod:      listenCfg.GetListenGracePeriod().AsDuration(),
+			shutdownGracePeriod:      listenCfg.GetShutdownGracePeriod().AsDuration(),
 		},
 		listener: listener,
 	}

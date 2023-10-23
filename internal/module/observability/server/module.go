@@ -4,11 +4,11 @@ import (
 	"context"
 	"net"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -42,9 +42,9 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 		Api:                   m.api,
 		Name:                  m.serverName,
 		Listener:              lis,
-		PrometheusUrlPath:     m.cfg.Prometheus.UrlPath,
-		LivenessProbeUrlPath:  m.cfg.LivenessProbe.UrlPath,
-		ReadinessProbeUrlPath: m.cfg.ReadinessProbe.UrlPath,
+		PrometheusUrlPath:     m.cfg.GetPrometheus().GetUrlPath(),
+		LivenessProbeUrlPath:  m.cfg.GetLivenessProbe().GetUrlPath(),
+		ReadinessProbeUrlPath: m.cfg.GetReadinessProbe().GetUrlPath(),
 		Gatherer:              m.gatherer,
 		Registerer:            m.registerer,
 		ProbeRegistry:         m.probeRegistry,

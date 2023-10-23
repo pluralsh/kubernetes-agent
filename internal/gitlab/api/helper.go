@@ -13,7 +13,7 @@ func IsCacheableError(err error) bool {
 	if !errors.As(err, &e) {
 		return false // not a client error, probably a network error
 	}
-	switch e.StatusCode {
+	switch e.GetStatusCode() {
 	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		return true
 	default:

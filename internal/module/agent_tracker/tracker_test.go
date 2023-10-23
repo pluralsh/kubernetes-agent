@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/matcher"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_redis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_tool"
 	"github.com/pluralsh/kuberentes-agent/pkg/entity"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -34,11 +34,11 @@ func TestRegisterConnection_HappyPath(t *testing.T) {
 	r, connectedAgents, byAgentId, byProjectId, _, info := setupTracker(t)
 
 	byProjectId.EXPECT().
-		Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any())
+		Set(gomock.Any(), info.GetProjectId(), info.GetConnectionId(), gomock.Any())
 	byAgentId.EXPECT().
-		Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any())
+		Set(gomock.Any(), info.GetAgentId(), info.GetConnectionId(), gomock.Any())
 	connectedAgents.EXPECT().
-		Set(gomock.Any(), connectedAgentsKey, info.AgentId, gomock.Any())
+		Set(gomock.Any(), connectedAgentsKey, info.GetAgentId(), gomock.Any())
 
 	go func() {
 		assert.NoError(t, r.RegisterConnection(context.Background(), info))
@@ -58,13 +58,13 @@ func TestRegisterConnection_AllCalledOnError(t *testing.T) {
 	err3 := errors.New("err3")
 
 	byProjectId.EXPECT().
-		Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()).
+		Set(gomock.Any(), info.GetProjectId(), info.GetConnectionId(), gomock.Any()).
 		Return(err1)
 	byAgentId.EXPECT().
-		Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()).
+		Set(gomock.Any(), info.GetAgentId(), info.GetConnectionId(), gomock.Any()).
 		Return(err2)
 	connectedAgents.EXPECT().
-		Set(gomock.Any(), connectedAgentsKey, info.AgentId, gomock.Any()).
+		Set(gomock.Any(), connectedAgentsKey, info.GetAgentId(), gomock.Any()).
 		Return(err3)
 
 	go func() {
@@ -84,21 +84,21 @@ func TestUnregisterConnection_HappyPath(t *testing.T) {
 
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()),
+			Set(gomock.Any(), info.GetProjectId(), info.GetConnectionId(), gomock.Any()),
 		byProjectId.EXPECT().
-			Unset(gomock.Any(), info.ProjectId, info.ConnectionId),
+			Unset(gomock.Any(), info.GetProjectId(), info.GetConnectionId()),
 	)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()),
+			Set(gomock.Any(), info.GetAgentId(), info.GetConnectionId(), gomock.Any()),
 		byAgentId.EXPECT().
-			Unset(gomock.Any(), info.AgentId, info.ConnectionId),
+			Unset(gomock.Any(), info.GetAgentId(), info.GetConnectionId()),
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(gomock.Any(), connectedAgentsKey, info.AgentId, gomock.Any()),
+			Set(gomock.Any(), connectedAgentsKey, info.GetAgentId(), gomock.Any()),
 		connectedAgents.EXPECT().
-			Forget(connectedAgentsKey, info.AgentId),
+			Forget(connectedAgentsKey, info.GetAgentId()),
 	)
 	go func() {
 		assert.NoError(t, r.RegisterConnection(context.Background(), info))
@@ -119,23 +119,23 @@ func TestUnregisterConnection_AllCalledOnError(t *testing.T) {
 
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Set(gomock.Any(), info.ProjectId, info.ConnectionId, gomock.Any()),
+			Set(gomock.Any(), info.GetProjectId(), info.GetConnectionId(), gomock.Any()),
 		byProjectId.EXPECT().
-			Unset(gomock.Any(), info.ProjectId, info.ConnectionId).
+			Unset(gomock.Any(), info.GetProjectId(), info.GetConnectionId()).
 			Return(err1),
 	)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Set(gomock.Any(), info.AgentId, info.ConnectionId, gomock.Any()),
+			Set(gomock.Any(), info.GetAgentId(), info.GetConnectionId(), gomock.Any()),
 		byAgentId.EXPECT().
-			Unset(gomock.Any(), info.AgentId, info.ConnectionId).
+			Unset(gomock.Any(), info.GetAgentId(), info.GetConnectionId()).
 			Return(err2),
 	)
 	gomock.InOrder(
 		connectedAgents.EXPECT().
-			Set(gomock.Any(), connectedAgentsKey, info.AgentId, gomock.Any()),
+			Set(gomock.Any(), connectedAgentsKey, info.GetAgentId(), gomock.Any()),
 		connectedAgents.EXPECT().
-			Forget(connectedAgentsKey, info.AgentId),
+			Forget(connectedAgentsKey, info.GetAgentId()),
 	)
 
 	go func() {
@@ -272,7 +272,7 @@ func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
 	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byProjectId.EXPECT().
-		Scan(gomock.Any(), info.ProjectId, gomock.Any()).
+		Scan(gomock.Any(), info.GetProjectId(), gomock.Any()).
 		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			var done bool
 			done, err = cb("k2", infoBytes, nil)
@@ -282,7 +282,7 @@ func TestGetConnectionsByProjectId_HappyPath(t *testing.T) {
 			return 0, nil
 		})
 	var cbCalled int
-	err = r.GetConnectionsByProjectId(context.Background(), info.ProjectId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err = r.GetConnectionsByProjectId(context.Background(), info.GetProjectId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		cbCalled++
 		assert.Empty(t, cmp.Diff(i, info, protocmp.Transform()))
 		return false, nil
@@ -295,7 +295,7 @@ func TestGetConnectionsByProjectId_ScanError(t *testing.T) {
 	r, _, _, byProjectId, rep, info := setupTracker(t)
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
+			Scan(gomock.Any(), info.GetProjectId(), gomock.Any()).
 			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("", nil, errors.New("intended error"))
 				require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestGetConnectionsByProjectId_ScanError(t *testing.T) {
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis hash scan", matcher.ErrorEq("intended error")),
 	)
-	err := r.GetConnectionsByProjectId(context.Background(), info.ProjectId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err := r.GetConnectionsByProjectId(context.Background(), info.GetProjectId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
 	})
@@ -316,7 +316,7 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 	r, _, _, byProjectId, rep, info := setupTracker(t)
 	gomock.InOrder(
 		byProjectId.EXPECT().
-			Scan(gomock.Any(), info.ProjectId, gomock.Any()).
+			Scan(gomock.Any(), info.GetProjectId(), gomock.Any()).
 			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
 				require.NoError(t, err)                     // ignores error to keep going
@@ -326,7 +326,7 @@ func TestGetConnectionsByProjectId_UnmarshalError(t *testing.T) {
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis proto.Unmarshal(ConnectedAgentInfo)", matcher.ErrorIs(proto.Error)),
 	)
-	err := r.GetConnectionsByProjectId(context.Background(), info.ProjectId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err := r.GetConnectionsByProjectId(context.Background(), info.GetProjectId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
 	})
@@ -338,7 +338,7 @@ func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
 	infoBytes, err := proto.Marshal(info)
 	require.NoError(t, err)
 	byAgentId.EXPECT().
-		Scan(gomock.Any(), info.AgentId, gomock.Any()).
+		Scan(gomock.Any(), info.GetAgentId(), gomock.Any()).
 		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			var done bool
 			done, err = cb("k2", infoBytes, nil)
@@ -348,7 +348,7 @@ func TestGetConnectionsByAgentId_HappyPath(t *testing.T) {
 			return 0, nil
 		})
 	var cbCalled int
-	err = r.GetConnectionsByAgentId(context.Background(), info.AgentId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err = r.GetConnectionsByAgentId(context.Background(), info.GetAgentId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		cbCalled++
 		assert.Empty(t, cmp.Diff(i, info, protocmp.Transform()))
 		return false, nil
@@ -361,7 +361,7 @@ func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
 	r, _, byAgentId, _, rep, info := setupTracker(t)
 	gomock.InOrder(
 		byAgentId.EXPECT().
-			Scan(gomock.Any(), info.AgentId, gomock.Any()).
+			Scan(gomock.Any(), info.GetAgentId(), gomock.Any()).
 			Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 				done, err := cb("", nil, errors.New("intended error"))
 				require.NoError(t, err)
@@ -371,7 +371,7 @@ func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
 		rep.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Redis hash scan", matcher.ErrorEq("intended error")),
 	)
-	err := r.GetConnectionsByAgentId(context.Background(), info.AgentId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err := r.GetConnectionsByAgentId(context.Background(), info.GetAgentId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
 	})
@@ -381,7 +381,7 @@ func TestGetConnectionsByAgentId_ScanError(t *testing.T) {
 func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 	r, _, byAgentId, _, rep, info := setupTracker(t)
 	byAgentId.EXPECT().
-		Scan(gomock.Any(), info.AgentId, gomock.Any()).
+		Scan(gomock.Any(), info.GetAgentId(), gomock.Any()).
 		Do(func(ctx context.Context, key int64, cb redistool.ScanCallback) (int, error) {
 			done, err := cb("k2", []byte{1, 2, 3}, nil) // invalid bytes
 			require.NoError(t, err)                     // ignores error to keep going
@@ -390,7 +390,7 @@ func TestGetConnectionsByAgentId_UnmarshalError(t *testing.T) {
 		})
 	rep.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), "Redis proto.Unmarshal(ConnectedAgentInfo)", matcher.ErrorIs(proto.Error))
-	err := r.GetConnectionsByAgentId(context.Background(), info.AgentId, func(i *ConnectedAgentInfo) (done bool, err error) {
+	err := r.GetConnectionsByAgentId(context.Background(), info.GetAgentId(), func(i *ConnectedAgentInfo) (done bool, err error) {
 		require.FailNow(t, "unexpected call")
 		return false, nil
 	})
