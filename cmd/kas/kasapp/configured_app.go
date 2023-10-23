@@ -15,6 +15,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/plural"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/redis/rueidis"
@@ -36,7 +37,6 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 
 	"github.com/pluralsh/kuberentes-agent/cmd"
-	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/fake"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
 	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
 	agent_registrar_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/server"
@@ -310,7 +310,7 @@ func (a *ConfiguredApp) constructFakeRpcApiFactory(errRep errz.ErrReporter, sent
 		log:       a.Log,
 		sentryHub: sentryHub,
 	}
-	fAgent := fake.ServerAgentRpcApiFactory{
+	fAgent := plural.ServerAgentRpcApiFactory{
 		RPCApiFactory: f.New,
 		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
 			aCfg.InfoCacheTtl.AsDuration(),
