@@ -22,12 +22,20 @@ go-dep-updates: ## show possible go dependency updates
 ##@ Run
 
 .PHONY: run
-run:
-	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
+run: --run-clean --run-prepare ## Run kas and agent with all dependencies using docker compose
+	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
 
 .PHONY: stop
-stop:
-	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi
+stop: --run-clean ## Stop docker compose and clean up
+	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi local
+
+.PHONY: --run-prepare
+--run-prepare: --certificate --secrets
+
+.PHONY: --run-clean
+--run-clean:
+	@rm -rf $(SECRET_DIRECTORY)
+	@mkdir -p $(SECRET_DIRECTORY)
 
 ##@ Build
 
@@ -61,7 +69,7 @@ docker-debug: docker-kas-debug docker-agentk-debug ## build all docker debug ima
 .PHONY: docker-kas
 docker-kas: APP_NAME=kas
 docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.Dockerfile
-docker-kas: --image ## build docker kas image
+docker-kas: --image ## build docker kas image$
 
 .PHONY: docker-kas-debug
 docker-kas-debug: APP_NAME=kas
