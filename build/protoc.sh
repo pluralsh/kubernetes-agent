@@ -1,8 +1,12 @@
-#!/usr/bin/bash
+#!/usr/bin/sh
 
 ROOT_DIR="$(cd $(dirname "${BASH_SOURCE}")/.. && pwd -P)"
 
 ARCH=$(uname -m)
+case "$ARCH" in
+  arm64*)  ARCH="aarch_64" ;;
+esac
+
 OS="linux"
 case "$OSTYPE" in
   darwin*)  OS="osx" ;;

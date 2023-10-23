@@ -14,8 +14,9 @@ import (
 
 	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	v10 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	v11 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v10 "k8s.io/apiextensions-apiserver/pkg/client/applyconfiguration/apiextensions/v1"
+	v11 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -45,10 +46,10 @@ func (m *MockApiextensionsV1Interface) EXPECT() *MockApiextensionsV1InterfaceMoc
 }
 
 // CustomResourceDefinitions mocks base method.
-func (m *MockApiextensionsV1Interface) CustomResourceDefinitions() v10.CustomResourceDefinitionInterface {
+func (m *MockApiextensionsV1Interface) CustomResourceDefinitions() v11.CustomResourceDefinitionInterface {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CustomResourceDefinitions")
-	ret0, _ := ret[0].(v10.CustomResourceDefinitionInterface)
+	ret0, _ := ret[0].(v11.CustomResourceDefinitionInterface)
 	return ret0
 }
 
@@ -65,19 +66,19 @@ type ApiextensionsV1InterfaceCustomResourceDefinitionsCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) Return(arg0 v10.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
+func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) Return(arg0 v11.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) Do(f func() v10.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
+func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) Do(f func() v11.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) DoAndReturn(f func() v10.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
+func (c *ApiextensionsV1InterfaceCustomResourceDefinitionsCall) DoAndReturn(f func() v11.CustomResourceDefinitionInterface) *ApiextensionsV1InterfaceCustomResourceDefinitionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -143,8 +144,86 @@ func (m *MockCustomResourceDefinitionInterface) EXPECT() *MockCustomResourceDefi
 	return m.recorder
 }
 
+// Apply mocks base method.
+func (m *MockCustomResourceDefinitionInterface) Apply(arg0 context.Context, arg1 *v10.CustomResourceDefinitionApplyConfiguration, arg2 v12.ApplyOptions) (*v1.CustomResourceDefinition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Apply", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Apply indicates an expected call of Apply.
+func (mr *MockCustomResourceDefinitionInterfaceMockRecorder) Apply(arg0, arg1, arg2 any) *CustomResourceDefinitionInterfaceApplyCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Apply", reflect.TypeOf((*MockCustomResourceDefinitionInterface)(nil).Apply), arg0, arg1, arg2)
+	return &CustomResourceDefinitionInterfaceApplyCall{Call: call}
+}
+
+// CustomResourceDefinitionInterfaceApplyCall wrap *gomock.Call
+type CustomResourceDefinitionInterfaceApplyCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *CustomResourceDefinitionInterfaceApplyCall) Return(arg0 *v1.CustomResourceDefinition, arg1 error) *CustomResourceDefinitionInterfaceApplyCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *CustomResourceDefinitionInterfaceApplyCall) Do(f func(context.Context, *v10.CustomResourceDefinitionApplyConfiguration, v12.ApplyOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceApplyCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *CustomResourceDefinitionInterfaceApplyCall) DoAndReturn(f func(context.Context, *v10.CustomResourceDefinitionApplyConfiguration, v12.ApplyOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceApplyCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ApplyStatus mocks base method.
+func (m *MockCustomResourceDefinitionInterface) ApplyStatus(arg0 context.Context, arg1 *v10.CustomResourceDefinitionApplyConfiguration, arg2 v12.ApplyOptions) (*v1.CustomResourceDefinition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplyStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplyStatus indicates an expected call of ApplyStatus.
+func (mr *MockCustomResourceDefinitionInterfaceMockRecorder) ApplyStatus(arg0, arg1, arg2 any) *CustomResourceDefinitionInterfaceApplyStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyStatus", reflect.TypeOf((*MockCustomResourceDefinitionInterface)(nil).ApplyStatus), arg0, arg1, arg2)
+	return &CustomResourceDefinitionInterfaceApplyStatusCall{Call: call}
+}
+
+// CustomResourceDefinitionInterfaceApplyStatusCall wrap *gomock.Call
+type CustomResourceDefinitionInterfaceApplyStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *CustomResourceDefinitionInterfaceApplyStatusCall) Return(arg0 *v1.CustomResourceDefinition, arg1 error) *CustomResourceDefinitionInterfaceApplyStatusCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *CustomResourceDefinitionInterfaceApplyStatusCall) Do(f func(context.Context, *v10.CustomResourceDefinitionApplyConfiguration, v12.ApplyOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceApplyStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *CustomResourceDefinitionInterfaceApplyStatusCall) DoAndReturn(f func(context.Context, *v10.CustomResourceDefinitionApplyConfiguration, v12.ApplyOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceApplyStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Create mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Create(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v11.CreateOptions) (*v1.CustomResourceDefinition, error) {
+func (m *MockCustomResourceDefinitionInterface) Create(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v12.CreateOptions) (*v1.CustomResourceDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
@@ -171,19 +250,19 @@ func (c *CustomResourceDefinitionInterfaceCreateCall) Return(arg0 *v1.CustomReso
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceCreateCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v11.CreateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceCreateCall {
+func (c *CustomResourceDefinitionInterfaceCreateCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v12.CreateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceCreateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceCreateCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v11.CreateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceCreateCall {
+func (c *CustomResourceDefinitionInterfaceCreateCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v12.CreateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceCreateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Delete mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Delete(arg0 context.Context, arg1 string, arg2 v11.DeleteOptions) error {
+func (m *MockCustomResourceDefinitionInterface) Delete(arg0 context.Context, arg1 string, arg2 v12.DeleteOptions) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -209,19 +288,19 @@ func (c *CustomResourceDefinitionInterfaceDeleteCall) Return(arg0 error) *Custom
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceDeleteCall) Do(f func(context.Context, string, v11.DeleteOptions) error) *CustomResourceDefinitionInterfaceDeleteCall {
+func (c *CustomResourceDefinitionInterfaceDeleteCall) Do(f func(context.Context, string, v12.DeleteOptions) error) *CustomResourceDefinitionInterfaceDeleteCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceDeleteCall) DoAndReturn(f func(context.Context, string, v11.DeleteOptions) error) *CustomResourceDefinitionInterfaceDeleteCall {
+func (c *CustomResourceDefinitionInterfaceDeleteCall) DoAndReturn(f func(context.Context, string, v12.DeleteOptions) error) *CustomResourceDefinitionInterfaceDeleteCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DeleteCollection mocks base method.
-func (m *MockCustomResourceDefinitionInterface) DeleteCollection(arg0 context.Context, arg1 v11.DeleteOptions, arg2 v11.ListOptions) error {
+func (m *MockCustomResourceDefinitionInterface) DeleteCollection(arg0 context.Context, arg1 v12.DeleteOptions, arg2 v12.ListOptions) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteCollection", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -247,19 +326,19 @@ func (c *CustomResourceDefinitionInterfaceDeleteCollectionCall) Return(arg0 erro
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceDeleteCollectionCall) Do(f func(context.Context, v11.DeleteOptions, v11.ListOptions) error) *CustomResourceDefinitionInterfaceDeleteCollectionCall {
+func (c *CustomResourceDefinitionInterfaceDeleteCollectionCall) Do(f func(context.Context, v12.DeleteOptions, v12.ListOptions) error) *CustomResourceDefinitionInterfaceDeleteCollectionCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceDeleteCollectionCall) DoAndReturn(f func(context.Context, v11.DeleteOptions, v11.ListOptions) error) *CustomResourceDefinitionInterfaceDeleteCollectionCall {
+func (c *CustomResourceDefinitionInterfaceDeleteCollectionCall) DoAndReturn(f func(context.Context, v12.DeleteOptions, v12.ListOptions) error) *CustomResourceDefinitionInterfaceDeleteCollectionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Get mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Get(arg0 context.Context, arg1 string, arg2 v11.GetOptions) (*v1.CustomResourceDefinition, error) {
+func (m *MockCustomResourceDefinitionInterface) Get(arg0 context.Context, arg1 string, arg2 v12.GetOptions) (*v1.CustomResourceDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
@@ -286,19 +365,19 @@ func (c *CustomResourceDefinitionInterfaceGetCall) Return(arg0 *v1.CustomResourc
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceGetCall) Do(f func(context.Context, string, v11.GetOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceGetCall {
+func (c *CustomResourceDefinitionInterfaceGetCall) Do(f func(context.Context, string, v12.GetOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceGetCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceGetCall) DoAndReturn(f func(context.Context, string, v11.GetOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceGetCall {
+func (c *CustomResourceDefinitionInterfaceGetCall) DoAndReturn(f func(context.Context, string, v12.GetOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceGetCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // List mocks base method.
-func (m *MockCustomResourceDefinitionInterface) List(arg0 context.Context, arg1 v11.ListOptions) (*v1.CustomResourceDefinitionList, error) {
+func (m *MockCustomResourceDefinitionInterface) List(arg0 context.Context, arg1 v12.ListOptions) (*v1.CustomResourceDefinitionList, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1)
 	ret0, _ := ret[0].(*v1.CustomResourceDefinitionList)
@@ -325,19 +404,19 @@ func (c *CustomResourceDefinitionInterfaceListCall) Return(arg0 *v1.CustomResour
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceListCall) Do(f func(context.Context, v11.ListOptions) (*v1.CustomResourceDefinitionList, error)) *CustomResourceDefinitionInterfaceListCall {
+func (c *CustomResourceDefinitionInterfaceListCall) Do(f func(context.Context, v12.ListOptions) (*v1.CustomResourceDefinitionList, error)) *CustomResourceDefinitionInterfaceListCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceListCall) DoAndReturn(f func(context.Context, v11.ListOptions) (*v1.CustomResourceDefinitionList, error)) *CustomResourceDefinitionInterfaceListCall {
+func (c *CustomResourceDefinitionInterfaceListCall) DoAndReturn(f func(context.Context, v12.ListOptions) (*v1.CustomResourceDefinitionList, error)) *CustomResourceDefinitionInterfaceListCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Patch mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Patch(arg0 context.Context, arg1 string, arg2 types.PatchType, arg3 []byte, arg4 v11.PatchOptions, arg5 ...string) (*v1.CustomResourceDefinition, error) {
+func (m *MockCustomResourceDefinitionInterface) Patch(arg0 context.Context, arg1 string, arg2 types.PatchType, arg3 []byte, arg4 v12.PatchOptions, arg5 ...string) (*v1.CustomResourceDefinition, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1, arg2, arg3, arg4}
 	for _, a := range arg5 {
@@ -369,19 +448,19 @@ func (c *CustomResourceDefinitionInterfacePatchCall) Return(arg0 *v1.CustomResou
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfacePatchCall) Do(f func(context.Context, string, types.PatchType, []byte, v11.PatchOptions, ...string) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfacePatchCall {
+func (c *CustomResourceDefinitionInterfacePatchCall) Do(f func(context.Context, string, types.PatchType, []byte, v12.PatchOptions, ...string) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfacePatchCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfacePatchCall) DoAndReturn(f func(context.Context, string, types.PatchType, []byte, v11.PatchOptions, ...string) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfacePatchCall {
+func (c *CustomResourceDefinitionInterfacePatchCall) DoAndReturn(f func(context.Context, string, types.PatchType, []byte, v12.PatchOptions, ...string) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfacePatchCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Update mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Update(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v11.UpdateOptions) (*v1.CustomResourceDefinition, error) {
+func (m *MockCustomResourceDefinitionInterface) Update(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v12.UpdateOptions) (*v1.CustomResourceDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
@@ -408,19 +487,19 @@ func (c *CustomResourceDefinitionInterfaceUpdateCall) Return(arg0 *v1.CustomReso
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceUpdateCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v11.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateCall {
+func (c *CustomResourceDefinitionInterfaceUpdateCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v12.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceUpdateCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v11.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateCall {
+func (c *CustomResourceDefinitionInterfaceUpdateCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v12.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // UpdateStatus mocks base method.
-func (m *MockCustomResourceDefinitionInterface) UpdateStatus(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v11.UpdateOptions) (*v1.CustomResourceDefinition, error) {
+func (m *MockCustomResourceDefinitionInterface) UpdateStatus(arg0 context.Context, arg1 *v1.CustomResourceDefinition, arg2 v12.UpdateOptions) (*v1.CustomResourceDefinition, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStatus", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1.CustomResourceDefinition)
@@ -447,19 +526,19 @@ func (c *CustomResourceDefinitionInterfaceUpdateStatusCall) Return(arg0 *v1.Cust
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceUpdateStatusCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v11.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateStatusCall {
+func (c *CustomResourceDefinitionInterfaceUpdateStatusCall) Do(f func(context.Context, *v1.CustomResourceDefinition, v12.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateStatusCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceUpdateStatusCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v11.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateStatusCall {
+func (c *CustomResourceDefinitionInterfaceUpdateStatusCall) DoAndReturn(f func(context.Context, *v1.CustomResourceDefinition, v12.UpdateOptions) (*v1.CustomResourceDefinition, error)) *CustomResourceDefinitionInterfaceUpdateStatusCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Watch mocks base method.
-func (m *MockCustomResourceDefinitionInterface) Watch(arg0 context.Context, arg1 v11.ListOptions) (watch.Interface, error) {
+func (m *MockCustomResourceDefinitionInterface) Watch(arg0 context.Context, arg1 v12.ListOptions) (watch.Interface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Watch", arg0, arg1)
 	ret0, _ := ret[0].(watch.Interface)
@@ -486,13 +565,13 @@ func (c *CustomResourceDefinitionInterfaceWatchCall) Return(arg0 watch.Interface
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *CustomResourceDefinitionInterfaceWatchCall) Do(f func(context.Context, v11.ListOptions) (watch.Interface, error)) *CustomResourceDefinitionInterfaceWatchCall {
+func (c *CustomResourceDefinitionInterfaceWatchCall) Do(f func(context.Context, v12.ListOptions) (watch.Interface, error)) *CustomResourceDefinitionInterfaceWatchCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *CustomResourceDefinitionInterfaceWatchCall) DoAndReturn(f func(context.Context, v11.ListOptions) (watch.Interface, error)) *CustomResourceDefinitionInterfaceWatchCall {
+func (c *CustomResourceDefinitionInterfaceWatchCall) DoAndReturn(f func(context.Context, v12.ListOptions) (watch.Interface, error)) *CustomResourceDefinitionInterfaceWatchCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

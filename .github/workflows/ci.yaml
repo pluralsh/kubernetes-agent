@@ -35,20 +35,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          check-latest: true
       - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-kas
   image-agentk:
     name: Build agentk image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          check-latest: true
       - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-agentk
   test:
     name: Unit test

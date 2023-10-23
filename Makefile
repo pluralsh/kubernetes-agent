@@ -16,7 +16,7 @@ help: ## show help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 .PHONY: go-dep-updates
-go-dep-updates: ## show possible go dependency updates
+go-dep-updates: ## show possible Go dependency updates
 	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' -m all
 
 ##@ Run
@@ -61,21 +61,21 @@ build-agentk: ## build agentk
 ##@ Docker
 
 .PHONE: docker
-docker: docker-kas docker-agentk ## build all docker images
+docker: docker-kas docker-agentk ## build all Docker images
 
 .PHONE: docker-debug
-docker-debug: docker-kas-debug docker-agentk-debug ## build all docker debug images with embedded delve
+docker-debug: docker-kas-debug docker-agentk-debug ## build all Docker debug images with embedded Delve
 
 .PHONY: docker-kas
 docker-kas: APP_NAME=kas
 docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.Dockerfile
-docker-kas: --image ## build docker kas image$
+docker-kas: --image ## build Docker kas image
 
 .PHONY: docker-kas-debug
 docker-kas-debug: APP_NAME=kas
 docker-kas-debug: DOCKERFILE=${DOCKER_DIRECTORY}/kas.debug.Dockerfile
 docker-kas-debug: APP_VERSION=debug
-docker-kas-debug: --image-debug ## build docker kas debug image with embedded delve
+docker-kas-debug: --image-debug ## build docker kas debug image with embedded Delve
 
 .PHONY: docker-agentk
 docker-agentk: APP_NAME=agentk
@@ -85,12 +85,12 @@ docker-agentk: --image ## build docker agentk
 .PHONY: docker-agentk-debug
 docker-agentk-debug: APP_NAME=agentk
 docker-agentk-debug: DOCKERFILE=${DOCKER_DIRECTORY}/agentk.debug.Dockerfile
-docker-agentk-debug: --image-debug ## build docker agentk debug image with embedded delve
+docker-agentk-debug: --image-debug ## build docker agentk debug image with embedded Delve
 
 ##@ Codegen
 
 .PHONY: codegen
-codegen: --mocks --protoc ## regenerate proto and mocks
+codegen: --mocks --protoc ## regenerate protobuf and mocks
 
 .PHONY: codegen-delete
 codegen-delete: ## delete generated files

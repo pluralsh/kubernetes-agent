@@ -96,10 +96,6 @@ to upgrade `agentk` in your clusters.
 
   Instead of the above we could have an up to date precomputed view on top of the cache in `kas`. `agentk` could make the calculations locally and push an update immediately to `kas` (which could push an event via ActionCable). For example, `agentk` could maintain a cache with [`Node`](https://kubernetes.io/docs/concepts/architecture/nodes/) objects and push the current number of nodes to `kas` each time there is a change. The UI then can fetch the number of nodes from `kas` via an API (via the main application or bypassing it).
 
-- **Q**: Why use gRPC for `GitLab RoR` -> `kas` access? Why not REST API?
-
-  **A**: To benefit from all the [good things gRPC provides or enables](https://grpc.io/faq/) and avoid any pitfalls of a hand-rolled client implementation. GitLab already uses gRPC to talk to Gitaly, it's an existing dependency.
-
 - **Q**: Why poll Git repositories from `kas` and not from `agentk`?
 
   **A**: There are several reasons:
@@ -111,23 +107,3 @@ to upgrade `agentk` in your clusters.
   - Makes it easier to implement pub/sub / push-based notifications about changes to the repo to reduce polling frequency.
 
   - It follows the "smart `kas`, dumb `agentk`" principle described above.
-
-- **Q**: Why use Gitaly directly to fetch data from repositories instead of the usual "front door" (HTTPS or SSH)?
-
-  **A**: There are several reasons:
-
-  - Polling cost is higher for the "front door". For GitLab.com, HTTPS traffic access via the "front door" goes via CloudFlare, HAProxy, and [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/). For SSH traffic - CloudFlare and GitLab Shell. Only then a request reaches Gitaly. Using the "front door" would mean more traffic for the infrastructure to handle. More load means higher running cost because more hardware/VMs and bandwidth is needed.
-
-  - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
-
-- **Q**: If there is no middlemen between `kas` and Gitaly, how do we prevent `kas` overloading Gitaly?
-
-  **A**: `kas` should rate limit itself. The following not mutually exclusive approaches are possible:
-
-  - Per-`kas` instance rate limiting can be put in place using gRPC's rate limiting mechanisms.
-  - Per-`agentk` rate limiting within `kas` can be implemented using some external state storage. E.g. [using Redis](https://redislabs.com/redis-best-practices/basic-rate-limiting/). Or, alternatively, each `kas` instance can enforce per-`agentk` limit just for itself - not as good, but much simpler to implement (no Redis needed).
-  - Global rate limiting for all `kas` instances can also be implemented using Redis.
-
-- **Q**: Should `kas` be part of GitLab Workhorse?
-
-  **A**: See https://gitlab.com/gitlab-org/gitlab/-/issues/232064
