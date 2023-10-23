@@ -5,9 +5,9 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.uber.org/zap"
 	"k8s.io/utils/clock"
 )

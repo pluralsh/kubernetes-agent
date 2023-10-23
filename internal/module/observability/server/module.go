@@ -4,11 +4,11 @@ import (
 	"context"
 	"net"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 

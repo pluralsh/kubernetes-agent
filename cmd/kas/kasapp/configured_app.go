@@ -50,7 +50,6 @@ import (
 	reverse_tunnel_server "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/server"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
-	usage_metrics_server "github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics/server"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
@@ -224,9 +223,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&observability_server.Factory{
 			Gatherer: reg,
 		},
-		&usage_metrics_server.Factory{
-			UsageTracker: usageTracker,
-		},
+		// TODO: Enable once it's refactored.
+		//&usage_metrics_server.Factory{
+		//	UsageTracker: usageTracker,
+		//},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
 		},

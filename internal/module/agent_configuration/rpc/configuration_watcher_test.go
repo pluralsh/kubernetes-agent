@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
 	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/matcher"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"fmt"
+	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 	"net"
 
 	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
@@ -73,6 +74,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		proxy: kubernetesApiProxy{
 			log:                 config.Log,
 			api:                 config.Api,
+			pluralClient:        pluralclient.New(config.Config.PluralUrl, config.Config.PluralToken),
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			allowedOriginUrls:   allowedOriginUrls,
 			allowedAgentsCache: cache.NewWithError[string, *gapi.AllowedAgentsForJob](

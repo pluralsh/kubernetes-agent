@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
+	"github.com/redis/rueidis"
 	"go.uber.org/zap"
 )
 

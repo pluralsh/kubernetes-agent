@@ -1,12 +1,11 @@
-package api
+package plural
 
 import (
 	"context"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
-
 	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
+	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 )
 
 func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, opts ...gitlab.DoOption) (*api.AgentInfo, error) {

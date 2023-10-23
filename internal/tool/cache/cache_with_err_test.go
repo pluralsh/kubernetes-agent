@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 )

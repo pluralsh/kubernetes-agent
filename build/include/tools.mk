@@ -1,12 +1,7 @@
-.PHONY: --ensure
---ensure: --ensure-golangci-lint
+.PHONY: --ensure-tools
+--ensure-tools: --ensure-go-tools
 
-GOLANGCI_LINT_BINARY := $(shell which golangci-lint)
-.PHONY: --ensure-golangci-lint
---ensure-golangci-lint:
-ifndef GOLANGCI_LINT_BINARY
-	@echo "golangci-lint not found, see how to install it at https://golangci-lint.run/usage/install/#local-installation"
-	@exit 1
-else
-	@echo "golangci-lint is available"
-endif
+.PHONY: --ensure-go-tools
+--ensure-go-tools:
+	@echo "ensuring required tools availability..."
+	@cat internal/tool/tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go install %

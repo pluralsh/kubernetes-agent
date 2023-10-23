@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
+	"github.com/redis/rueidis"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"

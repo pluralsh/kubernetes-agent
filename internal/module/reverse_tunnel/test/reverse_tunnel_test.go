@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
@@ -15,6 +13,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
