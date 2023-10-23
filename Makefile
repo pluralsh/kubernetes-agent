@@ -56,7 +56,7 @@ build-agentk: ## build agentk
 docker: docker-kas docker-agentk ## build all Docker images
 
 .PHONE: docker-debug
-docker-debug: docker-kas-debug docker-agentk-debug ## build all Docker debug images with embedded delve
+docker-debug: docker-kas-debug docker-agentk-debug ## build all Docker debug images with embedded Delve
 
 .PHONY: docker-kas
 docker-kas: APP_NAME=kas
