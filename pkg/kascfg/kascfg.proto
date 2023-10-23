@@ -377,20 +377,18 @@ message PrivateApiCF {
 
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
-  // Configuration related to interaction with GitLab.
-  GitLabCF gitlab = 1 [json_name = "gitlab", (validate.rules).message.required = true];
   // Configuration related to the agent. Generally all configuration for
   // user-facing features should be here.
-  AgentCF agent = 2 [json_name = "agent"];
+  AgentCF agent = 1 [json_name = "agent"];
   // Configuration related to all things observability: metrics, tracing,
   // monitoring, logging, usage metrics, profiling.
-  ObservabilityCF observability = 3 [json_name = "observability"];
-  // Configuration related to interaction with Gitaly.
-  GitalyCF gitaly = 4 [json_name = "gitaly"];
+  ObservabilityCF observability = 2 [json_name = "observability"];
   // Redis configurations available to kas.
-  RedisCF redis = 5 [json_name = "redis", (validate.rules).message.required = true];
+  RedisCF redis = 3 [json_name = "redis", (validate.rules).message.required = true];
   // Public API.
-  ApiCF api = 6 [json_name = "api", (validate.rules).message.required = true];
+  ApiCF api = 4 [json_name = "api", (validate.rules).message.required = true];
   // Private API for kas->kas communication.
-  PrivateApiCF private_api = 7 [json_name = "private_api", (validate.rules).message.required = true];
+  PrivateApiCF private_api = 5 [json_name = "private_api", (validate.rules).message.required = true];
+
+  string plural_token = 6 [json_name = "plural_token"];
 }

@@ -59,14 +59,8 @@ var (
 )
 
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
-	prototool.NotNil(&cfg.Gitlab)
-	defaultGitLab(cfg.Gitlab)
-
 	prototool.NotNil(&cfg.Agent)
 	defaultAgent(cfg.Agent)
-
-	prototool.NotNil(&cfg.Gitaly)
-	defaultGitaly(cfg.Gitaly)
 
 	prototool.NotNil(&cfg.Redis)
 	defaultRedis(cfg.Redis)
