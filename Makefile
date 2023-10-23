@@ -27,7 +27,7 @@ run:
 
 .PHONY: stop
 stop:
-	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down
+	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi
 
 ##@ Build
 
@@ -51,6 +51,12 @@ build-agentk: ## build agentk
 		-o $(TARGET_DIRECTORY) ./cmd/agentk
 
 ##@ Docker
+
+.PHONE: docker
+docker: docker-kas docker-agentk ## build all docker images
+
+.PHONE: docker-debug
+docker-debug: docker-kas-debug docker-agentk-debug ## build all docker debug images with embedded delve
 
 .PHONY: docker-kas
 docker-kas: APP_NAME=kas
