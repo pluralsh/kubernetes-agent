@@ -9,13 +9,12 @@
 package mock_redis
 
 import (
-	"context"
-	"reflect"
-	"time"
+	context "context"
+	reflect "reflect"
+	time "time"
 
-	"go.uber.org/mock/gomock"
-
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	redistool "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockSetBuilder is a mock of SetBuilder interface.

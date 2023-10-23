@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/agent_tracker/rpc/rpc.proto](#internal_module_agent_tracker_rpc_rpc-proto)
+- [pkg/module/agent_tracker/rpc/rpc.proto](#pkg_module_agent_tracker_rpc_rpc-proto)
     - [GetConnectedAgentsRequest](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsRequest)
     - [GetConnectedAgentsResponse](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsResponse)
   
@@ -13,10 +13,10 @@
 
 
 
-<a name="internal_module_agent_tracker_rpc_rpc-proto"></a>
+<a name="pkg_module_agent_tracker_rpc_rpc-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/agent_tracker/rpc/rpc.proto
+## pkg/module/agent_tracker/rpc/rpc.proto
 
 
 

@@ -3,18 +3,18 @@
 
 ## Table of Contents
 
-- [internal/tool/grpctool/automata/automata.proto](#internal_tool_grpctool_automata_automata-proto)
-    - [File-level Extensions](#internal_tool_grpctool_automata_automata-proto-extensions)
-    - [File-level Extensions](#internal_tool_grpctool_automata_automata-proto-extensions)
+- [pkg/tool/grpctool/automata/automata.proto](#pkg_tool_grpctool_automata_automata-proto)
+    - [File-level Extensions](#pkg_tool_grpctool_automata_automata-proto-extensions)
+    - [File-level Extensions](#pkg_tool_grpctool_automata_automata-proto-extensions)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="internal_tool_grpctool_automata_automata-proto"></a>
+<a name="pkg_tool_grpctool_automata_automata-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/tool/grpctool/automata/automata.proto
+## pkg/tool/grpctool/automata/automata.proto
 
 
  
@@ -22,7 +22,7 @@
  
 
 
-<a name="internal_tool_grpctool_automata_automata-proto-extensions"></a>
+<a name="pkg_tool_grpctool_automata_automata-proto-extensions"></a>
 
 ### File-level Extensions
 | Extension | Type | Base | Number | Description |

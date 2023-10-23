@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/tool/grpctool/test/test.proto](#internal_tool_grpctool_test_test-proto)
+- [pkg/tool/grpctool/test/test.proto](#pkg_tool_grpctool_test_test-proto)
     - [NoOneofs](#gitlab-agent-grpctool-test-NoOneofs)
     - [NotAllReachable](#gitlab-agent-grpctool-test-NotAllReachable)
     - [OutOfOneof](#gitlab-agent-grpctool-test-OutOfOneof)
@@ -22,10 +22,10 @@
 
 
 
-<a name="internal_tool_grpctool_test_test-proto"></a>
+<a name="pkg_tool_grpctool_test_test-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/tool/grpctool/test/test.proto
+## pkg/tool/grpctool/test/test.proto
 
 
 

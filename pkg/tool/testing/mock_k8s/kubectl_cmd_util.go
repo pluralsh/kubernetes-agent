@@ -9,19 +9,19 @@
 package mock_k8s
 
 import (
-	"reflect"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/openapi"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
+	gomock "go.uber.org/mock/gomock"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	resource "k8s.io/cli-runtime/pkg/resource"
+	discovery "k8s.io/client-go/discovery"
+	dynamic "k8s.io/client-go/dynamic"
+	kubernetes "k8s.io/client-go/kubernetes"
+	openapi "k8s.io/client-go/openapi"
+	rest "k8s.io/client-go/rest"
+	clientcmd "k8s.io/client-go/tools/clientcmd"
 	openapi0 "k8s.io/kubectl/pkg/util/openapi"
-	"k8s.io/kubectl/pkg/validation"
+	validation "k8s.io/kubectl/pkg/validation"
 )
 
 // MockFactory is a mock of Factory interface.

@@ -105,15 +105,15 @@ docker-agentk-debug: --image-debug ## build docker agentk debug image with embed
 ##@ Codegen
 
 .PHONY: codegen
-codegen: --ensure-tools codegen-delete --mocks --protoc ## regenerate protobuf and mocks
+codegen: --ensure-tools codegen-delete --protoc --mocks ## regenerate protobuf and mocks
 
 .PHONY: codegen-delete
 codegen-delete: ## delete generated files
-	find . -name '*.pb.go' -type f -delete
-	find . -name '*.pb.validate.go' -type f -delete
-	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
-	find . -name '*_proto_docs.md' -type f -delete
-	find . -empty -type d -delete
+	@find . -name '*.pb.go' -type f -delete
+	@find . -name '*.pb.validate.go' -type f -delete
+	@find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
+	@find . -name '*_proto_docs.md' -type f -delete
+	@find . -empty -type d -delete
 
 .PHONY: --protoc
 --protoc:
@@ -124,24 +124,24 @@ codegen-delete: ## delete generated files
 	@PATH="${PATH}:$(shell pwd)/build" go generate -x -v \
 		"github.com/pluralsh/kuberentes-agent/cmd/agentk/agentkapp" \
 		"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp" \
-		"github.com/pluralsh/kuberentes-agent/internal/module/modagent" \
-		"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/redistool" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_agent_registrar" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_agent_tracker" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_k8s" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_kubernetes_api" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modshared" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_redis" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_rpc" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_tool" \
-		"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_usage_metrics"
+		"github.com/pluralsh/kuberentes-agent/pkg/module/modagent" \
+		"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/redistool" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_registrar" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_tracker" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_cache" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_k8s" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_kubernetes_api" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modshared" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_redis" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_reverse_tunnel_rpc" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_reverse_tunnel_tunnel" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_stdlib" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_tool" \
+		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_usage_metrics"
 
 ##@ Tests
 

@@ -4,11 +4,11 @@ syntax = "proto3";
 
 package gitlab.agent.reverse_tunnel.rpc;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/rpc";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/rpc";
 
-import "internal/tool/grpctool/automata/automata.proto";
-import "internal/tool/prototool/prototool.proto";
-import "internal/module/reverse_tunnel/info/info.proto";
+import "pkg/tool/grpctool/automata/automata.proto";
+import "pkg/tool/prototool/prototool.proto";
+import "pkg/module/reverse_tunnel/info/info.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 // https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto

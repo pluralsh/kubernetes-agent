@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/tool/grpctool/grpctool.proto](#internal_tool_grpctool_grpctool-proto)
+- [pkg/tool/grpctool/grpctool.proto](#pkg_tool_grpctool_grpctool-proto)
     - [HttpRequest](#gitlab-agent-grpctool-HttpRequest)
     - [HttpRequest.Data](#gitlab-agent-grpctool-HttpRequest-Data)
     - [HttpRequest.Header](#gitlab-agent-grpctool-HttpRequest-Header)
@@ -19,10 +19,10 @@
 
 
 
-<a name="internal_tool_grpctool_grpctool-proto"></a>
+<a name="pkg_tool_grpctool_grpctool-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/tool/grpctool/grpctool.proto
+## pkg/tool/grpctool/grpctool.proto
 
 
 

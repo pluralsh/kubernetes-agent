@@ -9,11 +9,11 @@
 package mock_k8s
 
 import (
-	"reflect"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	gomock "go.uber.org/mock/gomock"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // MockResettableRESTMapper is a mock of ResettableRESTMapper interface.

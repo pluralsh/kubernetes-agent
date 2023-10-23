@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.gitlab;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/internal/gitlab";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/gitlab";
 
 message ClientError {
   int32 status_code = 1;

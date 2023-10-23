@@ -61,4 +61,3 @@ function plrl::protoc::generate() {
 plrl::protoc::ensure
 plrl::protoc::generate "${ROOT_DIR}/cmd"
 plrl::protoc::generate "${ROOT_DIR}/pkg"
-plrl::protoc::generate "${ROOT_DIR}/internal"

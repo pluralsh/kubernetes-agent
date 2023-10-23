@@ -9,11 +9,11 @@
 package mock_cache
 
 import (
-	"context"
-	"reflect"
-	"time"
+	context "context"
+	reflect "reflect"
+	time "time"
 
-	"go.uber.org/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockErrCacher is a mock of ErrCacher interface.

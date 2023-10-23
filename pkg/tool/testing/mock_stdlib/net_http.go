@@ -9,10 +9,10 @@
 package mock_stdlib
 
 import (
-	"net/http"
-	"reflect"
+	http "net/http"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRoundTripper is a mock of RoundTripper interface.

@@ -29,7 +29,7 @@ func (a *ServerAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *ServerAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return plural.GetAgentInfo(ctx, a.Token)
+		return plural.GetAgentInfo(ctx, a.Token, "")
 	})
 }
 

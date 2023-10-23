@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/agent_registrar/rpc/rpc.proto](#internal_module_agent_registrar_rpc_rpc-proto)
+- [pkg/module/agent_registrar/rpc/rpc.proto](#pkg_module_agent_registrar_rpc_rpc-proto)
     - [RegisterRequest](#gitlab-agent-agent_registrar-rpc-RegisterRequest)
     - [RegisterResponse](#gitlab-agent-agent_registrar-rpc-RegisterResponse)
   
@@ -13,10 +13,10 @@
 
 
 
-<a name="internal_module_agent_registrar_rpc_rpc-proto"></a>
+<a name="pkg_module_agent_registrar_rpc_rpc-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/agent_registrar/rpc/rpc.proto
+## pkg/module/agent_registrar/rpc/rpc.proto
 
 
 

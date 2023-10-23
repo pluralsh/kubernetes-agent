@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/gitlab/api/api.proto](#internal_gitlab_api_api-proto)
+- [pkg/gitlab/api/api.proto](#pkg_gitlab_api_api-proto)
     - [AccessAsAgentAuthorization](#gitlab-agent-gitlab-api-AccessAsAgentAuthorization)
     - [AccessAsProxyAuthorization](#gitlab-agent-gitlab-api-AccessAsProxyAuthorization)
     - [AccessAsUserAuthorization](#gitlab-agent-gitlab-api-AccessAsUserAuthorization)
@@ -30,10 +30,10 @@
 
 
 
-<a name="internal_gitlab_api_api-proto"></a>
+<a name="pkg_gitlab_api_api-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/gitlab/api/api.proto
+## pkg/gitlab/api/api.proto
 
 
 

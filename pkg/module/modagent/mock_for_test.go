@@ -9,13 +9,12 @@
 package modagent
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/proto"
-
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	agentcfg "github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	gomock "go.uber.org/mock/gomock"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // MockWorkSource is a mock of WorkSource interface.

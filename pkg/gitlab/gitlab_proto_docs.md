@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/gitlab/gitlab.proto](#internal_gitlab_gitlab-proto)
+- [pkg/gitlab/gitlab.proto](#pkg_gitlab_gitlab-proto)
     - [ClientError](#gitlab-agent-gitlab-ClientError)
     - [DefaultApiError](#gitlab-agent-gitlab-DefaultApiError)
   
@@ -11,10 +11,10 @@
 
 
 
-<a name="internal_gitlab_gitlab-proto"></a>
+<a name="pkg_gitlab_gitlab-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/gitlab/gitlab.proto
+## pkg/gitlab/gitlab.proto
 
 
 

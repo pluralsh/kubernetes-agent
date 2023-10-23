@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/tool/redistool/redistool.proto](#internal_tool_redistool_redistool-proto)
+- [pkg/tool/redistool/redistool.proto](#pkg_tool_redistool_redistool-proto)
     - [ExpiringValue](#gitlab-agent-redistool-ExpiringValue)
     - [ExpiringValueTimestamp](#gitlab-agent-redistool-ExpiringValueTimestamp)
   
@@ -11,10 +11,10 @@
 
 
 
-<a name="internal_tool_redistool_redistool-proto"></a>
+<a name="pkg_tool_redistool_redistool-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/tool/redistool/redistool.proto
+## pkg/tool/redistool/redistool.proto
 
 
 

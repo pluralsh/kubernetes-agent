@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/kubernetes_api/rpc/rpc.proto](#internal_module_kubernetes_api_rpc_rpc-proto)
+- [pkg/module/kubernetes_api/rpc/rpc.proto](#pkg_module_kubernetes_api_rpc_rpc-proto)
     - [ExtraKeyVal](#gitlab-agent-kubernetes_api-rpc-ExtraKeyVal)
     - [HeaderExtra](#gitlab-agent-kubernetes_api-rpc-HeaderExtra)
     - [ImpersonationConfig](#gitlab-agent-kubernetes_api-rpc-ImpersonationConfig)
@@ -14,10 +14,10 @@
 
 
 
-<a name="internal_module_kubernetes_api_rpc_rpc-proto"></a>
+<a name="pkg_module_kubernetes_api_rpc_rpc-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/kubernetes_api/rpc/rpc.proto
+## pkg/module/kubernetes_api/rpc/rpc.proto
 
 
 
