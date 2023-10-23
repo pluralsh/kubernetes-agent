@@ -1,7 +1,7 @@
 agent:
   listen:
     network: tcp
-    address: 127.0.0.1:8150
+    address: 0.0.0.0:8150
     websocket: false
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
@@ -56,7 +56,7 @@ private_api:
     listen_grace_period: "5s"
 redis:
   server:
-    address: "host.docker.internal:6379" # required
+    address: "redis:6379" # required
   dial_timeout: "5s"
   write_timeout: "3s"
   key_prefix: kubernetes-agent

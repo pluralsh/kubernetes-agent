@@ -1,6 +1,11 @@
 version: "3.8"
 services:
   kas:
+    depends_on:
+      redis:
+        condition: service_started
+    image: kas:debug
+    container_name: kas
     build:
       context: ../..
       dockerfile: build/docker/kas.debug.Dockerfile
@@ -11,22 +16,37 @@ services:
       - ${PWD}/build/docker/config.yaml:/config.yaml
     tmpfs:
       - /tmp
+    ports:
+      - "40000:40000"
+      - "8154:8154"
   agent:
+    depends_on:
+      kas:
+        condition: service_started
+    image: agent:debug
+    container_name: agent
     build:
       context: ../..
       dockerfile: build/docker/agentk.debug.Dockerfile
     environment:
-      APP_FLAGS: --kas-address=grpc://host.docker.internal:8150
+      APP_FLAGS: --kas-address=ws://kas:8150
       POD_NAME: test
       POD_NAMESPACE: test
       AGENTK_TOKEN: test
-#    volumes:
-#      - ${KUBECONFIG:?}:${KUBECONFIG:?}
+      KUBECONFIG: /.secret/kubeconfig
+    volumes:
+      - ${PWD}/.secret/kubeconfig:/.secret/kubeconfig
     tmpfs:
       - /tmp
-#    ports:
-#      - "9001:9001"
+    ports:
+      - "40001:40000"
+  redis:
+    image: redis:7.2.2
+    container_name: redis
+    ports:
+      - "6379:6379"
 
 networks:
   default:
-    name: plural
+    external: true
+    name: kind

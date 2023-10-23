@@ -4,8 +4,6 @@ include $(ROOT_DIRECTORY)/build/include/config.mk
 include $(ROOT_DIRECTORY)/build/include/deploy.mk
 include $(ROOT_DIRECTORY)/build/include/tools.mk
 
-#MAKEFLAGS += -j2
-
 # List of targets that should be executed before other targets
 PRE = --ensure
 
@@ -21,20 +19,31 @@ go-dep-updates: ## show possible Go dependency updates
 
 ##@ Run
 
+# Requires default kind cluster to run
 .PHONY: run
 run: --run-clean --run-prepare ## Run kas and agent with all dependencies using docker compose
-	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
+	@docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) up -V --force-recreate
 
 .PHONY: stop
 stop: --run-clean ## Stop docker compose and clean up
-	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi local
+	@docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) down --rmi local
+
+# Requires default kind cluster to run
+.PHONY: run-debug
+run-debug: --run-clean --run-prepare ## Run kas and agent using docker compose in debug mode with Delve exposed on ports 40000 (kas) and 40001 (agent).
+	@docker compose -f $(DOCKER_COMPOSE_DEBUG_PATH) --project-name=$(PROJECT_NAME) up -V --force-recreate
+
+.PHONY: stop-debug
+stop-debug: --run-clean ## Stop docker compose and clean up debug containers
+	@docker compose -f $(DOCKER_COMPOSE_DEBUG_PATH) --project-name=$(PROJECT_NAME) down --rmi local
 
 .PHONY: --run-prepare
---run-prepare: --certificate --secrets
+--run-prepare: --certificate
 
 .PHONY: --run-clean
 --run-clean:
-	@rm -rf $(SECRET_DIRECTORY)
+	@echo Cleaning up certs and secrets directory. This needs root permissions...
+	@sudo rm -rf $(SECRET_DIRECTORY)
 	@mkdir -p $(SECRET_DIRECTORY)
 
 ##@ Build
@@ -85,6 +94,7 @@ docker-agentk: --image ## build docker agentk
 .PHONY: docker-agentk-debug
 docker-agentk-debug: APP_NAME=agentk
 docker-agentk-debug: DOCKERFILE=${DOCKER_DIRECTORY}/agentk.debug.Dockerfile
+docker-agentk-debug: APP_VERSION=debug
 docker-agentk-debug: --image-debug ## build docker agentk debug image with embedded Delve
 
 ##@ Codegen
