@@ -3,7 +3,7 @@ services:
   kas:
     build:
       context: ../..
-      dockerfile: build/docker/kas.Dockerfile
+      dockerfile: build/docker/kas.debug.Dockerfile
     environment:
       APP_FLAGS: --configuration-file=/config.yaml
     volumes:
@@ -14,7 +14,7 @@ services:
   agent:
     build:
       context: ../..
-      dockerfile: build/docker/agentk.Dockerfile
+      dockerfile: build/docker/agentk.debug.Dockerfile
     environment:
       APP_FLAGS: --kas-address=grpc://host.docker.internal:8150
       POD_NAME: test
