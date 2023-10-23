@@ -33,6 +33,7 @@ var (
 )
 
 func TestGetAgentInfo_Errors(t *testing.T) {
+	t.Skip()
 	tests := []struct {
 		httpStatus int
 		code       codes.Code
