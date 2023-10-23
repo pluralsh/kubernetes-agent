@@ -3,7 +3,7 @@ package kasapp
 import (
 	"context"
 	"errors"
-	"github.com/pluralsh/kuberentes-agent/internal/plural"
+	fake "github.com/pluralsh/kuberentes-agent/internal/fake/api"
 	"sync"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
@@ -57,7 +57,7 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *serverAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return plural.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
+		return fake.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
 	})
 }
 

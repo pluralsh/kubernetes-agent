@@ -2,9 +2,8 @@ package fake
 
 import (
 	"context"
-	"github.com/pluralsh/kuberentes-agent/internal/plural"
-
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
+	fake "github.com/pluralsh/kuberentes-agent/internal/fake/api"
 	"go.uber.org/zap"
 
 	"github.com/pluralsh/kuberentes-agent/internal/api"
@@ -29,7 +28,7 @@ func (a *ServerAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *ServerAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return plural.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
+		return fake.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
 	})
 }
 

@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
 )
@@ -17,6 +16,7 @@ type ServerAgentRpcApi struct {
 	modserver.RpcApi
 	Token          api.AgentToken
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
+	PluralURL string
 }
 
 func (a *ServerAgentRpcApi) AgentToken() api.AgentToken {
@@ -29,13 +29,14 @@ func (a *ServerAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *ServerAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return plural.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
+		return plural.GetAgentInfo(ctx, a.Token)
 	})
 }
 
 type ServerAgentRpcApiFactory struct {
 	RPCApiFactory  modserver.RpcApiFactory
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
+	PluralURL string
 }
 
 func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver.AgentRpcApi, error) {
@@ -47,5 +48,6 @@ func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName strin
 		RpcApi:         f.RPCApiFactory(ctx, fullMethodName),
 		Token:          api.AgentToken(token),
 		AgentInfoCache: f.AgentInfoCache,
+		PluralURL: f.PluralURL,
 	}, nil
 }
