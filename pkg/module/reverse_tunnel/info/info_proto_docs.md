@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/reverse_tunnel/info/info.proto](#internal_module_reverse_tunnel_info_info-proto)
+- [pkg/module/reverse_tunnel/info/info.proto](#pkg_module_reverse_tunnel_info_info-proto)
     - [AgentDescriptor](#gitlab-agent-reverse_tunnel-info-AgentDescriptor)
     - [Method](#gitlab-agent-reverse_tunnel-info-Method)
     - [Service](#gitlab-agent-reverse_tunnel-info-Service)
@@ -12,10 +12,10 @@
 
 
 
-<a name="internal_module_reverse_tunnel_info_info-proto"></a>
+<a name="pkg_module_reverse_tunnel_info_info-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/reverse_tunnel/info/info.proto
+## pkg/module/reverse_tunnel/info/info.proto
 
 
 

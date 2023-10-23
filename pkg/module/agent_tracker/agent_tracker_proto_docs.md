@@ -3,17 +3,17 @@
 
 ## Table of Contents
 
-- [internal/module/agent_tracker/agent_tracker.proto](#internal_module_agent_tracker_agent_tracker-proto)
+- [pkg/module/agent_tracker/agent_tracker.proto](#pkg_module_agent_tracker_agent_tracker-proto)
     - [ConnectedAgentInfo](#gitlab-agent-agent_tracker-ConnectedAgentInfo)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="internal_module_agent_tracker_agent_tracker-proto"></a>
+<a name="pkg_module_agent_tracker_agent_tracker-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/agent_tracker/agent_tracker.proto
+## pkg/module/agent_tracker/agent_tracker.proto
 
 
 

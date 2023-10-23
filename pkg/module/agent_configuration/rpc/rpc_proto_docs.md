@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/agent_configuration/rpc/rpc.proto](#internal_module_agent_configuration_rpc_rpc-proto)
+- [pkg/module/agent_configuration/rpc/rpc.proto](#pkg_module_agent_configuration_rpc_rpc-proto)
     - [ConfigurationRequest](#gitlab-agent-agent_configuration-rpc-ConfigurationRequest)
     - [ConfigurationResponse](#gitlab-agent-agent_configuration-rpc-ConfigurationResponse)
   
@@ -13,10 +13,10 @@
 
 
 
-<a name="internal_module_agent_configuration_rpc_rpc-proto"></a>
+<a name="pkg_module_agent_configuration_rpc_rpc-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/agent_configuration/rpc/rpc.proto
+## pkg/module/agent_configuration/rpc/rpc.proto
 
 
 

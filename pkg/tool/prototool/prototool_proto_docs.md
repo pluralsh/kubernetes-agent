@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/tool/prototool/prototool.proto](#internal_tool_prototool_prototool-proto)
+- [pkg/tool/prototool/prototool.proto](#pkg_tool_prototool_prototool-proto)
     - [HttpRequest](#gitlab-agent-prototool-HttpRequest)
     - [HttpRequest.HeaderEntry](#gitlab-agent-prototool-HttpRequest-HeaderEntry)
     - [HttpRequest.QueryEntry](#gitlab-agent-prototool-HttpRequest-QueryEntry)
@@ -15,10 +15,10 @@
 
 
 
-<a name="internal_tool_prototool_prototool-proto"></a>
+<a name="pkg_tool_prototool_prototool-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/tool/prototool/prototool.proto
+## pkg/tool/prototool/prototool.proto
 
 
 

@@ -4,10 +4,10 @@ syntax = "proto3";
 
 package gitlab.agent.grpctool;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool";
 
-import "internal/tool/grpctool/automata/automata.proto";
-import "internal/tool/prototool/prototool.proto";
+import "pkg/tool/grpctool/automata/automata.proto";
+import "pkg/tool/prototool/prototool.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 import "google/protobuf/any.proto";

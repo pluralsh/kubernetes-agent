@@ -9,10 +9,10 @@
 package mock_k8s
 
 import (
-	"reflect"
-	"time"
+	reflect "reflect"
+	time "time"
 
-	"go.uber.org/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRateLimitingWorkqueue is a mock of RateLimitingInterface interface.

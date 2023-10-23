@@ -6,8 +6,8 @@ package gitlab.agent.kas;
 
 option go_package = "github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp";
 
-import "internal/tool/grpctool/automata/automata.proto";
-import "internal/tool/prototool/prototool.proto";
+import "pkg/tool/grpctool/automata/automata.proto";
+import "pkg/tool/prototool/prototool.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 // https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto

@@ -9,12 +9,12 @@
 package mock_k8s
 
 import (
-	"reflect"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
+	gomock "go.uber.org/mock/gomock"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	discovery "k8s.io/client-go/discovery"
+	rest "k8s.io/client-go/rest"
 )
 
 // MockRESTClientGetter is a mock of RESTClientGetter interface.

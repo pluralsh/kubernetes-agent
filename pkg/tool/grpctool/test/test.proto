@@ -4,9 +4,9 @@ syntax = "proto3";
 
 package gitlab.agent.grpctool.test;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/automata/test";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/automata/test";
 
-import "internal/tool/grpctool/automata/automata.proto";
+import "pkg/tool/grpctool/automata/automata.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 

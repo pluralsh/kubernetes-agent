@@ -9,16 +9,15 @@
 package mock_modserver
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"go.uber.org/zap"
-
-	"github.com/pluralsh/kuberentes-agent/pkg/event"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/syncz"
+	event "github.com/pluralsh/kuberentes-agent/pkg/event"
+	modserver "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	modshared "github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	syncz "github.com/pluralsh/kuberentes-agent/pkg/tool/syncz"
+	gomock "go.uber.org/mock/gomock"
+	zap "go.uber.org/zap"
 )
 
 // MockApi is a mock of Api interface.

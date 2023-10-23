@@ -9,11 +9,11 @@
 package mock_stdlib
 
 import (
-	"net"
-	"reflect"
-	"time"
+	net "net"
+	reflect "reflect"
+	time "time"
 
-	"go.uber.org/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockConn is a mock of Conn interface.

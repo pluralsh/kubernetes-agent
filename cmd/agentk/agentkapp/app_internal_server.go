@@ -60,12 +60,12 @@ func newInternalServer(log *zap.Logger, tp trace.TracerProvider, mp otelmetric.M
 			grpc.StatsHandler(grpctool2.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.SharedWriteBuffer(true),
 			grpc.ChainStreamInterceptor(
-				streamProm,                                 // 1. measure all invocations
+				streamProm, // 1. measure all invocations
 				modagent2.StreamRpcApiInterceptor(factory), // 2. inject RPC API
 				grpc_validator.StreamServerInterceptor(),   // x. wrap with validator
 			),
 			grpc.ChainUnaryInterceptor(
-				unaryProm,                                 // 1. measure all invocations
+				unaryProm, // 1. measure all invocations
 				modagent2.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
 				grpc_validator.UnaryServerInterceptor(),   // x. wrap with validator
 			),

@@ -9,12 +9,12 @@
 package mock_rpc
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	gomock "go.uber.org/mock/gomock"
+	grpc "google.golang.org/grpc"
+	metadata "google.golang.org/grpc/metadata"
 )
 
 // MockServerStream is a mock of ServerStream interface.

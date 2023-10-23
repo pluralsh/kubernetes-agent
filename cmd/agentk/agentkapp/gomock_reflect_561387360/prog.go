@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -10,7 +11,7 @@ import (
 
 	"go.uber.org/mock/mockgen/model"
 
-	pkg_ "github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	pkg_ "github.com/pluralsh/kuberentes-agent/cmd/agentk/agentkapp"
 )
 
 var output = flag.String("output", "", "The output file name, or empty to use stdout.")
@@ -18,22 +19,21 @@ var output = flag.String("output", "", "The output file name, or empty to use st
 func main() {
 	flag.Parse()
 
-	its := []struct {
+	its := []struct{
 		sym string
 		typ reflect.Type
 	}{
-
-		{"Api", reflect.TypeOf((*pkg_.Api)(nil)).Elem()},
-
-		{"Factory", reflect.TypeOf((*pkg_.Factory)(nil)).Elem()},
-
-		{"Module", reflect.TypeOf((*pkg_.Module)(nil)).Elem()},
+		
+		{ "Runner", reflect.TypeOf((*pkg_.Runner)(nil)).Elem()},
+		
+		{ "LeaderElector", reflect.TypeOf((*pkg_.LeaderElector)(nil)).Elem()},
+		
 	}
 	pkg := &model.Package{
 		// NOTE: This behaves contrary to documented behaviour if the
 		// package name is not the final component of the import path.
 		// The reflect package doesn't expose the package name, though.
-		Name: path.Base("github.com/pluralsh/kuberentes-agent/internal/module/modagent"),
+		Name: path.Base("github.com/pluralsh/kuberentes-agent/cmd/agentk/agentkapp"),
 	}
 
 	for _, it := range its {

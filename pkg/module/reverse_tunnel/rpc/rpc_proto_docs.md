@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [internal/module/reverse_tunnel/rpc/rpc.proto](#internal_module_reverse_tunnel_rpc_rpc-proto)
+- [pkg/module/reverse_tunnel/rpc/rpc.proto](#pkg_module_reverse_tunnel_rpc_rpc-proto)
     - [CloseSend](#gitlab-agent-reverse_tunnel-rpc-CloseSend)
     - [ConnectRequest](#gitlab-agent-reverse_tunnel-rpc-ConnectRequest)
     - [ConnectResponse](#gitlab-agent-reverse_tunnel-rpc-ConnectResponse)
@@ -23,10 +23,10 @@
 
 
 
-<a name="internal_module_reverse_tunnel_rpc_rpc-proto"></a>
+<a name="pkg_module_reverse_tunnel_rpc_rpc-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## internal/module/reverse_tunnel/rpc/rpc.proto
+## pkg/module/reverse_tunnel/rpc/rpc.proto
 
 
 

@@ -4,9 +4,9 @@ syntax = "proto3";
 
 package gitlab.agent.kubernetes_api.rpc;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/rpc";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc";
 
-import "internal/tool/grpctool/grpctool.proto";
+import "pkg/tool/grpctool/grpctool.proto";
 
 service KubernetesApi {
   // MakeRequest allows to make a HTTP request to Kubernetes API.

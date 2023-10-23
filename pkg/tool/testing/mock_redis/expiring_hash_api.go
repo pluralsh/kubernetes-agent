@@ -9,12 +9,11 @@
 package mock_redis
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"go.uber.org/mock/gomock"
-
-	redistool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	redistool "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockExpiringHashApi is a mock of ExpiringHashApi interface.
@@ -41,7 +40,7 @@ func (m *MockExpiringHashApi[K1, K2]) EXPECT() *MockExpiringHashApiMockRecorder[
 }
 
 // Scan mocks base method.
-func (m *MockExpiringHashApi[K1, K2]) Scan(ctx context.Context, key K1, cb redistool2.ScanCallback) (int, error) {
+func (m *MockExpiringHashApi[K1, K2]) Scan(ctx context.Context, key K1, cb redistool.ScanCallback) (int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Scan", ctx, key, cb)
 	ret0, _ := ret[0].(int)
@@ -68,22 +67,22 @@ func (c *ExpiringHashApiScanCall[K1, K2]) Return(arg0 int, arg1 error) *Expiring
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *ExpiringHashApiScanCall[K1, K2]) Do(f func(context.Context, K1, redistool2.ScanCallback) (int, error)) *ExpiringHashApiScanCall[K1, K2] {
+func (c *ExpiringHashApiScanCall[K1, K2]) Do(f func(context.Context, K1, redistool.ScanCallback) (int, error)) *ExpiringHashApiScanCall[K1, K2] {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *ExpiringHashApiScanCall[K1, K2]) DoAndReturn(f func(context.Context, K1, redistool2.ScanCallback) (int, error)) *ExpiringHashApiScanCall[K1, K2] {
+func (c *ExpiringHashApiScanCall[K1, K2]) DoAndReturn(f func(context.Context, K1, redistool.ScanCallback) (int, error)) *ExpiringHashApiScanCall[K1, K2] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SetBuilder mocks base method.
-func (m *MockExpiringHashApi[K1, K2]) SetBuilder() redistool2.SetBuilder[K1, K2] {
+func (m *MockExpiringHashApi[K1, K2]) SetBuilder() redistool.SetBuilder[K1, K2] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetBuilder")
-	ret0, _ := ret[0].(redistool2.SetBuilder[K1, K2])
+	ret0, _ := ret[0].(redistool.SetBuilder[K1, K2])
 	return ret0
 }
 
@@ -100,19 +99,19 @@ type ExpiringHashApiSetBuilderCall[K1 any, K2 any] struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *ExpiringHashApiSetBuilderCall[K1, K2]) Return(arg0 redistool2.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
+func (c *ExpiringHashApiSetBuilderCall[K1, K2]) Return(arg0 redistool.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *ExpiringHashApiSetBuilderCall[K1, K2]) Do(f func() redistool2.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
+func (c *ExpiringHashApiSetBuilderCall[K1, K2]) Do(f func() redistool.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *ExpiringHashApiSetBuilderCall[K1, K2]) DoAndReturn(f func() redistool2.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
+func (c *ExpiringHashApiSetBuilderCall[K1, K2]) DoAndReturn(f func() redistool.SetBuilder[K1, K2]) *ExpiringHashApiSetBuilderCall[K1, K2] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -3,7 +3,7 @@ package mock_stdlib
 
 import "net/http"
 
-//go:generate mockgen.sh -destination "net_http_custom.go" -package "mock_stdlib" "github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib" "ResponseWriterFlusher"
+//go:generate mockgen.sh -destination "net_http_custom.go" -package "mock_stdlib" "github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_stdlib" "ResponseWriterFlusher"
 
 //go:generate mockgen.sh -destination "net.go" -package "mock_stdlib" "net" "Conn"
 
