@@ -1,4 +1,7 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
+
+# Exit on error
+set -e
 
 ROOT_DIR="$(cd $(dirname "${BASH_SOURCE}")/.. && pwd -P)"
 
@@ -81,11 +84,6 @@ function plrl::protoc::generate() {
   for proto in ${files}; do
     local baseDir="${proto%/*}"
     local filename="${proto##*/}"
-
-    echo "Generating Go file: ${filename%.*}.pb.go"
-    echo "Generating Go GRPC file: ${filename%.*}_grpc.pb.go"
-    echo "Generating Go validate file: ${filename%.*}.validate.pb.go"
-    echo "Generating Markdown docs file: ${filename%.*}_proto_docs.md"
 
     protoc \
       -I"${ROOT_DIR}" \

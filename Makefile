@@ -4,7 +4,7 @@ include $(ROOT_DIRECTORY)/build/include/config.mk
 include $(ROOT_DIRECTORY)/build/include/deploy.mk
 include $(ROOT_DIRECTORY)/build/include/tools.mk
 
-MAKEFLAGS += -j2
+#MAKEFLAGS += -j2
 
 # List of targets that should be executed before other targets
 PRE = --ensure
@@ -90,7 +90,7 @@ docker-agentk-debug: --image-debug ## build docker agentk debug image with embed
 ##@ Codegen
 
 .PHONY: codegen
-codegen: --mocks --protoc ## regenerate protobuf and mocks
+codegen: codegen-delete --protoc --mocks ## regenerate protobuf and mocks
 
 .PHONY: codegen-delete
 codegen-delete: ## delete generated files
@@ -98,6 +98,7 @@ codegen-delete: ## delete generated files
 	find . -name '*.pb.validate.go' -type f -delete
 	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
 	find . -name '*_proto_docs.md' -type f -delete
+	find . -empty -type d -delete
 
 .PHONY: --protoc
 --protoc:
