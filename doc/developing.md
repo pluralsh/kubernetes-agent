@@ -64,55 +64,6 @@ You can run `kas` and `agentk` locally to test the Agent yourself.
 You can also inspect the [Makefile](../Makefile) for more targets. You can run `kas` and/or `agentk` from your
 editor too. Just make sure to setup
 
-## Run tests locally
-
-You can run all tests, or a subset of tests, locally.
-
-- **To run all tests**: Run the command `make test`.
-- **To run all test targets in the directory**: Run the command
-  `bazel test //internal/module/gitops/server:all`.
-
-  You can use `*` in the command, instead of `all`, but it must be quoted to
-  avoid shell expansion: `bazel test '//internal/module/gitops/server:*'`.
-- **To run all tests in a directory and its subdirectories**: Run the command
-  `bazel test //internal/module/gitops/server/...`.
-
-### Run specific test scenarios
-
-To run only a specific test scenario, you need the directory name and the target
-name of the test. For example, to run the tests at
-`internal/module/gitops/server/module_test.go`, the `BUILD.bazel` file that
-defines the test's target name lives at `internal/module/gitops/server/BUILD.bazel`.
-In the latter, the target name is defined like:
-
-```bazel
-go_test(
-    name = "server_test",
-    size = "small",
-    srcs = [
-        "module_test.go",
-```
-
-The target name is `server_test` and the directory is `internal/module/gitops/server/`.
-Run the test scenario with this command:
-
-```shell
-bazel test //internal/module/gitops/server:server_test
-```
-To run the tests in `internal/tool/redistool` locally, `REDIS_URL` environment variable needs to be set, otherwise they are skipped. So the skip is silent if one does not add `-v` to the test execution.
-Run the tests with verbosity enabled:
-
-```shell
-go test -v internal/tool/redistool
-```
-Run the tests with `REDIS_URL` set:
-
-```shell
-export REDIS_URL=redis://localhost:6379
-# export REDIS_URL=unix:/path/to/socket.sock
-go test internal/tool/redistool
-```
-
 ### Additional resources
 
 - Bazel documentation about [specifying targets to build](https://docs.bazel.build/versions/master/guide.html#specifying-targets-to-build).
@@ -289,7 +240,7 @@ startup --output_user_root=/Volumes/ramdisk
 
 ## Ruby gRPC interface
 
-In `pkg/ruby` we generate Ruby gRPC types intended to be used by GitLab to interact with KAS. 
+In `pkg/ruby` we generate Ruby gRPC types intended to be used by GitLab to interact with KAS.
 The following sections outline how to build a test that generated Ruby code in the context of GDK.
 
 ### Build
