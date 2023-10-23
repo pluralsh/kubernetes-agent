@@ -184,69 +184,6 @@ func (x *KubernetesVersion) GetPlatform() string {
 	return ""
 }
 
-type GitalyInfo struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address  string            `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Token    string            `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	Features map[string]string `protobuf:"bytes,3,rep,name=features,proto3" json:"features,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-}
-
-func (x *GitalyInfo) Reset() {
-	*x = GitalyInfo{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_entity_entity_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GitalyInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GitalyInfo) ProtoMessage() {}
-
-func (x *GitalyInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_entity_entity_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GitalyInfo.ProtoReflect.Descriptor instead.
-func (*GitalyInfo) Descriptor() ([]byte, []int) {
-	return file_pkg_entity_entity_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GitalyInfo) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-func (x *GitalyInfo) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *GitalyInfo) GetFeatures() map[string]string {
-	if x != nil {
-		return x.Features
-	}
-	return nil
-}
-
 // Modified copy of Gitaly's https://gitlab.com/gitlab-org/gitaly/-/blob/55cb537898bce04e5e44be074a4d3d441e1f62b6/proto/shared.proto#L25
 // Was copied to avoid exposing Gitaly type in the API and forcing the consumer to have a dependency on Gitaly.
 type GitalyRepository struct {

@@ -4,8 +4,6 @@ import (
 	"crypto/sha256"
 
 	"go.opentelemetry.io/otel/attribute"
-
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 )
 
 const (
@@ -25,15 +23,13 @@ type AgentInfo struct {
 
 	// Name is the agent's name.
 	// Can contain only /a-z\d-/
-	Name       string
-	GitalyInfo *entity.GitalyInfo
+	Name string
 	// DefaultBranch is the name of the default branch in the agent's configuration repository.
 	DefaultBranch string
 }
 
 type ProjectInfo struct {
-	ProjectId  int64
-	GitalyInfo *entity.GitalyInfo
+	ProjectId int64
 	// DefaultBranch is the name of the default branch in a repository.
 	DefaultBranch string
 }

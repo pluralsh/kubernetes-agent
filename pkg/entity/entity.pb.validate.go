@@ -281,50 +281,6 @@ var _ interface {
 	ErrorName() string
 } = KubernetesVersionValidationError{}
 
-// Validate checks the field values on GitalyInfo with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *GitalyInfo) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on GitalyInfo with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in GitalyInfoMultiError, or
-// nil if none found.
-func (m *GitalyInfo) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *GitalyInfo) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	if len(m.GetAddress()) < 1 {
-		err := GitalyInfoValidationError{
-			field:  "Address",
-			reason: "value length must be at least 1 bytes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	// no validation rules for Token
-
-	// no validation rules for Features
-
-	if len(errors) > 0 {
-		return GitalyInfoMultiError(errors)
-	}
-
-	return nil
-}
-
 // GitalyInfoMultiError is an error wrapping multiple validation errors
 // returned by GitalyInfo.ValidateAll() if the designated constraints aren't met.
 type GitalyInfoMultiError []error
