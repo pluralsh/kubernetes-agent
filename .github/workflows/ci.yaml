@@ -19,7 +19,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: TARGET_DIRECTORY=. make build-kas
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-kas
   build-agentk:
     name: Build agentk
     runs-on: ubuntu-latest
@@ -29,7 +29,27 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: TARGET_DIRECTORY=. make build-agentk
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-agentk
+  image-kas:
+    name: Build kas image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-kas
+  image-agentk:
+    name: Build agentk image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-agentk
   test:
     name: Unit test
     runs-on: ubuntu-latest
@@ -39,7 +59,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make test
+      - run: PATH=$PATH:$GOPATH/bin make test
   lint:
     name: Lint
     runs-on: ubuntu-latest
