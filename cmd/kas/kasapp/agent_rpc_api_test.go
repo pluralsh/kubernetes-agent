@@ -16,20 +16,20 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_cache"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	modshared2 "github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_cache"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
 )
 
 var (
-	_ modserver.RpcApi             = (*serverRpcApi)(nil)
-	_ modserver.RpcApiFactory      = (*serverRpcApiFactory)(nil).New
-	_ modserver.AgentRpcApi        = (*serverAgentRpcApi)(nil)
-	_ modserver.AgentRpcApiFactory = (*serverAgentRpcApiFactory)(nil).New
+	_ modserver2.RpcApi             = (*serverRpcApi)(nil)
+	_ modserver2.RpcApiFactory      = (*serverRpcApiFactory)(nil).New
+	_ modserver2.AgentRpcApi        = (*serverAgentRpcApi)(nil)
+	_ modserver2.AgentRpcApiFactory = (*serverAgentRpcApiFactory)(nil).New
 )
 
 func TestGetAgentInfo_Errors(t *testing.T) {
@@ -74,7 +74,7 @@ func TestGetAgentInfo_Errors(t *testing.T) {
 				hub.EXPECT().
 					CaptureEvent(gomock.Any()).
 					Do(func(event *sentry.Event) *sentry.EventID {
-						assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
+						assert.Equal(t, traceId.String(), event.Tags[modserver2.SentryFieldTraceId])
 						assert.Empty(t, event.User.ID)
 						assert.Equal(t, sentry.LevelError, event.Level)
 						assert.Equal(t, "*gitlab.ClientError", event.Exception[0].Type)
@@ -101,7 +101,7 @@ func TestRpcHandleProcessingError_NonUserError_AgentId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) *sentry.EventID {
-			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
+			assert.Equal(t, traceId.String(), event.Tags[modserver2.SentryFieldTraceId])
 			assert.Equal(t, strconv.FormatInt(testhelpers.AgentId, 10), event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
@@ -117,14 +117,14 @@ func TestRpcHandleProcessingError_NonUserError_NoAgentId(t *testing.T) {
 	hub.EXPECT().
 		CaptureEvent(gomock.Any()).
 		Do(func(event *sentry.Event) *sentry.EventID {
-			assert.Equal(t, traceId.String(), event.Tags[modserver.SentryFieldTraceId])
+			assert.Equal(t, traceId.String(), event.Tags[modserver2.SentryFieldTraceId])
 			assert.Empty(t, event.User.ID)
 			assert.Equal(t, sentry.LevelError, event.Level)
 			assert.Equal(t, "*errors.errorString", event.Exception[0].Type)
 			assert.Equal(t, "Bla: boom", event.Exception[0].Value)
 			return nil
 		})
-	rpcApi.HandleProcessingError(log, modshared.NoAgentId, "Bla", err)
+	rpcApi.HandleProcessingError(log, modshared2.NoAgentId, "Bla", err)
 }
 
 func setupAgentRpcApi(t *testing.T, _ int) (context.Context, *zap.Logger, *MockSentryHub, *serverAgentRpcApi, trace.TraceID) {
@@ -134,7 +134,7 @@ func setupAgentRpcApi(t *testing.T, _ int) (context.Context, *zap.Logger, *MockS
 	errCacher := mock_cache.NewMockErrCacher[api.AgentToken](ctrl)
 	ctx, traceId := testhelpers.CtxWithSpanContext(t)
 	sra := &serverRpcApi{
-		RpcApiStub: modshared.RpcApiStub{
+		RpcApiStub: modshared2.RpcApiStub{
 			Logger:    log,
 			StreamCtx: ctx,
 		},

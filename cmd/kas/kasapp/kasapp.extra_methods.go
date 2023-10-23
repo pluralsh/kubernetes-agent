@@ -1,8 +1,9 @@
 package kasapp
 
 import (
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
 )
 
 func (x *GatewayKasResponse_Header) Metadata() metadata.MD {

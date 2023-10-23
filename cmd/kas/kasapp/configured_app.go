@@ -15,7 +15,32 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/plural"
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
+	gapi "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
+	agent_registrar_server "github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar/server"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_tracker"
+	agent_tracker_server "github.com/pluralsh/kuberentes-agent/pkg/module/agent_tracker/server"
+	kubernetes_api_server "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/server"
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
+	observability_server "github.com/pluralsh/kuberentes-agent/pkg/module/observability/server"
+	reverse_tunnel_server "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/server"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/metric"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	redistool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/redis/rueidis"
@@ -37,29 +62,6 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 
 	"github.com/pluralsh/kuberentes-agent/cmd"
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	gapi "github.com/pluralsh/kuberentes-agent/internal/gitlab/api"
-	agent_registrar_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker"
-	agent_tracker_server "github.com/pluralsh/kuberentes-agent/internal/module/agent_tracker/server"
-	kubernetes_api_server "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
-	observability_server "github.com/pluralsh/kuberentes-agent/internal/module/observability/server"
-	reverse_tunnel_server "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/server"
-	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/module/usage_metrics"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
 	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 )
@@ -93,8 +95,8 @@ type ConfiguredApp struct {
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
-	csh := grpctool.NewClientRequestsInFlightStatsHandler()
+	ssh := grpctool2.NewServerRequestsInFlightStatsHandler()
+	csh := grpctool2.NewClientRequestsInFlightStatsHandler()
 	goCollector := collectors.NewGoCollector()
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
@@ -219,7 +221,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Module factories
-	factories := []modserver.Factory{
+	factories := []modserver2.Factory{
 		&observability_server.Factory{
 			Gatherer: reg,
 		},
@@ -239,12 +241,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&kubernetes_api_server.Factory{},
 	}
 
-	var beforeServersModules, afterServersModules []modserver.Module
+	var beforeServersModules, afterServersModules []modserver2.Module
 	for _, factory := range factories {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
 		moduleName := factory.Name()
-		module, err := factory.New(&modserver.Config{
+		module, err := factory.New(&modserver2.Config{
 			Log:              a.Log.With(logz.ModuleName(moduleName)),
 			Api:              srvApi,
 			Config:           a.Configuration,
@@ -307,7 +309,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	)
 }
 
-func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver.RpcApiFactory, modserver.AgentRpcApiFactory) {
+func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, sentryHub *sentry.Hub, redisClient rueidis.Client, dt trace.Tracer) (modserver2.RpcApiFactory, modserver2.AgentRpcApiFactory) {
 	aCfg := a.Configuration.Agent
 	f := serverRpcApiFactory{
 		log:       a.Log,
@@ -318,7 +320,7 @@ func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, se
 		AgentInfoCache: cache.NewWithError[api.AgentToken, *api.AgentInfo](
 			aCfg.InfoCacheTtl.AsDuration(),
 			aCfg.InfoCacheErrorTtl.AsDuration(),
-			&redistool.ErrCacher[api.AgentToken]{
+			&redistool2.ErrCacher[api.AgentToken]{
 				Log:          a.Log,
 				ErrRep:       errRep,
 				Client:       redisClient,
@@ -415,7 +417,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 		SelectDB:         int(cfg.DatabaseIndex),
 	}
 	if cfg.Network == "unix" {
-		opts.DialFn = redistool.UnixDialer
+		opts.DialFn = redistool2.UnixDialer
 	}
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
@@ -554,7 +556,7 @@ func (a *ConfiguredApp) isTracingEnabled() bool {
 	return a.Configuration.Observability.Tracing != nil
 }
 
-func startModules(stage stager.Stage, modules []modserver.Module) {
+func startModules(stage stager.Stage, modules []modserver2.Module) {
 	for _, module := range modules {
 		module := module // closure captures the right variable
 		stage.Go(func(ctx context.Context) error {
@@ -618,11 +620,11 @@ func kasServerName() string {
 }
 
 var (
-	_ redistool.RpcApi = (*tokenLimiterApi)(nil)
+	_ redistool2.RpcApi = (*tokenLimiterApi)(nil)
 )
 
 type tokenLimiterApi struct {
-	rpcApi modserver.AgentRpcApi
+	rpcApi modserver2.AgentRpcApi
 }
 
 func (a *tokenLimiterApi) Log() *zap.Logger {
@@ -638,7 +640,7 @@ func (a *tokenLimiterApi) RequestKey() []byte {
 }
 
 var (
-	_ grpctool.ServerErrorReporter = (*serverErrorReporter)(nil)
+	_ grpctool2.ServerErrorReporter = (*serverErrorReporter)(nil)
 )
 
 // serverErrorReporter implements the grpctool.ServerErrorReporter interface

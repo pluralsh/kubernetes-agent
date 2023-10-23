@@ -2,18 +2,19 @@ package fake
 
 import (
 	"context"
+
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
-	fake "github.com/pluralsh/kuberentes-agent/internal/fake/api"
 	"go.uber.org/zap"
 
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
+	fake "github.com/pluralsh/kuberentes-agent/pkg/fake/api"
+	"github.com/pluralsh/kuberentes-agent/pkg/gitlab"
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 )
 
 type ServerAgentRpcApi struct {
-	modserver.RpcApi
+	modserver2.RpcApi
 	Token          api.AgentToken
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 }
@@ -33,11 +34,11 @@ func (a *ServerAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentI
 }
 
 type ServerAgentRpcApiFactory struct {
-	RPCApiFactory  modserver.RpcApiFactory
+	RPCApiFactory  modserver2.RpcApiFactory
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 }
 
-func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver.AgentRpcApi, error) {
+func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver2.AgentRpcApi, error) {
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
 		return nil, err

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

@@ -1,11 +1,12 @@
 package agentkapp
 
 import (
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.uber.org/zap"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
 )
 
 var (

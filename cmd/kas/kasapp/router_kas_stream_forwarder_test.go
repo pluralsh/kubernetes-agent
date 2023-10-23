@@ -6,16 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
 )
 
 func TestStreamForwarder_ErrorFromRecvOnSendEof(t *testing.T) {

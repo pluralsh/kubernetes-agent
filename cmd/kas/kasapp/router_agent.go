@@ -5,14 +5,15 @@ import (
 	"strings"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
 	"go.uber.org/zap"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
 )
 
 func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerStream) error {
@@ -32,7 +33,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 	)
 	ctx = wrappedStream.WrappedContext
 	stream = wrappedStream
-	rpcApi := modserver.RpcApiFromContext(ctx)
+	rpcApi := modserver2.RpcApiFromContext(ctx)
 	log := rpcApi.Log().With(logz.AgentId(agentId))
 	tunnelFound, findHandle := r.tunnelFinder.FindTunnel(ctx, agentId, service, method)
 	defer findHandle.Done(ctx)
@@ -74,7 +75,7 @@ func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerSt
 func removeHopMeta(md metadata.MD) metadata.MD {
 	md = md.Copy()
 	for k := range md {
-		if strings.HasPrefix(k, modserver.RoutingHopPrefix) {
+		if strings.HasPrefix(k, modserver2.RoutingHopPrefix) {
 			delete(md, k)
 		}
 	}
@@ -83,11 +84,11 @@ func removeHopMeta(md metadata.MD) metadata.MD {
 
 type wrappingCallback struct {
 	log    *zap.Logger
-	rpcApi modserver.RpcApi
+	rpcApi modserver2.RpcApi
 	stream grpc.ServerStream
 }
 
-func newWrappingCallback(log *zap.Logger, rpcApi modserver.RpcApi, stream grpc.ServerStream) *wrappingCallback {
+func newWrappingCallback(log *zap.Logger, rpcApi modserver2.RpcApi, stream grpc.ServerStream) *wrappingCallback {
 	return &wrappingCallback{
 		log:    log,
 		rpcApi: rpcApi,

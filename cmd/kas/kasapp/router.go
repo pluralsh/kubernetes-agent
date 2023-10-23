@@ -4,17 +4,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	tunnel2 "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/metric"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
 )
 
 const (
@@ -34,9 +35,9 @@ type kasRouter interface {
 // router routes traffic from kas to another kas to agentk.
 // routing kas -> gateway kas -> agentk
 type router struct {
-	kasPool          grpctool.PoolInterface
-	tunnelQuerier    tunnel.PollingQuerier
-	tunnelFinder     tunnel.Finder
+	kasPool          grpctool2.PoolInterface
+	tunnelQuerier    tunnel2.PollingQuerier
+	tunnelFinder     tunnel2.Finder
 	ownPrivateApiUrl string
 	pollConfig       retry.PollConfigFactory
 	// internalServer is the internal gRPC server for use inside of kas.
@@ -45,7 +46,7 @@ type router struct {
 	// privateApiServer is the gRPC server that other kas instances can talk to.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	privateApiServer          grpc.ServiceRegistrar
-	gatewayKasVisitor         *grpctool.StreamVisitor
+	gatewayKasVisitor         *grpctool2.StreamVisitor
 	tracer                    trace.Tracer
 	kasRoutingDurationSuccess prometheus.Observer
 	kasRoutingDurationAborted prometheus.Observer
@@ -54,11 +55,11 @@ type router struct {
 	tryNewKasInterval         time.Duration
 }
 
-func newRouter(kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
-	tunnelFinder tunnel.Finder, ownPrivateApiUrl string,
+func newRouter(kasPool grpctool2.PoolInterface, tunnelQuerier tunnel2.PollingQuerier,
+	tunnelFinder tunnel2.Finder, ownPrivateApiUrl string,
 	internalServer, privateApiServer grpc.ServiceRegistrar,
 	pollConfig retry.PollConfigFactory, tp trace.TracerProvider, registerer prometheus.Registerer) (*router, error) {
-	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	gatewayKasVisitor, err := grpctool2.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
 		return nil, err
 	}

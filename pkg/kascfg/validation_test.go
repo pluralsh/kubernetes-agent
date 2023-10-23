@@ -3,8 +3,9 @@ package kascfg
 import (
 	"testing"
 
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
 )
 
 func TestValidation_Valid(t *testing.T) {

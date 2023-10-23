@@ -7,16 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_reverse_tunnel_tunnel"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
 )
 
 const (
@@ -35,7 +36,7 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), selfAddr).
-			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
 				return nil, ctx.Err()
@@ -59,7 +60,7 @@ func TestTunnelFinder_PollStartsSingleGoroutineForUrl(t *testing.T) {
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), kasUrlPipe).
-			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
 				return nil, ctx.Err()
@@ -86,7 +87,7 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), selfAddr).
-			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
 				return nil, ctx.Err()
@@ -108,14 +109,14 @@ func TestTunnelFinder_PollStartsGoroutineForEachUrl(t *testing.T) {
 	)
 	kasPool.EXPECT().
 		Dial(gomock.Any(), kasUrlPipe).
-		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 			wg.Done()
 			<-ctx.Done() // block to simulate a long running dial
 			return nil, ctx.Err()
 		})
 	kasPool.EXPECT().
 		Dial(gomock.Any(), "grpc://pipe2").
-		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 			wg.Done()
 			<-ctx.Done() // block to simulate a long running dial
 			return nil, ctx.Err()
@@ -142,7 +143,7 @@ func TestTunnelFinder_StopTryingAbsentKasUrl(t *testing.T) {
 	gomock.InOrder(
 		kasPool.EXPECT().
 			Dial(gomock.Any(), selfAddr).
-			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+			DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 				wg.Done()
 				<-ctx.Done() // block to simulate a long running dial
 				return nil, ctx.Err()
@@ -164,7 +165,7 @@ func TestTunnelFinder_StopTryingAbsentKasUrl(t *testing.T) {
 	)
 	kasPool.EXPECT().
 		Dial(gomock.Any(), kasUrlPipe).
-		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool.PoolConn, error) {
+		DoAndReturn(func(ctx context.Context, targetUrl string) (grpctool2.PoolConn, error) {
 			defer wg.Done()
 			tf.mu.Lock()
 			defer tf.mu.Unlock()
@@ -186,7 +187,7 @@ func setupTunnelFinder(ctx context.Context, t *testing.T) (*tunnelFinder, *mock_
 	rpcApi := mock_modserver.NewMockRpcApi(ctrl)
 	kasPool := mock_rpc.NewMockPoolInterface(ctrl)
 
-	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	gatewayKasVisitor, err := grpctool2.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
 
 	tf := newTunnelFinder(

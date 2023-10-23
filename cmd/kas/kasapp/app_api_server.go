@@ -8,12 +8,14 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/ioz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/ioz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -35,7 +37,7 @@ type apiServer struct {
 func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.TracerProvider, mp otelmetric.MeterProvider,
 	p propagation.TextMapPropagator, ssh stats.Handler, factory modserver.RpcApiFactory,
 	probeRegistry *observability.ProbeRegistry, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
-	grpcServerErrorReporter grpctool.ServerErrorReporter) (*apiServer, error) {
+	grpcServerErrorReporter grpctool2.ServerErrorReporter) (*apiServer, error) {
 	listenCfg := cfg.Api.Listen
 	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
@@ -46,12 +48,12 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 		return nil, err
 	}
 
-	jwtAuther := grpctool.NewJWTAuther(jwtSecret, "", kasName, func(ctx context.Context) *zap.Logger {
+	jwtAuther := grpctool2.NewJWTAuther(jwtSecret, "", kasName, func(ctx context.Context) *zap.Logger {
 		return modserver.RpcApiFromContext(ctx).Log()
 	})
 
 	auxCtx, auxCancel := context.WithCancel(context.Background())
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
+	keepaliveOpt, sh := grpctool2.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),
@@ -67,14 +69,14 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 			modserver.StreamRpcApiInterceptor(factory), // 2. inject RPC API
 			jwtAuther.StreamServerInterceptor,          // 3. auth and maybe log
 			grpc_validator.StreamServerInterceptor(),   // x. wrap with validator
-			grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
+			grpctool2.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.ChainUnaryInterceptor(
 			unaryProm, // 1. measure all invocations
 			modserver.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
 			jwtAuther.UnaryServerInterceptor,          // 3. auth and maybe log
 			grpc_validator.UnaryServerInterceptor(),   // x. wrap with validator
-			grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
+			grpctool2.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
@@ -95,7 +97,7 @@ func newApiServer(log *zap.Logger, cfg *kascfg.ConfigurationFile, tp trace.Trace
 }
 
 func (s *apiServer) Start(stage stager.Stage) {
-	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
+	grpctool2.StartServer(stage, s.server, func() (net.Listener, error) {
 		lis, err := net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
 		if err != nil {
 			return nil, err

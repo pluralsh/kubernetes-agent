@@ -11,14 +11,16 @@ import (
 	"unsafe"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/syncz"
+
 	"github.com/pluralsh/kuberentes-agent/pkg/event"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/syncz"
+
 	"github.com/redis/rueidis"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"

@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	"github.com/ash2k/stager"
-	agent_configuration_rpc "github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
+
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	agent_configuration_rpc "github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/rpc"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	logz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+
 	"go.uber.org/zap"
 )
 
@@ -86,7 +88,7 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 		err := r.applyConfiguration(data.CommitId, data.Config)
 		if err != nil {
 			if !errz.ContextDone(err) {
-				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), logz.Error(err))
+				r.log.Error("Failed to apply configuration", logz2.CommitId(data.CommitId), logz2.Error(err))
 			}
 			return
 		}
@@ -95,7 +97,7 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 }
 
 func (r *moduleRunner) applyConfiguration(commitId string, config *agentcfg.AgentConfiguration) error {
-	r.log.Debug("Applying configuration", logz.CommitId(commitId), logz.ProtoJsonValue(logz.AgentConfig, config))
+	r.log.Debug("Applying configuration", logz2.CommitId(commitId), logz2.ProtoJsonValue(logz2.AgentConfig, config))
 	// Default and validate before setting for use.
 	for _, holder := range r.holders {
 		err := holder.module.DefaultAndValidateConfiguration(config)

@@ -3,25 +3,26 @@ package kasapp
 import (
 	"context"
 	"errors"
-	fake "github.com/pluralsh/kuberentes-agent/internal/fake/api"
 	"sync"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/gitlab"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
+	fake "github.com/pluralsh/kuberentes-agent/pkg/fake/api"
+	gitlab2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab"
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 )
 
 type serverAgentRpcApi struct {
-	modserver.RpcApi
+	modserver2.RpcApi
 	Token           api.AgentToken
-	GitLabClient    gitlab.ClientInterface
+	GitLabClient    gitlab2.ClientInterface
 	AgentInfoCache  *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 	agentIdAttrOnce sync.Once
 }
@@ -42,11 +43,11 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 		err = status.Error(codes.Canceled, err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		err = status.Error(codes.DeadlineExceeded, err.Error())
-	case gitlab.IsForbidden(err):
+	case gitlab2.IsForbidden(err):
 		err = status.Error(codes.PermissionDenied, "forbidden")
-	case gitlab.IsUnauthorized(err):
+	case gitlab2.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
-	case gitlab.IsNotFound(err):
+	case gitlab2.IsNotFound(err):
 		err = status.Error(codes.NotFound, "agent not found")
 	default:
 		a.HandleProcessingError(log, modshared.NoAgentId, "AgentInfo()", err)
@@ -57,17 +58,17 @@ func (a *serverAgentRpcApi) AgentInfo(ctx context.Context, log *zap.Logger) (*ap
 
 func (a *serverAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentInfo, error) {
 	return a.AgentInfoCache.GetItem(ctx, a.Token, func() (*api.AgentInfo, error) {
-		return fake.GetAgentInfo(ctx, a.Token, gitlab.WithoutRetries())
+		return fake.GetAgentInfo(ctx, a.Token, gitlab2.WithoutRetries())
 	})
 }
 
 type serverAgentRpcApiFactory struct {
-	rpcApiFactory  modserver.RpcApiFactory
-	gitLabClient   gitlab.ClientInterface
+	rpcApiFactory  modserver2.RpcApiFactory
+	gitLabClient   gitlab2.ClientInterface
 	agentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 }
 
-func (f *serverAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver.AgentRpcApi, error) {
+func (f *serverAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver2.AgentRpcApi, error) {
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
 		return nil, err

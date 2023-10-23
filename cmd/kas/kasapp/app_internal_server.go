@@ -5,15 +5,16 @@ import (
 	"net"
 
 	"github.com/ash2k/stager"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/observability"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
 )
 
 type internalServer struct {
@@ -25,10 +26,10 @@ type internalServer struct {
 
 func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator,
 	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry,
-	grpcServerErrorReporter grpctool.ServerErrorReporter) (*internalServer, error) {
+	grpcServerErrorReporter grpctool2.ServerErrorReporter) (*internalServer, error) {
 
 	// In-memory gRPC client->listener pipe
-	listener := grpctool.NewDialListener()
+	listener := grpctool2.NewDialListener()
 
 	// Construct connection to internal gRPC server
 	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
@@ -42,10 +43,10 @@ func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p p
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainStreamInterceptor(
-			grpctool.StreamClientValidatingInterceptor,
+			grpctool2.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
-			grpctool.UnaryClientValidatingInterceptor,
+			grpctool2.UnaryClientValidatingInterceptor,
 		),
 	)
 	if err != nil {
@@ -59,17 +60,17 @@ func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p p
 				otelgrpc.WithPropagators(p),
 				otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
 			)),
-			grpc.StatsHandler(grpctool.ServerNoopMaxConnAgeStatsHandler{}),
+			grpc.StatsHandler(grpctool2.ServerNoopMaxConnAgeStatsHandler{}),
 			grpc.SharedWriteBuffer(true),
 			grpc.ChainStreamInterceptor(
 				modserver.StreamRpcApiInterceptor(factory), // 2. inject RPC API
-				grpctool.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
+				grpctool2.StreamServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
 			grpc.ChainUnaryInterceptor(
 				modserver.UnaryRpcApiInterceptor(factory), // 2. inject RPC API
-				grpctool.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
+				grpctool2.UnaryServerErrorReporterInterceptor(grpcServerErrorReporter),
 			),
-			grpc.ForceServerCodec(grpctool.RawCodec{}),
+			grpc.ForceServerCodec(grpctool2.RawCodec{}),
 		),
 		inMemConn:     conn,
 		inMemListener: listener,
@@ -78,7 +79,7 @@ func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p p
 }
 
 func (s *internalServer) Start(stage stager.Stage) {
-	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
+	grpctool2.StartServer(stage, s.server, func() (net.Listener, error) {
 		s.ready()
 		return s.inMemListener, nil
 	}, func() {})

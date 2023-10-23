@@ -7,16 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
 )
 
 var (
@@ -36,7 +37,7 @@ type kasConnAttempt struct {
 type readyTunnel struct {
 	kasUrl          string
 	kasStream       grpc.ClientStream
-	kasConn         grpctool.PoolConn
+	kasConn         grpctool2.PoolConn
 	kasStreamCancel context.CancelFunc
 }
 
@@ -47,7 +48,7 @@ func (t readyTunnel) Done() {
 
 type tunnelFinder struct {
 	log               *zap.Logger
-	kasPool           grpctool.PoolInterface
+	kasPool           grpctool2.PoolInterface
 	tunnelQuerier     tunnel.PollingQuerier
 	rpcApi            modserver.RpcApi
 	fullMethod        string // /service/method
@@ -55,7 +56,7 @@ type tunnelFinder struct {
 	agentId           int64
 	outgoingCtx       context.Context
 	pollConfig        retry.PollConfigFactory
-	gatewayKasVisitor *grpctool.StreamVisitor
+	gatewayKasVisitor *grpctool2.StreamVisitor
 	foundTunnel       chan readyTunnel
 	noTunnel          chan struct{}
 	wg                wait.Group
@@ -68,9 +69,9 @@ type tunnelFinder struct {
 	done        bool                      // successfully done searching
 }
 
-func newTunnelFinder(log *zap.Logger, kasPool grpctool.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
+func newTunnelFinder(log *zap.Logger, kasPool grpctool2.PoolInterface, tunnelQuerier tunnel.PollingQuerier,
 	rpcApi modserver.RpcApi, fullMethod string, ownPrivateApiUrl string, agentId int64, outgoingCtx context.Context,
-	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool.StreamVisitor, tryNewKasInterval time.Duration) *tunnelFinder {
+	pollConfig retry.PollConfigFactory, gatewayKasVisitor *grpctool2.StreamVisitor, tryNewKasInterval time.Duration) *tunnelFinder {
 	return &tunnelFinder{
 		log:               log,
 		kasPool:           kasPool,
@@ -222,7 +223,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 			attemptCtx,
 			&proxyStreamDesc,
 			f.fullMethod,
-			grpc.ForceCodec(grpctool.RawCodecWithProtoFallback{}),
+			grpc.ForceCodec(grpctool2.RawCodecWithProtoFallback{}),
 			grpc.WaitForReady(true),
 		)
 		if err != nil {
@@ -232,7 +233,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 
 		// 3. Wait for the other kas to say it's ready to start streaming i.e. has a suitable tunnel to an agent
 		err = f.gatewayKasVisitor.Visit(kasStream,
-			grpctool.WithCallback(noTunnelFieldNumber, func(noTunnel *GatewayKasResponse_NoTunnel) error {
+			grpctool2.WithCallback(noTunnelFieldNumber, func(noTunnel *GatewayKasResponse_NoTunnel) error {
 				trace.SpanFromContext(kasStream.Context()).AddEvent("No tunnel") // nolint: contextcheck
 				if !noTunnelSent {                                               // send only once
 					noTunnelSent = true
@@ -245,11 +246,11 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 				}
 				return nil
 			}),
-			grpctool.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
+			grpctool2.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
 				trace.SpanFromContext(kasStream.Context()).AddEvent("Ready")
 				return tunnelReadySentinelError
 			}),
-			grpctool.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
+			grpctool2.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
 		)
 		switch err { // nolint:errorlint
 		case nil:
@@ -273,7 +274,7 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 		if err != nil {
 			f.mu.Unlock()
 			if err == io.EOF { // nolint:errorlint
-				var frame grpctool.RawFrame
+				var frame grpctool2.RawFrame
 				err = kasStream.RecvMsg(&frame) // get the real error
 			}
 			_ = f.rpcApi.HandleIoError(log, "SendMsg(StartStreaming)", err)

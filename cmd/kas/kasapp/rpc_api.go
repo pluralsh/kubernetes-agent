@@ -5,12 +5,13 @@ import (
 	"sync"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
 )
 
 type serverRpcApi struct {
@@ -45,12 +46,12 @@ func (a *serverRpcApi) hub() (SentryHub, string) {
 func (a *serverRpcApi) hubOnce() {
 	hub := a.sentryHubRoot.Clone()
 	scope := hub.Scope()
-	scope.SetTag(modserver.GrpcServiceSentryField, a.service)
-	scope.SetTag(modserver.GrpcMethodSentryField, a.method)
+	scope.SetTag(modserver2.GrpcServiceSentryField, a.service)
+	scope.SetTag(modserver2.GrpcMethodSentryField, a.method)
 	a.transaction = a.service + "::" + a.method                            // Like in Gitaly
 	scope.SetFingerprint([]string{"{{ default }}", "grpc", a.transaction}) // use Sentry's default error hash but also split by gRPC transaction
 	if a.traceID.IsValid() {
-		scope.SetTag(modserver.SentryFieldTraceId, a.traceID.String())
+		scope.SetTag(modserver2.SentryFieldTraceId, a.traceID.String())
 	}
 	a.sentryHub = hub
 }
@@ -60,7 +61,7 @@ type serverRpcApiFactory struct {
 	sentryHub *sentry.Hub
 }
 
-func (f *serverRpcApiFactory) New(ctx context.Context, fullMethodName string) modserver.RpcApi {
+func (f *serverRpcApiFactory) New(ctx context.Context, fullMethodName string) modserver2.RpcApi {
 	service, method := grpctool.SplitGrpcMethod(fullMethodName)
 	traceID := trace.SpanContextFromContext(ctx).TraceID()
 	return &serverRpcApi{

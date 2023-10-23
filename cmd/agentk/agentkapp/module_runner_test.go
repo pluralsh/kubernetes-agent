@@ -5,11 +5,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
+
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/rpc"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

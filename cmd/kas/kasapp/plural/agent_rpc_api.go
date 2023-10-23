@@ -2,21 +2,21 @@ package plural
 
 import (
 	"context"
-	"github.com/pluralsh/kuberentes-agent/internal/plural"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
+	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kuberentes-agent/pkg/plural"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"go.uber.org/zap"
-
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/cache"
 )
 
 type ServerAgentRpcApi struct {
-	modserver.RpcApi
+	modserver2.RpcApi
 	Token          api.AgentToken
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
-	PluralURL string
+	PluralURL      string
 }
 
 func (a *ServerAgentRpcApi) AgentToken() api.AgentToken {
@@ -34,12 +34,12 @@ func (a *ServerAgentRpcApi) getAgentInfoCached(ctx context.Context) (*api.AgentI
 }
 
 type ServerAgentRpcApiFactory struct {
-	RPCApiFactory  modserver.RpcApiFactory
+	RPCApiFactory  modserver2.RpcApiFactory
 	AgentInfoCache *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
-	PluralURL string
+	PluralURL      string
 }
 
-func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver.AgentRpcApi, error) {
+func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName string) (modserver2.AgentRpcApi, error) {
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
 		return nil, err
@@ -48,6 +48,6 @@ func (f *ServerAgentRpcApiFactory) New(ctx context.Context, fullMethodName strin
 		RpcApi:         f.RPCApiFactory(ctx, fullMethodName),
 		Token:          api.AgentToken(token),
 		AgentInfoCache: f.AgentInfoCache,
-		PluralURL: f.PluralURL,
+		PluralURL:      f.PluralURL,
 	}, nil
 }

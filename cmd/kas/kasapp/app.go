@@ -6,10 +6,12 @@ import (
 	"os"
 
 	"github.com/go-logr/zapr"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
+
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/metric"
+
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"

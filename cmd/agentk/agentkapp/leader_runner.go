@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
 )
 
 type electorStatus byte

@@ -14,26 +14,28 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+
 	"github.com/pluralsh/kuberentes-agent/cmd"
-	"github.com/pluralsh/kuberentes-agent/internal/api"
-	"github.com/pluralsh/kuberentes-agent/internal/module/agent_configuration/rpc"
-	agent_registrar_agent "github.com/pluralsh/kuberentes-agent/internal/module/agent_registrar/agent"
-	kubernetes_api_agent "github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/agent"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
-	observability_agent "github.com/pluralsh/kuberentes-agent/internal/module/observability/agent"
-	reverse_tunnel_agent "github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/agent"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/mathz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/tlstool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/wstunnel"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kuberentes-agent/pkg/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/entity"
+	rpc2 "github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/rpc"
+	agent_registrar_agent "github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar/agent"
+	kubernetes_api_agent "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/agent"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	observability_agent "github.com/pluralsh/kuberentes-agent/pkg/module/observability/agent"
+	reverse_tunnel_agent "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/agent"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	logz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/mathz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/metric"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/wstunnel"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/spf13/cobra"
@@ -222,10 +224,10 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 	return &moduleRunner{
 		log: a.Log,
-		configurationWatcher: &rpc.ConfigurationWatcher{
+		configurationWatcher: &rpc2.ConfigurationWatcher{
 			Log:       a.Log,
 			AgentMeta: a.AgentMeta,
-			Client:    rpc.NewAgentConfigurationClient(kasConn),
+			Client:    rpc2.NewAgentConfigurationClient(kasConn),
 			PollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 				getConfigurationInitBackoff,
 				getConfigurationMaxBackoff,
@@ -233,7 +235,7 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				getConfigurationBackoffFactor,
 				getConfigurationJitter,
 			)),
-			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
+			ConfigPreProcessor: func(data rpc2.ConfigurationData) error {
 				err := a.AgentId.set(data.Config.AgentId)
 				if err != nil {
 					return err
@@ -274,7 +276,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	for _, f := range factories {
 		moduleName := f.Name()
 		module, err := f.New(&modagent.Config{
-			Log:       a.Log.With(logz.ModuleName(moduleName)),
+			Log:       a.Log.With(logz2.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
 				moduleName:        moduleName,
@@ -351,11 +353,11 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		}),
 		grpc.WithChainStreamInterceptor(
 			streamClientProm,
-			grpctool.StreamClientValidatingInterceptor,
+			grpctool2.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			unaryClientProm,
-			grpctool.UnaryClientValidatingInterceptor,
+			grpctool2.UnaryClientValidatingInterceptor,
 		),
 	}
 	var addressToDial string
@@ -390,19 +392,19 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		})))
 	case "grpc":
 		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
-		addressToDial = "dns:" + grpctool.HostWithPort(u)
+		addressToDial = "dns:" + grpctool2.HostWithPort(u)
 		opts = append(opts,
-			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
+			grpc.WithPerRPCCredentials(grpctool2.NewHeaderMetadata(kasHeaders, !secure)),
 			// See https://github.com/grpc/grpc/blob/master/doc/service_config.md.
 			// See https://github.com/grpc/grpc/blob/master/doc/load-balancing.md.
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
 		)
 	case "grpcs":
 		// See https://github.com/grpc/grpc/blob/master/doc/naming.md.
-		addressToDial = "dns:" + grpctool.HostWithPort(u)
+		addressToDial = "dns:" + grpctool2.HostWithPort(u)
 		opts = append(opts,
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-			grpc.WithPerRPCCredentials(grpctool.NewHeaderMetadata(kasHeaders, !secure)),
+			grpc.WithPerRPCCredentials(grpctool2.NewHeaderMetadata(kasHeaders, !secure)),
 			// See https://github.com/grpc/grpc/blob/master/doc/service_config.md.
 			// See https://github.com/grpc/grpc/blob/master/doc/load-balancing.md.
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
@@ -413,7 +415,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if !secure {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(a.AgentToken, !secure)))
+	opts = append(opts, grpc.WithPerRPCCredentials(grpctool2.NewTokenCredentials(a.AgentToken, !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %w", err)
@@ -471,7 +473,7 @@ func NewCommand() *cobra.Command {
 
 			a.AgentMeta.PodNamespace = podNs
 			a.AgentMeta.PodName = podName
-			lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
+			lockedSyncer := zapcore.Lock(logz2.NoSync(os.Stderr))
 			var err error
 			a.Log, a.LogLevel, err = a.logger(defaultLogLevel, lockedSyncer)
 			if err != nil {

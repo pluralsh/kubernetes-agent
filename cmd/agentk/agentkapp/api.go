@@ -5,10 +5,11 @@ import (
 	"errors"
 	"net/url"
 
-	"github.com/pluralsh/kuberentes-agent/internal/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"go.uber.org/zap"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
 )
 
 // agentAPI is an implementation of modagent.API.

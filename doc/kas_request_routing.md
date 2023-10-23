@@ -259,7 +259,7 @@ graph TB
 
 ### API definitions
 
-- [`agent_tracker/agent_tracker.proto`](../internal/module/agent_tracker/agent_tracker.proto)
-- [`agent_tracker/rpc/rpc.proto`](../internal/module/agent_tracker/rpc/rpc.proto)
-- [`reverse_tunnel/rpc/rpc.proto`](../internal/module/reverse_tunnel/rpc/rpc.proto)
+- [`agent_tracker/agent_tracker.proto`](../pkg/module/agent_tracker/agent_tracker.proto)
+- [`agent_tracker/rpc/rpc.proto`](../pkg/module/agent_tracker/rpc/rpc.proto)
+- [`reverse_tunnel/rpc/rpc.proto`](../pkg/module/reverse_tunnel/rpc/rpc.proto)
 - [`cmd/kas/kasapp/kasapp.proto`](../cmd/kas/kasapp/kasapp.proto)

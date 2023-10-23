@@ -1,15 +1,16 @@
 package agentkapp
 
 import (
-	"github.com/pluralsh/kuberentes-agent/internal/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	logz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
 func (a *App) logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) (*zap.Logger, zap.AtomicLevel, error) {
-	level, err := logz.LevelFromString(levelEnum.String())
+	level, err := logz2.LevelFromString(levelEnum.String())
 	if err != nil {
 		return nil, zap.NewAtomicLevel(), err
 	}
@@ -17,7 +18,7 @@ func (a *App) logger(levelEnum agentcfg.LogLevelEnum, sync zapcore.WriteSyncer) 
 	return zap.New(
 		zapcore.NewCore(
 			&agentIdEncoder{
-				Encoder: zapcore.NewJSONEncoder(logz.NewProductionEncoderConfig()),
+				Encoder: zapcore.NewJSONEncoder(logz2.NewProductionEncoderConfig()),
 				agentId: a.AgentId,
 			},
 			sync,
@@ -39,7 +40,7 @@ func (e *agentIdEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field
 		l := len(fields)
 		f := make([]zapcore.Field, l+1)
 		copy(f, fields)
-		f[l] = logz.AgentId(id)
+		f[l] = logz2.AgentId(id)
 		fields = f
 	}
 	return e.Encoder.EncodeEntry(entry, fields)

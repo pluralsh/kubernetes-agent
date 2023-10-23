@@ -9,14 +9,16 @@
 package kasapp
 
 import (
+	"reflect"
+	"sync"
+
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/automata"
-	prototool "github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
-	status "google.golang.org/genproto/googleapis/rpc/status"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
+	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/runtime/protoimpl"
+
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
 )
 
 const (
