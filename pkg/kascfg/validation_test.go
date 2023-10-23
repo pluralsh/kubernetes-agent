@@ -12,10 +12,6 @@ func TestValidation_Valid(t *testing.T) {
 		{
 			Name: "minimal",
 			Valid: &ConfigurationFile{
-				Gitlab: &GitLabCF{
-					Address:                  "http://localhost:8080",
-					AuthenticationSecretFile: "/some/file",
-				},
 				Redis: &RedisCF{
 					RedisConfig: &RedisCF_Sentinel{
 						Sentinel: &RedisSentinelCF{
@@ -119,36 +115,6 @@ func TestValidation_Valid(t *testing.T) {
 
 func TestValidation_Invalid(t *testing.T) {
 	tests := []testhelpers.InvalidTestcase{
-		{
-			ErrString: "invalid GitopsCF.PollPeriod: value must be greater than 0s",
-			Invalid: &GitopsCF{
-				PollPeriod: durationpb.New(0),
-			},
-		},
-		{
-			ErrString: "invalid GitopsCF.PollPeriod: value must be greater than 0s",
-			Invalid: &GitopsCF{
-				PollPeriod: durationpb.New(-1),
-			},
-		},
-		{
-			ErrString: "invalid GitopsCF.ProjectInfoCacheTtl: value must be greater than or equal to 0s",
-			Invalid: &GitopsCF{
-				ProjectInfoCacheTtl: durationpb.New(-1),
-			},
-		},
-		{
-			ErrString: "invalid GitopsCF.ProjectInfoCacheErrorTtl: value must be greater than 0s",
-			Invalid: &GitopsCF{
-				ProjectInfoCacheErrorTtl: durationpb.New(0),
-			},
-		},
-		{
-			ErrString: "invalid GitopsCF.ProjectInfoCacheErrorTtl: value must be greater than 0s",
-			Invalid: &GitopsCF{
-				ProjectInfoCacheErrorTtl: durationpb.New(-1),
-			},
-		},
 		{
 			ErrString: "invalid AgentCF.InfoCacheTtl: value must be greater than or equal to 0s",
 			Invalid: &AgentCF{
@@ -329,14 +295,6 @@ func TestValidation_Invalid(t *testing.T) {
 			Invalid: &ListenAgentCF{
 				MaxConnectionAge: durationpb.New(-1),
 			},
-		},
-		{
-			ErrString: "invalid GitLabCF.Address: value length must be at least 1 bytes; invalid GitLabCF.Address: value must be absolute; invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 bytes",
-			Invalid:   &GitLabCF{},
-		},
-		{
-			ErrString: "invalid ConfigurationFile.Gitlab: value is required; invalid ConfigurationFile.Redis: value is required; invalid ConfigurationFile.Api: value is required; invalid ConfigurationFile.PrivateApi: value is required",
-			Invalid:   &ConfigurationFile{},
 		},
 		{
 			ErrString: "invalid ListenApiCF.AuthenticationSecretFile: value length must be at least 1 bytes",

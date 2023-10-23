@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"sigs.k8s.io/yaml"
@@ -21,10 +21,6 @@ const (
 func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 	// This is effectively the minimum required configuration i.e. only the required fields.
 	cfgDefaulted := &kascfg.ConfigurationFile{
-		Gitlab: &kascfg.GitLabCF{
-			Address:                  "http://localhost:8080",
-			AuthenticationSecretFile: "/some/file",
-		},
 		Agent: &kascfg.AgentCF{
 			KubernetesApi: &kascfg.KubernetesApiCF{
 				Listen: &kascfg.ListenKubernetesApiCF{},
