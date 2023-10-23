@@ -13,9 +13,6 @@ import (
 )
 
 const (
-	defaultGitLabApiRateLimitRefillRate = 50.0
-	defaultGitLabApiRateLimitBucketSize = 250
-
 	defaultListenGracePeriod = 5 * time.Second
 
 	defaultAgentInfoCacheTTL         = 5 * time.Minute
@@ -28,11 +25,6 @@ const (
 	defaultAgentListenAddress                      = "127.0.0.1:8150"
 	defaultAgentListenConnectionsPerTokenPerMinute = 40000
 	defaultAgentListenMaxConnectionAge             = 2 * time.Hour
-
-	defaultGitalyGlobalApiRefillRate    = 30.0
-	defaultGitalyGlobalApiBucketSize    = 70
-	defaultGitalyPerServerApiRate       = 15.0
-	defaultGitalyPerServerApiBucketSize = 40
 
 	defaultRedisDialTimeout  = 5 * time.Second
 	defaultRedisWriteTimeout = 3 * time.Second
@@ -92,12 +84,6 @@ func defaultPrivateApi(api *kascfg.PrivateApiCF) {
 	prototool.Duration(&api.Listen.ListenGracePeriod, defaultListenGracePeriod)
 }
 
-func defaultGitLab(g *kascfg.GitLabCF) {
-	prototool.NotNil(&g.ApiRateLimit)
-	prototool.Float64(&g.ApiRateLimit.RefillRatePerSecond, defaultGitLabApiRateLimitRefillRate)
-	prototool.Uint32(&g.ApiRateLimit.BucketSize, defaultGitLabApiRateLimitBucketSize)
-}
-
 func defaultAgent(a *kascfg.AgentCF) {
 	prototool.NotNil(&a.Listen)
 	prototool.StringPtr(&a.Listen.Network, defaultAgentListenNetwork)
@@ -111,16 +97,6 @@ func defaultAgent(a *kascfg.AgentCF) {
 	prototool.Duration(&a.RedisConnInfoTtl, defaultAgentRedisConnInfoTTL)
 	prototool.Duration(&a.RedisConnInfoRefresh, defaultAgentRedisConnInfoRefresh)
 	prototool.Duration(&a.RedisConnInfoGc, defaultAgentRedisConnInfoGC)
-}
-
-func defaultGitaly(g *kascfg.GitalyCF) {
-	prototool.NotNil(&g.GlobalApiRateLimit)
-	prototool.Float64(&g.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
-	prototool.Uint32(&g.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
-
-	prototool.NotNil(&g.PerServerApiRateLimit)
-	prototool.Float64(&g.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
-	prototool.Uint32(&g.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
 }
 
 func defaultRedis(r *kascfg.RedisCF) {
