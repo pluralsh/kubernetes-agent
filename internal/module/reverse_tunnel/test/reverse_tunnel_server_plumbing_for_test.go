@@ -8,7 +8,6 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/validator"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/api"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modshared"
@@ -21,6 +20,7 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_reverse_tunnel_tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"

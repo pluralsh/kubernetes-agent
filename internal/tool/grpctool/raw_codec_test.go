@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/protobuf/testing/protocmp"
 )

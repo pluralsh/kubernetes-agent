@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/module/kubernetes_api/rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modagent"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"

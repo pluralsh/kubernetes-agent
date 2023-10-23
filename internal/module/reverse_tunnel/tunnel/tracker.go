@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/redis/rueidis"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/redistool"
+	"github.com/redis/rueidis"
 	"k8s.io/utils/clock"
 )
 

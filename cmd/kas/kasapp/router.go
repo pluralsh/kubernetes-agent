@@ -4,12 +4,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pluralsh/kuberentes-agent/internal/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/module/reverse_tunnel/tunnel"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/metric"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/retry"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

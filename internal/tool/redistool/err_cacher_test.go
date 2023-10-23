@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	rmock "github.com/redis/rueidis/mock"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/matcher"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_tool"
+	rmock "github.com/redis/rueidis/mock"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 )

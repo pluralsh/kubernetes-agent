@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_modserver"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apimachinery/pkg/util/wait"

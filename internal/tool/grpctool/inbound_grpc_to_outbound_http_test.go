@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/prototool"
@@ -19,6 +17,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_rpc"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"

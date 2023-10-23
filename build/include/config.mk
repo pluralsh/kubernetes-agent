@@ -1,8 +1,5 @@
 ### Common application/container details
 PROJECT_NAME := kubernetes-agent
-# Supported architectures
-ARCHITECTURES := linux/amd64 linux/arm64 linux/arm linux/ppc64le linux/s390x # darwin/amd64 darwin/arm64 <- TODO: enable once it is natively supported by docker
-BUILDX_ARCHITECTURES := linux/amd64,linux/arm64,linux/arm,linux/ppc64le,linux/s390x # ,darwin/amd64,darwin/arm64
 
 ### Dirs and paths
 # Base paths
@@ -12,6 +9,8 @@ DOCKER_DIRECTORY := $(ROOT_DIRECTORY)/build/docker
 DOCKER_COMPOSE_PATH := $(DOCKER_DIRECTORY)/docker.compose.yaml
 # Build
 DIST_DIRECTORY := $(ROOT_DIRECTORY)/bin
+# Secret dir for run targets
+SECRET_DIRECTORY := $(ROOT_DIRECTORY)/.secret
 
 # git invocations must be conditional because git is not available in e.g. CNG and variables are supplied manually.
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
@@ -24,6 +23,16 @@ endif
 LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
 LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
 LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
+
+.PHONY: --certificate
+--certificate:
+	@openssl req -x509 -newkey rsa:4096 -keyout $(SECRET_DIRECTORY)/cert.key -out $(SECRET_DIRECTORY)/cert.pub -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname" 2>/dev/null
+
+.PHONY: --secrets
+--secrets:
+	@head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 32 | base64 > $(SECRET_DIRECTORY)/api_listen_secret
+	@head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 32 | base64 > $(SECRET_DIRECTORY)/private_api_secret
+	@head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 32 | base64 > $(SECRET_DIRECTORY)/redis_server_secret
 
 ### GOPATH check
 ifndef GOPATH

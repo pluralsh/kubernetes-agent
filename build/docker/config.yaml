@@ -15,8 +15,8 @@ agent:
     listen:
       network: tcp
       address: 0.0.0.0:8154
-      # certificate_file: /server-cert.pem
-      # key_file: /server-key.pem
+      certificate_file: /.secret/cert.pub
+      key_file: /.secret/cert.key
       listen_grace_period: "5s"
       shutdown_grace_period: "3600s"
     url_path_prefix: /
@@ -51,22 +51,22 @@ private_api:
   listen:
     network: tcp
     address: 127.0.0.1:8155
-    authentication_secret_file: /some/file
+    authentication_secret_file: /.secret/private_api_secret
     max_connection_age: 7200s
     listen_grace_period: "5s"
 redis:
   server:
-    address: "localhost:6380" # required
+    address: "host.docker.internal:6379" # required
   dial_timeout: "5s"
   write_timeout: "3s"
-  key_prefix: gitlab-kas
-  password_file: /some/file
+  key_prefix: kubernetes-agent
+  password_file: /.secret/redis_server_secret
   network: "tcp"
 api:
   listen:
     network: tcp
     address: 127.0.0.1:8153
-    authentication_secret_file: /some/file # required
+    authentication_secret_file: /.secret/api_listen_secret
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
     max_connection_age: "7200s"

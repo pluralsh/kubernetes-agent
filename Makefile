@@ -25,12 +25,20 @@ go-dep-updates: ## show possible Go dependency updates
 ##@ Run
 
 .PHONY: run
-run: ## run kas and agentk
-	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
+run: --run-clean --run-prepare ## Run kas and agent with all dependencies using docker compose
+	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
 
 .PHONY: stop
-stop:  ## stop kas and agentk
-	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi
+stop: --run-clean ## Stop docker compose and clean up
+	@docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down --rmi local
+
+.PHONY: --run-prepare
+--run-prepare: --certificate --secrets
+
+.PHONY: --run-clean
+--run-clean:
+	@rm -rf $(SECRET_DIRECTORY)
+	@mkdir -p $(SECRET_DIRECTORY)
 
 ##@ Build
 
@@ -85,7 +93,7 @@ docker-agentk-debug: --image-debug ## build docker agentk debug image with embed
 ##@ Codegen
 
 .PHONY: codegen
-codegen: --ensure-tools --mocks --protoc ## regenerate protobuf and mocks
+codegen: --ensure-tools codegen-delete --mocks --protoc ## regenerate protobuf and mocks
 
 .PHONY: codegen-delete
 codegen-delete: ## delete generated files
@@ -93,6 +101,7 @@ codegen-delete: ## delete generated files
 	find . -name '*.pb.validate.go' -type f -delete
 	find . \( -name '*_pb.rb' -and -not -name 'validate_pb.rb' \) -type f -delete
 	find . -name '*_proto_docs.md' -type f -delete
+	find . -empty -type d -delete
 
 .PHONY: --protoc
 --protoc:

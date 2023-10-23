@@ -128,8 +128,6 @@ message AgentCF {
   ListenAgentCF listen = 1 [json_name = "listen"];
   // Configuration for agent's configuration repository.
   AgentConfigurationCF configuration = 2 [json_name = "configuration"];
-  // Configuration for GitOps.
-  GitopsCF gitops = 3 [json_name = "gitops"];
   // TTL for successful agent info lookups.
   // /api/v4/internal/kubernetes/agent_info
   // Set to zero to disable.
@@ -146,8 +144,6 @@ message AgentCF {
   google.protobuf.Duration redis_conn_info_gc = 9 [json_name = "redis_conn_info_gc"];
   // Configuration for exposing Kubernetes API.
   KubernetesApiCF kubernetes_api = 10 [json_name = "kubernetes_api"];
-  // Configuration for RemoteDevelopment.
-  RemoteDevelopmentCF remote_development = 11 [json_name = "remote_development"];
 }
 
 message AgentConfigurationCF {

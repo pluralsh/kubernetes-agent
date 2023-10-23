@@ -8,9 +8,7 @@
     - [AgentConfigurationCF](#gitlab-agent-kascfg-AgentConfigurationCF)
     - [ApiCF](#gitlab-agent-kascfg-ApiCF)
     - [ConfigurationFile](#gitlab-agent-kascfg-ConfigurationFile)
-    - [GitLabCF](#gitlab-agent-kascfg-GitLabCF)
     - [GitalyCF](#gitlab-agent-kascfg-GitalyCF)
-    - [GitopsCF](#gitlab-agent-kascfg-GitopsCF)
     - [GoogleProfilerCF](#gitlab-agent-kascfg-GoogleProfilerCF)
     - [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF)
     - [ListenAgentCF](#gitlab-agent-kascfg-ListenAgentCF)
@@ -28,7 +26,6 @@
     - [RedisSentinelCF](#gitlab-agent-kascfg-RedisSentinelCF)
     - [RedisServerCF](#gitlab-agent-kascfg-RedisServerCF)
     - [RedisTLSCF](#gitlab-agent-kascfg-RedisTLSCF)
-    - [RemoteDevelopmentCF](#gitlab-agent-kascfg-RemoteDevelopmentCF)
     - [SentryCF](#gitlab-agent-kascfg-SentryCF)
     - [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF)
     - [TracingCF](#gitlab-agent-kascfg-TracingCF)
@@ -56,14 +53,12 @@
 | ----- | ---- | ----- | ----------- |
 | listen | [ListenAgentCF](#gitlab-agent-kascfg-ListenAgentCF) |  | RPC listener configuration for agentk connections. |
 | configuration | [AgentConfigurationCF](#gitlab-agent-kascfg-AgentConfigurationCF) |  | Configuration for agent&#39;s configuration repository. |
-| gitops | [GitopsCF](#gitlab-agent-kascfg-GitopsCF) |  | Configuration for GitOps. |
 | info_cache_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info Set to zero to disable. |
 | info_cache_error_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info |
 | redis_conn_info_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for information about connected agents, stored in Redis. |
 | redis_conn_info_refresh | [google.protobuf.Duration](#google-protobuf-Duration) |  | Refresh period for information about connected agents, stored in Redis. |
 | redis_conn_info_gc | [google.protobuf.Duration](#google-protobuf-Duration) |  | Garbage collection period for information about connected agents, stored in Redis. If gitlab-kas crashes, another gitlab-kas instance will clean up stale data. This is how often this cleanup runs. |
 | kubernetes_api | [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF) |  | Configuration for exposing Kubernetes API. |
-| remote_development | [RemoteDevelopmentCF](#gitlab-agent-kascfg-RemoteDevelopmentCF) |  | Configuration for RemoteDevelopment. |
 
 
 
@@ -114,26 +109,8 @@ ConfigurationFile represents kas configuration file.
 | redis | [RedisCF](#gitlab-agent-kascfg-RedisCF) |  | Redis configurations available to kas. |
 | api | [ApiCF](#gitlab-agent-kascfg-ApiCF) |  | Public API. |
 | private_api | [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
-| plural_token | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="gitlab-agent-kascfg-GitLabCF"></a>
-
-### GitLabCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| address | [string](#string) |  | Address for calling GitLab APIs |
-| external_url | [string](#string) | optional | External URL of GitLab in the format of `&lt;scheme&gt;://&lt;domain&gt;:&lt;port&gt;`. It is used to enable CORS (via Access-Control-Allow-Origin) for the Kubernetes API proxy. This value can be omitted if KAS is hosted on the same domain than GitLab (frontend access) |
-| authentication_secret_file | [string](#string) |  | Secret to generate JWT tokens to authenticate with GitLab. |
-| ca_certificate_file | [string](#string) |  | Optional X.509 CA certificate for TLS in PEM format. Should be set for self-signed certificates. |
-| api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limiting configuration for talking to the GitLab API. |
+| plural_token | [string](#string) |  | Console token |
+| plural_url | [string](#string) |  | Plural URL address |
 
 
 
@@ -150,27 +127,6 @@ ConfigurationFile represents kas configuration file.
 | ----- | ---- | ----- | ----------- |
 | global_api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limit that is enforced across all Gitaly servers. |
 | per_server_api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limit that is enforced per each Gitaly server. |
-
-
-
-
-
-
-<a name="gitlab-agent-kascfg-GitopsCF"></a>
-
-### GitopsCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| poll_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How often to poll GitOps manifest repositories for changes. |
-| project_info_cache_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for successful project info lookups. /api/v4/internal/kubernetes/project_info Set to zero to disable. |
-| project_info_cache_error_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for failed project info lookups. /api/v4/internal/kubernetes/project_info |
-| max_manifest_file_size | [uint32](#uint32) |  | Maximum size of a GitOps manifest file. |
-| max_total_manifest_file_size | [uint32](#uint32) |  | Maximum total size of all GitOps manifest files per GitOps project. |
-| max_number_of_paths | [uint32](#uint32) |  | Maximum number of scanned paths per GitOps project. |
-| max_number_of_files | [uint32](#uint32) |  | Maximum number of scanned files across all paths per GitOps project. This limit ensures there are not too many files in the repository that we need to sift though to find *.yaml, *.yml, *.json files. All files and directories under a path are counted towards this limit. |
 
 
 
@@ -486,21 +442,6 @@ ConfigurationFile represents kas configuration file.
 | certificate_file | [string](#string) |  | For mutual TLS, specify both certificate_file and key_file; otherwise, specify neither Optional custom X.509 certificate file for TLS in PEM format |
 | key_file | [string](#string) |  | Optional custom X.509 key file for TLS in PEM format |
 | ca_certificate_file | [string](#string) |  | Optional custom X.509 root CA file in PEM format, used to validate the Redis server&#39;s certificate (e.g. if the server has a self-signed certificate) |
-
-
-
-
-
-
-<a name="gitlab-agent-kascfg-RemoteDevelopmentCF"></a>
-
-### RemoteDevelopmentCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| poll_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How often to poll RemoteDevelopment server module for changes. |
 
 
 

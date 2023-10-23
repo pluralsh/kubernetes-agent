@@ -4,10 +4,10 @@ services:
     build:
       context: ../..
       dockerfile: build/docker/kas.Dockerfile
-      args:
-        - --configuration-file=/config.yaml
+    command:
+      - --configuration-file=/config.yaml
     volumes:
-      - ${PWD}/.secret:/.secret
+      - ${PWD}/.secret:/.secret:rwx
       - ${PWD}/build/docker/config.yaml:/config.yaml
     tmpfs:
       - /tmp
@@ -15,8 +15,8 @@ services:
     build:
       context: ../..
       dockerfile: build/docker/agentk.Dockerfile
-      args:
-        - --kas-address=grpc://host.docker.internal:8150
+    command:
+      - --kas-address=grpc://host.docker.internal:8150
     environment:
       POD_NAME: test
       POD_NAMESPACE: test
@@ -25,8 +25,10 @@ services:
 #      - ${KUBECONFIG:?}:${KUBECONFIG:?}
     tmpfs:
       - /tmp
-#    ports:
-#      - "9001:9001"
+  redis:
+    image: redis:7.2.2
+    ports:
+      - "6379:6379"
 
 networks:
   default:

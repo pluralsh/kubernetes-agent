@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/grpctool/test"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/httpz"
@@ -20,6 +18,8 @@ import (
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_kubernetes_api"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/mock_stdlib"
 	"github.com/pluralsh/kuberentes-agent/internal/tool/testing/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
