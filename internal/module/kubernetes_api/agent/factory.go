@@ -32,7 +32,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	userAgent := fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.GetVersion(), config.AgentMeta.GetCommitId())
+	userAgent := fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.Version, config.AgentMeta.CommitId)
 	s := newServer(restConfig, baseUrl, userAgent)
 	rpc.RegisterKubernetesApiServer(config.Server, s)
 	return &module{}, nil

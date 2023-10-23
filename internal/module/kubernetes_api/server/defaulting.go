@@ -19,7 +19,7 @@ const (
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&config.Agent)
-	o := config.GetAgent().GetKubernetesApi()
+	o := config.Agent.KubernetesApi
 
 	if o == nil {
 		return
@@ -29,8 +29,8 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.String(&o.Listen.Address, defaultKubernetesApiListenAddress)
 	prototool.Duration(&o.Listen.ListenGracePeriod, defaultListenGracePeriod)
 	prototool.Duration(&o.Listen.ShutdownGracePeriod, defaultShutdownGracePeriod)
-	if !strings.HasSuffix(o.GetUrlPathPrefix(), "/") {
-		o.UrlPathPrefix = o.GetUrlPathPrefix() + "/"
+	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
+		o.UrlPathPrefix = o.UrlPathPrefix + "/"
 	}
 	prototool.Duration(&o.AllowedAgentCacheTtl, defaultAllowedAgentInfoCacheTTL)
 	prototool.Duration(&o.AllowedAgentCacheErrorTtl, defaultAllowedAgentInfoCacheErrorTTL)

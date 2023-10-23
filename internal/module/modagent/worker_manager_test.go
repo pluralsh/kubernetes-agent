@@ -22,7 +22,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			ws := make([]WorkSource[proto.Message], 0, len(projects))
 			for _, project := range projects {
 				ws = append(ws, &mockWorkSource{
-					id:     *project.GetId(),
+					id:     *project.Id,
 					config: project,
 				})
 			}
@@ -83,7 +83,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				ws := make([]WorkSource[proto.Message], 0, len(projects))
 				for _, project := range projects {
 					ws = append(ws, &mockWorkSource{
-						id:     *project.GetId(),
+						id:     *project.Id,
 						config: project,
 					})
 				}
@@ -127,14 +127,14 @@ func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
 	projects := make(map[string]*agentcfg.ManifestProjectCF)
 	for _, config := range cfgs {
 		for _, proj := range config.GetGitops().GetManifestProjects() {
-			old, ok := projects[*proj.GetId()]
+			old, ok := projects[*proj.Id]
 			if ok {
 				if !proto.Equal(old, proj) {
-					projects[*proj.GetId()] = proj
+					projects[*proj.Id] = proj
 					num++
 				}
 			} else {
-				projects[*proj.GetId()] = proj
+				projects[*proj.Id] = proj
 				num++
 			}
 		}

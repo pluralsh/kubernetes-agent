@@ -19,7 +19,7 @@ type server struct {
 func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAgentsRequest) (*rpc.GetConnectedAgentsResponse, error) {
 	rpcApi := modserver.RpcApiFromContext(ctx)
 	log := rpcApi.Log()
-	switch v := req.GetRequest().(type) {
+	switch v := req.Request.(type) {
 	case *rpc.GetConnectedAgentsRequest_AgentId:
 		var infos agent_tracker.ConnectedAgentInfoCollector
 		err := s.agentQuerier.GetConnectionsByAgentId(ctx, v.AgentId, infos.Collect)
@@ -42,6 +42,6 @@ func (s *server) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAg
 		}, nil
 	default:
 		// Should never happen
-		return nil, status.Errorf(codes.InvalidArgument, "Unexpected field type: %T", req.GetRequest())
+		return nil, status.Errorf(codes.InvalidArgument, "Unexpected field type: %T", req.Request)
 	}
 }

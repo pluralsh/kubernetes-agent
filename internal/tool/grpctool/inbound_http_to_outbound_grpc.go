@@ -134,23 +134,23 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 	flush := x.flush(w)
 	err := HttpResponseStreamVisitor.Get().Visit(outboundClient,
 		WithCallback(HttpResponseHeaderFieldNumber, func(header *HttpResponse_Header) error {
-			responseStatusCode = header.GetResponse().GetStatusCode()
-			outboundResponse := header.GetResponse().HttpHeader()
+			responseStatusCode = header.Response.StatusCode
+			outboundResponse := header.Response.HttpHeader()
 			cleanHeader(outboundResponse)
 			x.MergeHeaders(outboundResponse, w.Header())
-			w.WriteHeader(int(header.GetResponse().GetStatusCode()))
+			w.WriteHeader(int(header.Response.StatusCode))
 			// NOTE: the HTTP standard library doesn't no-op for a flush when WriteHeader() was already called with a 1xx status code
 			// and already flushed. This leads to the response being sent twice once with the correct status code and once with `200 OK`.
 			// Thus, we avoid flushing manually for all 1xx responses.
 			// This seems to be a regression in Go 1.19, introduced with https://go-review.googlesource.com/c/go/+/269997
-			if header.GetResponse().GetStatusCode() >= 200 {
+			if header.Response.StatusCode >= 200 {
 				flush()
 			}
 			headerWritten = true
 			return nil
 		}),
 		WithCallback(HttpResponseDataFieldNumber, func(data *HttpResponse_Data) error {
-			_, err := w.Write(data.GetData())
+			_, err := w.Write(data.Data)
 			if err != nil {
 				writeFailed = true
 				return err
@@ -380,7 +380,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInboundUpgraded(outboundClient
 	err := HttpResponseStreamVisitor.Get().Visit(outboundClient,
 		WithStartState(HttpResponseTrailerFieldNumber),
 		WithCallback(HttpResponseUpgradeDataFieldNumber, func(data *HttpResponse_UpgradeData) error {
-			_, err := inboundStream.Write(data.GetData())
+			_, err := inboundStream.Write(data.Data)
 			if err != nil {
 				writeFailed = true
 			}

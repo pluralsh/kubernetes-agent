@@ -246,7 +246,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		if eResp != nil {
 			return log, agentId, 0, nil, eResp
 		}
-		userId = allowedForJob.GetUser().GetId()
+		userId = allowedForJob.User.Id
 
 		aa := findAllowedAgent(agentId, allowedForJob)
 		if aa == nil {
@@ -278,7 +278,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		if eResp != nil {
 			return log, agentId, 0, nil, eResp
 		}
-		userId = auth.GetUser().GetId()
+		userId = auth.User.Id
 		impConfig, err = constructUserImpersonationConfig(auth, "session_cookie")
 		if err != nil {
 			msg := "Failed to construct user impersonation config"
@@ -508,8 +508,8 @@ func formatStatusMessage(ctx context.Context, msg string, err error) string {
 }
 
 func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
-	for _, aa := range agentsForJob.GetAllowedAgents() {
-		if aa.GetId() == agentId {
+	for _, aa := range agentsForJob.AllowedAgents {
+		if aa.Id == agentId {
 			return aa
 		}
 	}
@@ -682,14 +682,14 @@ func constructJobImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa
 	case *agentcfg.CiAccessAsCF_Impersonate:
 		i := imp.Impersonate
 		return &rpc.ImpersonationConfig{
-			Username: i.GetUsername(),
-			Groups:   i.GetGroups(),
-			Uid:      i.GetUid(),
-			Extra:    impImpersonationExtra(i.GetExtra()),
+			Username: i.Username,
+			Groups:   i.Groups,
+			Uid:      i.Uid,
+			Extra:    impImpersonationExtra(i.Extra),
 		}, nil
 	case *agentcfg.CiAccessAsCF_CiJob:
 		return &rpc.ImpersonationConfig{
-			Username: fmt.Sprintf("gitlab:ci_job:%d", allowedForJob.GetJob().GetId()),
+			Username: fmt.Sprintf("gitlab:ci_job:%d", allowedForJob.Job.Id),
 			Groups:   impCiJobGroups(allowedForJob),
 			Extra:    impCiJobExtra(allowedForJob, aa),
 		}, nil
@@ -700,12 +700,12 @@ func constructJobImpersonationConfig(allowedForJob *gapi.AllowedAgentsForJob, aa
 }
 
 func constructUserImpersonationConfig(auth *gapi.AuthorizeProxyUserResponse, accessType string) (*rpc.ImpersonationConfig, error) {
-	switch imp := auth.GetAccessAs().GetAccessAs().(type) {
+	switch imp := auth.GetAccessAs().AccessAs.(type) {
 	case *gapi.AccessAsProxyAuthorization_Agent:
 		return nil, nil
 	case *gapi.AccessAsProxyAuthorization_User:
 		return &rpc.ImpersonationConfig{
-			Username: fmt.Sprintf("gitlab:user:%s", auth.GetUser().GetUsername()),
+			Username: fmt.Sprintf("gitlab:user:%s", auth.User.Username),
 			Groups:   impUserGroups(auth),
 			Extra:    impUserExtra(auth, accessType),
 		}, nil
@@ -719,8 +719,8 @@ func impImpersonationExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
 	out := make([]*rpc.ExtraKeyVal, 0, len(in))
 	for _, kv := range in {
 		out = append(out, &rpc.ExtraKeyVal{
-			Key: kv.GetKey(),
-			Val: kv.GetVal(),
+			Key: kv.Key,
+			Val: kv.Val,
 		})
 	}
 	return out
@@ -728,24 +728,24 @@ func impImpersonationExtra(in []*agentcfg.ExtraKeyValCF) []*rpc.ExtraKeyVal {
 
 func impCiJobGroups(allowedForJob *gapi.AllowedAgentsForJob) []string {
 	// 1. gitlab:ci_job to identify all requests coming from CI jobs.
-	groups := make([]string, 0, 3+len(allowedForJob.GetProject().GetGroups()))
+	groups := make([]string, 0, 3+len(allowedForJob.Project.Groups))
 	groups = append(groups, "gitlab:ci_job")
 	// 2. The list of ids of groups the project is in.
-	for _, projectGroup := range allowedForJob.GetProject().GetGroups() {
-		groups = append(groups, fmt.Sprintf("gitlab:group:%d", projectGroup.GetId()))
+	for _, projectGroup := range allowedForJob.Project.Groups {
+		groups = append(groups, fmt.Sprintf("gitlab:group:%d", projectGroup.Id))
 
 		// 3. The tier of the environment this job belongs to, if set.
-		if allowedForJob.GetEnvironment() != nil {
-			groups = append(groups, fmt.Sprintf("gitlab:group_env_tier:%d:%s", projectGroup.GetId(), allowedForJob.GetEnvironment().GetTier()))
+		if allowedForJob.Environment != nil {
+			groups = append(groups, fmt.Sprintf("gitlab:group_env_tier:%d:%s", projectGroup.Id, allowedForJob.Environment.Tier))
 		}
 	}
 	// 4. The project id.
-	groups = append(groups, fmt.Sprintf("gitlab:project:%d", allowedForJob.GetProject().GetId()))
+	groups = append(groups, fmt.Sprintf("gitlab:project:%d", allowedForJob.Project.Id))
 	// 5. The slug and tier of the environment this job belongs to, if set.
-	if allowedForJob.GetEnvironment() != nil {
+	if allowedForJob.Environment != nil {
 		groups = append(groups,
-			fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.GetProject().GetId(), allowedForJob.GetEnvironment().GetSlug()),
-			fmt.Sprintf("gitlab:project_env_tier:%d:%s", allowedForJob.GetProject().GetId(), allowedForJob.GetEnvironment().GetTier()),
+			fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Slug),
+			fmt.Sprintf("gitlab:project_env_tier:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Tier),
 		)
 	}
 	return groups
@@ -755,38 +755,38 @@ func impCiJobExtra(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgen
 	extra := []*rpc.ExtraKeyVal{
 		{
 			Key: "agent.gitlab.com/id",
-			Val: []string{strconv.FormatInt(aa.GetId(), 10)}, // agent id
+			Val: []string{strconv.FormatInt(aa.Id, 10)}, // agent id
 		},
 		{
 			Key: "agent.gitlab.com/config_project_id",
-			Val: []string{strconv.FormatInt(aa.GetConfigProject().GetId(), 10)}, // agent's configuration project id
+			Val: []string{strconv.FormatInt(aa.ConfigProject.Id, 10)}, // agent's configuration project id
 		},
 		{
 			Key: "agent.gitlab.com/project_id",
-			Val: []string{strconv.FormatInt(allowedForJob.GetProject().GetId(), 10)}, // CI project id
+			Val: []string{strconv.FormatInt(allowedForJob.Project.Id, 10)}, // CI project id
 		},
 		{
 			Key: "agent.gitlab.com/ci_pipeline_id",
-			Val: []string{strconv.FormatInt(allowedForJob.GetPipeline().GetId(), 10)}, // CI pipeline id
+			Val: []string{strconv.FormatInt(allowedForJob.Pipeline.Id, 10)}, // CI pipeline id
 		},
 		{
 			Key: "agent.gitlab.com/ci_job_id",
-			Val: []string{strconv.FormatInt(allowedForJob.GetJob().GetId(), 10)}, // CI job id
+			Val: []string{strconv.FormatInt(allowedForJob.Job.Id, 10)}, // CI job id
 		},
 		{
 			Key: "agent.gitlab.com/username",
-			Val: []string{allowedForJob.GetUser().GetUsername()}, // username of the user the CI job is running as
+			Val: []string{allowedForJob.User.Username}, // username of the user the CI job is running as
 		},
 	}
-	if allowedForJob.GetEnvironment() != nil {
+	if allowedForJob.Environment != nil {
 		extra = append(extra,
 			&rpc.ExtraKeyVal{
 				Key: "agent.gitlab.com/environment_slug",
-				Val: []string{allowedForJob.GetEnvironment().GetSlug()}, // slug of the environment, if set
+				Val: []string{allowedForJob.Environment.Slug}, // slug of the environment, if set
 			},
 			&rpc.ExtraKeyVal{
 				Key: "agent.gitlab.com/environment_tier",
-				Val: []string{allowedForJob.GetEnvironment().GetTier()}, // tier of the environment, if set
+				Val: []string{allowedForJob.Environment.Tier}, // tier of the environment, if set
 			},
 		)
 	}
@@ -795,14 +795,14 @@ func impCiJobExtra(allowedForJob *gapi.AllowedAgentsForJob, aa *gapi.AllowedAgen
 
 func impUserGroups(auth *gapi.AuthorizeProxyUserResponse) []string {
 	groups := []string{"gitlab:user"}
-	for _, accessCF := range auth.GetAccessAs().GetUser().GetProjects() {
-		for _, role := range accessCF.GetRoles() {
-			groups = append(groups, fmt.Sprintf("gitlab:project_role:%d:%s", accessCF.GetId(), role))
+	for _, accessCF := range auth.AccessAs.GetUser().Projects {
+		for _, role := range accessCF.Roles {
+			groups = append(groups, fmt.Sprintf("gitlab:project_role:%d:%s", accessCF.Id, role))
 		}
 	}
-	for _, accessCF := range auth.GetAccessAs().GetUser().GetGroups() {
-		for _, role := range accessCF.GetRoles() {
-			groups = append(groups, fmt.Sprintf("gitlab:group_role:%d:%s", accessCF.GetId(), role))
+	for _, accessCF := range auth.AccessAs.GetUser().Groups {
+		for _, role := range accessCF.Roles {
+			groups = append(groups, fmt.Sprintf("gitlab:group_role:%d:%s", accessCF.Id, role))
 		}
 	}
 	return groups
@@ -812,11 +812,11 @@ func impUserExtra(auth *gapi.AuthorizeProxyUserResponse, accessType string) []*r
 	extra := []*rpc.ExtraKeyVal{
 		{
 			Key: "agent.gitlab.com/id",
-			Val: []string{strconv.FormatInt(auth.GetAgent().GetId(), 10)},
+			Val: []string{strconv.FormatInt(auth.Agent.Id, 10)},
 		},
 		{
 			Key: "agent.gitlab.com/username",
-			Val: []string{auth.GetUser().GetUsername()},
+			Val: []string{auth.User.Username},
 		},
 		{
 			Key: "agent.gitlab.com/access_type",
@@ -824,7 +824,7 @@ func impUserExtra(auth *gapi.AuthorizeProxyUserResponse, accessType string) []*r
 		},
 		{
 			Key: "agent.gitlab.com/config_project_id",
-			Val: []string{strconv.FormatInt(auth.GetAgent().GetConfigProject().GetId(), 10)},
+			Val: []string{strconv.FormatInt(auth.Agent.ConfigProject.Id, 10)},
 		},
 	}
 	return extra

@@ -2,12 +2,12 @@ package info
 
 func (x *AgentDescriptor) SupportsServiceAndMethod(service, method string) bool {
 	for _, s := range x.GetServices() {
-		if s.GetName() != service {
+		if s.Name != service {
 			continue
 		}
 		// Service found, looking for method.
-		for _, m := range s.GetMethods() {
-			if m.GetName() == method {
+		for _, m := range s.Methods {
+			if m.Name == method {
 				return true
 			}
 		}

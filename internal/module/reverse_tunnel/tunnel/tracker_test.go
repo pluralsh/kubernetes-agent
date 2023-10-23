@@ -45,7 +45,7 @@ func TestRegisterConnection(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),
@@ -185,7 +185,7 @@ func TestRefresh_OneAgent(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),
@@ -212,14 +212,14 @@ func TestRefresh_TwoAgents(t *testing.T) {
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
 			}),
 		b.EXPECT().
 			Set(testhelpers.AgentId+1, gomock.Any(), gomock.Any()).
 			Do(func(key int64, ttl time.Duration, kvs ...redistool.BuilderKV[string]) {
 				require.Len(t, kvs, 1)
 				assert.Equal(t, selfUrl, kvs[0].HashKey)
-				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.GetExpiresAt())
+				assert.Equal(t, tm.Add(ttl).Unix(), kvs[0].Value.ExpiresAt)
 			}),
 		b.EXPECT().
 			Do(gomock.Any()),

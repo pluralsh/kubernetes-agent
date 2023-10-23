@@ -55,7 +55,7 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 		}),
 		grpctool.WithCallback(messageFieldNumber, func(message *GatewayKasResponse_Message) error {
 			err := stream.SendMsg(&grpctool.RawFrame{
-				Data: message.GetData(),
+				Data: message.Data,
 			})
 			if err != nil {
 				return f.rpcApi.HandleIoError(f.log, "router kas->stream SendMsg() failed", err)
@@ -67,7 +67,7 @@ func (f *kasStreamForwarder) pipeFromKasToStream(kasStream grpc.ClientStream, st
 			return nil
 		}),
 		grpctool.WithCallback(errorFieldNumber, func(err *GatewayKasResponse_Error) error {
-			statusFromKasStream = status.ErrorProto(err.GetStatus())
+			statusFromKasStream = status.ErrorProto(err.Status)
 			return nil
 		}),
 	)

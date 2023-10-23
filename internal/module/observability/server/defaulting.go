@@ -17,7 +17,7 @@ const (
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&config.Observability)
-	o := config.GetObservability()
+	o := config.Observability
 
 	prototool.NotNil(&o.Listen)
 	prototool.StringPtr(&o.Listen.Network, defaultObservabilityListenNetwork)
@@ -29,7 +29,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&o.Sentry)
 
 	prototool.NotNil(&o.Logging)
-	if o.GetLogging().GetGrpcLevel() == nil {
+	if o.Logging.GrpcLevel == nil {
 		x := defaultGrpcLogLevel
 		o.Logging.GrpcLevel = &x
 	}

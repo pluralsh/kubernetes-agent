@@ -160,7 +160,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 
 	// Construct leader runner
 	lr := newLeaderRunner(&leaseLeaderElector{
-		namespace: a.AgentMeta.GetPodNamespace(),
+		namespace: a.AgentMeta.PodNamespace,
 		name: func(ctx context.Context) (string, error) {
 			id, err := a.AgentId.get(ctx) // nolint: govet
 			if err != nil {
@@ -171,7 +171,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 			// with same agent id have the same lock name but with different id have different lock name.
 			return fmt.Sprintf("agent-%d-lock", id), nil
 		},
-		identity:           a.AgentMeta.GetPodName(),
+		identity:           a.AgentMeta.PodName,
 		coordinationClient: kubeClient.CoordinationV1(),
 		eventRecorder:      eventRecorder,
 	})
@@ -234,13 +234,13 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				getConfigurationJitter,
 			)),
 			ConfigPreProcessor: func(data rpc.ConfigurationData) error {
-				err := a.AgentId.set(data.Config.GetAgentId())
+				err := a.AgentId.set(data.Config.AgentId)
 				if err != nil {
 					return err
 				}
-				u, err := url.Parse(data.Config.GetGitlabExternalUrl())
+				u, err := url.Parse(data.Config.GitlabExternalUrl)
 				if err != nil {
-					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GetGitlabExternalUrl(), err)
+					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GitlabExternalUrl, err)
 				}
 				return a.GitLabExternalUrl.set(*u)
 			},
@@ -322,7 +322,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 	if err != nil {
 		return nil, err
 	}
-	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.GetVersion(), a.AgentMeta.GetCommitId())
+	userAgent := fmt.Sprintf("%s/%s/%s", agentName, a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
 		grpc.WithStatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),

@@ -17,7 +17,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.NotNil(&config.Agent.Configuration)
 	prototool.NotNil(&config.Agent.Listen)
 
-	c := config.GetAgent().GetConfiguration()
+	c := config.Agent.Configuration
 	prototool.Duration(&c.PollPeriod, defaultAgentConfigurationPollPeriod)
 	prototool.Uint32(&c.MaxConfigurationFileSize, defaultAgentConfigurationMaxConfigurationFileSize)
 }

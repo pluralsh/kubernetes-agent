@@ -58,8 +58,8 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 	streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*privateApiServer, error) {
-	listenCfg := cfg.GetPrivateApi().GetListen()
-	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.GetAuthenticationSecretFile())
+	listenCfg := cfg.PrivateApi.Listen
+	jwtSecret, err := ioz.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
@@ -70,8 +70,8 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 		os.Getenv(envVarOwnPrivateApiCidr),
 		os.Getenv(envVarOwnPrivateApiScheme),
 		os.Getenv(envVarOwnPrivateApiPort),
-		*listenCfg.GetNetwork(),
-		listenCfg.GetAddress(),
+		*listenCfg.Network,
+		listenCfg.Address,
 	)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func newPrivateApiServer(log *zap.Logger, errRep errz.ErrReporter, cfg *kascfg.C
 
 	// Client pool
 	kasPool, err := newKasPool(log, errRep, tp, mp, p, csh, jwtSecret, ownUrl, ownHost,
-		listenCfg.GetCaCertificateFile(), listener.DialContext, streamClientProm, unaryClientProm)
+		listenCfg.CaCertificateFile, listener.DialContext, streamClientProm, unaryClientProm)
 	if err != nil {
 		return nil, fmt.Errorf("kas pool: %w", err)
 	}
@@ -117,7 +117,7 @@ func (s *privateApiServer) Start(stage stager.Stage) {
 		<-stopInMem
 	})
 	grpctool.StartServer(stage, s.server, func() (net.Listener, error) {
-		lis, err := net.Listen(*s.listenCfg.GetNetwork(), s.listenCfg.GetAddress())
+		lis, err := net.Listen(*s.listenCfg.Network, s.listenCfg.Address)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (s *privateApiServer) Start(stage stager.Stage) {
 		s.ready()
 		return lis, nil
 	}, func() {
-		time.Sleep(s.listenCfg.GetListenGracePeriod().AsDuration())
+		time.Sleep(s.listenCfg.ListenGracePeriod.AsDuration())
 		close(stopInMem)
 		s.auxCancel()
 	})
@@ -145,8 +145,8 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 	mp otelmetric.MeterProvider, p propagation.TextMapPropagator, ssh stats.Handler, jwtSecret []byte, factory modserver.RpcApiFactory,
 	ownPrivateApiHost string, streamProm grpc.StreamServerInterceptor, unaryProm grpc.UnaryServerInterceptor,
 	grpcServerErrorReporter grpctool.ServerErrorReporter) (*grpc.Server, *grpc.Server, error) {
-	listenCfg := cfg.GetPrivateApi().GetListen()
-	credsOpt, err := maybeTLSCreds(listenCfg.GetCertificateFile(), listenCfg.GetKeyFile())
+	listenCfg := cfg.PrivateApi.Listen
+	credsOpt, err := maybeTLSCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,7 +158,7 @@ func newPrivateApiServerImpl(auxCtx context.Context, cfg *kascfg.ConfigurationFi
 		return modserver.RpcApiFromContext(ctx).Log()
 	})
 
-	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.GetMaxConnectionAge().AsDuration())
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(auxCtx, listenCfg.MaxConnectionAge.AsDuration())
 	sharedOpts := []grpc.ServerOption{
 		keepaliveOpt,
 		grpc.StatsHandler(otelgrpc.NewServerHandler(

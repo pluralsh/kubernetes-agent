@@ -58,19 +58,19 @@ func (s *server) MakeRequest(server rpc.KubernetesApi_MakeRequestServer) error {
 
 func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (grpctool.DoResponse, error) {
 	// 1. Construct request
-	req, err := s.newRequest(ctx, h.GetRequest(), body)
+	req, err := s.newRequest(ctx, h.Request, body)
 	if err != nil {
 		return grpctool.DoResponse{}, err
 	}
 	// 2. Construct rest config
 	var headerExtra rpc.HeaderExtra
-	if h.GetExtra() != nil { // Optional field.
-		err = h.GetExtra().UnmarshalTo(&headerExtra)
+	if h.Extra != nil { // Optional field.
+		err = h.Extra.UnmarshalTo(&headerExtra)
 		if err != nil {
 			return grpctool.DoResponse{}, err
 		}
 	}
-	restConfig, err := restImpersonationConfig(headerExtra.GetImpConfig(), s.restConfig, req)
+	restConfig, err := restImpersonationConfig(headerExtra.ImpConfig, s.restConfig, req)
 	if err != nil {
 		return grpctool.DoResponse{}, err
 	}
@@ -83,7 +83,7 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 	if err != nil {
 		return grpctool.DoResponse{}, err
 	}
-	isUpgrade := h.GetRequest().IsUpgrade()
+	isUpgrade := h.Request.IsUpgrade()
 	if isUpgrade {
 		var tlsConfig *tls.Config
 		tlsConfig, err = transport.TLSConfigFor(transportCfg)
@@ -136,10 +136,10 @@ func (s *server) httpDo(ctx context.Context, h *grpctool.HttpRequest_Header, bod
 
 func (s *server) newRequest(ctx context.Context, requestInfo *prototool.HttpRequest, body io.Reader) (*http.Request, error) {
 	u := *s.baseUrl
-	u.Path = requestInfo.GetUrlPath()
+	u.Path = requestInfo.UrlPath
 	u.RawQuery = requestInfo.UrlQuery().Encode()
 
-	req, err := http.NewRequestWithContext(ctx, requestInfo.GetMethod(), u.String(), body)
+	req, err := http.NewRequestWithContext(ctx, requestInfo.Method, u.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -160,9 +160,9 @@ func restImpersonationConfig(impConfig *rpc.ImpersonationConfig, restConfig *res
 	case !restImp && cfgImp && !reqImp:
 		// Impersonation is configured in the agent config
 		restConfig = rest.CopyConfig(restConfig) // copy to avoid mutating a potentially shared config object
-		restConfig.Impersonate.UserName = impConfig.GetUsername()
-		restConfig.Impersonate.UID = impConfig.GetUid()
-		restConfig.Impersonate.Groups = impConfig.GetGroups()
+		restConfig.Impersonate.UserName = impConfig.Username
+		restConfig.Impersonate.UID = impConfig.Uid
+		restConfig.Impersonate.Groups = impConfig.Groups
 		restConfig.Impersonate.Extra = impConfig.GetExtraAsMap()
 	case !restImp && !cfgImp && reqImp:
 		// Impersonation is configured in the HTTP request

@@ -487,7 +487,7 @@ func equalHash(t *testing.T, client rueidis.Client, key string, hashKey int64, v
 	var msg ExpiringValue
 	err := proto.Unmarshal([]byte(val), &msg)
 	require.NoError(t, err)
-	assert.Equal(t, value, msg.GetValue())
+	assert.Equal(t, value, msg.Value)
 }
 
 func valuesExpireAfter(t *testing.T, client rueidis.Client, key string, expireAfter time.Time) {
@@ -497,7 +497,7 @@ func valuesExpireAfter(t *testing.T, client rueidis.Client, key string, expireAf
 		var msg ExpiringValue
 		err := proto.Unmarshal([]byte(val), &msg)
 		require.NoError(t, err)
-		assert.Greater(t, msg.GetExpiresAt(), expireAfter.Unix())
+		assert.Greater(t, msg.ExpiresAt, expireAfter.Unix())
 	}
 }
 

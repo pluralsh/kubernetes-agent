@@ -6,13 +6,13 @@ import (
 )
 
 func (x *RequestInfo) Metadata() metadata.MD {
-	return grpctool.ValuesMapToMeta(x.GetMeta())
+	return grpctool.ValuesMapToMeta(x.Meta)
 }
 
 func (x *Header) Metadata() metadata.MD {
-	return grpctool.ValuesMapToMeta(x.GetMeta())
+	return grpctool.ValuesMapToMeta(x.Meta)
 }
 
 func (x *Trailer) Metadata() metadata.MD {
-	return grpctool.ValuesMapToMeta(x.GetMeta())
+	return grpctool.ValuesMapToMeta(x.Meta)
 }

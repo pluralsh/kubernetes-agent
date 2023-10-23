@@ -35,7 +35,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("kascfg.ValidateExtra: %w", err)
 	}
-	log, grpcLog, err := loggerFromConfig(cfg.GetObservability().GetLogging())
+	log, grpcLog, err := loggerFromConfig(cfg.Observability.Logging)
 	if err != nil {
 		return err
 	}
@@ -95,11 +95,11 @@ func NewCommand() *cobra.Command {
 
 func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, *zap.Logger, error) {
 	lockedSyncer := zapcore.Lock(logz.NoSync(os.Stderr))
-	level, err := logz.LevelFromString(loggingCfg.GetLevel().String())
+	level, err := logz.LevelFromString(loggingCfg.Level.String())
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcLevel, err := logz.LevelFromString(loggingCfg.GetGrpcLevel().String())
+	grpcLevel, err := logz.LevelFromString(loggingCfg.GrpcLevel.String())
 	if err != nil {
 		return nil, nil, err
 	}

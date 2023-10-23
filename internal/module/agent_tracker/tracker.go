@@ -99,13 +99,13 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 	defer t.mu.Unlock()
 	var wg errgroup.Group
 	wg.Go(func() error {
-		return t.connectionsByProjectId.Set(ctx, info.GetProjectId(), info.GetConnectionId(), infoBytes)
+		return t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoBytes)
 	})
 	wg.Go(func() error {
-		return t.connectionsByAgentId.Set(ctx, info.GetAgentId(), info.GetConnectionId(), infoBytes)
+		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoBytes)
 	})
 	wg.Go(func() error {
-		return t.connectedAgents.Set(ctx, connectedAgentsKey, info.GetAgentId(), nil)
+		return t.connectedAgents.Set(ctx, connectedAgentsKey, info.AgentId, nil)
 	})
 	return wg.Wait()
 }
@@ -115,12 +115,12 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	defer t.mu.Unlock()
 	var wg errgroup.Group
 	wg.Go(func() error {
-		return t.connectionsByProjectId.Unset(ctx, info.GetProjectId(), info.GetConnectionId())
+		return t.connectionsByProjectId.Unset(ctx, info.ProjectId, info.ConnectionId)
 	})
 	wg.Go(func() error {
-		return t.connectionsByAgentId.Unset(ctx, info.GetAgentId(), info.GetConnectionId())
+		return t.connectionsByAgentId.Unset(ctx, info.AgentId, info.ConnectionId)
 	})
-	t.connectedAgents.Forget(connectedAgentsKey, info.GetAgentId())
+	t.connectedAgents.Forget(connectedAgentsKey, info.AgentId)
 	return wg.Wait()
 }
 

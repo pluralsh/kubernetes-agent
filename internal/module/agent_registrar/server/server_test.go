@@ -30,9 +30,9 @@ func TestRegister(t *testing.T) {
 	mockAgentTracker.EXPECT().
 		RegisterConnection(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) error {
-			assert.EqualValues(t, 123, connectedAgentInfo.GetAgentId())
-			assert.EqualValues(t, 456, connectedAgentInfo.GetProjectId())
-			assert.EqualValues(t, 123456789, connectedAgentInfo.GetConnectionId())
+			assert.EqualValues(t, 123, connectedAgentInfo.AgentId)
+			assert.EqualValues(t, 456, connectedAgentInfo.ProjectId)
+			assert.EqualValues(t, 123456789, connectedAgentInfo.ConnectionId)
 			return nil
 		})
 

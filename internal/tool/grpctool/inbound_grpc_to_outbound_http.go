@@ -113,7 +113,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(inbound InboundGrpcToOutboundHttpStream
 				// this store is not synchronized and that's ok because PipeOutboundToInbound is executed
 				// on the caller's goroutine.
 				upgradeConn = r.UpgradeConn
-				return x.pipeOutboundToInbound(inbound, r, header.GetRequest().IsUpgrade())
+				return x.pipeOutboundToInbound(inbound, r, header.Request.IsUpgrade())
 			}
 		},
 	}
@@ -143,7 +143,7 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 	return HttpRequestStreamVisitor.Get().Visit(inbound,
 		WithCallback(HttpRequestHeaderFieldNumber, func(header *HttpRequest_Header) error {
 			x.logRequest(header)
-			isUpgrade = header.GetRequest().IsUpgrade()
+			isUpgrade = header.Request.IsUpgrade()
 			notExpectingBody = header.IsRequestWithoutBody()
 			ctx := inbound.Context()
 			select {
@@ -157,7 +157,7 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 			if notExpectingBody {
 				return status.Errorf(codes.Internal, "unexpected HttpRequest_Data message received")
 			}
-			_, err := pw.Write(data.GetData())
+			_, err := pw.Write(data.Data)
 			return x.maybeHandleIoError("request body write", err)
 		}),
 		WithCallback(HttpRequestTrailerFieldNumber, func(trailer *HttpRequest_Trailer) error {
@@ -186,7 +186,7 @@ func (x *InboundGrpcToOutboundHttp) pipeInboundToOutbound(inbound InboundGrpcToO
 				}
 				upgradeConn = r.UpgradeConn
 			}
-			_, err := upgradeConn.Write(data.GetData())
+			_, err := upgradeConn.Write(data.Data)
 			return x.maybeHandleIoError("upgrade request write", err)
 		}),
 		WithEOFCallback(func() error {
@@ -204,12 +204,12 @@ func (x *InboundGrpcToOutboundHttp) logRequest(header *HttpRequest_Header) {
 	if !x.Log.Core().Enabled(zap.DebugLevel) {
 		return
 	}
-	req := header.GetRequest()
+	req := header.Request
 	sugar := x.Log.Sugar()
-	if len(req.GetQuery()) > 0 {
-		sugar.Debugf("Handling %s %s?%s", req.GetMethod(), req.GetUrlPath(), req.UrlQuery().Encode())
+	if len(req.Query) > 0 {
+		sugar.Debugf("Handling %s %s?%s", req.Method, req.UrlPath, req.UrlQuery().Encode())
 	} else {
-		sugar.Debugf("Handling %s %s", req.GetMethod(), req.GetUrlPath())
+		sugar.Debugf("Handling %s %s", req.Method, req.UrlPath)
 	}
 }
 

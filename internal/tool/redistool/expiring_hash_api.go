@@ -50,10 +50,10 @@ func (h *RedisExpiringHashApi[K1, K2]) Scan(ctx context.Context, key K1, cb Scan
 				done, cbErr := cb(k, nil, fmt.Errorf("failed to unmarshal hash value from hashkey 0x%x: %w", k, err))
 				return done, false, cbErr
 			}
-			if msg.GetExpiresAt() < now {
+			if msg.ExpiresAt < now {
 				return false, true, nil
 			}
-			done, cbErr := cb(k, msg.GetValue(), nil)
+			done, cbErr := cb(k, msg.Value, nil)
 			return done, false, cbErr
 		})
 	if len(keysToDelete) == 0 {

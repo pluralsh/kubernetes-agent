@@ -8,25 +8,25 @@ import (
 )
 
 func (x *HttpRequest) HttpHeader() http.Header {
-	return ValuesMapToHttpHeader(x.GetHeader())
+	return ValuesMapToHttpHeader(x.Header)
 }
 
 func (x *HttpRequest) UrlQuery() url.Values {
-	return ValuesMapToUrlValues(x.GetQuery())
+	return ValuesMapToUrlValues(x.Query)
 }
 
 func (x *HttpRequest) IsUpgrade() bool {
-	return x.GetHeader()[httpz.UpgradeHeader] != nil
+	return x.Header[httpz.UpgradeHeader] != nil
 }
 
 func (x *HttpResponse) HttpHeader() http.Header {
-	return ValuesMapToHttpHeader(x.GetHeader())
+	return ValuesMapToHttpHeader(x.Header)
 }
 
 func ValuesMapToHttpHeader(from map[string]*Values) http.Header {
 	res := make(http.Header, len(from))
 	for key, val := range from {
-		res[key] = val.GetValue()
+		res[key] = val.Value
 	}
 	return res
 }
@@ -54,7 +54,7 @@ func UrlValuesToValuesMap(from url.Values) map[string]*Values {
 func ValuesMapToUrlValues(from map[string]*Values) url.Values {
 	query := make(url.Values, len(from))
 	for key, val := range from {
-		query[key] = val.GetValue()
+		query[key] = val.Value
 	}
 	return query
 }

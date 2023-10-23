@@ -186,9 +186,9 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 	if err != nil {
 		return err
 	}
-	descriptor, ok := recv.GetMsg().(*rpc.ConnectRequest_Descriptor_)
+	descriptor, ok := recv.Msg.(*rpc.ConnectRequest_Descriptor_)
 	if !ok {
-		return status.Errorf(codes.InvalidArgument, "Invalid oneof value type: %T", recv.GetMsg())
+		return status.Errorf(codes.InvalidArgument, "Invalid oneof value type: %T", recv.Msg)
 	}
 	retErr := make(chan error, 1)
 	agentId := agentInfo.Id
@@ -197,7 +197,7 @@ func (r *registryStripe) HandleTunnel(ageCtx context.Context, agentInfo *api.Age
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
 		agentId:             agentId,
-		agentDescriptor:     descriptor.Descriptor_.GetAgentDescriptor(),
+		agentDescriptor:     descriptor.Descriptor_.AgentDescriptor,
 		state:               stateReady,
 		onForward:           r.onTunnelForward,
 		onDone:              r.onTunnelDone,

@@ -11,15 +11,15 @@ var (
 )
 
 func (x *ClientError) Error() string {
-	p := x.GetPath()
+	p := x.Path
 	if p == "" {
 		p = "<unknown>"
 	}
-	r := x.GetReason()
+	r := x.Reason
 	if r != "" {
-		return fmt.Sprintf("HTTP status code: %d for path %s with reason %s", x.GetStatusCode(), p, r)
+		return fmt.Sprintf("HTTP status code: %d for path %s with reason %s", x.StatusCode, p, r)
 	}
-	return fmt.Sprintf("HTTP status code: %d for path %s", x.GetStatusCode(), p)
+	return fmt.Sprintf("HTTP status code: %d for path %s", x.StatusCode, p)
 }
 
 func IsForbidden(err error) bool {
@@ -27,7 +27,7 @@ func IsForbidden(err error) bool {
 	if !errors.As(err, &e) {
 		return false
 	}
-	return e.GetStatusCode() == http.StatusForbidden
+	return e.StatusCode == http.StatusForbidden
 }
 
 func IsUnauthorized(err error) bool {
@@ -35,7 +35,7 @@ func IsUnauthorized(err error) bool {
 	if !errors.As(err, &e) {
 		return false
 	}
-	return e.GetStatusCode() == http.StatusUnauthorized
+	return e.StatusCode == http.StatusUnauthorized
 }
 
 func IsNotFound(err error) bool {
@@ -43,5 +43,5 @@ func IsNotFound(err error) bool {
 	if !errors.As(err, &e) {
 		return false
 	}
-	return e.GetStatusCode() == http.StatusNotFound
+	return e.StatusCode == http.StatusNotFound
 }

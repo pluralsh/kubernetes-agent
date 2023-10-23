@@ -54,7 +54,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		gatherer:            f.Gatherer,
 		registerer:          f.Registerer,
 		listener:            listener,
-		serverName:          fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.GetVersion(), config.AgentMeta.GetCommitId()),
+		serverName:          fmt.Sprintf("%s/%s/%s", config.AgentName, config.AgentMeta.Version, config.AgentMeta.CommitId),
 	}, nil
 }
 

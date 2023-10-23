@@ -17,7 +17,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	listenCfg := config.Config.GetObservability().GetListen()
+	listenCfg := config.Config.Observability.Listen
 	var listener func() (net.Listener, error)
 
 	tlsConfig, err := tlstool.MaybeDefaultServerTLSConfig(listenCfg.GetCertificateFile(), listenCfg.GetKeyFile())
@@ -26,17 +26,17 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	if tlsConfig != nil {
 		listener = func() (net.Listener, error) {
-			return tls.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress(), tlsConfig)
+			return tls.Listen(*listenCfg.Network, listenCfg.Address, tlsConfig)
 		}
 	} else {
 		listener = func() (net.Listener, error) {
-			return net.Listen(*listenCfg.GetNetwork(), listenCfg.GetAddress())
+			return net.Listen(*listenCfg.Network, listenCfg.Address)
 		}
 	}
 	return &module{
 		log:           config.Log,
 		api:           config.Api,
-		cfg:           config.Config.GetObservability(),
+		cfg:           config.Config.Observability,
 		listener:      listener,
 		gatherer:      f.Gatherer,
 		registerer:    config.Registerer,
