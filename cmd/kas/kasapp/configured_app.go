@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/alicebob/miniredis/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -93,11 +92,6 @@ type ConfiguredApp struct {
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
-	s, err := miniredis.Run()
-	if err != nil {
-		return err
-	}
-	a.Log.Info(fmt.Sprintf("Redis address %s", s.Addr()))
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
 	ssh := grpctool.NewServerRequestsInFlightStatsHandler()
@@ -106,7 +100,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	procCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
 	srvProm := grpc_prometheus.NewServerMetrics()
 	clientProm := grpc_prometheus.NewClientMetrics()
-	err = metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
+	err := metric.Register(reg, ssh, csh, goCollector, procCollector, srvProm, clientProm)
 	if err != nil {
 		return err
 	}
@@ -151,7 +145,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Redis
-	redisClient, err := a.constructRedisClient(tp, mp, s.Addr())
+	redisClient, err := a.constructRedisClient(tp, mp)
 	if err != nil {
 		return err
 	}
@@ -387,7 +381,7 @@ func (a *ConfiguredApp) constructSentryHub(tp trace.TracerProvider, mp otelmetri
 	return sentry.NewHub(sentryClient, sentry.NewScope()), nil
 }
 
-func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider, address string) (rueidis.Client, error) {
+func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmetric.MeterProvider) (rueidis.Client, error) {
 	cfg := a.Configuration.Redis
 	dialTimeout := cfg.DialTimeout.AsDuration()
 	writeTimeout := cfg.WriteTimeout.AsDuration()
@@ -425,7 +419,7 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 	}
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
-		opts.InitAddress = []string{address}
+		opts.InitAddress = []string{v.Server.Address}
 		if opts.TLSConfig != nil {
 			opts.TLSConfig.ServerName, _, _ = strings.Cut(v.Server.Address, ":")
 		}
