@@ -20,7 +20,7 @@ jobs:
   publish-docker:
     name: Build and push agent container
     runs-on: ubuntu-20.04
-    # needs: [test]  # TODO
+    needs: [test]
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -50,7 +50,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Login to GHCR
+      - name: Login to Container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -69,7 +69,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             GIT_COMMIT=${{ github.sha }}
-      - name: slack webhook
+      - name: Slack webhook
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
