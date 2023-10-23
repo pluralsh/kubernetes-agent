@@ -332,6 +332,7 @@ func (a *ConfiguredApp) constructPluralRpcApiFactory(errRep errz.ErrReporter, se
 			dt,
 			gapi.IsCacheableError,
 		),
+		PluralURL: a.Configuration.PluralUrl,
 	}
 	return f.New, fAgent.New
 }

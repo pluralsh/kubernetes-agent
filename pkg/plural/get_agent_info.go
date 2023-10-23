@@ -7,11 +7,14 @@ import (
 )
 
 func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, pluralURL string) (*api.AgentInfo, error) {
-	_ = New(pluralURL, string(agentToken))
+	client := New(pluralURL, string(agentToken))
+	cluster, err := client.consoleClient.MyCluster(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.AgentInfo{
-		Id:            123456,
-		ProjectId:     0,
-		Name:          "fake-agent",
-		DefaultBranch: "",
+		Id:   0,
+		Name: cluster.MyCluster.Name,
 	}, nil
 }
