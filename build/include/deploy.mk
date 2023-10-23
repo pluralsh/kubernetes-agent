@@ -1,14 +1,17 @@
 .PHONY: --image-debug
---image-debug: APP_VERSION = "debug"
+--image-debug: APP_VERSION = debug
 --image-debug: --ensure-variables-set --image
 
 .PHONY: --image
---image: APP_VERSION = "latest"
 --image: --ensure-variables-set
-	echo "Building '$(APP_NAME):$(APP_VERSION)'" ; \
+	@VERSION="latest" ; \
+	if [ ! -z $(APP_VERSION) ] ; then \
+  		VERSION="$(APP_VERSION)" ; \
+    fi ; \
+	echo "Building '$(APP_NAME):$${VERSION}'" ; \
 	docker build \
 		-f $(DOCKERFILE) \
-		-t $(APP_NAME):$(APP_VERSION) \
+		-t $(APP_NAME):$${VERSION} \
 		$(ROOT_DIRECTORY) ; \
 
 .PHONY: --ensure-variables-set

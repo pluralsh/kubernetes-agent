@@ -21,13 +21,21 @@ go-dep-updates: ## show possible go dependency updates
 
 ##@ Run
 
+.PHONY: run
+run:
+	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent up
+
+.PHONY: stop
+stop:
+	docker compose -f build/docker/compose.yaml --project-name=kubernetes-agent down
+
 ##@ Build
 
 .PHONY: build
 build: build-kas build-agentk ## build both kas and agentk
 
 .PHONY: build-kas
-build-kas: TARGET_DIRECTORY=bin/kas
+build-kas: TARGET_DIRECTORY=.bin/kas
 build-kas: ## build kas
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
@@ -35,7 +43,7 @@ build-kas: ## build kas
 		-o $(TARGET_DIRECTORY) ./cmd/kas
 
 .PHONY: build-agentk
-build-agentk: TARGET_DIRECTORY=bin/agentk
+build-agentk: TARGET_DIRECTORY=.bin/agentk
 build-agentk: ## build agentk
 	CGO_ENABLED=0 go build \
     	-gcflags='$(GCFLAGS)' \
@@ -50,8 +58,9 @@ docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.Dockerfile
 docker-kas: --image ## build docker kas image
 
 .PHONY: docker-kas-debug
-docker-kas: APP_NAME=kas
-docker-kas: DOCKERFILE=${DOCKER_DIRECTORY}/kas.debug.Dockerfile
+docker-kas-debug: APP_NAME=kas
+docker-kas-debug: DOCKERFILE=${DOCKER_DIRECTORY}/kas.debug.Dockerfile
+docker-kas-debug: APP_VERSION=debug
 docker-kas-debug: --image-debug ## build docker kas debug image with embedded delve
 
 .PHONY: docker-agentk

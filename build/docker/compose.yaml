@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  kas:
+    build:
+      context: ../..
+      dockerfile: build/docker/kas.debug.Dockerfile
+    environment:
+      APP_FLAGS: --configuration-file=/config.yaml
+    volumes:
+      - ${PWD}/.secret:/.secret
+      - ${PWD}/build/docker/config.yaml:/config.yaml
+    tmpfs:
+      - /tmp
+  agent:
+    build:
+      context: ../..
+      dockerfile: build/docker/agentk.debug.Dockerfile
+    environment:
+      APP_FLAGS: --kas-address=grpc://host.docker.internal:8150
+      POD_NAME: test
+      POD_NAMESPACE: test
+      AGENTK_TOKEN: test
+#    volumes:
+#      - ${KUBECONFIG:?}:${KUBECONFIG:?}
+    tmpfs:
+      - /tmp
+#    ports:
+#      - "9001:9001"
+
+networks:
+  default:
+    name: plural
