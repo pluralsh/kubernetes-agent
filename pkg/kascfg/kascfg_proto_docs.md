@@ -8,7 +8,6 @@
     - [AgentConfigurationCF](#gitlab-agent-kascfg-AgentConfigurationCF)
     - [ApiCF](#gitlab-agent-kascfg-ApiCF)
     - [ConfigurationFile](#gitlab-agent-kascfg-ConfigurationFile)
-    - [GitalyCF](#gitlab-agent-kascfg-GitalyCF)
     - [GoogleProfilerCF](#gitlab-agent-kascfg-GoogleProfilerCF)
     - [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF)
     - [ListenAgentCF](#gitlab-agent-kascfg-ListenAgentCF)
@@ -111,22 +110,6 @@ ConfigurationFile represents kas configuration file.
 | private_api | [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
 | plural_token | [string](#string) |  | Console token |
 | plural_url | [string](#string) |  | Plural URL address |
-
-
-
-
-
-
-<a name="gitlab-agent-kascfg-GitalyCF"></a>
-
-### GitalyCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| global_api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limit that is enforced across all Gitaly servers. |
-| per_server_api_rate_limit | [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF) |  | Rate limit that is enforced per each Gitaly server. |
 
 
 

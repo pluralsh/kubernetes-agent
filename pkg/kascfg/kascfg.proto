@@ -199,13 +199,6 @@ message TokenBucketRateLimitCF {
   uint32 bucket_size = 2 [json_name = "bucket_size"];
 }
 
-message GitalyCF {
-  // Rate limit that is enforced across all Gitaly servers.
-  TokenBucketRateLimitCF global_api_rate_limit = 1 [json_name = "global_api_rate_limit"];
-  // Rate limit that is enforced per each Gitaly server.
-  TokenBucketRateLimitCF per_server_api_rate_limit = 2 [json_name = "per_server_api_rate_limit"];
-}
-
 message RedisCF {
   oneof redis_config {
     option (validate.required) = true;

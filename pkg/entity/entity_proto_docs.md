@@ -5,7 +5,6 @@
 
 - [pkg/entity/entity.proto](#pkg_entity_entity-proto)
     - [AgentMeta](#gitlab-agent-entity-AgentMeta)
-    - [GitalyRepository](#gitlab-agent-entity-GitalyRepository)
     - [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion)
   
 - [Scalar Value Types](#scalar-value-types)
@@ -32,27 +31,6 @@ AgentMeta contains information about agentk.
 | pod_namespace | [string](#string) |  | Namespace of the Pod running the binary. |
 | pod_name | [string](#string) |  | Name of the Pod running the binary. |
 | kubernetes_version | [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion) |  | Version of the Kubernetes cluster. |
-
-
-
-
-
-
-<a name="gitlab-agent-entity-GitalyRepository"></a>
-
-### GitalyRepository
-Modified copy of Gitaly&#39;s https://gitlab.com/gitlab-org/gitaly/-/blob/55cb537898bce04e5e44be074a4d3d441e1f62b6/proto/shared.proto#L25
-Was copied to avoid exposing Gitaly type in the API and forcing the consumer to have a dependency on Gitaly.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| storage_name | [string](#string) |  |  |
-| relative_path | [string](#string) |  |  |
-| git_object_directory | [string](#string) |  | Sets the GIT_OBJECT_DIRECTORY envvar on git commands to the value of this field. It influences the object storage directory the SHA1 directories are created underneath. |
-| git_alternate_object_directories | [string](#string) | repeated | Sets the GIT_ALTERNATE_OBJECT_DIRECTORIES envvar on git commands to the values of this field. It influences the list of Git object directories which can be used to search for Git objects. |
-| gl_repository | [string](#string) |  | Used in callbacks to GitLab so that it knows what repository the event is associated with. May be left empty on RPC&#39;s that do not perform callbacks. During project creation, `gl_repository` may not be known. |
-| gl_project_path | [string](#string) |  | The human-readable GitLab project path (e.g. gitlab-org/gitlab-ce). When hashed storage is use, this associates a project path with its path on disk. The name can change over time (e.g. when a project is renamed). This is primarily used for logging/debugging at the moment. |
 
 
 

@@ -243,7 +243,6 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 | project_id | [int64](#int64) |  |  |
 | agent_id | [int64](#int64) |  |  |
 | agent_name | [string](#string) |  |  |
-| gitaly_repository | [gitlab.agent.entity.GitalyRepository](#gitlab-agent-entity-GitalyRepository) |  |  |
 | default_branch | [string](#string) |  |  |
 
 
@@ -260,7 +259,6 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | project_id | [int64](#int64) |  |  |
-| gitaly_repository | [gitlab.agent.entity.GitalyRepository](#gitlab-agent-entity-GitalyRepository) |  |  |
 | default_branch | [string](#string) |  |  |
 
 

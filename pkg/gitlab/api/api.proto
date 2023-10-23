@@ -8,7 +8,6 @@ option go_package = "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api";
 
 import "pkg/agentcfg/agentcfg.proto";
 import "validate/validate.proto";
-import "pkg/entity/entity.proto";
 
 // Configuration contains shared fields from agentcfg.CiAccessProjectCF and agentcfg.CiAccessGroupCF.
 // It is used to parse response from the allowed_agents API endpoint.
@@ -59,13 +58,11 @@ message GetAgentInfoResponse {
   int64 project_id = 1 [json_name = "project_id", (validate.rules).int64.gt = 0];
   int64 agent_id = 2 [json_name = "agent_id", (validate.rules).int64.gt = 0];
   string agent_name = 3 [json_name = "agent_name", (validate.rules).string.min_bytes = 1];
-  entity.GitalyRepository gitaly_repository = 5 [json_name = "gitaly_repository", (validate.rules).message.required = true];
   string default_branch = 6 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
 }
 
 message GetProjectInfoResponse {
   int64 project_id = 1 [json_name = "project_id", (validate.rules).int64.gt = 0];
-  entity.GitalyRepository gitaly_repository = 3 [json_name = "gitaly_repository", (validate.rules).message.required = true];
   string default_branch = 4 [json_name = "default_branch", (validate.rules).string.min_bytes = 1];
 }
 
