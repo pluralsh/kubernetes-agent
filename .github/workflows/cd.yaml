@@ -1,8 +1,6 @@
 name: CD
 on:
   push:
-    branches:
-      - master # TODO: delete it after testing
     tags:
       - 'v*.*.*'
 env:
@@ -22,7 +20,7 @@ jobs:
   publish-docker:
     name: Build and push agent container
     runs-on: ubuntu-20.04
-    # needs: [test]  # TODO: delete it after testing
+    # needs: [test]  # TODO
     permissions:
       contents: 'read'
       id-token: 'write'
