@@ -12,7 +12,7 @@ COPY . .
 RUN GCFLAGS="all=-N -l" make TARGET_DIRECTORY=/agentk build-agentk
 
 FROM gcr.io/distroless/base-debian12:nonroot
-LABEL source="https://github.com/pluralsh/kas" \
+LABEL source="https://github.com/pluralsh/kubernetes-agent" \
       name="Kubernetes Agent" \
       maintainer="Plural::sre" \
       vendor="Plural" \
