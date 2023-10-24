@@ -336,5 +336,5 @@ message ConfigurationFile {
   // Private API for kas->kas communication.
   PrivateApiCF private_api = 5 [json_name = "private_api", (validate.rules).message.required = true];
   // Plural URL address
-  string plural_url = 7 [json_name = "plural_url"];
+  string plural_url = 6 [json_name = "plural_url"];
 }
