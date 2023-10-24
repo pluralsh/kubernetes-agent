@@ -63,7 +63,6 @@ import (
 
 	"github.com/pluralsh/kuberentes-agent/cmd"
 	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
-	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 )
 
 const (
@@ -156,8 +155,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	srvApi := newServerApi(a.Log, sentryHub, redisClient)
 	errRep := modshared.ApiToErrReporter(srvApi)
 	grpcServerErrorReporter := &serverErrorReporter{log: a.Log, errReporter: errRep}
-
-	pluralclient.New(a.Configuration.PluralToken, "")
 
 	// RPC API factory
 	// Plural: Use fake factory

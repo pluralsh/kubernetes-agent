@@ -4109,8 +4109,6 @@ func (m *ConfigurationFile) validate(all bool) error {
 		}
 	}
 
-	// no validation rules for PluralToken
-
 	// no validation rules for PluralUrl
 
 	if len(errors) > 0 {

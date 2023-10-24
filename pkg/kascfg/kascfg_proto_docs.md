@@ -108,7 +108,6 @@ ConfigurationFile represents kas configuration file.
 | redis | [RedisCF](#gitlab-agent-kascfg-RedisCF) |  | Redis configurations available to kas. |
 | api | [ApiCF](#gitlab-agent-kascfg-ApiCF) |  | Public API. |
 | private_api | [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
-| plural_token | [string](#string) |  | Console token |
 | plural_url | [string](#string) |  | Plural URL address |
 
 
