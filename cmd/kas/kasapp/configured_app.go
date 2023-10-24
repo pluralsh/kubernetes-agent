@@ -15,6 +15,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	usage_metrics_server "github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics/server"
 
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/plural"
 	"github.com/pluralsh/kuberentes-agent/pkg/api"
@@ -222,10 +223,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&observability_server.Factory{
 			Gatherer: reg,
 		},
-		// TODO: Enable once it's refactored.
-		//&usage_metrics_server.Factory{
-		//	UsageTracker: usageTracker,
-		//},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
+		},
 		&agent_registrar_server.Factory{
 			AgentRegisterer: agentTracker,
 		},

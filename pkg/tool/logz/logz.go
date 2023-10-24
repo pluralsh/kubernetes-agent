@@ -47,22 +47,6 @@ func CommitId(commitId string) zap.Field {
 	return zap.String("commit_id", commitId)
 }
 
-func GitRef(gitRef string) zap.Field {
-	return zap.String("git_ref", gitRef)
-}
-
-func NumberOfFilesVisited(n uint32) zap.Field {
-	return zap.Uint32("files_visited", n)
-}
-func NumberOfFilesSent(n uint32) zap.Field {
-	return zap.Uint32("files_sent", n)
-}
-
-// ProjectId is the human-readable GitLab project path (e.g. gitlab-org/gitlab).
-func ProjectId(projectId string) zap.Field {
-	return zap.String("project_id", projectId)
-}
-
 // WorkerId is an id of the work source such as project id or chart name. (e.g. gitlab-org/gitlab).
 func WorkerId(workerId string) zap.Field {
 	return zap.String("worker_id", workerId)

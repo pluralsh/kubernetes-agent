@@ -6,8 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	gitlab2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab"
-	gapi "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
@@ -18,7 +16,6 @@ type module struct {
 	log                  *zap.Logger
 	api                  modserver.Api
 	usageTracker         usage_metrics.UsageTrackerCollector
-	gitLabClient         gitlab2.ClientInterface
 	usageReportingPeriod time.Duration
 }
 
@@ -56,11 +53,11 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 	if usageData.IsEmpty() {
 		return nil
 	}
-	data := gapi.UsagePingData{
+	data := UsagePingData{
 		Counters:       usageData.Counters,
 		UniqueCounters: usageData.UniqueCounters,
 	}
-	err := gapi.SendUsagePing(ctx, m.gitLabClient, data, gitlab2.WithoutRetries())
+	err := SendUsagePing(data)
 	if err != nil {
 		return err // don't wrap
 	}
@@ -71,4 +68,14 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 
 func (m *module) Name() string {
 	return usage_metrics.ModuleName
+}
+
+// TODO: Send usage to console. Move this code to plural package.
+type UsagePingData struct {
+	Counters       map[string]int64   `json:"counters,omitempty"`
+	UniqueCounters map[string][]int64 `json:"unique_counters,omitempty"`
+}
+
+func SendUsagePing(data UsagePingData) error {
+	return nil
 }
