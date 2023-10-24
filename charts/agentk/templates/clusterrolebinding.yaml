@@ -1,0 +1,16 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Namespace }}:{{ include "agentk.fullname" . }}-{{ .Values.rbac.useExistingRole | default "cluster-admin" }}
+  labels:
+    {{- include "agentk.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.rbac.useExistingRole | default "cluster-admin" }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "agentk.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace | default "agentk" }}
+{{- end }}

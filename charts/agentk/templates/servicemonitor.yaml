@@ -1,0 +1,36 @@
+{{- if (.Values.serviceMonitor).enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentk.fullname" . }}-observability
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "agentk.selectorLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+      name: observability
+  selector:
+    {{- include "agentk.selectorLabels" . | nindent 4 }}
+---
+apiVersion: "monitoring.coreos.com/v1"
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "agentk.labels" . | nindent 4 }}
+  name: {{ include "agentk.fullname" . }}-observability
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "agentk.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: observability
+    interval: 30s
+    scrapeTimeout: 25s
+{{- end }}

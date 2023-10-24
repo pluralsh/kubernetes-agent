@@ -1,0 +1,9 @@
+apiVersion: v2
+name: agentk
+description: ""
+type: application
+version: 0.0.0
+appVersion: "0.0.0"
+maintainers:
+  - name: Plural
+    url: https://www.plural.sh

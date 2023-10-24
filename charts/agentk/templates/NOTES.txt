@@ -1,0 +1,10 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+## Changelog
+
+### 1.17.0
+
+- The default replica count has been increased from `1` to `2` to allow a zero-downtime upgrade experience.
+  You may use `--set replicas=1` to restore the old default behavior.
