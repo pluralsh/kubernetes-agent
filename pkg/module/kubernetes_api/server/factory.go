@@ -12,7 +12,6 @@ import (
 	"github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
 	redistool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
@@ -75,7 +74,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		proxy: kubernetesApiProxy{
 			log:                 config.Log,
 			api:                 config.Api,
-			pluralClient:        pluralclient.New(config.Config.PluralUrl, config.Config.PluralToken),
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			allowedOriginUrls:   allowedOriginUrls,
 			allowedAgentsCache: cache.NewWithError[string, *api.AllowedAgentsForJob](

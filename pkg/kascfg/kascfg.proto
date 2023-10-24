@@ -335,8 +335,6 @@ message ConfigurationFile {
   ApiCF api = 4 [json_name = "api", (validate.rules).message.required = true];
   // Private API for kas->kas communication.
   PrivateApiCF private_api = 5 [json_name = "private_api", (validate.rules).message.required = true];
-  // Console token
-  string plural_token = 6 [json_name = "plural_token"];
   // Plural URL address
   string plural_url = 7 [json_name = "plural_url"];
 }

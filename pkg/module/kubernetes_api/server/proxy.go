@@ -19,7 +19,6 @@ import (
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
-	pluralclient "github.com/pluralsh/kuberentes-agent/pkg/plural"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
 	httpz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
@@ -86,7 +85,6 @@ type kubernetesApiProxy struct {
 	api                      modserver.Api
 	kubernetesApiClient      rpc2.KubernetesApiClient
 	gitLabClient             gitlab2.ClientInterface
-	pluralClient             *pluralclient.Client
 	allowedOriginUrls        []string
 	allowedAgentsCache       *cache.CacheWithErr[string, *api2.AllowedAgentsForJob]
 	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *api2.AuthorizeProxyUserResponse]
