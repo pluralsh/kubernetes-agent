@@ -76,7 +76,7 @@ func (c *CacheWithErr[K, V]) GetItem(ctx context.Context, key K, f GetItemDirect
 		}
 		item, err := f()
 		if err != nil {
-			if c.isCacheable(err) {
+			if c.isCacheable != nil && c.isCacheable(err) {
 				// cacheable error
 				c.errCacher.CacheError(ctx, key, err, c.errTtl)
 			}

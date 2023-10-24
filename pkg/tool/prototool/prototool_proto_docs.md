@@ -4,12 +4,12 @@
 ## Table of Contents
 
 - [pkg/tool/prototool/prototool.proto](#pkg_tool_prototool_prototool-proto)
-    - [HttpRequest](#gitlab-agent-prototool-HttpRequest)
-    - [HttpRequest.HeaderEntry](#gitlab-agent-prototool-HttpRequest-HeaderEntry)
-    - [HttpRequest.QueryEntry](#gitlab-agent-prototool-HttpRequest-QueryEntry)
-    - [HttpResponse](#gitlab-agent-prototool-HttpResponse)
-    - [HttpResponse.HeaderEntry](#gitlab-agent-prototool-HttpResponse-HeaderEntry)
-    - [Values](#gitlab-agent-prototool-Values)
+    - [HttpRequest](#plural-agent-prototool-HttpRequest)
+    - [HttpRequest.HeaderEntry](#plural-agent-prototool-HttpRequest-HeaderEntry)
+    - [HttpRequest.QueryEntry](#plural-agent-prototool-HttpRequest-QueryEntry)
+    - [HttpResponse](#plural-agent-prototool-HttpResponse)
+    - [HttpResponse.HeaderEntry](#plural-agent-prototool-HttpResponse-HeaderEntry)
+    - [Values](#plural-agent-prototool-Values)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -22,7 +22,7 @@
 
 
 
-<a name="gitlab-agent-prototool-HttpRequest"></a>
+<a name="plural-agent-prototool-HttpRequest"></a>
 
 ### HttpRequest
 
@@ -31,16 +31,16 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | method | [string](#string) |  | HTTP method. |
-| header | [HttpRequest.HeaderEntry](#gitlab-agent-prototool-HttpRequest-HeaderEntry) | repeated | HTTP header. |
+| header | [HttpRequest.HeaderEntry](#plural-agent-prototool-HttpRequest-HeaderEntry) | repeated | HTTP header. |
 | url_path | [string](#string) |  | URL path. Should start with a slash. |
-| query | [HttpRequest.QueryEntry](#gitlab-agent-prototool-HttpRequest-QueryEntry) | repeated | query is the URL query part without the leading question mark. |
+| query | [HttpRequest.QueryEntry](#plural-agent-prototool-HttpRequest-QueryEntry) | repeated | query is the URL query part without the leading question mark. |
 
 
 
 
 
 
-<a name="gitlab-agent-prototool-HttpRequest-HeaderEntry"></a>
+<a name="plural-agent-prototool-HttpRequest-HeaderEntry"></a>
 
 ### HttpRequest.HeaderEntry
 
@@ -49,14 +49,14 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-prototool-HttpRequest-QueryEntry"></a>
+<a name="plural-agent-prototool-HttpRequest-QueryEntry"></a>
 
 ### HttpRequest.QueryEntry
 
@@ -65,14 +65,14 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-prototool-HttpResponse"></a>
+<a name="plural-agent-prototool-HttpResponse"></a>
 
 ### HttpResponse
 
@@ -82,14 +82,14 @@
 | ----- | ---- | ----- | ----------- |
 | status_code | [int32](#int32) |  | HTTP status code. |
 | status | [string](#string) |  | HTTP status message. |
-| header | [HttpResponse.HeaderEntry](#gitlab-agent-prototool-HttpResponse-HeaderEntry) | repeated | HTTP header. |
+| header | [HttpResponse.HeaderEntry](#plural-agent-prototool-HttpResponse-HeaderEntry) | repeated | HTTP header. |
 
 
 
 
 
 
-<a name="gitlab-agent-prototool-HttpResponse-HeaderEntry"></a>
+<a name="plural-agent-prototool-HttpResponse-HeaderEntry"></a>
 
 ### HttpResponse.HeaderEntry
 
@@ -98,14 +98,14 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-prototool-Values"></a>
+<a name="plural-agent-prototool-Values"></a>
 
 ### Values
 

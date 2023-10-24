@@ -2,7 +2,7 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package gitlab.agent.grpctool;
+package plural.agent.grpctool;
 
 option go_package = "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool";
 

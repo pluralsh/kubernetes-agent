@@ -4,7 +4,7 @@
 ## Table of Contents
 
 - [pkg/module/agent_tracker/agent_tracker.proto](#pkg_module_agent_tracker_agent_tracker-proto)
-    - [ConnectedAgentInfo](#gitlab-agent-agent_tracker-ConnectedAgentInfo)
+    - [ConnectedAgentInfo](#plural-agent-agent_tracker-ConnectedAgentInfo)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -17,7 +17,7 @@
 
 
 
-<a name="gitlab-agent-agent_tracker-ConnectedAgentInfo"></a>
+<a name="plural-agent-agent_tracker-ConnectedAgentInfo"></a>
 
 ### ConnectedAgentInfo
 ConnectedAgentInfo contains information about a connected agentk.
@@ -25,7 +25,7 @@ ConnectedAgentInfo contains information about a connected agentk.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent_meta | [gitlab.agent.entity.AgentMeta](#gitlab-agent-entity-AgentMeta) |  | Information about the agent sent by the agent. |
+| agent_meta | [plural.agent.entity.AgentMeta](#plural-agent-entity-AgentMeta) |  | Information about the agent sent by the agent. |
 | connected_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | When the connection was established. |
 | connection_id | [int64](#int64) |  | Uniquely identifies a particular agentk-&gt;kas connection. Randomly generated when an agent connects. |
 | agent_id | [int64](#int64) |  | Unique id of the agent. |

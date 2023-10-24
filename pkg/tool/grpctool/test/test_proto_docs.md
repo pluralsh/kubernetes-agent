@@ -4,19 +4,19 @@
 ## Table of Contents
 
 - [pkg/tool/grpctool/test/test.proto](#pkg_tool_grpctool_test_test-proto)
-    - [NoOneofs](#gitlab-agent-grpctool-test-NoOneofs)
-    - [NotAllReachable](#gitlab-agent-grpctool-test-NotAllReachable)
-    - [OutOfOneof](#gitlab-agent-grpctool-test-OutOfOneof)
-    - [Request](#gitlab-agent-grpctool-test-Request)
-    - [Response](#gitlab-agent-grpctool-test-Response)
-    - [Response.Data](#gitlab-agent-grpctool-test-Response-Data)
-    - [Response.Last](#gitlab-agent-grpctool-test-Response-Last)
-    - [TwoOneofs](#gitlab-agent-grpctool-test-TwoOneofs)
-    - [TwoValidOneofs](#gitlab-agent-grpctool-test-TwoValidOneofs)
+    - [NoOneofs](#plural-agent-grpctool-test-NoOneofs)
+    - [NotAllReachable](#plural-agent-grpctool-test-NotAllReachable)
+    - [OutOfOneof](#plural-agent-grpctool-test-OutOfOneof)
+    - [Request](#plural-agent-grpctool-test-Request)
+    - [Response](#plural-agent-grpctool-test-Response)
+    - [Response.Data](#plural-agent-grpctool-test-Response-Data)
+    - [Response.Last](#plural-agent-grpctool-test-Response-Last)
+    - [TwoOneofs](#plural-agent-grpctool-test-TwoOneofs)
+    - [TwoValidOneofs](#plural-agent-grpctool-test-TwoValidOneofs)
   
-    - [enum1](#gitlab-agent-grpctool-test-enum1)
+    - [enum1](#plural-agent-grpctool-test-enum1)
   
-    - [Testing](#gitlab-agent-grpctool-test-Testing)
+    - [Testing](#plural-agent-grpctool-test-Testing)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -29,7 +29,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-test-NoOneofs"></a>
+<a name="plural-agent-grpctool-test-NoOneofs"></a>
 
 ### NoOneofs
 
@@ -39,7 +39,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-test-NotAllReachable"></a>
+<a name="plural-agent-grpctool-test-NotAllReachable"></a>
 
 ### NotAllReachable
 
@@ -56,7 +56,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-test-OutOfOneof"></a>
+<a name="plural-agent-grpctool-test-OutOfOneof"></a>
 
 ### OutOfOneof
 
@@ -73,7 +73,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-test-Request"></a>
+<a name="plural-agent-grpctool-test-Request"></a>
 
 ### Request
 
@@ -88,7 +88,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-test-Response"></a>
+<a name="plural-agent-grpctool-test-Response"></a>
 
 ### Response
 
@@ -97,16 +97,16 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | scalar | [int64](#int64) |  |  |
-| x1 | [enum1](#gitlab-agent-grpctool-test-enum1) |  |  |
-| data | [Response.Data](#gitlab-agent-grpctool-test-Response-Data) |  |  |
-| last | [Response.Last](#gitlab-agent-grpctool-test-Response-Last) |  |  |
+| x1 | [enum1](#plural-agent-grpctool-test-enum1) |  |  |
+| data | [Response.Data](#plural-agent-grpctool-test-Response-Data) |  |  |
+| last | [Response.Last](#plural-agent-grpctool-test-Response-Last) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-grpctool-test-Response-Data"></a>
+<a name="plural-agent-grpctool-test-Response-Data"></a>
 
 ### Response.Data
 Subsequent messages of the stream.
@@ -121,7 +121,7 @@ Subsequent messages of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-test-Response-Last"></a>
+<a name="plural-agent-grpctool-test-Response-Last"></a>
 
 ### Response.Last
 Last message of the stream.
@@ -131,7 +131,7 @@ Last message of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-test-TwoOneofs"></a>
+<a name="plural-agent-grpctool-test-TwoOneofs"></a>
 
 ### TwoOneofs
 
@@ -149,7 +149,7 @@ Last message of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-test-TwoValidOneofs"></a>
+<a name="plural-agent-grpctool-test-TwoValidOneofs"></a>
 
 ### TwoValidOneofs
 
@@ -169,7 +169,7 @@ Last message of the stream.
  
 
 
-<a name="gitlab-agent-grpctool-test-enum1"></a>
+<a name="plural-agent-grpctool-test-enum1"></a>
 
 ### enum1
 
@@ -185,15 +185,15 @@ Last message of the stream.
  
 
 
-<a name="gitlab-agent-grpctool-test-Testing"></a>
+<a name="plural-agent-grpctool-test-Testing"></a>
 
 ### Testing
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| RequestResponse | [Request](#gitlab-agent-grpctool-test-Request) | [Response](#gitlab-agent-grpctool-test-Response) |  |
-| StreamingRequestResponse | [Request](#gitlab-agent-grpctool-test-Request) stream | [Response](#gitlab-agent-grpctool-test-Response) stream |  |
+| RequestResponse | [Request](#plural-agent-grpctool-test-Request) | [Response](#plural-agent-grpctool-test-Response) |  |
+| StreamingRequestResponse | [Request](#plural-agent-grpctool-test-Request) stream | [Response](#plural-agent-grpctool-test-Response) stream |  |
 
  
 

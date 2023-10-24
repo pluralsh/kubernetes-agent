@@ -4,8 +4,8 @@
 ## Table of Contents
 
 - [pkg/gitlab/gitlab.proto](#pkg_gitlab_gitlab-proto)
-    - [ClientError](#gitlab-agent-gitlab-ClientError)
-    - [DefaultApiError](#gitlab-agent-gitlab-DefaultApiError)
+    - [ClientError](#plural-agent-gitlab-ClientError)
+    - [DefaultApiError](#plural-agent-gitlab-DefaultApiError)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -18,7 +18,7 @@
 
 
 
-<a name="gitlab-agent-gitlab-ClientError"></a>
+<a name="plural-agent-gitlab-ClientError"></a>
 
 ### ClientError
 
@@ -35,7 +35,7 @@
 
 
 
-<a name="gitlab-agent-gitlab-DefaultApiError"></a>
+<a name="plural-agent-gitlab-DefaultApiError"></a>
 
 ### DefaultApiError
 see https://gitlab.com/gitlab-org/gitlab/blob/2864126a72835bd0b29f670ffc36828014850f5f/lib/api/helpers.rb#L534-534

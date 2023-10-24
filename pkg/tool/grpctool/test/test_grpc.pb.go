@@ -21,8 +21,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Testing_RequestResponse_FullMethodName          = "/gitlab.agent.grpctool.test.Testing/RequestResponse"
-	Testing_StreamingRequestResponse_FullMethodName = "/gitlab.agent.grpctool.test.Testing/StreamingRequestResponse"
+	Testing_RequestResponse_FullMethodName          = "/plural.agent.grpctool.test.Testing/RequestResponse"
+	Testing_StreamingRequestResponse_FullMethodName = "/plural.agent.grpctool.test.Testing/StreamingRequestResponse"
 )
 
 // TestingClient is the client API for Testing service.
@@ -161,7 +161,7 @@ func (x *testingStreamingRequestResponseServer) Recv() (*Request, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Testing_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.grpctool.test.Testing",
+	ServiceName: "plural.agent.grpctool.test.Testing",
 	HandlerType: (*TestingServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

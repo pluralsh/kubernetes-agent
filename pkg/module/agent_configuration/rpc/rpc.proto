@@ -2,7 +2,7 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package gitlab.agent.agent_configuration.rpc;
+package plural.agent.agent_configuration.rpc;
 
 option go_package = "github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/rpc";
 

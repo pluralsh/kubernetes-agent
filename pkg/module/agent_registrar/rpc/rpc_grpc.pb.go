@@ -21,7 +21,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AgentRegistrar_Register_FullMethodName = "/gitlab.agent.agent_registrar.rpc.AgentRegistrar/Register"
+	AgentRegistrar_Register_FullMethodName = "/plural.agent.agent_registrar.rpc.AgentRegistrar/Register"
 )
 
 // AgentRegistrarClient is the client API for AgentRegistrar service.
@@ -100,7 +100,7 @@ func _AgentRegistrar_Register_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AgentRegistrar_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.agent_registrar.rpc.AgentRegistrar",
+	ServiceName: "plural.agent.agent_registrar.rpc.AgentRegistrar",
 	HandlerType: (*AgentRegistrarServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

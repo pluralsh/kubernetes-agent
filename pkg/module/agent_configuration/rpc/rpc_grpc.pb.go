@@ -21,7 +21,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AgentConfiguration_GetConfiguration_FullMethodName = "/gitlab.agent.agent_configuration.rpc.AgentConfiguration/GetConfiguration"
+	AgentConfiguration_GetConfiguration_FullMethodName = "/plural.agent.agent_configuration.rpc.AgentConfiguration/GetConfiguration"
 )
 
 // AgentConfigurationClient is the client API for AgentConfiguration service.
@@ -126,7 +126,7 @@ func (x *agentConfigurationGetConfigurationServer) Send(m *ConfigurationResponse
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AgentConfiguration_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.agent_configuration.rpc.AgentConfiguration",
+	ServiceName: "plural.agent.agent_configuration.rpc.AgentConfiguration",
 	HandlerType: (*AgentConfigurationServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

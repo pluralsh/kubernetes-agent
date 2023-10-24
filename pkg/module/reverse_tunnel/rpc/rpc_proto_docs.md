@@ -4,20 +4,20 @@
 ## Table of Contents
 
 - [pkg/module/reverse_tunnel/rpc/rpc.proto](#pkg_module_reverse_tunnel_rpc_rpc-proto)
-    - [CloseSend](#gitlab-agent-reverse_tunnel-rpc-CloseSend)
-    - [ConnectRequest](#gitlab-agent-reverse_tunnel-rpc-ConnectRequest)
-    - [ConnectResponse](#gitlab-agent-reverse_tunnel-rpc-ConnectResponse)
-    - [Descriptor](#gitlab-agent-reverse_tunnel-rpc-Descriptor)
-    - [Error](#gitlab-agent-reverse_tunnel-rpc-Error)
-    - [Header](#gitlab-agent-reverse_tunnel-rpc-Header)
-    - [Header.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-Header-MetaEntry)
-    - [Message](#gitlab-agent-reverse_tunnel-rpc-Message)
-    - [RequestInfo](#gitlab-agent-reverse_tunnel-rpc-RequestInfo)
-    - [RequestInfo.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry)
-    - [Trailer](#gitlab-agent-reverse_tunnel-rpc-Trailer)
-    - [Trailer.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-Trailer-MetaEntry)
+    - [CloseSend](#plural-agent-reverse_tunnel-rpc-CloseSend)
+    - [ConnectRequest](#plural-agent-reverse_tunnel-rpc-ConnectRequest)
+    - [ConnectResponse](#plural-agent-reverse_tunnel-rpc-ConnectResponse)
+    - [Descriptor](#plural-agent-reverse_tunnel-rpc-Descriptor)
+    - [Error](#plural-agent-reverse_tunnel-rpc-Error)
+    - [Header](#plural-agent-reverse_tunnel-rpc-Header)
+    - [Header.MetaEntry](#plural-agent-reverse_tunnel-rpc-Header-MetaEntry)
+    - [Message](#plural-agent-reverse_tunnel-rpc-Message)
+    - [RequestInfo](#plural-agent-reverse_tunnel-rpc-RequestInfo)
+    - [RequestInfo.MetaEntry](#plural-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry)
+    - [Trailer](#plural-agent-reverse_tunnel-rpc-Trailer)
+    - [Trailer.MetaEntry](#plural-agent-reverse_tunnel-rpc-Trailer-MetaEntry)
   
-    - [ReverseTunnel](#gitlab-agent-reverse_tunnel-rpc-ReverseTunnel)
+    - [ReverseTunnel](#plural-agent-reverse_tunnel-rpc-ReverseTunnel)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -30,7 +30,7 @@
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-CloseSend"></a>
+<a name="plural-agent-reverse_tunnel-rpc-CloseSend"></a>
 
 ### CloseSend
 
@@ -40,7 +40,7 @@
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-ConnectRequest"></a>
+<a name="plural-agent-reverse_tunnel-rpc-ConnectRequest"></a>
 
 ### ConnectRequest
 
@@ -48,18 +48,18 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| descriptor | [Descriptor](#gitlab-agent-reverse_tunnel-rpc-Descriptor) |  |  |
-| header | [Header](#gitlab-agent-reverse_tunnel-rpc-Header) |  |  |
-| message | [Message](#gitlab-agent-reverse_tunnel-rpc-Message) |  |  |
-| trailer | [Trailer](#gitlab-agent-reverse_tunnel-rpc-Trailer) |  |  |
-| error | [Error](#gitlab-agent-reverse_tunnel-rpc-Error) |  |  |
+| descriptor | [Descriptor](#plural-agent-reverse_tunnel-rpc-Descriptor) |  |  |
+| header | [Header](#plural-agent-reverse_tunnel-rpc-Header) |  |  |
+| message | [Message](#plural-agent-reverse_tunnel-rpc-Message) |  |  |
+| trailer | [Trailer](#plural-agent-reverse_tunnel-rpc-Trailer) |  |  |
+| error | [Error](#plural-agent-reverse_tunnel-rpc-Error) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-ConnectResponse"></a>
+<a name="plural-agent-reverse_tunnel-rpc-ConnectResponse"></a>
 
 ### ConnectResponse
 
@@ -67,16 +67,16 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| request_info | [RequestInfo](#gitlab-agent-reverse_tunnel-rpc-RequestInfo) |  |  |
-| message | [Message](#gitlab-agent-reverse_tunnel-rpc-Message) |  |  |
-| close_send | [CloseSend](#gitlab-agent-reverse_tunnel-rpc-CloseSend) |  |  |
+| request_info | [RequestInfo](#plural-agent-reverse_tunnel-rpc-RequestInfo) |  |  |
+| message | [Message](#plural-agent-reverse_tunnel-rpc-Message) |  |  |
+| close_send | [CloseSend](#plural-agent-reverse_tunnel-rpc-CloseSend) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Descriptor"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Descriptor"></a>
 
 ### Descriptor
 
@@ -84,14 +84,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent_descriptor | [gitlab.agent.reverse_tunnel.info.AgentDescriptor](#gitlab-agent-reverse_tunnel-info-AgentDescriptor) |  |  |
+| agent_descriptor | [plural.agent.reverse_tunnel.info.AgentDescriptor](#plural-agent-reverse_tunnel-info-AgentDescriptor) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Error"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Error"></a>
 
 ### Error
 Error represents a gRPC error that should be returned.
@@ -106,7 +106,7 @@ Error represents a gRPC error that should be returned.
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Header"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Header"></a>
 
 ### Header
 Header is a gRPC metadata.
@@ -114,14 +114,14 @@ Header is a gRPC metadata.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| meta | [Header.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-Header-MetaEntry) | repeated |  |
+| meta | [Header.MetaEntry](#plural-agent-reverse_tunnel-rpc-Header-MetaEntry) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Header-MetaEntry"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Header-MetaEntry"></a>
 
 ### Header.MetaEntry
 
@@ -130,14 +130,14 @@ Header is a gRPC metadata.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [gitlab.agent.prototool.Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [plural.agent.prototool.Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Message"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Message"></a>
 
 ### Message
 Message is a gRPC message data.
@@ -152,7 +152,7 @@ Message is a gRPC message data.
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-RequestInfo"></a>
+<a name="plural-agent-reverse_tunnel-rpc-RequestInfo"></a>
 
 ### RequestInfo
 
@@ -161,14 +161,14 @@ Message is a gRPC message data.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | method_name | [string](#string) |  |  |
-| meta | [RequestInfo.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry) | repeated |  |
+| meta | [RequestInfo.MetaEntry](#plural-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry"></a>
+<a name="plural-agent-reverse_tunnel-rpc-RequestInfo-MetaEntry"></a>
 
 ### RequestInfo.MetaEntry
 
@@ -177,14 +177,14 @@ Message is a gRPC message data.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [gitlab.agent.prototool.Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [plural.agent.prototool.Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Trailer"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Trailer"></a>
 
 ### Trailer
 Trailer is a gRPC trailer metadata.
@@ -192,14 +192,14 @@ Trailer is a gRPC trailer metadata.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| meta | [Trailer.MetaEntry](#gitlab-agent-reverse_tunnel-rpc-Trailer-MetaEntry) | repeated |  |
+| meta | [Trailer.MetaEntry](#plural-agent-reverse_tunnel-rpc-Trailer-MetaEntry) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-Trailer-MetaEntry"></a>
+<a name="plural-agent-reverse_tunnel-rpc-Trailer-MetaEntry"></a>
 
 ### Trailer.MetaEntry
 
@@ -208,7 +208,7 @@ Trailer is a gRPC trailer metadata.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [gitlab.agent.prototool.Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [plural.agent.prototool.Values](#plural-agent-prototool-Values) |  |  |
 
 
 
@@ -221,14 +221,14 @@ Trailer is a gRPC trailer metadata.
  
 
 
-<a name="gitlab-agent-reverse_tunnel-rpc-ReverseTunnel"></a>
+<a name="plural-agent-reverse_tunnel-rpc-ReverseTunnel"></a>
 
 ### ReverseTunnel
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| Connect | [ConnectRequest](#gitlab-agent-reverse_tunnel-rpc-ConnectRequest) stream | [ConnectResponse](#gitlab-agent-reverse_tunnel-rpc-ConnectResponse) stream | Connect to server to establish a reverse tunnel. |
+| Connect | [ConnectRequest](#plural-agent-reverse_tunnel-rpc-ConnectRequest) stream | [ConnectResponse](#plural-agent-reverse_tunnel-rpc-ConnectResponse) stream | Connect to server to establish a reverse tunnel. |
 
  
 

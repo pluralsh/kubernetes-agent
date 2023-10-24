@@ -4,16 +4,16 @@
 ## Table of Contents
 
 - [pkg/tool/grpctool/grpctool.proto](#pkg_tool_grpctool_grpctool-proto)
-    - [HttpRequest](#gitlab-agent-grpctool-HttpRequest)
-    - [HttpRequest.Data](#gitlab-agent-grpctool-HttpRequest-Data)
-    - [HttpRequest.Header](#gitlab-agent-grpctool-HttpRequest-Header)
-    - [HttpRequest.Trailer](#gitlab-agent-grpctool-HttpRequest-Trailer)
-    - [HttpRequest.UpgradeData](#gitlab-agent-grpctool-HttpRequest-UpgradeData)
-    - [HttpResponse](#gitlab-agent-grpctool-HttpResponse)
-    - [HttpResponse.Data](#gitlab-agent-grpctool-HttpResponse-Data)
-    - [HttpResponse.Header](#gitlab-agent-grpctool-HttpResponse-Header)
-    - [HttpResponse.Trailer](#gitlab-agent-grpctool-HttpResponse-Trailer)
-    - [HttpResponse.UpgradeData](#gitlab-agent-grpctool-HttpResponse-UpgradeData)
+    - [HttpRequest](#plural-agent-grpctool-HttpRequest)
+    - [HttpRequest.Data](#plural-agent-grpctool-HttpRequest-Data)
+    - [HttpRequest.Header](#plural-agent-grpctool-HttpRequest-Header)
+    - [HttpRequest.Trailer](#plural-agent-grpctool-HttpRequest-Trailer)
+    - [HttpRequest.UpgradeData](#plural-agent-grpctool-HttpRequest-UpgradeData)
+    - [HttpResponse](#plural-agent-grpctool-HttpResponse)
+    - [HttpResponse.Data](#plural-agent-grpctool-HttpResponse-Data)
+    - [HttpResponse.Header](#plural-agent-grpctool-HttpResponse-Header)
+    - [HttpResponse.Trailer](#plural-agent-grpctool-HttpResponse-Trailer)
+    - [HttpResponse.UpgradeData](#plural-agent-grpctool-HttpResponse-UpgradeData)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -26,7 +26,7 @@
 
 
 
-<a name="gitlab-agent-grpctool-HttpRequest"></a>
+<a name="plural-agent-grpctool-HttpRequest"></a>
 
 ### HttpRequest
 
@@ -34,17 +34,17 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| header | [HttpRequest.Header](#gitlab-agent-grpctool-HttpRequest-Header) |  |  |
-| data | [HttpRequest.Data](#gitlab-agent-grpctool-HttpRequest-Data) |  |  |
-| trailer | [HttpRequest.Trailer](#gitlab-agent-grpctool-HttpRequest-Trailer) |  |  |
-| upgradeData | [HttpRequest.UpgradeData](#gitlab-agent-grpctool-HttpRequest-UpgradeData) |  |  |
+| header | [HttpRequest.Header](#plural-agent-grpctool-HttpRequest-Header) |  |  |
+| data | [HttpRequest.Data](#plural-agent-grpctool-HttpRequest-Data) |  |  |
+| trailer | [HttpRequest.Trailer](#plural-agent-grpctool-HttpRequest-Trailer) |  |  |
+| upgradeData | [HttpRequest.UpgradeData](#plural-agent-grpctool-HttpRequest-UpgradeData) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-grpctool-HttpRequest-Data"></a>
+<a name="plural-agent-grpctool-HttpRequest-Data"></a>
 
 ### HttpRequest.Data
 Subsequent messages of the stream.
@@ -59,7 +59,7 @@ Subsequent messages of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-HttpRequest-Header"></a>
+<a name="plural-agent-grpctool-HttpRequest-Header"></a>
 
 ### HttpRequest.Header
 First message of the stream.
@@ -67,7 +67,7 @@ First message of the stream.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| request | [gitlab.agent.prototool.HttpRequest](#gitlab-agent-prototool-HttpRequest) |  |  |
+| request | [plural.agent.prototool.HttpRequest](#plural-agent-prototool-HttpRequest) |  |  |
 | extra | [google.protobuf.Any](#google-protobuf-Any) |  | Optional extra information about the HTTP request. |
 | content_length | [int64](#int64) | optional | content_length contains the size of the expected body (if any) in the request. Possible values are: * -1: if the body size cannot be determined, but there is a body (e.g. chunked) * 0: there is no body in the request * &gt; 0: the actual size of the body in bytes |
 
@@ -76,7 +76,7 @@ First message of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-HttpRequest-Trailer"></a>
+<a name="plural-agent-grpctool-HttpRequest-Trailer"></a>
 
 ### HttpRequest.Trailer
 Last message of the stream if no UpgradeData is sent.
@@ -86,7 +86,7 @@ Last message of the stream if no UpgradeData is sent.
 
 
 
-<a name="gitlab-agent-grpctool-HttpRequest-UpgradeData"></a>
+<a name="plural-agent-grpctool-HttpRequest-UpgradeData"></a>
 
 ### HttpRequest.UpgradeData
 Last message of the stream.
@@ -103,7 +103,7 @@ https://datatracker.ietf.org/doc/html/rfc7230#section-6.7
 
 
 
-<a name="gitlab-agent-grpctool-HttpResponse"></a>
+<a name="plural-agent-grpctool-HttpResponse"></a>
 
 ### HttpResponse
 
@@ -111,17 +111,17 @@ https://datatracker.ietf.org/doc/html/rfc7230#section-6.7
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| header | [HttpResponse.Header](#gitlab-agent-grpctool-HttpResponse-Header) |  |  |
-| data | [HttpResponse.Data](#gitlab-agent-grpctool-HttpResponse-Data) |  |  |
-| trailer | [HttpResponse.Trailer](#gitlab-agent-grpctool-HttpResponse-Trailer) |  |  |
-| upgradeData | [HttpResponse.UpgradeData](#gitlab-agent-grpctool-HttpResponse-UpgradeData) |  |  |
+| header | [HttpResponse.Header](#plural-agent-grpctool-HttpResponse-Header) |  |  |
+| data | [HttpResponse.Data](#plural-agent-grpctool-HttpResponse-Data) |  |  |
+| trailer | [HttpResponse.Trailer](#plural-agent-grpctool-HttpResponse-Trailer) |  |  |
+| upgradeData | [HttpResponse.UpgradeData](#plural-agent-grpctool-HttpResponse-UpgradeData) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-grpctool-HttpResponse-Data"></a>
+<a name="plural-agent-grpctool-HttpResponse-Data"></a>
 
 ### HttpResponse.Data
 Subsequent messages of the stream.
@@ -136,7 +136,7 @@ Subsequent messages of the stream.
 
 
 
-<a name="gitlab-agent-grpctool-HttpResponse-Header"></a>
+<a name="plural-agent-grpctool-HttpResponse-Header"></a>
 
 ### HttpResponse.Header
 First message of the stream.
@@ -144,14 +144,14 @@ First message of the stream.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| response | [gitlab.agent.prototool.HttpResponse](#gitlab-agent-prototool-HttpResponse) |  |  |
+| response | [plural.agent.prototool.HttpResponse](#plural-agent-prototool-HttpResponse) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-grpctool-HttpResponse-Trailer"></a>
+<a name="plural-agent-grpctool-HttpResponse-Trailer"></a>
 
 ### HttpResponse.Trailer
 Last message of the stream if no UpgradeData is received.
@@ -161,7 +161,7 @@ Last message of the stream if no UpgradeData is received.
 
 
 
-<a name="gitlab-agent-grpctool-HttpResponse-UpgradeData"></a>
+<a name="plural-agent-grpctool-HttpResponse-UpgradeData"></a>
 
 ### HttpResponse.UpgradeData
 Last message of the stream.

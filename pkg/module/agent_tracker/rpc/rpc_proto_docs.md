@@ -4,10 +4,10 @@
 ## Table of Contents
 
 - [pkg/module/agent_tracker/rpc/rpc.proto](#pkg_module_agent_tracker_rpc_rpc-proto)
-    - [GetConnectedAgentsRequest](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsRequest)
-    - [GetConnectedAgentsResponse](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsResponse)
+    - [GetConnectedAgentsRequest](#plural-agent-agent_tracker-rpc-GetConnectedAgentsRequest)
+    - [GetConnectedAgentsResponse](#plural-agent-agent_tracker-rpc-GetConnectedAgentsResponse)
   
-    - [AgentTracker](#gitlab-agent-agent_tracker-rpc-AgentTracker)
+    - [AgentTracker](#plural-agent-agent_tracker-rpc-AgentTracker)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -20,7 +20,7 @@
 
 
 
-<a name="gitlab-agent-agent_tracker-rpc-GetConnectedAgentsRequest"></a>
+<a name="plural-agent-agent_tracker-rpc-GetConnectedAgentsRequest"></a>
 
 ### GetConnectedAgentsRequest
 
@@ -36,7 +36,7 @@
 
 
 
-<a name="gitlab-agent-agent_tracker-rpc-GetConnectedAgentsResponse"></a>
+<a name="plural-agent-agent_tracker-rpc-GetConnectedAgentsResponse"></a>
 
 ### GetConnectedAgentsResponse
 
@@ -44,7 +44,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agents | [gitlab.agent.agent_tracker.ConnectedAgentInfo](#gitlab-agent-agent_tracker-ConnectedAgentInfo) | repeated | There may 0 or more agents with the same id, depending on the number of running agentk Pods. |
+| agents | [plural.agent.agent_tracker.ConnectedAgentInfo](#plural-agent-agent_tracker-ConnectedAgentInfo) | repeated | There may 0 or more agents with the same id, depending on the number of running agentk Pods. |
 
 
 
@@ -57,14 +57,14 @@
  
 
 
-<a name="gitlab-agent-agent_tracker-rpc-AgentTracker"></a>
+<a name="plural-agent-agent_tracker-rpc-AgentTracker"></a>
 
 ### AgentTracker
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetConnectedAgents | [GetConnectedAgentsRequest](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsRequest) | [GetConnectedAgentsResponse](#gitlab-agent-agent_tracker-rpc-GetConnectedAgentsResponse) | Get connected agents for a configuration project or an agent id. |
+| GetConnectedAgents | [GetConnectedAgentsRequest](#plural-agent-agent_tracker-rpc-GetConnectedAgentsRequest) | [GetConnectedAgentsResponse](#plural-agent-agent_tracker-rpc-GetConnectedAgentsResponse) | Get connected agents for a configuration project or an agent id. |
 
  
 

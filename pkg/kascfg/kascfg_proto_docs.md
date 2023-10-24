@@ -4,32 +4,32 @@
 ## Table of Contents
 
 - [pkg/kascfg/kascfg.proto](#pkg_kascfg_kascfg-proto)
-    - [AgentCF](#gitlab-agent-kascfg-AgentCF)
-    - [AgentConfigurationCF](#gitlab-agent-kascfg-AgentConfigurationCF)
-    - [ApiCF](#gitlab-agent-kascfg-ApiCF)
-    - [ConfigurationFile](#gitlab-agent-kascfg-ConfigurationFile)
-    - [GoogleProfilerCF](#gitlab-agent-kascfg-GoogleProfilerCF)
-    - [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF)
-    - [ListenAgentCF](#gitlab-agent-kascfg-ListenAgentCF)
-    - [ListenApiCF](#gitlab-agent-kascfg-ListenApiCF)
-    - [ListenKubernetesApiCF](#gitlab-agent-kascfg-ListenKubernetesApiCF)
-    - [ListenPrivateApiCF](#gitlab-agent-kascfg-ListenPrivateApiCF)
-    - [LivenessProbeCF](#gitlab-agent-kascfg-LivenessProbeCF)
-    - [LoggingCF](#gitlab-agent-kascfg-LoggingCF)
-    - [ObservabilityCF](#gitlab-agent-kascfg-ObservabilityCF)
-    - [ObservabilityListenCF](#gitlab-agent-kascfg-ObservabilityListenCF)
-    - [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF)
-    - [PrometheusCF](#gitlab-agent-kascfg-PrometheusCF)
-    - [ReadinessProbeCF](#gitlab-agent-kascfg-ReadinessProbeCF)
-    - [RedisCF](#gitlab-agent-kascfg-RedisCF)
-    - [RedisSentinelCF](#gitlab-agent-kascfg-RedisSentinelCF)
-    - [RedisServerCF](#gitlab-agent-kascfg-RedisServerCF)
-    - [RedisTLSCF](#gitlab-agent-kascfg-RedisTLSCF)
-    - [SentryCF](#gitlab-agent-kascfg-SentryCF)
-    - [TokenBucketRateLimitCF](#gitlab-agent-kascfg-TokenBucketRateLimitCF)
-    - [TracingCF](#gitlab-agent-kascfg-TracingCF)
+    - [AgentCF](#plural-agent-kascfg-AgentCF)
+    - [AgentConfigurationCF](#plural-agent-kascfg-AgentConfigurationCF)
+    - [ApiCF](#plural-agent-kascfg-ApiCF)
+    - [ConfigurationFile](#plural-agent-kascfg-ConfigurationFile)
+    - [GoogleProfilerCF](#plural-agent-kascfg-GoogleProfilerCF)
+    - [KubernetesApiCF](#plural-agent-kascfg-KubernetesApiCF)
+    - [ListenAgentCF](#plural-agent-kascfg-ListenAgentCF)
+    - [ListenApiCF](#plural-agent-kascfg-ListenApiCF)
+    - [ListenKubernetesApiCF](#plural-agent-kascfg-ListenKubernetesApiCF)
+    - [ListenPrivateApiCF](#plural-agent-kascfg-ListenPrivateApiCF)
+    - [LivenessProbeCF](#plural-agent-kascfg-LivenessProbeCF)
+    - [LoggingCF](#plural-agent-kascfg-LoggingCF)
+    - [ObservabilityCF](#plural-agent-kascfg-ObservabilityCF)
+    - [ObservabilityListenCF](#plural-agent-kascfg-ObservabilityListenCF)
+    - [PrivateApiCF](#plural-agent-kascfg-PrivateApiCF)
+    - [PrometheusCF](#plural-agent-kascfg-PrometheusCF)
+    - [ReadinessProbeCF](#plural-agent-kascfg-ReadinessProbeCF)
+    - [RedisCF](#plural-agent-kascfg-RedisCF)
+    - [RedisSentinelCF](#plural-agent-kascfg-RedisSentinelCF)
+    - [RedisServerCF](#plural-agent-kascfg-RedisServerCF)
+    - [RedisTLSCF](#plural-agent-kascfg-RedisTLSCF)
+    - [SentryCF](#plural-agent-kascfg-SentryCF)
+    - [TokenBucketRateLimitCF](#plural-agent-kascfg-TokenBucketRateLimitCF)
+    - [TracingCF](#plural-agent-kascfg-TracingCF)
   
-    - [log_level_enum](#gitlab-agent-kascfg-log_level_enum)
+    - [log_level_enum](#plural-agent-kascfg-log_level_enum)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -42,7 +42,7 @@
 
 
 
-<a name="gitlab-agent-kascfg-AgentCF"></a>
+<a name="plural-agent-kascfg-AgentCF"></a>
 
 ### AgentCF
 
@@ -50,21 +50,21 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| listen | [ListenAgentCF](#gitlab-agent-kascfg-ListenAgentCF) |  | RPC listener configuration for agentk connections. |
-| configuration | [AgentConfigurationCF](#gitlab-agent-kascfg-AgentConfigurationCF) |  | Configuration for agent&#39;s configuration repository. |
+| listen | [ListenAgentCF](#plural-agent-kascfg-ListenAgentCF) |  | RPC listener configuration for agentk connections. |
+| configuration | [AgentConfigurationCF](#plural-agent-kascfg-AgentConfigurationCF) |  | Configuration for agent&#39;s configuration repository. |
 | info_cache_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info Set to zero to disable. |
 | info_cache_error_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info |
 | redis_conn_info_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for information about connected agents, stored in Redis. |
 | redis_conn_info_refresh | [google.protobuf.Duration](#google-protobuf-Duration) |  | Refresh period for information about connected agents, stored in Redis. |
 | redis_conn_info_gc | [google.protobuf.Duration](#google-protobuf-Duration) |  | Garbage collection period for information about connected agents, stored in Redis. If gitlab-kas crashes, another gitlab-kas instance will clean up stale data. This is how often this cleanup runs. |
-| kubernetes_api | [KubernetesApiCF](#gitlab-agent-kascfg-KubernetesApiCF) |  | Configuration for exposing Kubernetes API. |
+| kubernetes_api | [KubernetesApiCF](#plural-agent-kascfg-KubernetesApiCF) |  | Configuration for exposing Kubernetes API. |
 
 
 
 
 
 
-<a name="gitlab-agent-kascfg-AgentConfigurationCF"></a>
+<a name="plural-agent-kascfg-AgentConfigurationCF"></a>
 
 ### AgentConfigurationCF
 
@@ -80,7 +80,7 @@
 
 
 
-<a name="gitlab-agent-kascfg-ApiCF"></a>
+<a name="plural-agent-kascfg-ApiCF"></a>
 
 ### ApiCF
 
@@ -88,14 +88,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| listen | [ListenApiCF](#gitlab-agent-kascfg-ListenApiCF) |  | RPC listener configuration for API connections. |
+| listen | [ListenApiCF](#plural-agent-kascfg-ListenApiCF) |  | RPC listener configuration for API connections. |
 
 
 
 
 
 
-<a name="gitlab-agent-kascfg-ConfigurationFile"></a>
+<a name="plural-agent-kascfg-ConfigurationFile"></a>
 
 ### ConfigurationFile
 ConfigurationFile represents kas configuration file.
@@ -103,11 +103,11 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent | [AgentCF](#gitlab-agent-kascfg-AgentCF) |  | Configuration related to the agent. Generally all configuration for user-facing features should be here. |
-| observability | [ObservabilityCF](#gitlab-agent-kascfg-ObservabilityCF) |  | Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling. |
-| redis | [RedisCF](#gitlab-agent-kascfg-RedisCF) |  | Redis configurations available to kas. |
-| api | [ApiCF](#gitlab-agent-kascfg-ApiCF) |  | Public API. |
-| private_api | [PrivateApiCF](#gitlab-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
+| agent | [AgentCF](#plural-agent-kascfg-AgentCF) |  | Configuration related to the agent. Generally all configuration for user-facing features should be here. |
+| observability | [ObservabilityCF](#plural-agent-kascfg-ObservabilityCF) |  | Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling. |
+| redis | [RedisCF](#plural-agent-kascfg-RedisCF) |  | Redis configurations available to kas. |
+| api | [ApiCF](#plural-agent-kascfg-ApiCF) |  | Public API. |
+| private_api | [PrivateApiCF](#plural-agent-kascfg-PrivateApiCF) |  | Private API for kas-&gt;kas communication. |
 | plural_url | [string](#string) |  | Plural URL address |
 
 
@@ -115,7 +115,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-GoogleProfilerCF"></a>
+<a name="plural-agent-kascfg-GoogleProfilerCF"></a>
 
 ### GoogleProfilerCF
 
@@ -133,7 +133,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-KubernetesApiCF"></a>
+<a name="plural-agent-kascfg-KubernetesApiCF"></a>
 
 ### KubernetesApiCF
 
@@ -141,7 +141,7 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| listen | [ListenKubernetesApiCF](#gitlab-agent-kascfg-ListenKubernetesApiCF) |  | HTTP listener configuration for Kubernetes API connections. |
+| listen | [ListenKubernetesApiCF](#plural-agent-kascfg-ListenKubernetesApiCF) |  | HTTP listener configuration for Kubernetes API connections. |
 | url_path_prefix | [string](#string) |  | URL path prefix to remove from the incoming request URL. Should be `/` if no prefix trimming is needed. |
 | allowed_agent_cache_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for successful allowed agent lookups. /api/v4/job/allowed_agents Set to zero to disable. |
 | allowed_agent_cache_error_ttl | [google.protobuf.Duration](#google-protobuf-Duration) |  | TTL for failed allowed agent lookups. /api/v4/job/allowed_agents |
@@ -151,7 +151,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-ListenAgentCF"></a>
+<a name="plural-agent-kascfg-ListenAgentCF"></a>
 
 ### ListenAgentCF
 
@@ -173,7 +173,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-ListenApiCF"></a>
+<a name="plural-agent-kascfg-ListenApiCF"></a>
 
 ### ListenApiCF
 
@@ -194,7 +194,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-ListenKubernetesApiCF"></a>
+<a name="plural-agent-kascfg-ListenKubernetesApiCF"></a>
 
 ### ListenKubernetesApiCF
 
@@ -214,7 +214,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-ListenPrivateApiCF"></a>
+<a name="plural-agent-kascfg-ListenPrivateApiCF"></a>
 
 ### ListenPrivateApiCF
 
@@ -236,7 +236,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-LivenessProbeCF"></a>
+<a name="plural-agent-kascfg-LivenessProbeCF"></a>
 
 ### LivenessProbeCF
 
@@ -251,7 +251,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-LoggingCF"></a>
+<a name="plural-agent-kascfg-LoggingCF"></a>
 
 ### LoggingCF
 
@@ -259,15 +259,15 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| level | [log_level_enum](#gitlab-agent-kascfg-log_level_enum) |  |  |
-| grpc_level | [log_level_enum](#gitlab-agent-kascfg-log_level_enum) | optional | optional to be able to tell when not set and use a different default value. |
+| level | [log_level_enum](#plural-agent-kascfg-log_level_enum) |  |  |
+| grpc_level | [log_level_enum](#plural-agent-kascfg-log_level_enum) | optional | optional to be able to tell when not set and use a different default value. |
 
 
 
 
 
 
-<a name="gitlab-agent-kascfg-ObservabilityCF"></a>
+<a name="plural-agent-kascfg-ObservabilityCF"></a>
 
 ### ObservabilityCF
 
@@ -276,21 +276,21 @@ ConfigurationFile represents kas configuration file.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | usage_reporting_period | [google.protobuf.Duration](#google-protobuf-Duration) |  | How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping Set to zero to disable. |
-| listen | [ObservabilityListenCF](#gitlab-agent-kascfg-ObservabilityListenCF) |  | Listener configuration for HTTP endpoint that exposes Prometheus, pprof, liveness and readiness probes. |
-| prometheus | [PrometheusCF](#gitlab-agent-kascfg-PrometheusCF) |  |  |
-| tracing | [TracingCF](#gitlab-agent-kascfg-TracingCF) |  |  |
-| sentry | [SentryCF](#gitlab-agent-kascfg-SentryCF) |  |  |
-| logging | [LoggingCF](#gitlab-agent-kascfg-LoggingCF) |  |  |
-| google_profiler | [GoogleProfilerCF](#gitlab-agent-kascfg-GoogleProfilerCF) |  | Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler. |
-| liveness_probe | [LivenessProbeCF](#gitlab-agent-kascfg-LivenessProbeCF) |  |  |
-| readiness_probe | [ReadinessProbeCF](#gitlab-agent-kascfg-ReadinessProbeCF) |  |  |
+| listen | [ObservabilityListenCF](#plural-agent-kascfg-ObservabilityListenCF) |  | Listener configuration for HTTP endpoint that exposes Prometheus, pprof, liveness and readiness probes. |
+| prometheus | [PrometheusCF](#plural-agent-kascfg-PrometheusCF) |  |  |
+| tracing | [TracingCF](#plural-agent-kascfg-TracingCF) |  |  |
+| sentry | [SentryCF](#plural-agent-kascfg-SentryCF) |  |  |
+| logging | [LoggingCF](#plural-agent-kascfg-LoggingCF) |  |  |
+| google_profiler | [GoogleProfilerCF](#plural-agent-kascfg-GoogleProfilerCF) |  | Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler. |
+| liveness_probe | [LivenessProbeCF](#plural-agent-kascfg-LivenessProbeCF) |  |  |
+| readiness_probe | [ReadinessProbeCF](#plural-agent-kascfg-ReadinessProbeCF) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kascfg-ObservabilityListenCF"></a>
+<a name="plural-agent-kascfg-ObservabilityListenCF"></a>
 
 ### ObservabilityListenCF
 
@@ -308,7 +308,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-PrivateApiCF"></a>
+<a name="plural-agent-kascfg-PrivateApiCF"></a>
 
 ### PrivateApiCF
 
@@ -316,14 +316,14 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| listen | [ListenPrivateApiCF](#gitlab-agent-kascfg-ListenPrivateApiCF) |  | RPC listener configuration for API connections. |
+| listen | [ListenPrivateApiCF](#plural-agent-kascfg-ListenPrivateApiCF) |  | RPC listener configuration for API connections. |
 
 
 
 
 
 
-<a name="gitlab-agent-kascfg-PrometheusCF"></a>
+<a name="plural-agent-kascfg-PrometheusCF"></a>
 
 ### PrometheusCF
 
@@ -338,7 +338,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-ReadinessProbeCF"></a>
+<a name="plural-agent-kascfg-ReadinessProbeCF"></a>
 
 ### ReadinessProbeCF
 
@@ -353,7 +353,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-RedisCF"></a>
+<a name="plural-agent-kascfg-RedisCF"></a>
 
 ### RedisCF
 
@@ -361,8 +361,8 @@ ConfigurationFile represents kas configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| server | [RedisServerCF](#gitlab-agent-kascfg-RedisServerCF) |  | Single-server Redis. |
-| sentinel | [RedisSentinelCF](#gitlab-agent-kascfg-RedisSentinelCF) |  | Redis with Sentinel setup. See http://redis.io/topics/sentinel. |
+| server | [RedisServerCF](#plural-agent-kascfg-RedisServerCF) |  | Single-server Redis. |
+| sentinel | [RedisSentinelCF](#plural-agent-kascfg-RedisSentinelCF) |  | Redis with Sentinel setup. See http://redis.io/topics/sentinel. |
 | pool_size | [uint32](#uint32) |  | The max number of connections. DEPRECATED, unused. |
 | dial_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Dial timeout. |
 | read_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Read timeout. DEPRECATED, unused. |
@@ -372,7 +372,7 @@ ConfigurationFile represents kas configuration file.
 | username | [string](#string) |  | Use the specified Username to authenticate the current connection with one of the connections defined in the ACL list when connecting to a Redis 6.0 instance, or greater, that is using the Redis ACL system. |
 | password_file | [string](#string) |  | Optional password. Must match the password specified in the requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower), or the User Password when connecting to a Redis 6.0 instance, or greater, that is using the Redis ACL system. |
 | network | [string](#string) |  | The network type, either tcp or unix. Default is tcp. |
-| tls | [RedisTLSCF](#gitlab-agent-kascfg-RedisTLSCF) |  |  |
+| tls | [RedisTLSCF](#plural-agent-kascfg-RedisTLSCF) |  |  |
 | database_index | [int32](#int32) |  | The logical zero-based numeric database index. |
 
 
@@ -380,7 +380,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-RedisSentinelCF"></a>
+<a name="plural-agent-kascfg-RedisSentinelCF"></a>
 
 ### RedisSentinelCF
 
@@ -397,7 +397,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-RedisServerCF"></a>
+<a name="plural-agent-kascfg-RedisServerCF"></a>
 
 ### RedisServerCF
 
@@ -412,7 +412,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-RedisTLSCF"></a>
+<a name="plural-agent-kascfg-RedisTLSCF"></a>
 
 ### RedisTLSCF
 
@@ -430,7 +430,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-SentryCF"></a>
+<a name="plural-agent-kascfg-SentryCF"></a>
 
 ### SentryCF
 
@@ -446,7 +446,7 @@ ConfigurationFile represents kas configuration file.
 
 
 
-<a name="gitlab-agent-kascfg-TokenBucketRateLimitCF"></a>
+<a name="plural-agent-kascfg-TokenBucketRateLimitCF"></a>
 
 ### TokenBucketRateLimitCF
 See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
@@ -462,7 +462,7 @@ See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
 
 
 
-<a name="gitlab-agent-kascfg-TracingCF"></a>
+<a name="plural-agent-kascfg-TracingCF"></a>
 
 ### TracingCF
 
@@ -481,7 +481,7 @@ See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
  
 
 
-<a name="gitlab-agent-kascfg-log_level_enum"></a>
+<a name="plural-agent-kascfg-log_level_enum"></a>
 
 ### log_level_enum
 

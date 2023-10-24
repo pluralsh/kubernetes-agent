@@ -4,8 +4,8 @@
 ## Table of Contents
 
 - [pkg/event/event.proto](#pkg_event_event-proto)
-    - [GitPushEvent](#gitlab-agent-event-GitPushEvent)
-    - [Project](#gitlab-agent-event-Project)
+    - [GitPushEvent](#plural-agent-event-GitPushEvent)
+    - [Project](#plural-agent-event-Project)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -18,7 +18,7 @@
 
 
 
-<a name="gitlab-agent-event-GitPushEvent"></a>
+<a name="plural-agent-event-GitPushEvent"></a>
 
 ### GitPushEvent
 
@@ -26,14 +26,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| project | [Project](#gitlab-agent-event-Project) |  |  |
+| project | [Project](#plural-agent-event-Project) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-event-Project"></a>
+<a name="plural-agent-event-Project"></a>
 
 ### Project
 

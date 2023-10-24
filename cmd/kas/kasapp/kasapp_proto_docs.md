@@ -4,16 +4,16 @@
 ## Table of Contents
 
 - [cmd/kas/kasapp/kasapp.proto](#cmd_kas_kasapp_kasapp-proto)
-    - [GatewayKasResponse](#gitlab-agent-kas-GatewayKasResponse)
-    - [GatewayKasResponse.Error](#gitlab-agent-kas-GatewayKasResponse-Error)
-    - [GatewayKasResponse.Header](#gitlab-agent-kas-GatewayKasResponse-Header)
-    - [GatewayKasResponse.Header.MetaEntry](#gitlab-agent-kas-GatewayKasResponse-Header-MetaEntry)
-    - [GatewayKasResponse.Message](#gitlab-agent-kas-GatewayKasResponse-Message)
-    - [GatewayKasResponse.NoTunnel](#gitlab-agent-kas-GatewayKasResponse-NoTunnel)
-    - [GatewayKasResponse.Trailer](#gitlab-agent-kas-GatewayKasResponse-Trailer)
-    - [GatewayKasResponse.Trailer.MetaEntry](#gitlab-agent-kas-GatewayKasResponse-Trailer-MetaEntry)
-    - [GatewayKasResponse.TunnelReady](#gitlab-agent-kas-GatewayKasResponse-TunnelReady)
-    - [StartStreaming](#gitlab-agent-kas-StartStreaming)
+    - [GatewayKasResponse](#plural-agent-kas-GatewayKasResponse)
+    - [GatewayKasResponse.Error](#plural-agent-kas-GatewayKasResponse-Error)
+    - [GatewayKasResponse.Header](#plural-agent-kas-GatewayKasResponse-Header)
+    - [GatewayKasResponse.Header.MetaEntry](#plural-agent-kas-GatewayKasResponse-Header-MetaEntry)
+    - [GatewayKasResponse.Message](#plural-agent-kas-GatewayKasResponse-Message)
+    - [GatewayKasResponse.NoTunnel](#plural-agent-kas-GatewayKasResponse-NoTunnel)
+    - [GatewayKasResponse.Trailer](#plural-agent-kas-GatewayKasResponse-Trailer)
+    - [GatewayKasResponse.Trailer.MetaEntry](#plural-agent-kas-GatewayKasResponse-Trailer-MetaEntry)
+    - [GatewayKasResponse.TunnelReady](#plural-agent-kas-GatewayKasResponse-TunnelReady)
+    - [StartStreaming](#plural-agent-kas-StartStreaming)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -26,7 +26,7 @@
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse"></a>
+<a name="plural-agent-kas-GatewayKasResponse"></a>
 
 ### GatewayKasResponse
 
@@ -34,19 +34,19 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| tunnel_ready | [GatewayKasResponse.TunnelReady](#gitlab-agent-kas-GatewayKasResponse-TunnelReady) |  |  |
-| header | [GatewayKasResponse.Header](#gitlab-agent-kas-GatewayKasResponse-Header) |  |  |
-| message | [GatewayKasResponse.Message](#gitlab-agent-kas-GatewayKasResponse-Message) |  |  |
-| trailer | [GatewayKasResponse.Trailer](#gitlab-agent-kas-GatewayKasResponse-Trailer) |  |  |
-| error | [GatewayKasResponse.Error](#gitlab-agent-kas-GatewayKasResponse-Error) |  |  |
-| no_tunnel | [GatewayKasResponse.NoTunnel](#gitlab-agent-kas-GatewayKasResponse-NoTunnel) |  |  |
+| tunnel_ready | [GatewayKasResponse.TunnelReady](#plural-agent-kas-GatewayKasResponse-TunnelReady) |  |  |
+| header | [GatewayKasResponse.Header](#plural-agent-kas-GatewayKasResponse-Header) |  |  |
+| message | [GatewayKasResponse.Message](#plural-agent-kas-GatewayKasResponse-Message) |  |  |
+| trailer | [GatewayKasResponse.Trailer](#plural-agent-kas-GatewayKasResponse-Trailer) |  |  |
+| error | [GatewayKasResponse.Error](#plural-agent-kas-GatewayKasResponse-Error) |  |  |
+| no_tunnel | [GatewayKasResponse.NoTunnel](#plural-agent-kas-GatewayKasResponse-NoTunnel) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Error"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Error"></a>
 
 ### GatewayKasResponse.Error
 Error represents a gRPC error that should be returned.
@@ -61,7 +61,7 @@ Error represents a gRPC error that should be returned.
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Header"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Header"></a>
 
 ### GatewayKasResponse.Header
 Headers is a gRPC metadata.
@@ -69,14 +69,14 @@ Headers is a gRPC metadata.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| meta | [GatewayKasResponse.Header.MetaEntry](#gitlab-agent-kas-GatewayKasResponse-Header-MetaEntry) | repeated |  |
+| meta | [GatewayKasResponse.Header.MetaEntry](#plural-agent-kas-GatewayKasResponse-Header-MetaEntry) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Header-MetaEntry"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Header-MetaEntry"></a>
 
 ### GatewayKasResponse.Header.MetaEntry
 
@@ -85,14 +85,14 @@ Headers is a gRPC metadata.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [gitlab.agent.prototool.Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [plural.agent.prototool.Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Message"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Message"></a>
 
 ### GatewayKasResponse.Message
 Message is a gRPC message data.
@@ -107,7 +107,7 @@ Message is a gRPC message data.
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-NoTunnel"></a>
+<a name="plural-agent-kas-GatewayKasResponse-NoTunnel"></a>
 
 ### GatewayKasResponse.NoTunnel
 No tunnels available at the moment.
@@ -117,7 +117,7 @@ No tunnels available at the moment.
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Trailer"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Trailer"></a>
 
 ### GatewayKasResponse.Trailer
 Trailer is a gRPC trailer metadata.
@@ -125,14 +125,14 @@ Trailer is a gRPC trailer metadata.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| meta | [GatewayKasResponse.Trailer.MetaEntry](#gitlab-agent-kas-GatewayKasResponse-Trailer-MetaEntry) | repeated |  |
+| meta | [GatewayKasResponse.Trailer.MetaEntry](#plural-agent-kas-GatewayKasResponse-Trailer-MetaEntry) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-Trailer-MetaEntry"></a>
+<a name="plural-agent-kas-GatewayKasResponse-Trailer-MetaEntry"></a>
 
 ### GatewayKasResponse.Trailer.MetaEntry
 
@@ -141,14 +141,14 @@ Trailer is a gRPC trailer metadata.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [gitlab.agent.prototool.Values](#gitlab-agent-prototool-Values) |  |  |
+| value | [plural.agent.prototool.Values](#plural-agent-prototool-Values) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kas-GatewayKasResponse-TunnelReady"></a>
+<a name="plural-agent-kas-GatewayKasResponse-TunnelReady"></a>
 
 ### GatewayKasResponse.TunnelReady
 Tunnel is ready, can start forwarding stream.
@@ -158,7 +158,7 @@ Tunnel is ready, can start forwarding stream.
 
 
 
-<a name="gitlab-agent-kas-StartStreaming"></a>
+<a name="plural-agent-kas-StartStreaming"></a>
 
 ### StartStreaming
 

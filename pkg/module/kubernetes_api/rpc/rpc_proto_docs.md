@@ -4,11 +4,11 @@
 ## Table of Contents
 
 - [pkg/module/kubernetes_api/rpc/rpc.proto](#pkg_module_kubernetes_api_rpc_rpc-proto)
-    - [ExtraKeyVal](#gitlab-agent-kubernetes_api-rpc-ExtraKeyVal)
-    - [HeaderExtra](#gitlab-agent-kubernetes_api-rpc-HeaderExtra)
-    - [ImpersonationConfig](#gitlab-agent-kubernetes_api-rpc-ImpersonationConfig)
+    - [ExtraKeyVal](#plural-agent-kubernetes_api-rpc-ExtraKeyVal)
+    - [HeaderExtra](#plural-agent-kubernetes_api-rpc-HeaderExtra)
+    - [ImpersonationConfig](#plural-agent-kubernetes_api-rpc-ImpersonationConfig)
   
-    - [KubernetesApi](#gitlab-agent-kubernetes_api-rpc-KubernetesApi)
+    - [KubernetesApi](#plural-agent-kubernetes_api-rpc-KubernetesApi)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -21,7 +21,7 @@
 
 
 
-<a name="gitlab-agent-kubernetes_api-rpc-ExtraKeyVal"></a>
+<a name="plural-agent-kubernetes_api-rpc-ExtraKeyVal"></a>
 
 ### ExtraKeyVal
 
@@ -37,7 +37,7 @@
 
 
 
-<a name="gitlab-agent-kubernetes_api-rpc-HeaderExtra"></a>
+<a name="plural-agent-kubernetes_api-rpc-HeaderExtra"></a>
 
 ### HeaderExtra
 HeaderExtra is passed in grpctool.HttpRequest.extra.
@@ -45,14 +45,14 @@ HeaderExtra is passed in grpctool.HttpRequest.extra.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| imp_config | [ImpersonationConfig](#gitlab-agent-kubernetes_api-rpc-ImpersonationConfig) |  |  |
+| imp_config | [ImpersonationConfig](#plural-agent-kubernetes_api-rpc-ImpersonationConfig) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-kubernetes_api-rpc-ImpersonationConfig"></a>
+<a name="plural-agent-kubernetes_api-rpc-ImpersonationConfig"></a>
 
 ### ImpersonationConfig
 ImpersonationConfig is a representation of client-go rest.ImpersonationConfig.
@@ -64,7 +64,7 @@ See https://github.com/kubernetes/client-go/blob/release-1.22/rest/config.go#L20
 | username | [string](#string) |  |  |
 | groups | [string](#string) | repeated |  |
 | uid | [string](#string) |  |  |
-| extra | [ExtraKeyVal](#gitlab-agent-kubernetes_api-rpc-ExtraKeyVal) | repeated |  |
+| extra | [ExtraKeyVal](#plural-agent-kubernetes_api-rpc-ExtraKeyVal) | repeated |  |
 
 
 
@@ -77,14 +77,14 @@ See https://github.com/kubernetes/client-go/blob/release-1.22/rest/config.go#L20
  
 
 
-<a name="gitlab-agent-kubernetes_api-rpc-KubernetesApi"></a>
+<a name="plural-agent-kubernetes_api-rpc-KubernetesApi"></a>
 
 ### KubernetesApi
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| MakeRequest | [.gitlab.agent.grpctool.HttpRequest](#gitlab-agent-grpctool-HttpRequest) stream | [.gitlab.agent.grpctool.HttpResponse](#gitlab-agent-grpctool-HttpResponse) stream | MakeRequest allows to make a HTTP request to Kubernetes API. |
+| MakeRequest | [.plural.agent.grpctool.HttpRequest](#plural-agent-grpctool-HttpRequest) stream | [.plural.agent.grpctool.HttpResponse](#plural-agent-grpctool-HttpResponse) stream | MakeRequest allows to make a HTTP request to Kubernetes API. |
 
  
 

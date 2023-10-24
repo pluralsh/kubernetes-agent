@@ -21,7 +21,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ReverseTunnel_Connect_FullMethodName = "/gitlab.agent.reverse_tunnel.rpc.ReverseTunnel/Connect"
+	ReverseTunnel_Connect_FullMethodName = "/plural.agent.reverse_tunnel.rpc.ReverseTunnel/Connect"
 )
 
 // ReverseTunnelClient is the client API for ReverseTunnel service.
@@ -130,7 +130,7 @@ func (x *reverseTunnelConnectServer) Recv() (*ConnectRequest, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ReverseTunnel_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.reverse_tunnel.rpc.ReverseTunnel",
+	ServiceName: "plural.agent.reverse_tunnel.rpc.ReverseTunnel",
 	HandlerType: (*ReverseTunnelServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

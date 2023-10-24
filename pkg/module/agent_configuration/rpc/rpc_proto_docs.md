@@ -4,10 +4,10 @@
 ## Table of Contents
 
 - [pkg/module/agent_configuration/rpc/rpc.proto](#pkg_module_agent_configuration_rpc_rpc-proto)
-    - [ConfigurationRequest](#gitlab-agent-agent_configuration-rpc-ConfigurationRequest)
-    - [ConfigurationResponse](#gitlab-agent-agent_configuration-rpc-ConfigurationResponse)
+    - [ConfigurationRequest](#plural-agent-agent_configuration-rpc-ConfigurationRequest)
+    - [ConfigurationResponse](#plural-agent-agent_configuration-rpc-ConfigurationResponse)
   
-    - [AgentConfiguration](#gitlab-agent-agent_configuration-rpc-AgentConfiguration)
+    - [AgentConfiguration](#plural-agent-agent_configuration-rpc-AgentConfiguration)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -20,7 +20,7 @@
 
 
 
-<a name="gitlab-agent-agent_configuration-rpc-ConfigurationRequest"></a>
+<a name="plural-agent-agent_configuration-rpc-ConfigurationRequest"></a>
 
 ### ConfigurationRequest
 
@@ -29,7 +29,7 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | commit_id | [string](#string) |  | Last processed commit id. Optional. Server will only send configuration if the last commit on the branch is a different one. If a connection breaks, this allows to resume the stream without sending the same data again. |
-| agent_meta | [gitlab.agent.entity.AgentMeta](#gitlab-agent-entity-AgentMeta) |  | Information about the agent. |
+| agent_meta | [plural.agent.entity.AgentMeta](#plural-agent-entity-AgentMeta) |  | Information about the agent. |
 | skip_register | [bool](#bool) |  | Flag to skip agent registration. |
 
 
@@ -37,7 +37,7 @@
 
 
 
-<a name="gitlab-agent-agent_configuration-rpc-ConfigurationResponse"></a>
+<a name="plural-agent-agent_configuration-rpc-ConfigurationResponse"></a>
 
 ### ConfigurationResponse
 
@@ -45,7 +45,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| configuration | [gitlab.agent.agentcfg.AgentConfiguration](#gitlab-agent-agentcfg-AgentConfiguration) |  |  |
+| configuration | [plural.agent.agentcfg.AgentConfiguration](#plural-agent-agentcfg-AgentConfiguration) |  |  |
 | commit_id | [string](#string) |  | Commit id of the configuration repository. Can be used to resume connection from where it dropped. |
 
 
@@ -59,14 +59,14 @@
  
 
 
-<a name="gitlab-agent-agent_configuration-rpc-AgentConfiguration"></a>
+<a name="plural-agent-agent_configuration-rpc-AgentConfiguration"></a>
 
 ### AgentConfiguration
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetConfiguration | [ConfigurationRequest](#gitlab-agent-agent_configuration-rpc-ConfigurationRequest) | [ConfigurationResponse](#gitlab-agent-agent_configuration-rpc-ConfigurationResponse) stream | Get agentk configuration. |
+| GetConfiguration | [ConfigurationRequest](#plural-agent-agent_configuration-rpc-ConfigurationRequest) | [ConfigurationResponse](#plural-agent-agent_configuration-rpc-ConfigurationResponse) stream | Get agentk configuration. |
 
  
 

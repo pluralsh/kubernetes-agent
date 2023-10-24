@@ -4,8 +4,8 @@
 ## Table of Contents
 
 - [pkg/tool/redistool/redistool.proto](#pkg_tool_redistool_redistool-proto)
-    - [ExpiringValue](#gitlab-agent-redistool-ExpiringValue)
-    - [ExpiringValueTimestamp](#gitlab-agent-redistool-ExpiringValueTimestamp)
+    - [ExpiringValue](#plural-agent-redistool-ExpiringValue)
+    - [ExpiringValueTimestamp](#plural-agent-redistool-ExpiringValueTimestamp)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -18,7 +18,7 @@
 
 
 
-<a name="gitlab-agent-redistool-ExpiringValue"></a>
+<a name="plural-agent-redistool-ExpiringValue"></a>
 
 ### ExpiringValue
 
@@ -34,7 +34,7 @@
 
 
 
-<a name="gitlab-agent-redistool-ExpiringValueTimestamp"></a>
+<a name="plural-agent-redistool-ExpiringValueTimestamp"></a>
 
 ### ExpiringValueTimestamp
 ExpiringValueTimestamp has the timestamp only. Can be used to skip unmarshalling the payload.

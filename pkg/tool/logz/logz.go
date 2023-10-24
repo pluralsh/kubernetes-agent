@@ -39,6 +39,10 @@ func AgentId(agentId int64) zap.Field {
 	return zap.Int64("agent_id", agentId)
 }
 
+func ClusterId(clusterId int64) zap.Field {
+	return zap.Int64("cluster_id", clusterId)
+}
+
 func CommitId(commitId string) zap.Field {
 	return zap.String("commit_id", commitId)
 }

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.31.0
 // 	protoc        v4.24.4
-// source: pkg/gitlab/api/api.proto
+// source: pkg/plural/api/api.proto
 
 // If you make any changes make sure you run: make regenerate-proto
 
@@ -39,7 +39,7 @@ type Configuration struct {
 func (x *Configuration) Reset() {
 	*x = Configuration{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[0]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -52,7 +52,7 @@ func (x *Configuration) String() string {
 func (*Configuration) ProtoMessage() {}
 
 func (x *Configuration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[0]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -65,7 +65,7 @@ func (x *Configuration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configuration.ProtoReflect.Descriptor instead.
 func (*Configuration) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{0}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Configuration) GetDefaultNamespace() string {
@@ -95,7 +95,7 @@ type AllowedAgent struct {
 func (x *AllowedAgent) Reset() {
 	*x = AllowedAgent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[1]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -108,7 +108,7 @@ func (x *AllowedAgent) String() string {
 func (*AllowedAgent) ProtoMessage() {}
 
 func (x *AllowedAgent) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[1]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -121,7 +121,7 @@ func (x *AllowedAgent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllowedAgent.ProtoReflect.Descriptor instead.
 func (*AllowedAgent) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{1}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AllowedAgent) GetId() int64 {
@@ -156,7 +156,7 @@ type ConfigProject struct {
 func (x *ConfigProject) Reset() {
 	*x = ConfigProject{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[2]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -169,7 +169,7 @@ func (x *ConfigProject) String() string {
 func (*ConfigProject) ProtoMessage() {}
 
 func (x *ConfigProject) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[2]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -182,7 +182,7 @@ func (x *ConfigProject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigProject.ProtoReflect.Descriptor instead.
 func (*ConfigProject) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{2}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ConfigProject) GetId() int64 {
@@ -203,7 +203,7 @@ type Pipeline struct {
 func (x *Pipeline) Reset() {
 	*x = Pipeline{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[3]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -216,7 +216,7 @@ func (x *Pipeline) String() string {
 func (*Pipeline) ProtoMessage() {}
 
 func (x *Pipeline) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[3]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +229,7 @@ func (x *Pipeline) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pipeline.ProtoReflect.Descriptor instead.
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{3}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Pipeline) GetId() int64 {
@@ -251,7 +251,7 @@ type Project struct {
 func (x *Project) Reset() {
 	*x = Project{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[4]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -264,7 +264,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[4]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +277,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{4}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Project) GetId() int64 {
@@ -305,7 +305,7 @@ type Group struct {
 func (x *Group) Reset() {
 	*x = Group{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[5]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -318,7 +318,7 @@ func (x *Group) String() string {
 func (*Group) ProtoMessage() {}
 
 func (x *Group) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[5]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -331,7 +331,7 @@ func (x *Group) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Group.ProtoReflect.Descriptor instead.
 func (*Group) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{5}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Group) GetId() int64 {
@@ -352,7 +352,7 @@ type Job struct {
 func (x *Job) Reset() {
 	*x = Job{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[6]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -365,7 +365,7 @@ func (x *Job) String() string {
 func (*Job) ProtoMessage() {}
 
 func (x *Job) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[6]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +378,7 @@ func (x *Job) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Job.ProtoReflect.Descriptor instead.
 func (*Job) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{6}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Job) GetId() int64 {
@@ -400,7 +400,7 @@ type User struct {
 func (x *User) Reset() {
 	*x = User{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[7]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -413,7 +413,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[7]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -426,7 +426,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{7}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *User) GetId() int64 {
@@ -455,7 +455,7 @@ type Environment struct {
 func (x *Environment) Reset() {
 	*x = Environment{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[8]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -468,7 +468,7 @@ func (x *Environment) String() string {
 func (*Environment) ProtoMessage() {}
 
 func (x *Environment) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[8]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +481,7 @@ func (x *Environment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Environment.ProtoReflect.Descriptor instead.
 func (*Environment) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{8}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Environment) GetSlug() string {
@@ -512,7 +512,7 @@ type GetAgentInfoResponse struct {
 func (x *GetAgentInfoResponse) Reset() {
 	*x = GetAgentInfoResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[9]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -525,7 +525,7 @@ func (x *GetAgentInfoResponse) String() string {
 func (*GetAgentInfoResponse) ProtoMessage() {}
 
 func (x *GetAgentInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[9]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -538,7 +538,7 @@ func (x *GetAgentInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentInfoResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{9}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetAgentInfoResponse) GetProjectId() int64 {
@@ -581,7 +581,7 @@ type GetProjectInfoResponse struct {
 func (x *GetProjectInfoResponse) Reset() {
 	*x = GetProjectInfoResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[10]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -594,7 +594,7 @@ func (x *GetProjectInfoResponse) String() string {
 func (*GetProjectInfoResponse) ProtoMessage() {}
 
 func (x *GetProjectInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[10]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -607,7 +607,7 @@ func (x *GetProjectInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetProjectInfoResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{10}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetProjectInfoResponse) GetProjectId() int64 {
@@ -640,7 +640,7 @@ type AllowedAgentsForJob struct {
 func (x *AllowedAgentsForJob) Reset() {
 	*x = AllowedAgentsForJob{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[11]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -653,7 +653,7 @@ func (x *AllowedAgentsForJob) String() string {
 func (*AllowedAgentsForJob) ProtoMessage() {}
 
 func (x *AllowedAgentsForJob) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[11]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -666,7 +666,7 @@ func (x *AllowedAgentsForJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllowedAgentsForJob.ProtoReflect.Descriptor instead.
 func (*AllowedAgentsForJob) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{11}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AllowedAgentsForJob) GetAllowedAgents() []*AllowedAgent {
@@ -725,7 +725,7 @@ type AuthorizeProxyUserRequest struct {
 func (x *AuthorizeProxyUserRequest) Reset() {
 	*x = AuthorizeProxyUserRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[12]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -738,7 +738,7 @@ func (x *AuthorizeProxyUserRequest) String() string {
 func (*AuthorizeProxyUserRequest) ProtoMessage() {}
 
 func (x *AuthorizeProxyUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[12]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -751,7 +751,7 @@ func (x *AuthorizeProxyUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeProxyUserRequest.ProtoReflect.Descriptor instead.
 func (*AuthorizeProxyUserRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{12}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AuthorizeProxyUserRequest) GetAgentId() int64 {
@@ -795,7 +795,7 @@ type AuthorizeProxyUserResponse struct {
 func (x *AuthorizeProxyUserResponse) Reset() {
 	*x = AuthorizeProxyUserResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[13]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -808,7 +808,7 @@ func (x *AuthorizeProxyUserResponse) String() string {
 func (*AuthorizeProxyUserResponse) ProtoMessage() {}
 
 func (x *AuthorizeProxyUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[13]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,7 +821,7 @@ func (x *AuthorizeProxyUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeProxyUserResponse.ProtoReflect.Descriptor instead.
 func (*AuthorizeProxyUserResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{13}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AuthorizeProxyUserResponse) GetAgent() *AuthorizedAgentForUser {
@@ -857,7 +857,7 @@ type AuthorizedAgentForUser struct {
 func (x *AuthorizedAgentForUser) Reset() {
 	*x = AuthorizedAgentForUser{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[14]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -870,7 +870,7 @@ func (x *AuthorizedAgentForUser) String() string {
 func (*AuthorizedAgentForUser) ProtoMessage() {}
 
 func (x *AuthorizedAgentForUser) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[14]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -883,7 +883,7 @@ func (x *AuthorizedAgentForUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizedAgentForUser.ProtoReflect.Descriptor instead.
 func (*AuthorizedAgentForUser) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{14}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AuthorizedAgentForUser) GetId() int64 {
@@ -915,7 +915,7 @@ type AccessAsProxyAuthorization struct {
 func (x *AccessAsProxyAuthorization) Reset() {
 	*x = AccessAsProxyAuthorization{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[15]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -928,7 +928,7 @@ func (x *AccessAsProxyAuthorization) String() string {
 func (*AccessAsProxyAuthorization) ProtoMessage() {}
 
 func (x *AccessAsProxyAuthorization) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[15]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +941,7 @@ func (x *AccessAsProxyAuthorization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessAsProxyAuthorization.ProtoReflect.Descriptor instead.
 func (*AccessAsProxyAuthorization) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{15}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{15}
 }
 
 func (m *AccessAsProxyAuthorization) GetAccessAs() isAccessAsProxyAuthorization_AccessAs {
@@ -990,7 +990,7 @@ type AccessAsAgentAuthorization struct {
 func (x *AccessAsAgentAuthorization) Reset() {
 	*x = AccessAsAgentAuthorization{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[16]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1003,7 +1003,7 @@ func (x *AccessAsAgentAuthorization) String() string {
 func (*AccessAsAgentAuthorization) ProtoMessage() {}
 
 func (x *AccessAsAgentAuthorization) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[16]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1016,7 +1016,7 @@ func (x *AccessAsAgentAuthorization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessAsAgentAuthorization.ProtoReflect.Descriptor instead.
 func (*AccessAsAgentAuthorization) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{16}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{16}
 }
 
 type AccessAsUserAuthorization struct {
@@ -1031,7 +1031,7 @@ type AccessAsUserAuthorization struct {
 func (x *AccessAsUserAuthorization) Reset() {
 	*x = AccessAsUserAuthorization{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[17]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1044,7 +1044,7 @@ func (x *AccessAsUserAuthorization) String() string {
 func (*AccessAsUserAuthorization) ProtoMessage() {}
 
 func (x *AccessAsUserAuthorization) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[17]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1057,7 +1057,7 @@ func (x *AccessAsUserAuthorization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessAsUserAuthorization.ProtoReflect.Descriptor instead.
 func (*AccessAsUserAuthorization) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{17}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *AccessAsUserAuthorization) GetProjects() []*ProjectAccessCF {
@@ -1086,7 +1086,7 @@ type ProjectAccessCF struct {
 func (x *ProjectAccessCF) Reset() {
 	*x = ProjectAccessCF{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[18]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1099,7 +1099,7 @@ func (x *ProjectAccessCF) String() string {
 func (*ProjectAccessCF) ProtoMessage() {}
 
 func (x *ProjectAccessCF) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[18]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1112,7 +1112,7 @@ func (x *ProjectAccessCF) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectAccessCF.ProtoReflect.Descriptor instead.
 func (*ProjectAccessCF) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{18}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ProjectAccessCF) GetId() int64 {
@@ -1141,7 +1141,7 @@ type GroupAccessCF struct {
 func (x *GroupAccessCF) Reset() {
 	*x = GroupAccessCF{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[19]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1154,7 +1154,7 @@ func (x *GroupAccessCF) String() string {
 func (*GroupAccessCF) ProtoMessage() {}
 
 func (x *GroupAccessCF) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[19]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1167,7 @@ func (x *GroupAccessCF) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GroupAccessCF.ProtoReflect.Descriptor instead.
 func (*GroupAccessCF) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{19}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GroupAccessCF) GetId() int64 {
@@ -1196,7 +1196,7 @@ type AgentConfigurationRequest struct {
 func (x *AgentConfigurationRequest) Reset() {
 	*x = AgentConfigurationRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_gitlab_api_api_proto_msgTypes[20]
+		mi := &file_pkg_plural_api_api_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1209,7 +1209,7 @@ func (x *AgentConfigurationRequest) String() string {
 func (*AgentConfigurationRequest) ProtoMessage() {}
 
 func (x *AgentConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_gitlab_api_api_proto_msgTypes[20]
+	mi := &file_pkg_plural_api_api_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1222,7 +1222,7 @@ func (x *AgentConfigurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*AgentConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_gitlab_api_api_proto_rawDescGZIP(), []int{20}
+	return file_pkg_plural_api_api_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AgentConfigurationRequest) GetAgentId() int64 {
@@ -1239,12 +1239,12 @@ func (x *AgentConfigurationRequest) GetAgentConfig() *agentcfg.ConfigurationFile
 	return nil
 }
 
-var File_pkg_gitlab_api_api_proto protoreflect.FileDescriptor
+var File_pkg_plural_api_api_proto protoreflect.FileDescriptor
 
-var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
-	0x0a, 0x18, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2f, 0x61, 0x70, 0x69,
+var file_pkg_plural_api_api_proto_rawDesc = []byte{
+	0x0a, 0x18, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2f, 0x61, 0x70, 0x69,
 	0x2f, 0x61, 0x70, 0x69, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x17, 0x70, 0x6c, 0x75, 0x72,
-	0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e,
+	0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e,
 	0x61, 0x70, 0x69, 0x1a, 0x1b, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66,
 	0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x1a, 0x17, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x2f, 0x76, 0x61, 0x6c, 0x69, 0x64,
@@ -1261,13 +1261,13 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x58, 0x0a,
 	0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x18,
 	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61,
-	0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e,
+	0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e,
 	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x08, 0xfa,
 	0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f,
 	0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x4c, 0x0a, 0x0d, 0x63, 0x6f, 0x6e, 0x66, 0x69,
 	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26,
-	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
 	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0d, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x1f, 0x0a, 0x0d, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x50,
 	0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
@@ -1276,8 +1276,8 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x69, 0x64, 0x22, 0x51, 0x0a, 0x07, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x0e, 0x0a,
 	0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x36, 0x0a,
 	0x06, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1e, 0x2e,
-	0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74,
-	0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x52, 0x06, 0x67,
+	0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75,
+	0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x52, 0x06, 0x67,
 	0x72, 0x6f, 0x75, 0x70, 0x73, 0x22, 0x17, 0x0a, 0x05, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x12, 0x0e,
 	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x22, 0x15,
 	0x0a, 0x03, 0x4a, 0x6f, 0x62, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
@@ -1313,28 +1313,28 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x74, 0x73, 0x46, 0x6f, 0x72, 0x4a, 0x6f, 0x62, 0x12, 0x4d, 0x0a, 0x0e, 0x61, 0x6c, 0x6c, 0x6f,
 	0x77, 0x65, 0x64, 0x5f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
 	0x32, 0x25, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e,
-	0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x6c, 0x6c, 0x6f, 0x77,
+	0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x6c, 0x6c, 0x6f, 0x77,
 	0x65, 0x64, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x52, 0x0e, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64,
 	0x5f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x6a, 0x6f, 0x62, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67,
-	0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x4a,
+	0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x4a,
 	0x6f, 0x62, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x03, 0x6a, 0x6f,
 	0x62, 0x12, 0x47, 0x0a, 0x08, 0x70, 0x69, 0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x18, 0x03, 0x20,
 	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65,
-	0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x69,
+	0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x69,
 	0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01,
 	0x52, 0x08, 0x70, 0x69, 0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x44, 0x0a, 0x07, 0x70, 0x72,
 	0x6f, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70, 0x6c,
-	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61,
-	0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x08, 0xfa,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61,
+	0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x08, 0xfa,
 	0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
 	0x12, 0x3b, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d,
-	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x42, 0x08, 0xfa,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x42, 0x08, 0xfa,
 	0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x12, 0x46, 0x0a,
 	0x0b, 0x65, 0x6e, 0x76, 0x69, 0x72, 0x6f, 0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x06, 0x20, 0x01,
 	0x28, 0x0b, 0x32, 0x24, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e,
-	0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x45, 0x6e, 0x76,
+	0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x45, 0x6e, 0x76,
 	0x69, 0x72, 0x6f, 0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0b, 0x65, 0x6e, 0x76, 0x69, 0x72, 0x6f,
 	0x6e, 0x6d, 0x65, 0x6e, 0x74, 0x22, 0xd9, 0x01, 0x0a, 0x19, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
 	0x69, 0x7a, 0x65, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75,
@@ -1353,17 +1353,17 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x6e, 0x22, 0x87, 0x02, 0x0a, 0x1a, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x50,
 	0x72, 0x6f, 0x78, 0x79, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x12, 0x4f, 0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x2f, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67,
-	0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x2f, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70,
+	0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
 	0x69, 0x7a, 0x65, 0x64, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x46, 0x6f, 0x72, 0x55, 0x73, 0x65, 0x72,
 	0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x05, 0x61, 0x67, 0x65, 0x6e,
 	0x74, 0x12, 0x3b, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1d, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67,
-	0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x42, 0x08,
+	0x1d, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70,
+	0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x42, 0x08,
 	0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x12, 0x5b,
 	0x0a, 0x09, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28,
 	0x0b, 0x32, 0x33, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74,
-	0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x63, 0x63, 0x65,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x63, 0x63, 0x65,
 	0x73, 0x73, 0x41, 0x73, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69,
 	0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01,
 	0x52, 0x09, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x61, 0x73, 0x22, 0x82, 0x01, 0x0a, 0x16,
@@ -1371,20 +1371,20 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x6f, 0x72, 0x55, 0x73, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x58, 0x0a, 0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
 	0x5f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26,
-	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x50,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x50,
 	0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01,
 	0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
 	0x22, 0xd9, 0x01, 0x0a, 0x1a, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x50, 0x72, 0x6f,
 	0x78, 0x79, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12,
 	0x55, 0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x33,
-	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x41,
 	0x73, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74,
 	0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02, 0x10, 0x01, 0x48, 0x00, 0x52,
 	0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x12, 0x52, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67,
-	0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41,
+	0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x41,
 	0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x55, 0x73, 0x65, 0x72, 0x41, 0x75, 0x74, 0x68, 0x6f,
 	0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x08, 0xfa, 0x42, 0x05, 0x8a, 0x01, 0x02,
 	0x10, 0x01, 0x48, 0x00, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x42, 0x10, 0x0a, 0x09, 0x61, 0x63,
@@ -1394,12 +1394,12 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x63, 0x63, 0x65, 0x73, 0x73, 0x41, 0x73, 0x55, 0x73, 0x65, 0x72, 0x41, 0x75, 0x74, 0x68, 0x6f,
 	0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x44, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x6a,
 	0x65, 0x63, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x70, 0x6c, 0x75,
-	0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
+	0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c,
 	0x2e, 0x61, 0x70, 0x69, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x41, 0x63, 0x63, 0x65,
 	0x73, 0x73, 0x43, 0x46, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x12, 0x3e,
 	0x0a, 0x06, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x26,
-	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x67, 0x69,
-	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x41, 0x63,
+	0x2e, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x70, 0x6c,
+	0x75, 0x72, 0x61, 0x6c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x41, 0x63,
 	0x63, 0x65, 0x73, 0x73, 0x43, 0x46, 0x52, 0x06, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x22, 0x37,
 	0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x43,
 	0x46, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69,
@@ -1420,68 +1420,68 @@ var file_pkg_gitlab_api_api_proto_rawDesc = []byte{
 	0x6e, 0x74, 0x5f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x42, 0x35, 0x5a, 0x33, 0x67, 0x69, 0x74,
 	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x73, 0x68,
 	0x2f, 0x6b, 0x75, 0x62, 0x65, 0x72, 0x65, 0x6e, 0x74, 0x65, 0x73, 0x2d, 0x61, 0x67, 0x65, 0x6e,
-	0x74, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2f, 0x61, 0x70, 0x69,
+	0x74, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x6c, 0x75, 0x72, 0x61, 0x6c, 0x2f, 0x61, 0x70, 0x69,
 	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_pkg_gitlab_api_api_proto_rawDescOnce sync.Once
-	file_pkg_gitlab_api_api_proto_rawDescData = file_pkg_gitlab_api_api_proto_rawDesc
+	file_pkg_plural_api_api_proto_rawDescOnce sync.Once
+	file_pkg_plural_api_api_proto_rawDescData = file_pkg_plural_api_api_proto_rawDesc
 )
 
-func file_pkg_gitlab_api_api_proto_rawDescGZIP() []byte {
-	file_pkg_gitlab_api_api_proto_rawDescOnce.Do(func() {
-		file_pkg_gitlab_api_api_proto_rawDescData = protoimpl.X.CompressGZIP(file_pkg_gitlab_api_api_proto_rawDescData)
+func file_pkg_plural_api_api_proto_rawDescGZIP() []byte {
+	file_pkg_plural_api_api_proto_rawDescOnce.Do(func() {
+		file_pkg_plural_api_api_proto_rawDescData = protoimpl.X.CompressGZIP(file_pkg_plural_api_api_proto_rawDescData)
 	})
-	return file_pkg_gitlab_api_api_proto_rawDescData
+	return file_pkg_plural_api_api_proto_rawDescData
 }
 
-var file_pkg_gitlab_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
-var file_pkg_gitlab_api_api_proto_goTypes = []interface{}{
-	(*Configuration)(nil),              // 0: plural.agent.gitlab.api.Configuration
-	(*AllowedAgent)(nil),               // 1: plural.agent.gitlab.api.AllowedAgent
-	(*ConfigProject)(nil),              // 2: plural.agent.gitlab.api.ConfigProject
-	(*Pipeline)(nil),                   // 3: plural.agent.gitlab.api.Pipeline
-	(*Project)(nil),                    // 4: plural.agent.gitlab.api.Project
-	(*Group)(nil),                      // 5: plural.agent.gitlab.api.Group
-	(*Job)(nil),                        // 6: plural.agent.gitlab.api.Job
-	(*User)(nil),                       // 7: plural.agent.gitlab.api.User
-	(*Environment)(nil),                // 8: plural.agent.gitlab.api.Environment
-	(*GetAgentInfoResponse)(nil),       // 9: plural.agent.gitlab.api.GetAgentInfoResponse
-	(*GetProjectInfoResponse)(nil),     // 10: plural.agent.gitlab.api.GetProjectInfoResponse
-	(*AllowedAgentsForJob)(nil),        // 11: plural.agent.gitlab.api.AllowedAgentsForJob
-	(*AuthorizeProxyUserRequest)(nil),  // 12: plural.agent.gitlab.api.AuthorizeProxyUserRequest
-	(*AuthorizeProxyUserResponse)(nil), // 13: plural.agent.gitlab.api.AuthorizeProxyUserResponse
-	(*AuthorizedAgentForUser)(nil),     // 14: plural.agent.gitlab.api.AuthorizedAgentForUser
-	(*AccessAsProxyAuthorization)(nil), // 15: plural.agent.gitlab.api.AccessAsProxyAuthorization
-	(*AccessAsAgentAuthorization)(nil), // 16: plural.agent.gitlab.api.AccessAsAgentAuthorization
-	(*AccessAsUserAuthorization)(nil),  // 17: plural.agent.gitlab.api.AccessAsUserAuthorization
-	(*ProjectAccessCF)(nil),            // 18: plural.agent.gitlab.api.ProjectAccessCF
-	(*GroupAccessCF)(nil),              // 19: plural.agent.gitlab.api.GroupAccessCF
-	(*AgentConfigurationRequest)(nil),  // 20: plural.agent.gitlab.api.AgentConfigurationRequest
+var file_pkg_plural_api_api_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_pkg_plural_api_api_proto_goTypes = []interface{}{
+	(*Configuration)(nil),              // 0: plural.agent.plural.api.Configuration
+	(*AllowedAgent)(nil),               // 1: plural.agent.plural.api.AllowedAgent
+	(*ConfigProject)(nil),              // 2: plural.agent.plural.api.ConfigProject
+	(*Pipeline)(nil),                   // 3: plural.agent.plural.api.Pipeline
+	(*Project)(nil),                    // 4: plural.agent.plural.api.Project
+	(*Group)(nil),                      // 5: plural.agent.plural.api.Group
+	(*Job)(nil),                        // 6: plural.agent.plural.api.Job
+	(*User)(nil),                       // 7: plural.agent.plural.api.User
+	(*Environment)(nil),                // 8: plural.agent.plural.api.Environment
+	(*GetAgentInfoResponse)(nil),       // 9: plural.agent.plural.api.GetAgentInfoResponse
+	(*GetProjectInfoResponse)(nil),     // 10: plural.agent.plural.api.GetProjectInfoResponse
+	(*AllowedAgentsForJob)(nil),        // 11: plural.agent.plural.api.AllowedAgentsForJob
+	(*AuthorizeProxyUserRequest)(nil),  // 12: plural.agent.plural.api.AuthorizeProxyUserRequest
+	(*AuthorizeProxyUserResponse)(nil), // 13: plural.agent.plural.api.AuthorizeProxyUserResponse
+	(*AuthorizedAgentForUser)(nil),     // 14: plural.agent.plural.api.AuthorizedAgentForUser
+	(*AccessAsProxyAuthorization)(nil), // 15: plural.agent.plural.api.AccessAsProxyAuthorization
+	(*AccessAsAgentAuthorization)(nil), // 16: plural.agent.plural.api.AccessAsAgentAuthorization
+	(*AccessAsUserAuthorization)(nil),  // 17: plural.agent.plural.api.AccessAsUserAuthorization
+	(*ProjectAccessCF)(nil),            // 18: plural.agent.plural.api.ProjectAccessCF
+	(*GroupAccessCF)(nil),              // 19: plural.agent.plural.api.GroupAccessCF
+	(*AgentConfigurationRequest)(nil),  // 20: plural.agent.plural.api.AgentConfigurationRequest
 	(*agentcfg.CiAccessAsCF)(nil),      // 21: plural.agent.agentcfg.CiAccessAsCF
 	(*agentcfg.ConfigurationFile)(nil), // 22: plural.agent.agentcfg.ConfigurationFile
 }
-var file_pkg_gitlab_api_api_proto_depIdxs = []int32{
-	21, // 0: plural.agent.gitlab.api.Configuration.access_as:type_name -> plural.agent.agentcfg.CiAccessAsCF
-	2,  // 1: plural.agent.gitlab.api.AllowedAgent.config_project:type_name -> plural.agent.gitlab.api.ConfigProject
-	0,  // 2: plural.agent.gitlab.api.AllowedAgent.configuration:type_name -> plural.agent.gitlab.api.Configuration
-	5,  // 3: plural.agent.gitlab.api.Project.groups:type_name -> plural.agent.gitlab.api.Group
-	1,  // 4: plural.agent.gitlab.api.AllowedAgentsForJob.allowed_agents:type_name -> plural.agent.gitlab.api.AllowedAgent
-	6,  // 5: plural.agent.gitlab.api.AllowedAgentsForJob.job:type_name -> plural.agent.gitlab.api.Job
-	3,  // 6: plural.agent.gitlab.api.AllowedAgentsForJob.pipeline:type_name -> plural.agent.gitlab.api.Pipeline
-	4,  // 7: plural.agent.gitlab.api.AllowedAgentsForJob.project:type_name -> plural.agent.gitlab.api.Project
-	7,  // 8: plural.agent.gitlab.api.AllowedAgentsForJob.user:type_name -> plural.agent.gitlab.api.User
-	8,  // 9: plural.agent.gitlab.api.AllowedAgentsForJob.environment:type_name -> plural.agent.gitlab.api.Environment
-	14, // 10: plural.agent.gitlab.api.AuthorizeProxyUserResponse.agent:type_name -> plural.agent.gitlab.api.AuthorizedAgentForUser
-	7,  // 11: plural.agent.gitlab.api.AuthorizeProxyUserResponse.user:type_name -> plural.agent.gitlab.api.User
-	15, // 12: plural.agent.gitlab.api.AuthorizeProxyUserResponse.access_as:type_name -> plural.agent.gitlab.api.AccessAsProxyAuthorization
-	2,  // 13: plural.agent.gitlab.api.AuthorizedAgentForUser.config_project:type_name -> plural.agent.gitlab.api.ConfigProject
-	16, // 14: plural.agent.gitlab.api.AccessAsProxyAuthorization.agent:type_name -> plural.agent.gitlab.api.AccessAsAgentAuthorization
-	17, // 15: plural.agent.gitlab.api.AccessAsProxyAuthorization.user:type_name -> plural.agent.gitlab.api.AccessAsUserAuthorization
-	18, // 16: plural.agent.gitlab.api.AccessAsUserAuthorization.projects:type_name -> plural.agent.gitlab.api.ProjectAccessCF
-	19, // 17: plural.agent.gitlab.api.AccessAsUserAuthorization.groups:type_name -> plural.agent.gitlab.api.GroupAccessCF
-	22, // 18: plural.agent.gitlab.api.AgentConfigurationRequest.agent_config:type_name -> plural.agent.agentcfg.ConfigurationFile
+var file_pkg_plural_api_api_proto_depIdxs = []int32{
+	21, // 0: plural.agent.plural.api.Configuration.access_as:type_name -> plural.agent.agentcfg.CiAccessAsCF
+	2,  // 1: plural.agent.plural.api.AllowedAgent.config_project:type_name -> plural.agent.plural.api.ConfigProject
+	0,  // 2: plural.agent.plural.api.AllowedAgent.configuration:type_name -> plural.agent.plural.api.Configuration
+	5,  // 3: plural.agent.plural.api.Project.groups:type_name -> plural.agent.plural.api.Group
+	1,  // 4: plural.agent.plural.api.AllowedAgentsForJob.allowed_agents:type_name -> plural.agent.plural.api.AllowedAgent
+	6,  // 5: plural.agent.plural.api.AllowedAgentsForJob.job:type_name -> plural.agent.plural.api.Job
+	3,  // 6: plural.agent.plural.api.AllowedAgentsForJob.pipeline:type_name -> plural.agent.plural.api.Pipeline
+	4,  // 7: plural.agent.plural.api.AllowedAgentsForJob.project:type_name -> plural.agent.plural.api.Project
+	7,  // 8: plural.agent.plural.api.AllowedAgentsForJob.user:type_name -> plural.agent.plural.api.User
+	8,  // 9: plural.agent.plural.api.AllowedAgentsForJob.environment:type_name -> plural.agent.plural.api.Environment
+	14, // 10: plural.agent.plural.api.AuthorizeProxyUserResponse.agent:type_name -> plural.agent.plural.api.AuthorizedAgentForUser
+	7,  // 11: plural.agent.plural.api.AuthorizeProxyUserResponse.user:type_name -> plural.agent.plural.api.User
+	15, // 12: plural.agent.plural.api.AuthorizeProxyUserResponse.access_as:type_name -> plural.agent.plural.api.AccessAsProxyAuthorization
+	2,  // 13: plural.agent.plural.api.AuthorizedAgentForUser.config_project:type_name -> plural.agent.plural.api.ConfigProject
+	16, // 14: plural.agent.plural.api.AccessAsProxyAuthorization.agent:type_name -> plural.agent.plural.api.AccessAsAgentAuthorization
+	17, // 15: plural.agent.plural.api.AccessAsProxyAuthorization.user:type_name -> plural.agent.plural.api.AccessAsUserAuthorization
+	18, // 16: plural.agent.plural.api.AccessAsUserAuthorization.projects:type_name -> plural.agent.plural.api.ProjectAccessCF
+	19, // 17: plural.agent.plural.api.AccessAsUserAuthorization.groups:type_name -> plural.agent.plural.api.GroupAccessCF
+	22, // 18: plural.agent.plural.api.AgentConfigurationRequest.agent_config:type_name -> plural.agent.agentcfg.ConfigurationFile
 	19, // [19:19] is the sub-list for method output_type
 	19, // [19:19] is the sub-list for method input_type
 	19, // [19:19] is the sub-list for extension type_name
@@ -1489,13 +1489,13 @@ var file_pkg_gitlab_api_api_proto_depIdxs = []int32{
 	0,  // [0:19] is the sub-list for field type_name
 }
 
-func init() { file_pkg_gitlab_api_api_proto_init() }
-func file_pkg_gitlab_api_api_proto_init() {
-	if File_pkg_gitlab_api_api_proto != nil {
+func init() { file_pkg_plural_api_api_proto_init() }
+func file_pkg_plural_api_api_proto_init() {
+	if File_pkg_plural_api_api_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_pkg_gitlab_api_api_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Configuration); i {
 			case 0:
 				return &v.state
@@ -1507,7 +1507,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AllowedAgent); i {
 			case 0:
 				return &v.state
@@ -1519,7 +1519,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfigProject); i {
 			case 0:
 				return &v.state
@@ -1531,7 +1531,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Pipeline); i {
 			case 0:
 				return &v.state
@@ -1543,7 +1543,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Project); i {
 			case 0:
 				return &v.state
@@ -1555,7 +1555,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Group); i {
 			case 0:
 				return &v.state
@@ -1567,7 +1567,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Job); i {
 			case 0:
 				return &v.state
@@ -1579,7 +1579,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*User); i {
 			case 0:
 				return &v.state
@@ -1591,7 +1591,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Environment); i {
 			case 0:
 				return &v.state
@@ -1603,7 +1603,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetAgentInfoResponse); i {
 			case 0:
 				return &v.state
@@ -1615,7 +1615,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProjectInfoResponse); i {
 			case 0:
 				return &v.state
@@ -1627,7 +1627,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AllowedAgentsForJob); i {
 			case 0:
 				return &v.state
@@ -1639,7 +1639,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AuthorizeProxyUserRequest); i {
 			case 0:
 				return &v.state
@@ -1651,7 +1651,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AuthorizeProxyUserResponse); i {
 			case 0:
 				return &v.state
@@ -1663,7 +1663,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AuthorizedAgentForUser); i {
 			case 0:
 				return &v.state
@@ -1675,7 +1675,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AccessAsProxyAuthorization); i {
 			case 0:
 				return &v.state
@@ -1687,7 +1687,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AccessAsAgentAuthorization); i {
 			case 0:
 				return &v.state
@@ -1699,7 +1699,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AccessAsUserAuthorization); i {
 			case 0:
 				return &v.state
@@ -1711,7 +1711,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ProjectAccessCF); i {
 			case 0:
 				return &v.state
@@ -1723,7 +1723,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GroupAccessCF); i {
 			case 0:
 				return &v.state
@@ -1735,7 +1735,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 				return nil
 			}
 		}
-		file_pkg_gitlab_api_api_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_pkg_plural_api_api_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AgentConfigurationRequest); i {
 			case 0:
 				return &v.state
@@ -1748,7 +1748,7 @@ func file_pkg_gitlab_api_api_proto_init() {
 			}
 		}
 	}
-	file_pkg_gitlab_api_api_proto_msgTypes[15].OneofWrappers = []interface{}{
+	file_pkg_plural_api_api_proto_msgTypes[15].OneofWrappers = []interface{}{
 		(*AccessAsProxyAuthorization_Agent)(nil),
 		(*AccessAsProxyAuthorization_User)(nil),
 	}
@@ -1756,18 +1756,18 @@ func file_pkg_gitlab_api_api_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_pkg_gitlab_api_api_proto_rawDesc,
+			RawDescriptor: file_pkg_plural_api_api_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_pkg_gitlab_api_api_proto_goTypes,
-		DependencyIndexes: file_pkg_gitlab_api_api_proto_depIdxs,
-		MessageInfos:      file_pkg_gitlab_api_api_proto_msgTypes,
+		GoTypes:           file_pkg_plural_api_api_proto_goTypes,
+		DependencyIndexes: file_pkg_plural_api_api_proto_depIdxs,
+		MessageInfos:      file_pkg_plural_api_api_proto_msgTypes,
 	}.Build()
-	File_pkg_gitlab_api_api_proto = out.File
-	file_pkg_gitlab_api_api_proto_rawDesc = nil
-	file_pkg_gitlab_api_api_proto_goTypes = nil
-	file_pkg_gitlab_api_api_proto_depIdxs = nil
+	File_pkg_plural_api_api_proto = out.File
+	file_pkg_plural_api_api_proto_rawDesc = nil
+	file_pkg_plural_api_api_proto_goTypes = nil
+	file_pkg_plural_api_api_proto_depIdxs = nil
 }

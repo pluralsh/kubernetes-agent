@@ -18,8 +18,8 @@ func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 type Client struct {
-	ctx           context.Context
-	consoleClient *console.Client
+	ctx     context.Context
+	Console *console.Client
 }
 
 func New(url, token string) *Client {
@@ -31,7 +31,14 @@ func New(url, token string) *Client {
 	}
 
 	return &Client{
-		consoleClient: console.NewClient(&httpClient, url),
-		ctx:           context.Background(),
+		Console: console.NewClient(&httpClient, url),
+		ctx:     context.Background(),
+	}
+}
+
+func NewUnauthorized(url string) *Client {
+	return &Client{
+		Console: console.NewClient(http.DefaultClient, url),
+		ctx:     context.Background(),
 	}
 }

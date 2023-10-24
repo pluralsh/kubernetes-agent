@@ -7,23 +7,24 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pluralsh/kuberentes-agent/pkg/api"
 	gitlab2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab"
-	api2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
+	gitlabapi "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
 	rpc2 "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
+	pluralapi "github.com/pluralsh/kuberentes-agent/pkg/plural/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
 	httpz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/memz"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/uuid"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/metric"
@@ -43,11 +44,9 @@ const (
 	readHeaderTimeout = 10 * time.Second
 	idleTimeout       = 1 * time.Minute
 
-	gitLabKasCookieName             = "_gitlab_kas"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	tokenSeparator                  = ":"
-	tokenTypeCi                     = "ci"
-	tokenTypePat                    = "pat"
+	tokenTypePlural                 = "plrl"
 )
 
 var (
@@ -74,10 +73,9 @@ var (
 )
 
 type proxyUserCacheKey struct {
-	agentId    int64
-	accessType string
-	accessKey  string
-	csrfToken  string
+	agentId   int64
+	accessKey string
+	clusterId string
 }
 
 type kubernetesApiProxy struct {
@@ -85,9 +83,10 @@ type kubernetesApiProxy struct {
 	api                      modserver.Api
 	kubernetesApiClient      rpc2.KubernetesApiClient
 	gitLabClient             gitlab2.ClientInterface
+	pluralUrl                string
 	allowedOriginUrls        []string
-	allowedAgentsCache       *cache.CacheWithErr[string, *api2.AllowedAgentsForJob]
-	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *api2.AuthorizeProxyUserResponse]
+	allowedAgentsCache       *cache.CacheWithErr[string, *pluralapi.AllowedAgentsForJob]
+	authorizeProxyUserCache  *cache.CacheWithErr[proxyUserCacheKey, *pluralapi.AuthorizeProxyUserResponse]
 	requestCounter           usage_metrics.Counter
 	ciTunnelUsersCounter     usage_metrics.UniqueCounter
 	ciAccessRequestCounter   usage_metrics.Counter
@@ -189,7 +188,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	log, agentId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
+	log, clusterId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
 	if eResp != nil {
 		// If GitLab doesn't authorize the proxy user to make the call,
 		// we send an extra header to indicate that, so that the client
@@ -198,26 +197,26 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		if eResp.StatusCode == http.StatusUnauthorized {
 			w.Header()[httpz2.GitlabUnauthorizedHeader] = []string{"true"}
 		}
-		return log, agentId, eResp
+		return log, clusterId, eResp
 	}
 
 	p.requestCounter.Inc() // Count only authenticated and authorized requests
 	p.ciTunnelUsersCounter.Add(userId)
 
-	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
+	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(clusterId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
 	if err != nil {
 		msg := "Proxy failed to make outbound request"
-		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-		return log, agentId, &grpctool.ErrResp{
+		p.api.HandleProcessingError(ctx, log, clusterId, msg, err)
+		return log, clusterId, &grpctool.ErrResp{
 			StatusCode: http.StatusInternalServerError,
 			Msg:        msg,
 			Err:        err,
 		}
 	}
 
-	p.pipeStreams(log, agentId, w, r, mkClient, impConfig) // nolint: contextcheck
-	return log, agentId, nil
+	p.pipeStreams(log, clusterId, w, r, mkClient, impConfig) // nolint: contextcheck
+	return log, clusterId, nil
 }
 
 func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Context, log *zap.Logger, r *http.Request) (*zap.Logger, int64 /* agentId */, int64 /* userId */, *rpc2.ImpersonationConfig, *grpctool.ErrResp) {
@@ -240,45 +239,13 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 	)
 
 	switch c := creds.(type) {
-	case ciJobTokenAuthn:
-		allowedForJob, eResp := p.getAllowedAgentsForJob(ctx, log, agentId, c.jobToken)
-		if eResp != nil {
-			return log, agentId, 0, nil, eResp
-		}
-		userId = allowedForJob.User.Id
-
-		aa := findAllowedAgent(agentId, allowedForJob)
-		if aa == nil {
-			msg := "Forbidden: agentId is not allowed"
-			log.Debug(msg)
-			return log, agentId, userId, nil, &grpctool.ErrResp{
-				StatusCode: http.StatusForbidden,
-				Msg:        msg,
-			}
-		}
-
-		impConfig, err = constructJobImpersonationConfig(allowedForJob, aa)
-		if err != nil {
-			msg := "Failed to construct impersonation config"
-			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-			return log, agentId, userId, nil, &grpctool.ErrResp{
-				StatusCode: http.StatusInternalServerError,
-				Msg:        msg,
-				Err:        err,
-			}
-		}
-
-		// update usage metrics for `ci_access` requests using the CI tunnel
-		p.ciAccessRequestCounter.Inc()
-		p.ciAccessUsersCounter.Add(userId)
-		p.ciAccessAgentsCounter.Add(agentId)
-	case sessionCookieAuthn:
-		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "session_cookie", c.encryptedPublicSessionId, c.csrfToken)
+	case patAuthn:
+		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, c.token, c.clusterId)
 		if eResp != nil {
 			return log, agentId, 0, nil, eResp
 		}
 		userId = auth.User.Id
-		impConfig, err = constructUserImpersonationConfig(auth, "session_cookie")
+		impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
 		if err != nil {
 			msg := "Failed to construct user impersonation config"
 			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
@@ -288,33 +255,11 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 				Err:        err,
 			}
 		}
-
-		// update usage metrics for `user_access` requests using the CI tunnel
-		p.userAccessRequestCounter.Inc()
-		p.userAccessUsersCounter.Add(userId)
-		p.userAccessAgentsCounter.Add(agentId)
-	case patAuthn:
-		// TODO: Figure out our authorization logic
-		//auth, eResp := p.authorizeProxyUser(ctx, log, agentId, "personal_access_token", c.token, "")
-		//if eResp != nil {
-		//	return log, agentId, 0, nil, eResp
-		//}
-		//userId = auth.User.Id
-		//impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
-		//if err != nil {
-		//	msg := "Failed to construct user impersonation config"
-		//	p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-		//	return log, agentId, userId, nil, &grpctool.ErrResp{
-		//		StatusCode: http.StatusInternalServerError,
-		//		Msg:        msg,
-		//		Err:        err,
-		//	}
-		//}
 		impConfig = nil
 
 		// update usage metrics for PAT requests using the CI tunnel
 		p.patAccessRequestCounter.Inc()
-		p.patAccessUsersCounter.Add(userId)
+		//p.patAccessUsersCounter.Add(userId)
 		p.patAccessAgentsCounter.Add(agentId)
 	default: // This should never happen
 		msg := "Invalid authorization type"
@@ -327,49 +272,14 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 	return log, agentId, userId, impConfig, nil
 }
 
-func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, log *zap.Logger, agentId int64, jobToken string) (*api2.AllowedAgentsForJob, *grpctool.ErrResp) {
-	allowedForJob, err := p.allowedAgentsCache.GetItem(ctx, jobToken, func() (*api2.AllowedAgentsForJob, error) {
-		return api2.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
-	})
-	if err != nil {
-		var status int32
-		var msg string
-		switch {
-		case gitlab2.IsUnauthorized(err):
-			status = http.StatusUnauthorized
-			msg = "Unauthorized: CI job token"
-			log.Debug(msg, logz.Error(err))
-		case gitlab2.IsForbidden(err):
-			status = http.StatusForbidden
-			msg = "Forbidden: CI job token"
-			log.Debug(msg, logz.Error(err))
-		case gitlab2.IsNotFound(err):
-			status = http.StatusNotFound
-			msg = "Not found: agents for CI job token"
-			log.Debug(msg, logz.Error(err))
-		default:
-			status = http.StatusInternalServerError
-			msg = "Failed to get allowed agents for CI job token"
-			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-		}
-		return nil, &grpctool.ErrResp{
-			StatusCode: status,
-			Msg:        msg,
-			Err:        err,
-		}
-	}
-	return allowedForJob, nil
-}
-
-func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Logger, agentId int64, accessType, accessKey, csrfToken string) (*api2.AuthorizeProxyUserResponse, *grpctool.ErrResp) {
+func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Logger, agentId int64, accessKey, clusterId string) (*pluralapi.AuthorizeProxyUserResponse, *grpctool.ErrResp) {
 	key := proxyUserCacheKey{
-		agentId:    agentId,
-		accessType: accessType,
-		accessKey:  accessKey,
-		csrfToken:  csrfToken,
+		agentId:   agentId,
+		clusterId: clusterId,
+		accessKey: accessKey,
 	}
-	auth, err := p.authorizeProxyUserCache.GetItem(ctx, key, func() (*api2.AuthorizeProxyUserResponse, error) {
-		return api2.AuthorizeProxyUser(ctx, p.gitLabClient, agentId, accessType, accessKey, csrfToken)
+	auth, err := p.authorizeProxyUserCache.GetItem(ctx, key, func() (*pluralapi.AuthorizeProxyUserResponse, error) {
+		return pluralapi.AuthorizeProxyUser(ctx, accessKey, clusterId, p.pluralUrl)
 	})
 	if err != nil {
 		switch {
@@ -506,26 +416,9 @@ func formatStatusMessage(ctx context.Context, msg string, err error) string {
 	return b.String()
 }
 
-func findAllowedAgent(agentId int64, agentsForJob *api2.AllowedAgentsForJob) *api2.AllowedAgent {
-	for _, aa := range agentsForJob.AllowedAgents {
-		if aa.Id == agentId {
-			return aa
-		}
-	}
-	return nil
-}
-
-type ciJobTokenAuthn struct {
-	jobToken string
-}
-
 type patAuthn struct {
-	token string
-}
-
-type sessionCookieAuthn struct {
-	encryptedPublicSessionId string
-	csrfToken                string
+	token     string
+	clusterId string
 }
 
 func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any, error) {
@@ -533,176 +426,58 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 		if len(authzHeader) > 1 {
 			return 0, nil, fmt.Errorf("%s header: expecting a single header, got %d", httpz2.AuthorizationHeader, len(authzHeader))
 		}
-		agentId, tokenType, token, err := getAgentIdAndTokenFromHeader(authzHeader[0])
+		agentId, tokenType, token, clusterId, err := getAgentIdAndTokenFromHeader(authzHeader[0])
 		if err != nil {
 			return 0, nil, err
 		}
 		switch tokenType {
-		case tokenTypeCi:
-			return agentId, ciJobTokenAuthn{
-				jobToken: token,
-			}, nil
-		case tokenTypePat:
+		case tokenTypePlural:
 			return agentId, patAuthn{
 				token: token,
+				clusterId: clusterId,
 			}, nil
 		}
-	}
-	if cookie, err := r.Cookie(gitLabKasCookieName); err == nil {
-		agentId, encryptedPublicSessionId, csrfToken, err := getSessionCookieParams(cookie, r)
-		if err != nil {
-			return 0, nil, err
-		}
-		return agentId, sessionCookieAuthn{
-			encryptedPublicSessionId: encryptedPublicSessionId,
-			csrfToken:                csrfToken,
-		}, nil
 	}
 	return 0, nil, errors.New("no valid credentials provided")
 }
 
-func getSessionCookieParams(cookie *http.Cookie, r *http.Request) (int64, string, string, error) {
-	if len(cookie.Value) == 0 {
-		return 0, "", "", fmt.Errorf("%s cookie value must not be empty", gitLabKasCookieName)
-	}
-	// NOTE: GitLab Rails uses `rack` as the generic web server framework, which escapes the cookie values.
-	// See https://github.com/rack/rack/blob/0b26518acc4c946ca96dfe3d9e68a05ca84439f7/lib/rack/utils.rb#L300
-	encryptedPublicSessionId, err := url.QueryUnescape(cookie.Value)
-	if err != nil {
-		return 0, "", "", fmt.Errorf("%s invalid cookie value", gitLabKasCookieName)
-	}
-
-	agentId, err := getAgentIdForSessionCookieRequest(r)
-	if err != nil {
-		return 0, "", "", err
-	}
-	csrfToken, err := getCsrfTokenForSessionCookieRequest(r)
-	if err != nil {
-		return 0, "", "", err
-	}
-	return agentId, encryptedPublicSessionId, csrfToken, nil
-}
-
-// getAgentIdForSessionCookieRequest retrieves the agent id from the request when trying to authenticate with a session cookie.
-// First, the agent id is tried to be retrieved from the headers.
-// If that fails, the query parameters are tried.
-// When both the agent id is provided in the headers and the query parameters the query parameter
-// has precedence and the query parameter is silently ignored.
-func getAgentIdForSessionCookieRequest(r *http.Request) (int64, error) {
-	parseAgentId := func(agentIdStr string) (int64, error) {
-		agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
-		if err != nil {
-			return 0, fmt.Errorf("agent id in request: invalid value: %q", agentIdStr)
-		}
-		return agentId, nil
-	}
-	// Check the agent id header and return if it is present and a valid
-	agentIdHeader := r.Header[httpz2.GitlabAgentIdHeader]
-	if len(agentIdHeader) == 1 {
-		return parseAgentId(agentIdHeader[0])
-	}
-
-	// If multiple agent id headers are given we abort with a failure
-	if len(agentIdHeader) > 1 {
-		return 0, fmt.Errorf("%s header must have exactly one value", httpz2.GitlabAgentIdHeader)
-	}
-
-	// Check the query parameters for a valid agent id
-	agentIdParam := r.URL.Query()[httpz2.GitlabAgentIdQueryParam]
-	if len(agentIdParam) != 1 {
-		return 0, fmt.Errorf("exactly one agent id must be provided either in the %q header or %q query parameter", httpz2.GitlabAgentIdHeader, httpz2.GitlabAgentIdQueryParam)
-	}
-
-	return parseAgentId(agentIdParam[0])
-}
-
-// getCsrfTokenForSessionCookieRequest retrieves the CSRF token from the request when trying to authenticate with a session cookie.
-// First, the CSRF token is tried to be retrieved from the headers.
-// If that fails, the query parameters are tried.
-// When both the CSRF token is provided in the headers and the query parameters the query parameter
-// has precedence and the query parameter is silently ignored.
-func getCsrfTokenForSessionCookieRequest(r *http.Request) (string, error) {
-	// Check the CSRF token header and return if it is present
-	csrfTokenHeader := r.Header[httpz2.CsrfTokenHeader]
-	if len(csrfTokenHeader) == 1 {
-		return csrfTokenHeader[0], nil
-	}
-
-	// If multiple CSRF tokens headers are given we abort with a failure
-	if len(csrfTokenHeader) > 1 {
-		return "", fmt.Errorf("%s header must have exactly one value", httpz2.CsrfTokenHeader)
-	}
-
-	// Check the query parameters for a valid CSRF token
-	csrfTokenParam := r.URL.Query()[httpz2.CsrfTokenQueryParam]
-	if len(csrfTokenParam) != 1 {
-		return "", fmt.Errorf("exactly one CSRF token must be provided either in the %q header or %q query parameter", httpz2.CsrfTokenHeader, httpz2.CsrfTokenQueryParam)
-	}
-
-	return csrfTokenParam[0], nil
-}
-
-func getAgentIdAndTokenFromHeader(header string) (int64, string /* token type */, string /* token */, error) {
+func getAgentIdAndTokenFromHeader(header string) (int64, string /* token type */, string /* token */, string /* clusterId */, error) {
 	if !strings.HasPrefix(header, authorizationHeaderBearerPrefix) {
 		// "missing" space in message - it's in the authorizationHeaderBearerPrefix constant already
-		return 0, "", "", fmt.Errorf("%s header: expecting %stoken", httpz2.AuthorizationHeader, authorizationHeaderBearerPrefix)
+		return 0, "", "", "", fmt.Errorf("%s header: expecting %stoken", httpz2.AuthorizationHeader, authorizationHeaderBearerPrefix)
 	}
 	tokenValue := header[len(authorizationHeaderBearerPrefix):]
 	tokenType, tokenContents, found := strings.Cut(tokenValue, tokenSeparator)
 	if !found {
-		return 0, "", "", fmt.Errorf("%s header: invalid value", httpz2.AuthorizationHeader)
+		return 0, "", "", "", fmt.Errorf("%s header: invalid value", httpz2.AuthorizationHeader)
 	}
 	switch tokenType {
-	case tokenTypeCi:
-	case tokenTypePat:
+	case tokenTypePlural:
 	default:
-		return 0, "", "", fmt.Errorf("%s header: unknown token type", httpz2.AuthorizationHeader)
+		return 0, "", "", "", fmt.Errorf("%s header: unknown token type", httpz2.AuthorizationHeader)
 	}
 	agentIdAndToken := tokenContents
-	agentIdStr, token, found := strings.Cut(agentIdAndToken, tokenSeparator)
+	clusterIdStr, token, found := strings.Cut(agentIdAndToken, tokenSeparator)
 	if !found {
-		return 0, "", "", fmt.Errorf("%s header: invalid value", httpz2.AuthorizationHeader)
+		return 0, "", "", "", fmt.Errorf("%s header: invalid value", httpz2.AuthorizationHeader)
 	}
-	agentId, err := strconv.ParseInt(agentIdStr, 10, 64)
+
+	agentId, err := uuid.ToInt64(clusterIdStr)
 	if err != nil {
-		return 0, "", "", fmt.Errorf("%s header: failed to parse: %w", httpz2.AuthorizationHeader, err)
+		return 0, "", "", "", fmt.Errorf("%s header: failed to parse: %w", httpz2.AuthorizationHeader, err)
 	}
 	if token == "" {
-		return 0, "", "", fmt.Errorf("%s header: empty token", httpz2.AuthorizationHeader)
+		return 0, "", "", "", fmt.Errorf("%s header: empty token", httpz2.AuthorizationHeader)
 	}
-	return agentId, tokenType, token, nil
+	return agentId, tokenType, token, clusterIdStr, nil
 }
 
-func constructJobImpersonationConfig(allowedForJob *api2.AllowedAgentsForJob, aa *api2.AllowedAgent) (*rpc2.ImpersonationConfig, error) {
-	as := aa.GetConfiguration().GetAccessAs().GetAs() // all these fields are optional, so handle nils.
-	switch imp := as.(type) {
-	case nil, *agentcfg.CiAccessAsCF_Agent: // nil means default value, which is Agent.
-		return nil, nil
-	case *agentcfg.CiAccessAsCF_Impersonate:
-		i := imp.Impersonate
-		return &rpc2.ImpersonationConfig{
-			Username: i.Username,
-			Groups:   i.Groups,
-			Uid:      i.Uid,
-			Extra:    impImpersonationExtra(i.Extra),
-		}, nil
-	case *agentcfg.CiAccessAsCF_CiJob:
-		return &rpc2.ImpersonationConfig{
-			Username: fmt.Sprintf("gitlab:ci_job:%d", allowedForJob.Job.Id),
-			Groups:   impCiJobGroups(allowedForJob),
-			Extra:    impCiJobExtra(allowedForJob, aa),
-		}, nil
-	default:
-		// Normally this should never happen
-		return nil, fmt.Errorf("unexpected job impersonation mode: %T", imp)
-	}
-}
-
-func constructUserImpersonationConfig(auth *api2.AuthorizeProxyUserResponse, accessType string) (*rpc2.ImpersonationConfig, error) {
+func constructUserImpersonationConfig(auth *pluralapi.AuthorizeProxyUserResponse, accessType string) (*rpc2.ImpersonationConfig, error) {
 	switch imp := auth.GetAccessAs().AccessAs.(type) {
-	case *api2.AccessAsProxyAuthorization_Agent:
+	case *pluralapi.AccessAsProxyAuthorization_Agent:
 		return nil, nil
-	case *api2.AccessAsProxyAuthorization_User:
+	// TODO: This needs API handling to know when to impersonate as user
+	case *pluralapi.AccessAsProxyAuthorization_User:
 		return &rpc2.ImpersonationConfig{
 			Username: fmt.Sprintf("gitlab:user:%s", auth.User.Username),
 			Groups:   impUserGroups(auth),
@@ -725,7 +500,7 @@ func impImpersonationExtra(in []*agentcfg.ExtraKeyValCF) []*rpc2.ExtraKeyVal {
 	return out
 }
 
-func impCiJobGroups(allowedForJob *api2.AllowedAgentsForJob) []string {
+func impCiJobGroups(allowedForJob *gitlabapi.AllowedAgentsForJob) []string {
 	// 1. gitlab:ci_job to identify all requests coming from CI jobs.
 	groups := make([]string, 0, 3+len(allowedForJob.Project.Groups))
 	groups = append(groups, "gitlab:ci_job")
@@ -750,7 +525,7 @@ func impCiJobGroups(allowedForJob *api2.AllowedAgentsForJob) []string {
 	return groups
 }
 
-func impCiJobExtra(allowedForJob *api2.AllowedAgentsForJob, aa *api2.AllowedAgent) []*rpc2.ExtraKeyVal {
+func impCiJobExtra(allowedForJob *gitlabapi.AllowedAgentsForJob, aa *gitlabapi.AllowedAgent) []*rpc2.ExtraKeyVal {
 	extra := []*rpc2.ExtraKeyVal{
 		{
 			Key: "agent.gitlab.com/id",
@@ -792,7 +567,7 @@ func impCiJobExtra(allowedForJob *api2.AllowedAgentsForJob, aa *api2.AllowedAgen
 	return extra
 }
 
-func impUserGroups(auth *api2.AuthorizeProxyUserResponse) []string {
+func impUserGroups(auth *pluralapi.AuthorizeProxyUserResponse) []string {
 	groups := []string{"gitlab:user"}
 	for _, accessCF := range auth.AccessAs.GetUser().Projects {
 		for _, role := range accessCF.Roles {
@@ -807,7 +582,7 @@ func impUserGroups(auth *api2.AuthorizeProxyUserResponse) []string {
 	return groups
 }
 
-func impUserExtra(auth *api2.AuthorizeProxyUserResponse, accessType string) []*rpc2.ExtraKeyVal {
+func impUserExtra(auth *pluralapi.AuthorizeProxyUserResponse, accessType string) []*rpc2.ExtraKeyVal {
 	extra := []*rpc2.ExtraKeyVal{
 		{
 			Key: "agent.gitlab.com/id",

@@ -22,7 +22,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	KubernetesApi_MakeRequest_FullMethodName = "/gitlab.agent.kubernetes_api.rpc.KubernetesApi/MakeRequest"
+	KubernetesApi_MakeRequest_FullMethodName = "/plural.agent.kubernetes_api.rpc.KubernetesApi/MakeRequest"
 )
 
 // KubernetesApiClient is the client API for KubernetesApi service.
@@ -131,7 +131,7 @@ func (x *kubernetesApiMakeRequestServer) Recv() (*grpctool.HttpRequest, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var KubernetesApi_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.kubernetes_api.rpc.KubernetesApi",
+	ServiceName: "plural.agent.kubernetes_api.rpc.KubernetesApi",
 	HandlerType: (*KubernetesApiServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

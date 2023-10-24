@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kuberentes-agent/pkg/plural/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
 	redistool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
@@ -75,6 +75,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			log:                 config.Log,
 			api:                 config.Api,
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
+			pluralUrl:           config.Config.PluralUrl,
 			allowedOriginUrls:   allowedOriginUrls,
 			allowedAgentsCache: cache.NewWithError[string, *api.AllowedAgentsForJob](
 				allowedAgentCacheTtl,
@@ -93,7 +94,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 					},
 				},
 				tracer,
-				api.IsCacheableError,
+				nil,
 			),
 			authorizeProxyUserCache: cache.NewWithError[proxyUserCacheKey, *api.AuthorizeProxyUserResponse](
 				allowedAgentCacheTtl,
@@ -106,7 +107,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 					KeyToRedisKey: getAuthorizedProxyUserCacheKey(config.Config.Redis.KeyPrefix),
 				},
 				tracer,
-				api.IsCacheableError,
+				nil,
 			),
 			requestCounter:           config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			ciTunnelUsersCounter:     config.UsageTracker.RegisterUniqueCounter(usersCiTunnelInteractionsCountMetric),
@@ -156,12 +157,10 @@ func getAuthorizedProxyUserCacheKey(redisKeyPrefix string) redistool2.KeyToRedis
 		id := make([]byte, 8)
 		binary.LittleEndian.PutUint64(id, uint64(key.agentId))
 		h.Write(id)
-		// Don't need a delimiter here because id is fixed size in bytes
-		h.Write([]byte(key.accessType))
 		h.Write([]byte{11}) // delimiter
 		h.Write([]byte(key.accessKey[:n]))
 		h.Write([]byte{11}) // delimiter
-		h.Write([]byte(key.csrfToken))
+		h.Write([]byte(key.clusterId))
 		tokenHash := h.Sum(nil)
 		return redisKeyPrefix + ":auth_proxy_user_errs:" + string(tokenHash)
 	}

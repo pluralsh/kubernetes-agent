@@ -4,9 +4,9 @@
 ## Table of Contents
 
 - [pkg/module/reverse_tunnel/info/info.proto](#pkg_module_reverse_tunnel_info_info-proto)
-    - [AgentDescriptor](#gitlab-agent-reverse_tunnel-info-AgentDescriptor)
-    - [Method](#gitlab-agent-reverse_tunnel-info-Method)
-    - [Service](#gitlab-agent-reverse_tunnel-info-Service)
+    - [AgentDescriptor](#plural-agent-reverse_tunnel-info-AgentDescriptor)
+    - [Method](#plural-agent-reverse_tunnel-info-Method)
+    - [Service](#plural-agent-reverse_tunnel-info-Service)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -19,7 +19,7 @@
 
 
 
-<a name="gitlab-agent-reverse_tunnel-info-AgentDescriptor"></a>
+<a name="plural-agent-reverse_tunnel-info-AgentDescriptor"></a>
 
 ### AgentDescriptor
 
@@ -27,14 +27,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| services | [Service](#gitlab-agent-reverse_tunnel-info-Service) | repeated |  |
+| services | [Service](#plural-agent-reverse_tunnel-info-Service) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-reverse_tunnel-info-Method"></a>
+<a name="plural-agent-reverse_tunnel-info-Method"></a>
 
 ### Method
 
@@ -49,7 +49,7 @@
 
 
 
-<a name="gitlab-agent-reverse_tunnel-info-Service"></a>
+<a name="plural-agent-reverse_tunnel-info-Service"></a>
 
 ### Service
 
@@ -58,7 +58,7 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
-| methods | [Method](#gitlab-agent-reverse_tunnel-info-Method) | repeated |  |
+| methods | [Method](#plural-agent-reverse_tunnel-info-Method) | repeated |  |
 
 
 

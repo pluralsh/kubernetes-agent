@@ -4,10 +4,10 @@
 ## Table of Contents
 
 - [pkg/module/agent_registrar/rpc/rpc.proto](#pkg_module_agent_registrar_rpc_rpc-proto)
-    - [RegisterRequest](#gitlab-agent-agent_registrar-rpc-RegisterRequest)
-    - [RegisterResponse](#gitlab-agent-agent_registrar-rpc-RegisterResponse)
+    - [RegisterRequest](#plural-agent-agent_registrar-rpc-RegisterRequest)
+    - [RegisterResponse](#plural-agent-agent_registrar-rpc-RegisterResponse)
   
-    - [AgentRegistrar](#gitlab-agent-agent_registrar-rpc-AgentRegistrar)
+    - [AgentRegistrar](#plural-agent-agent_registrar-rpc-AgentRegistrar)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -20,7 +20,7 @@
 
 
 
-<a name="gitlab-agent-agent_registrar-rpc-RegisterRequest"></a>
+<a name="plural-agent-agent_registrar-rpc-RegisterRequest"></a>
 
 ### RegisterRequest
 
@@ -28,7 +28,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent_meta | [gitlab.agent.entity.AgentMeta](#gitlab-agent-entity-AgentMeta) |  |  |
+| agent_meta | [plural.agent.entity.AgentMeta](#plural-agent-entity-AgentMeta) |  |  |
 | pod_id | [int64](#int64) |  | Uniquely identifies a particular agentk pods. Randomly generated when an agentk pod starts working. |
 
 
@@ -36,7 +36,7 @@
 
 
 
-<a name="gitlab-agent-agent_registrar-rpc-RegisterResponse"></a>
+<a name="plural-agent-agent_registrar-rpc-RegisterResponse"></a>
 
 ### RegisterResponse
 
@@ -52,14 +52,14 @@
  
 
 
-<a name="gitlab-agent-agent_registrar-rpc-AgentRegistrar"></a>
+<a name="plural-agent-agent_registrar-rpc-AgentRegistrar"></a>
 
 ### AgentRegistrar
 
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| Register | [RegisterRequest](#gitlab-agent-agent_registrar-rpc-RegisterRequest) | [RegisterResponse](#gitlab-agent-agent_registrar-rpc-RegisterResponse) | Register a new agent. |
+| Register | [RegisterRequest](#plural-agent-agent_registrar-rpc-RegisterRequest) | [RegisterResponse](#plural-agent-agent_registrar-rpc-RegisterResponse) | Register a new agent. |
 
  
 

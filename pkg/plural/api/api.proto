@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package plural.agent.gitlab.api;
+package plural.agent.plural.api;
 
-option go_package = "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api";
+option go_package = "github.com/pluralsh/kuberentes-agent/pkg/plural/api";
 
 import "pkg/agentcfg/agentcfg.proto";
 import "validate/validate.proto";

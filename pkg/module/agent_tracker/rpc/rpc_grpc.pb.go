@@ -21,7 +21,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AgentTracker_GetConnectedAgents_FullMethodName = "/gitlab.agent.agent_tracker.rpc.AgentTracker/GetConnectedAgents"
+	AgentTracker_GetConnectedAgents_FullMethodName = "/plural.agent.agent_tracker.rpc.AgentTracker/GetConnectedAgents"
 )
 
 // AgentTrackerClient is the client API for AgentTracker service.
@@ -100,7 +100,7 @@ func _AgentTracker_GetConnectedAgents_Handler(srv interface{}, ctx context.Conte
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AgentTracker_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.agent_tracker.rpc.AgentTracker",
+	ServiceName: "plural.agent.agent_tracker.rpc.AgentTracker",
 	HandlerType: (*AgentTrackerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

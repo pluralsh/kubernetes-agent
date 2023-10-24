@@ -4,8 +4,8 @@
 ## Table of Contents
 
 - [pkg/entity/entity.proto](#pkg_entity_entity-proto)
-    - [AgentMeta](#gitlab-agent-entity-AgentMeta)
-    - [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion)
+    - [AgentMeta](#plural-agent-entity-AgentMeta)
+    - [KubernetesVersion](#plural-agent-entity-KubernetesVersion)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -18,7 +18,7 @@
 
 
 
-<a name="gitlab-agent-entity-AgentMeta"></a>
+<a name="plural-agent-entity-AgentMeta"></a>
 
 ### AgentMeta
 AgentMeta contains information about agentk.
@@ -30,14 +30,14 @@ AgentMeta contains information about agentk.
 | commit_id | [string](#string) |  | Short commit sha of the binary. |
 | pod_namespace | [string](#string) |  | Namespace of the Pod running the binary. |
 | pod_name | [string](#string) |  | Name of the Pod running the binary. |
-| kubernetes_version | [KubernetesVersion](#gitlab-agent-entity-KubernetesVersion) |  | Version of the Kubernetes cluster. |
+| kubernetes_version | [KubernetesVersion](#plural-agent-entity-KubernetesVersion) |  | Version of the Kubernetes cluster. |
 
 
 
 
 
 
-<a name="gitlab-agent-entity-KubernetesVersion"></a>
+<a name="plural-agent-entity-KubernetesVersion"></a>
 
 ### KubernetesVersion
 Version information of the Kubernetes cluster.

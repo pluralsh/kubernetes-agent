@@ -3,41 +3,41 @@
 
 ## Table of Contents
 
-- [pkg/gitlab/api/api.proto](#pkg_gitlab_api_api-proto)
-    - [AccessAsAgentAuthorization](#plural-agent-gitlab-api-AccessAsAgentAuthorization)
-    - [AccessAsProxyAuthorization](#plural-agent-gitlab-api-AccessAsProxyAuthorization)
-    - [AccessAsUserAuthorization](#plural-agent-gitlab-api-AccessAsUserAuthorization)
-    - [AgentConfigurationRequest](#plural-agent-gitlab-api-AgentConfigurationRequest)
-    - [AllowedAgent](#plural-agent-gitlab-api-AllowedAgent)
-    - [AllowedAgentsForJob](#plural-agent-gitlab-api-AllowedAgentsForJob)
-    - [AuthorizeProxyUserRequest](#plural-agent-gitlab-api-AuthorizeProxyUserRequest)
-    - [AuthorizeProxyUserResponse](#plural-agent-gitlab-api-AuthorizeProxyUserResponse)
-    - [AuthorizedAgentForUser](#plural-agent-gitlab-api-AuthorizedAgentForUser)
-    - [ConfigProject](#plural-agent-gitlab-api-ConfigProject)
-    - [Configuration](#plural-agent-gitlab-api-Configuration)
-    - [Environment](#plural-agent-gitlab-api-Environment)
-    - [GetAgentInfoResponse](#plural-agent-gitlab-api-GetAgentInfoResponse)
-    - [GetProjectInfoResponse](#plural-agent-gitlab-api-GetProjectInfoResponse)
-    - [Group](#plural-agent-gitlab-api-Group)
-    - [GroupAccessCF](#plural-agent-gitlab-api-GroupAccessCF)
-    - [Job](#plural-agent-gitlab-api-Job)
-    - [Pipeline](#plural-agent-gitlab-api-Pipeline)
-    - [Project](#plural-agent-gitlab-api-Project)
-    - [ProjectAccessCF](#plural-agent-gitlab-api-ProjectAccessCF)
-    - [User](#plural-agent-gitlab-api-User)
+- [pkg/plural/api/api.proto](#pkg_plural_api_api-proto)
+    - [AccessAsAgentAuthorization](#plural-agent-plural-api-AccessAsAgentAuthorization)
+    - [AccessAsProxyAuthorization](#plural-agent-plural-api-AccessAsProxyAuthorization)
+    - [AccessAsUserAuthorization](#plural-agent-plural-api-AccessAsUserAuthorization)
+    - [AgentConfigurationRequest](#plural-agent-plural-api-AgentConfigurationRequest)
+    - [AllowedAgent](#plural-agent-plural-api-AllowedAgent)
+    - [AllowedAgentsForJob](#plural-agent-plural-api-AllowedAgentsForJob)
+    - [AuthorizeProxyUserRequest](#plural-agent-plural-api-AuthorizeProxyUserRequest)
+    - [AuthorizeProxyUserResponse](#plural-agent-plural-api-AuthorizeProxyUserResponse)
+    - [AuthorizedAgentForUser](#plural-agent-plural-api-AuthorizedAgentForUser)
+    - [ConfigProject](#plural-agent-plural-api-ConfigProject)
+    - [Configuration](#plural-agent-plural-api-Configuration)
+    - [Environment](#plural-agent-plural-api-Environment)
+    - [GetAgentInfoResponse](#plural-agent-plural-api-GetAgentInfoResponse)
+    - [GetProjectInfoResponse](#plural-agent-plural-api-GetProjectInfoResponse)
+    - [Group](#plural-agent-plural-api-Group)
+    - [GroupAccessCF](#plural-agent-plural-api-GroupAccessCF)
+    - [Job](#plural-agent-plural-api-Job)
+    - [Pipeline](#plural-agent-plural-api-Pipeline)
+    - [Project](#plural-agent-plural-api-Project)
+    - [ProjectAccessCF](#plural-agent-plural-api-ProjectAccessCF)
+    - [User](#plural-agent-plural-api-User)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="pkg_gitlab_api_api-proto"></a>
+<a name="pkg_plural_api_api-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## pkg/gitlab/api/api.proto
+## pkg/plural/api/api.proto
 
 
 
-<a name="plural-agent-gitlab-api-AccessAsAgentAuthorization"></a>
+<a name="plural-agent-plural-api-AccessAsAgentAuthorization"></a>
 
 ### AccessAsAgentAuthorization
 
@@ -47,7 +47,7 @@
 
 
 
-<a name="plural-agent-gitlab-api-AccessAsProxyAuthorization"></a>
+<a name="plural-agent-plural-api-AccessAsProxyAuthorization"></a>
 
 ### AccessAsProxyAuthorization
 
@@ -55,15 +55,15 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent | [AccessAsAgentAuthorization](#plural-agent-gitlab-api-AccessAsAgentAuthorization) |  |  |
-| user | [AccessAsUserAuthorization](#plural-agent-gitlab-api-AccessAsUserAuthorization) |  |  |
+| agent | [AccessAsAgentAuthorization](#plural-agent-plural-api-AccessAsAgentAuthorization) |  |  |
+| user | [AccessAsUserAuthorization](#plural-agent-plural-api-AccessAsUserAuthorization) |  |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-AccessAsUserAuthorization"></a>
+<a name="plural-agent-plural-api-AccessAsUserAuthorization"></a>
 
 ### AccessAsUserAuthorization
 
@@ -71,15 +71,15 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| projects | [ProjectAccessCF](#plural-agent-gitlab-api-ProjectAccessCF) | repeated |  |
-| groups | [GroupAccessCF](#plural-agent-gitlab-api-GroupAccessCF) | repeated |  |
+| projects | [ProjectAccessCF](#plural-agent-plural-api-ProjectAccessCF) | repeated |  |
+| groups | [GroupAccessCF](#plural-agent-plural-api-GroupAccessCF) | repeated |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-AgentConfigurationRequest"></a>
+<a name="plural-agent-plural-api-AgentConfigurationRequest"></a>
 
 ### AgentConfigurationRequest
 
@@ -95,7 +95,7 @@
 
 
 
-<a name="plural-agent-gitlab-api-AllowedAgent"></a>
+<a name="plural-agent-plural-api-AllowedAgent"></a>
 
 ### AllowedAgent
 
@@ -104,15 +104,15 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | id | [int64](#int64) |  |  |
-| config_project | [ConfigProject](#plural-agent-gitlab-api-ConfigProject) |  |  |
-| configuration | [Configuration](#plural-agent-gitlab-api-Configuration) |  |  |
+| config_project | [ConfigProject](#plural-agent-plural-api-ConfigProject) |  |  |
+| configuration | [Configuration](#plural-agent-plural-api-Configuration) |  |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-AllowedAgentsForJob"></a>
+<a name="plural-agent-plural-api-AllowedAgentsForJob"></a>
 
 ### AllowedAgentsForJob
 
@@ -120,19 +120,19 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| allowed_agents | [AllowedAgent](#plural-agent-gitlab-api-AllowedAgent) | repeated |  |
-| job | [Job](#plural-agent-gitlab-api-Job) |  |  |
-| pipeline | [Pipeline](#plural-agent-gitlab-api-Pipeline) |  |  |
-| project | [Project](#plural-agent-gitlab-api-Project) |  |  |
-| user | [User](#plural-agent-gitlab-api-User) |  |  |
-| environment | [Environment](#plural-agent-gitlab-api-Environment) |  | optional |
+| allowed_agents | [AllowedAgent](#plural-agent-plural-api-AllowedAgent) | repeated |  |
+| job | [Job](#plural-agent-plural-api-Job) |  |  |
+| pipeline | [Pipeline](#plural-agent-plural-api-Pipeline) |  |  |
+| project | [Project](#plural-agent-plural-api-Project) |  |  |
+| user | [User](#plural-agent-plural-api-User) |  |  |
+| environment | [Environment](#plural-agent-plural-api-Environment) |  | optional |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-AuthorizeProxyUserRequest"></a>
+<a name="plural-agent-plural-api-AuthorizeProxyUserRequest"></a>
 
 ### AuthorizeProxyUserRequest
 
@@ -150,7 +150,7 @@
 
 
 
-<a name="plural-agent-gitlab-api-AuthorizeProxyUserResponse"></a>
+<a name="plural-agent-plural-api-AuthorizeProxyUserResponse"></a>
 
 ### AuthorizeProxyUserResponse
 
@@ -158,16 +158,16 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent | [AuthorizedAgentForUser](#plural-agent-gitlab-api-AuthorizedAgentForUser) |  |  |
-| user | [User](#plural-agent-gitlab-api-User) |  |  |
-| access_as | [AccessAsProxyAuthorization](#plural-agent-gitlab-api-AccessAsProxyAuthorization) |  |  |
+| agent | [AuthorizedAgentForUser](#plural-agent-plural-api-AuthorizedAgentForUser) |  |  |
+| user | [User](#plural-agent-plural-api-User) |  |  |
+| access_as | [AccessAsProxyAuthorization](#plural-agent-plural-api-AccessAsProxyAuthorization) |  |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-AuthorizedAgentForUser"></a>
+<a name="plural-agent-plural-api-AuthorizedAgentForUser"></a>
 
 ### AuthorizedAgentForUser
 
@@ -176,14 +176,14 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | id | [int64](#int64) |  |  |
-| config_project | [ConfigProject](#plural-agent-gitlab-api-ConfigProject) |  |  |
+| config_project | [ConfigProject](#plural-agent-plural-api-ConfigProject) |  |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-ConfigProject"></a>
+<a name="plural-agent-plural-api-ConfigProject"></a>
 
 ### ConfigProject
 
@@ -198,7 +198,7 @@
 
 
 
-<a name="plural-agent-gitlab-api-Configuration"></a>
+<a name="plural-agent-plural-api-Configuration"></a>
 
 ### Configuration
 Configuration contains shared fields from agentcfg.CiAccessProjectCF and agentcfg.CiAccessGroupCF.
@@ -216,7 +216,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-Environment"></a>
+<a name="plural-agent-plural-api-Environment"></a>
 
 ### Environment
 
@@ -232,7 +232,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-GetAgentInfoResponse"></a>
+<a name="plural-agent-plural-api-GetAgentInfoResponse"></a>
 
 ### GetAgentInfoResponse
 
@@ -250,7 +250,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-GetProjectInfoResponse"></a>
+<a name="plural-agent-plural-api-GetProjectInfoResponse"></a>
 
 ### GetProjectInfoResponse
 
@@ -266,7 +266,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-Group"></a>
+<a name="plural-agent-plural-api-Group"></a>
 
 ### Group
 
@@ -281,7 +281,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-GroupAccessCF"></a>
+<a name="plural-agent-plural-api-GroupAccessCF"></a>
 
 ### GroupAccessCF
 
@@ -297,7 +297,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-Job"></a>
+<a name="plural-agent-plural-api-Job"></a>
 
 ### Job
 
@@ -312,7 +312,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-Pipeline"></a>
+<a name="plural-agent-plural-api-Pipeline"></a>
 
 ### Pipeline
 
@@ -327,7 +327,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-Project"></a>
+<a name="plural-agent-plural-api-Project"></a>
 
 ### Project
 
@@ -336,14 +336,14 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | id | [int64](#int64) |  |  |
-| groups | [Group](#plural-agent-gitlab-api-Group) | repeated |  |
+| groups | [Group](#plural-agent-plural-api-Group) | repeated |  |
 
 
 
 
 
 
-<a name="plural-agent-gitlab-api-ProjectAccessCF"></a>
+<a name="plural-agent-plural-api-ProjectAccessCF"></a>
 
 ### ProjectAccessCF
 
@@ -359,7 +359,7 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-gitlab-api-User"></a>
+<a name="plural-agent-plural-api-User"></a>
 
 ### User
 

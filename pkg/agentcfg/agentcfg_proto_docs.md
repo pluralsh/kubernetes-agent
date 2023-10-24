@@ -4,40 +4,40 @@
 ## Table of Contents
 
 - [pkg/agentcfg/agentcfg.proto](#pkg_agentcfg_agentcfg-proto)
-    - [AgentConfiguration](#gitlab-agent-agentcfg-AgentConfiguration)
-    - [CiAccessAsAgentCF](#gitlab-agent-agentcfg-CiAccessAsAgentCF)
-    - [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF)
-    - [CiAccessAsCiJobCF](#gitlab-agent-agentcfg-CiAccessAsCiJobCF)
-    - [CiAccessAsImpersonateCF](#gitlab-agent-agentcfg-CiAccessAsImpersonateCF)
-    - [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF)
-    - [CiAccessGroupCF](#gitlab-agent-agentcfg-CiAccessGroupCF)
-    - [CiAccessProjectCF](#gitlab-agent-agentcfg-CiAccessProjectCF)
-    - [ConfigurationFile](#gitlab-agent-agentcfg-ConfigurationFile)
-    - [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF)
-    - [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter)
-    - [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF)
-    - [FluxCF](#gitlab-agent-agentcfg-FluxCF)
-    - [GitLabWorkspacesProxy](#gitlab-agent-agentcfg-GitLabWorkspacesProxy)
-    - [GitRefCF](#gitlab-agent-agentcfg-GitRefCF)
-    - [GitopsCF](#gitlab-agent-agentcfg-GitopsCF)
-    - [GoogleProfilerCF](#gitlab-agent-agentcfg-GoogleProfilerCF)
-    - [LoggingCF](#gitlab-agent-agentcfg-LoggingCF)
-    - [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF)
-    - [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF)
-    - [PathCF](#gitlab-agent-agentcfg-PathCF)
-    - [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF)
-    - [Resource](#gitlab-agent-agentcfg-Resource)
-    - [ResourceRequirements](#gitlab-agent-agentcfg-ResourceRequirements)
-    - [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF)
-    - [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF)
-    - [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF)
-    - [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF)
-    - [UserAccessGroupCF](#gitlab-agent-agentcfg-UserAccessGroupCF)
-    - [UserAccessProjectCF](#gitlab-agent-agentcfg-UserAccessProjectCF)
-    - [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport)
-    - [WorkspaceNetworkPolicy](#gitlab-agent-agentcfg-WorkspaceNetworkPolicy)
+    - [AgentConfiguration](#plural-agent-agentcfg-AgentConfiguration)
+    - [CiAccessAsAgentCF](#plural-agent-agentcfg-CiAccessAsAgentCF)
+    - [CiAccessAsCF](#plural-agent-agentcfg-CiAccessAsCF)
+    - [CiAccessAsCiJobCF](#plural-agent-agentcfg-CiAccessAsCiJobCF)
+    - [CiAccessAsImpersonateCF](#plural-agent-agentcfg-CiAccessAsImpersonateCF)
+    - [CiAccessCF](#plural-agent-agentcfg-CiAccessCF)
+    - [CiAccessGroupCF](#plural-agent-agentcfg-CiAccessGroupCF)
+    - [CiAccessProjectCF](#plural-agent-agentcfg-CiAccessProjectCF)
+    - [ConfigurationFile](#plural-agent-agentcfg-ConfigurationFile)
+    - [ContainerScanningCF](#plural-agent-agentcfg-ContainerScanningCF)
+    - [ContainerScanningFilter](#plural-agent-agentcfg-ContainerScanningFilter)
+    - [ExtraKeyValCF](#plural-agent-agentcfg-ExtraKeyValCF)
+    - [FluxCF](#plural-agent-agentcfg-FluxCF)
+    - [GitLabWorkspacesProxy](#plural-agent-agentcfg-GitLabWorkspacesProxy)
+    - [GitRefCF](#plural-agent-agentcfg-GitRefCF)
+    - [GitopsCF](#plural-agent-agentcfg-GitopsCF)
+    - [GoogleProfilerCF](#plural-agent-agentcfg-GoogleProfilerCF)
+    - [LoggingCF](#plural-agent-agentcfg-LoggingCF)
+    - [ManifestProjectCF](#plural-agent-agentcfg-ManifestProjectCF)
+    - [ObservabilityCF](#plural-agent-agentcfg-ObservabilityCF)
+    - [PathCF](#plural-agent-agentcfg-PathCF)
+    - [RemoteDevelopmentCF](#plural-agent-agentcfg-RemoteDevelopmentCF)
+    - [Resource](#plural-agent-agentcfg-Resource)
+    - [ResourceRequirements](#plural-agent-agentcfg-ResourceRequirements)
+    - [UserAccessAsAgentCF](#plural-agent-agentcfg-UserAccessAsAgentCF)
+    - [UserAccessAsCF](#plural-agent-agentcfg-UserAccessAsCF)
+    - [UserAccessAsUserCF](#plural-agent-agentcfg-UserAccessAsUserCF)
+    - [UserAccessCF](#plural-agent-agentcfg-UserAccessCF)
+    - [UserAccessGroupCF](#plural-agent-agentcfg-UserAccessGroupCF)
+    - [UserAccessProjectCF](#plural-agent-agentcfg-UserAccessProjectCF)
+    - [VulnerabilityReport](#plural-agent-agentcfg-VulnerabilityReport)
+    - [WorkspaceNetworkPolicy](#plural-agent-agentcfg-WorkspaceNetworkPolicy)
   
-    - [log_level_enum](#gitlab-agent-agentcfg-log_level_enum)
+    - [log_level_enum](#plural-agent-agentcfg-log_level_enum)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -50,7 +50,7 @@
 
 
 
-<a name="gitlab-agent-agentcfg-AgentConfiguration"></a>
+<a name="plural-agent-agentcfg-AgentConfiguration"></a>
 
 ### AgentConfiguration
 AgentConfiguration represents configuration for agentk.
@@ -61,15 +61,15 @@ additional config for kas.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| gitops | [GitopsCF](#gitlab-agent-agentcfg-GitopsCF) |  |  |
-| observability | [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF) |  |  |
+| gitops | [GitopsCF](#plural-agent-agentcfg-GitopsCF) |  |  |
+| observability | [ObservabilityCF](#plural-agent-agentcfg-ObservabilityCF) |  |  |
 | agent_id | [int64](#int64) |  | GitLab-wide unique id of the agent. |
 | project_id | [int64](#int64) |  | Id of the configuration project. |
-| ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
-| container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
+| ci_access | [CiAccessCF](#plural-agent-agentcfg-CiAccessCF) |  |  |
+| container_scanning | [ContainerScanningCF](#plural-agent-agentcfg-ContainerScanningCF) |  |  |
 | project_path | [string](#string) |  | Path of the configuration project |
-| remote_development | [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF) |  |  |
-| flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
+| remote_development | [RemoteDevelopmentCF](#plural-agent-agentcfg-RemoteDevelopmentCF) |  |  |
+| flux | [FluxCF](#plural-agent-agentcfg-FluxCF) |  |  |
 | gitlab_external_url | [string](#string) |  |  |
 
 
@@ -77,7 +77,7 @@ additional config for kas.
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessAsAgentCF"></a>
+<a name="plural-agent-agentcfg-CiAccessAsAgentCF"></a>
 
 ### CiAccessAsAgentCF
 
@@ -87,7 +87,7 @@ additional config for kas.
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessAsCF"></a>
+<a name="plural-agent-agentcfg-CiAccessAsCF"></a>
 
 ### CiAccessAsCF
 
@@ -95,16 +95,16 @@ additional config for kas.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent | [CiAccessAsAgentCF](#gitlab-agent-agentcfg-CiAccessAsAgentCF) |  |  |
-| impersonate | [CiAccessAsImpersonateCF](#gitlab-agent-agentcfg-CiAccessAsImpersonateCF) |  |  |
-| ci_job | [CiAccessAsCiJobCF](#gitlab-agent-agentcfg-CiAccessAsCiJobCF) |  | CiAccessAsCiUserCF ci_user = 4 [json_name = &#34;ci_user&#34;, (validate.rules).message.required = true]; |
+| agent | [CiAccessAsAgentCF](#plural-agent-agentcfg-CiAccessAsAgentCF) |  |  |
+| impersonate | [CiAccessAsImpersonateCF](#plural-agent-agentcfg-CiAccessAsImpersonateCF) |  |  |
+| ci_job | [CiAccessAsCiJobCF](#plural-agent-agentcfg-CiAccessAsCiJobCF) |  | CiAccessAsCiUserCF ci_user = 4 [json_name = &#34;ci_user&#34;, (validate.rules).message.required = true]; |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessAsCiJobCF"></a>
+<a name="plural-agent-agentcfg-CiAccessAsCiJobCF"></a>
 
 ### CiAccessAsCiJobCF
 
@@ -114,7 +114,7 @@ additional config for kas.
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessAsImpersonateCF"></a>
+<a name="plural-agent-agentcfg-CiAccessAsImpersonateCF"></a>
 
 ### CiAccessAsImpersonateCF
 
@@ -125,14 +125,14 @@ additional config for kas.
 | username | [string](#string) |  |  |
 | groups | [string](#string) | repeated |  |
 | uid | [string](#string) |  |  |
-| extra | [ExtraKeyValCF](#gitlab-agent-agentcfg-ExtraKeyValCF) | repeated |  |
+| extra | [ExtraKeyValCF](#plural-agent-agentcfg-ExtraKeyValCF) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessCF"></a>
+<a name="plural-agent-agentcfg-CiAccessCF"></a>
 
 ### CiAccessCF
 https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_ci_access.md
@@ -140,15 +140,15 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| projects | [CiAccessProjectCF](#gitlab-agent-agentcfg-CiAccessProjectCF) | repeated |  |
-| groups | [CiAccessGroupCF](#gitlab-agent-agentcfg-CiAccessGroupCF) | repeated |  |
+| projects | [CiAccessProjectCF](#plural-agent-agentcfg-CiAccessProjectCF) | repeated |  |
+| groups | [CiAccessGroupCF](#plural-agent-agentcfg-CiAccessGroupCF) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessGroupCF"></a>
+<a name="plural-agent-agentcfg-CiAccessGroupCF"></a>
 
 ### CiAccessGroupCF
 
@@ -158,7 +158,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  |  |
 | default_namespace | [string](#string) |  |  |
-| access_as | [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF) |  |  |
+| access_as | [CiAccessAsCF](#plural-agent-agentcfg-CiAccessAsCF) |  |  |
 | environments | [string](#string) | repeated |  |
 
 
@@ -166,7 +166,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 
 
-<a name="gitlab-agent-agentcfg-CiAccessProjectCF"></a>
+<a name="plural-agent-agentcfg-CiAccessProjectCF"></a>
 
 ### CiAccessProjectCF
 
@@ -176,7 +176,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  |  |
 | default_namespace | [string](#string) |  |  |
-| access_as | [CiAccessAsCF](#gitlab-agent-agentcfg-CiAccessAsCF) |  |  |
+| access_as | [CiAccessAsCF](#plural-agent-agentcfg-CiAccessAsCF) |  |  |
 | environments | [string](#string) | repeated |  |
 
 
@@ -184,7 +184,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 
 
-<a name="gitlab-agent-agentcfg-ConfigurationFile"></a>
+<a name="plural-agent-agentcfg-ConfigurationFile"></a>
 
 ### ConfigurationFile
 ConfigurationFile represents user-facing configuration file.
@@ -192,20 +192,20 @@ ConfigurationFile represents user-facing configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| gitops | [GitopsCF](#gitlab-agent-agentcfg-GitopsCF) |  |  |
-| observability | [ObservabilityCF](#gitlab-agent-agentcfg-ObservabilityCF) |  | Configuration related to all things observability. This is about the agent itself, not any observability-related features. |
-| ci_access | [CiAccessCF](#gitlab-agent-agentcfg-CiAccessCF) |  |  |
-| container_scanning | [ContainerScanningCF](#gitlab-agent-agentcfg-ContainerScanningCF) |  |  |
-| user_access | [UserAccessCF](#gitlab-agent-agentcfg-UserAccessCF) |  |  |
-| remote_development | [RemoteDevelopmentCF](#gitlab-agent-agentcfg-RemoteDevelopmentCF) |  |  |
-| flux | [FluxCF](#gitlab-agent-agentcfg-FluxCF) |  |  |
+| gitops | [GitopsCF](#plural-agent-agentcfg-GitopsCF) |  |  |
+| observability | [ObservabilityCF](#plural-agent-agentcfg-ObservabilityCF) |  | Configuration related to all things observability. This is about the agent itself, not any observability-related features. |
+| ci_access | [CiAccessCF](#plural-agent-agentcfg-CiAccessCF) |  |  |
+| container_scanning | [ContainerScanningCF](#plural-agent-agentcfg-ContainerScanningCF) |  |  |
+| user_access | [UserAccessCF](#plural-agent-agentcfg-UserAccessCF) |  |  |
+| remote_development | [RemoteDevelopmentCF](#plural-agent-agentcfg-RemoteDevelopmentCF) |  |  |
+| flux | [FluxCF](#plural-agent-agentcfg-FluxCF) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-ContainerScanningCF"></a>
+<a name="plural-agent-agentcfg-ContainerScanningCF"></a>
 
 ### ContainerScanningCF
 
@@ -213,16 +213,16 @@ ConfigurationFile represents user-facing configuration file.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| vulnerability_report | [VulnerabilityReport](#gitlab-agent-agentcfg-VulnerabilityReport) |  |  |
+| vulnerability_report | [VulnerabilityReport](#plural-agent-agentcfg-VulnerabilityReport) |  |  |
 | cadence | [string](#string) |  |  |
-| resource_requirements | [ResourceRequirements](#gitlab-agent-agentcfg-ResourceRequirements) |  |  |
+| resource_requirements | [ResourceRequirements](#plural-agent-agentcfg-ResourceRequirements) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-ContainerScanningFilter"></a>
+<a name="plural-agent-agentcfg-ContainerScanningFilter"></a>
 
 ### ContainerScanningFilter
 
@@ -240,7 +240,7 @@ ConfigurationFile represents user-facing configuration file.
 
 
 
-<a name="gitlab-agent-agentcfg-ExtraKeyValCF"></a>
+<a name="plural-agent-agentcfg-ExtraKeyValCF"></a>
 
 ### ExtraKeyValCF
 
@@ -256,7 +256,7 @@ ConfigurationFile represents user-facing configuration file.
 
 
 
-<a name="gitlab-agent-agentcfg-FluxCF"></a>
+<a name="plural-agent-agentcfg-FluxCF"></a>
 
 ### FluxCF
 
@@ -271,7 +271,7 @@ ConfigurationFile represents user-facing configuration file.
 
 
 
-<a name="gitlab-agent-agentcfg-GitLabWorkspacesProxy"></a>
+<a name="plural-agent-agentcfg-GitLabWorkspacesProxy"></a>
 
 ### GitLabWorkspacesProxy
 GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
@@ -286,7 +286,7 @@ GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for t
 
 
 
-<a name="gitlab-agent-agentcfg-GitRefCF"></a>
+<a name="plural-agent-agentcfg-GitRefCF"></a>
 
 ### GitRefCF
 GitRef in the repository to fetch manifests from.
@@ -303,7 +303,7 @@ GitRef in the repository to fetch manifests from.
 
 
 
-<a name="gitlab-agent-agentcfg-GitopsCF"></a>
+<a name="plural-agent-agentcfg-GitopsCF"></a>
 
 ### GitopsCF
 
@@ -311,14 +311,14 @@ GitRef in the repository to fetch manifests from.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| manifest_projects | [ManifestProjectCF](#gitlab-agent-agentcfg-ManifestProjectCF) | repeated |  |
+| manifest_projects | [ManifestProjectCF](#plural-agent-agentcfg-ManifestProjectCF) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-GoogleProfilerCF"></a>
+<a name="plural-agent-agentcfg-GoogleProfilerCF"></a>
 
 ### GoogleProfilerCF
 
@@ -336,7 +336,7 @@ GitRef in the repository to fetch manifests from.
 
 
 
-<a name="gitlab-agent-agentcfg-LoggingCF"></a>
+<a name="plural-agent-agentcfg-LoggingCF"></a>
 
 ### LoggingCF
 
@@ -344,15 +344,15 @@ GitRef in the repository to fetch manifests from.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| level | [log_level_enum](#gitlab-agent-agentcfg-log_level_enum) |  |  |
-| grpc_level | [log_level_enum](#gitlab-agent-agentcfg-log_level_enum) | optional | optional to be able to tell when not set and use a different default value. |
+| level | [log_level_enum](#plural-agent-agentcfg-log_level_enum) |  |  |
+| grpc_level | [log_level_enum](#plural-agent-agentcfg-log_level_enum) | optional | optional to be able to tell when not set and use a different default value. |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-ManifestProjectCF"></a>
+<a name="plural-agent-agentcfg-ManifestProjectCF"></a>
 
 ### ManifestProjectCF
 Project with Kubernetes object manifests.
@@ -362,21 +362,21 @@ Project with Kubernetes object manifests.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) | optional | Project id. e.g. gitlab-org/cluster-integration/gitlab-agent |
 | default_namespace | [string](#string) |  | Namespace to use if not set explicitly in object manifest. |
-| paths | [PathCF](#gitlab-agent-agentcfg-PathCF) | repeated | A list of paths inside of the project to scan for .yaml/.yml/.json manifest files. |
+| paths | [PathCF](#plural-agent-agentcfg-PathCF) | repeated | A list of paths inside of the project to scan for .yaml/.yml/.json manifest files. |
 | reconcile_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Reconcile timeout defines whether the applier should wait until all applied resources have been reconciled, and if so, how long to wait. |
 | dry_run_strategy | [string](#string) |  | Dry run strategy defines whether changes should actually be performed, or if it is just talk and no action. https://github.com/kubernetes-sigs/cli-utils/blob/d6968048dcd80b1c7b55d9e4f31fc25f71c9b490/pkg/common/common.go#L68-L89 |
 | prune | [bool](#bool) |  | Prune defines whether pruning of previously applied objects should happen after apply. |
 | prune_timeout | [google.protobuf.Duration](#google-protobuf-Duration) |  | Prune timeout defines whether we should wait for all resources to be fully deleted after pruning, and if so, how long we should wait. |
 | prune_propagation_policy | [string](#string) |  | Prune propagation policy defines the deletion propagation policy that should be used for pruning. https://github.com/kubernetes/apimachinery/blob/44113beed5d39f1b261a12ec398a356e02358307/pkg/apis/meta/v1/types.go#L456-L470 |
 | inventory_policy | [string](#string) |  | InventoryPolicy defines if an inventory object can take over objects that belong to another inventory object or don&#39;t belong to any inventory object. This is done by determining if the apply/prune operation can go through for a resource based on the comparison the inventory-id value in the package and the owning-inventory annotation in the live object. https://github.com/kubernetes-sigs/cli-utils/blob/d6968048dcd80b1c7b55d9e4f31fc25f71c9b490/pkg/inventory/policy.go#L12-L66 |
-| ref | [GitRefCF](#gitlab-agent-agentcfg-GitRefCF) |  | Ref in the GitOps repository to fetch manifests from. |
+| ref | [GitRefCF](#plural-agent-agentcfg-GitRefCF) |  | Ref in the GitOps repository to fetch manifests from. |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-ObservabilityCF"></a>
+<a name="plural-agent-agentcfg-ObservabilityCF"></a>
 
 ### ObservabilityCF
 
@@ -384,15 +384,15 @@ Project with Kubernetes object manifests.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| logging | [LoggingCF](#gitlab-agent-agentcfg-LoggingCF) |  |  |
-| google_profiler | [GoogleProfilerCF](#gitlab-agent-agentcfg-GoogleProfilerCF) |  |  |
+| logging | [LoggingCF](#plural-agent-agentcfg-LoggingCF) |  |  |
+| google_profiler | [GoogleProfilerCF](#plural-agent-agentcfg-GoogleProfilerCF) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-PathCF"></a>
+<a name="plural-agent-agentcfg-PathCF"></a>
 
 ### PathCF
 
@@ -407,7 +407,7 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-RemoteDevelopmentCF"></a>
+<a name="plural-agent-agentcfg-RemoteDevelopmentCF"></a>
 
 ### RemoteDevelopmentCF
 
@@ -419,15 +419,15 @@ Project with Kubernetes object manifests.
 | dns_zone | [string](#string) |  |  |
 | partial_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
 | full_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
-| gitlab_workspaces_proxy | [GitLabWorkspacesProxy](#gitlab-agent-agentcfg-GitLabWorkspacesProxy) |  |  |
-| network_policy | [WorkspaceNetworkPolicy](#gitlab-agent-agentcfg-WorkspaceNetworkPolicy) |  |  |
+| gitlab_workspaces_proxy | [GitLabWorkspacesProxy](#plural-agent-agentcfg-GitLabWorkspacesProxy) |  |  |
+| network_policy | [WorkspaceNetworkPolicy](#plural-agent-agentcfg-WorkspaceNetworkPolicy) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-Resource"></a>
+<a name="plural-agent-agentcfg-Resource"></a>
 
 ### Resource
 
@@ -443,7 +443,7 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-ResourceRequirements"></a>
+<a name="plural-agent-agentcfg-ResourceRequirements"></a>
 
 ### ResourceRequirements
 
@@ -451,15 +451,15 @@ Project with Kubernetes object manifests.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| limits | [Resource](#gitlab-agent-agentcfg-Resource) |  |  |
-| requests | [Resource](#gitlab-agent-agentcfg-Resource) |  |  |
+| limits | [Resource](#plural-agent-agentcfg-Resource) |  |  |
+| requests | [Resource](#plural-agent-agentcfg-Resource) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessAsAgentCF"></a>
+<a name="plural-agent-agentcfg-UserAccessAsAgentCF"></a>
 
 ### UserAccessAsAgentCF
 
@@ -469,7 +469,7 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessAsCF"></a>
+<a name="plural-agent-agentcfg-UserAccessAsCF"></a>
 
 ### UserAccessAsCF
 
@@ -477,15 +477,15 @@ Project with Kubernetes object manifests.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| agent | [UserAccessAsAgentCF](#gitlab-agent-agentcfg-UserAccessAsAgentCF) |  |  |
-| user | [UserAccessAsUserCF](#gitlab-agent-agentcfg-UserAccessAsUserCF) |  |  |
+| agent | [UserAccessAsAgentCF](#plural-agent-agentcfg-UserAccessAsAgentCF) |  |  |
+| user | [UserAccessAsUserCF](#plural-agent-agentcfg-UserAccessAsUserCF) |  |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessAsUserCF"></a>
+<a name="plural-agent-agentcfg-UserAccessAsUserCF"></a>
 
 ### UserAccessAsUserCF
 
@@ -495,7 +495,7 @@ Project with Kubernetes object manifests.
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessCF"></a>
+<a name="plural-agent-agentcfg-UserAccessCF"></a>
 
 ### UserAccessCF
 https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/kubernetes_user_access.md
@@ -503,16 +503,16 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| access_as | [UserAccessAsCF](#gitlab-agent-agentcfg-UserAccessAsCF) |  |  |
-| projects | [UserAccessProjectCF](#gitlab-agent-agentcfg-UserAccessProjectCF) | repeated |  |
-| groups | [UserAccessGroupCF](#gitlab-agent-agentcfg-UserAccessGroupCF) | repeated |  |
+| access_as | [UserAccessAsCF](#plural-agent-agentcfg-UserAccessAsCF) |  |  |
+| projects | [UserAccessProjectCF](#plural-agent-agentcfg-UserAccessProjectCF) | repeated |  |
+| groups | [UserAccessGroupCF](#plural-agent-agentcfg-UserAccessGroupCF) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessGroupCF"></a>
+<a name="plural-agent-agentcfg-UserAccessGroupCF"></a>
 
 ### UserAccessGroupCF
 
@@ -527,7 +527,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 
 
-<a name="gitlab-agent-agentcfg-UserAccessProjectCF"></a>
+<a name="plural-agent-agentcfg-UserAccessProjectCF"></a>
 
 ### UserAccessProjectCF
 
@@ -542,7 +542,7 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 
 
 
-<a name="gitlab-agent-agentcfg-VulnerabilityReport"></a>
+<a name="plural-agent-agentcfg-VulnerabilityReport"></a>
 
 ### VulnerabilityReport
 
@@ -551,14 +551,14 @@ https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | namespaces | [string](#string) | repeated |  |
-| filters | [ContainerScanningFilter](#gitlab-agent-agentcfg-ContainerScanningFilter) | repeated |  |
+| filters | [ContainerScanningFilter](#plural-agent-agentcfg-ContainerScanningFilter) | repeated |  |
 
 
 
 
 
 
-<a name="gitlab-agent-agentcfg-WorkspaceNetworkPolicy"></a>
+<a name="plural-agent-agentcfg-WorkspaceNetworkPolicy"></a>
 
 ### WorkspaceNetworkPolicy
 WorkspaceNetworkPolicy represents the firewall configuration for the remote development workspaces
@@ -575,7 +575,7 @@ WorkspaceNetworkPolicy represents the firewall configuration for the remote deve
  
 
 
-<a name="gitlab-agent-agentcfg-log_level_enum"></a>
+<a name="plural-agent-agentcfg-log_level_enum"></a>
 
 ### log_level_enum
 
