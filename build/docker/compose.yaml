@@ -31,9 +31,9 @@ services:
     command:
       - --kas-address=grpc://kas:8150
     environment:
-      POD_NAME: test
-      POD_NAMESPACE: test
-      AGENTK_TOKEN: test
+      POD_NAME: agentk
+      POD_NAMESPACE: default
+      AGENTK_TOKEN: ${AGENTK_TOKEN:?}
       KUBECONFIG: /.secret/kubeconfig
     volumes:
       - ${PWD}/.secret/kubeconfig:/.secret/kubeconfig

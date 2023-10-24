@@ -27,11 +27,13 @@ go-dep-updates: ## show possible Go dependency updates
 # Requires default kind cluster to run
 .PHONY: run
 run: --run-clean --run-prepare ## Run kas and agent with all dependencies using docker compose
-	@docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) up -V --force-recreate
+	@AGENTK_TOKEN=${AGENTK_TOKEN} \
+	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) up -V --force-recreate
 
 .PHONY: stop
 stop: --run-clean ## Stop docker compose and clean up
-	@docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) down --rmi local
+	@AGENTK_TOKEN=${AGENTK_TOKEN} \
+	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) down --rmi local
 
 # Requires default kind cluster to run
 .PHONY: run-debug
