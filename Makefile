@@ -48,7 +48,7 @@ stop-debug: --run-clean ## Stop docker compose and clean up debug containers
 .PHONY: --run-clean
 --run-clean:
 	@echo Cleaning up certs and secrets directory. This needs root permissions...
-	@rm -rf $(SECRET_DIRECTORY)
+	@sudo rm -rf $(SECRET_DIRECTORY)
 	@mkdir -p $(SECRET_DIRECTORY)
 
 ##@ Build
