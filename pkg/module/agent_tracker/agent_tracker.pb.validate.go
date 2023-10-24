@@ -119,7 +119,7 @@ func (m *ConnectedAgentInfo) validate(all bool) error {
 
 	// no validation rules for AgentId
 
-	// no validation rules for ProjectId
+	// no validation rules for ClusterId
 
 	if len(errors) > 0 {
 		return ConnectedAgentInfoMultiError(errors)

@@ -116,44 +116,6 @@ func (c *TrackerGetConnectionsByAgentIdCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
-// GetConnectionsByProjectId mocks base method.
-func (m *MockTracker) GetConnectionsByProjectId(arg0 context.Context, arg1 int64, arg2 agent_tracker.ConnectedAgentInfoCallback) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConnectionsByProjectId", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// GetConnectionsByProjectId indicates an expected call of GetConnectionsByProjectId.
-func (mr *MockTrackerMockRecorder) GetConnectionsByProjectId(arg0, arg1, arg2 any) *TrackerGetConnectionsByProjectIdCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectionsByProjectId", reflect.TypeOf((*MockTracker)(nil).GetConnectionsByProjectId), arg0, arg1, arg2)
-	return &TrackerGetConnectionsByProjectIdCall{Call: call}
-}
-
-// TrackerGetConnectionsByProjectIdCall wrap *gomock.Call
-type TrackerGetConnectionsByProjectIdCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *TrackerGetConnectionsByProjectIdCall) Return(arg0 error) *TrackerGetConnectionsByProjectIdCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *TrackerGetConnectionsByProjectIdCall) Do(f func(context.Context, int64, agent_tracker.ConnectedAgentInfoCallback) error) *TrackerGetConnectionsByProjectIdCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *TrackerGetConnectionsByProjectIdCall) DoAndReturn(f func(context.Context, int64, agent_tracker.ConnectedAgentInfoCallback) error) *TrackerGetConnectionsByProjectIdCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // RegisterConnection mocks base method.
 func (m *MockTracker) RegisterConnection(arg0 context.Context, arg1 *agent_tracker.ConnectedAgentInfo) error {
 	m.ctrl.T.Helper()

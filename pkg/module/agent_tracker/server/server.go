@@ -31,16 +31,6 @@ func (s *server) GetConnectedAgents(ctx context.Context, req *rpc2.GetConnectedA
 		return &rpc2.GetConnectedAgentsResponse{
 			Agents: infos,
 		}, nil
-	case *rpc2.GetConnectedAgentsRequest_ProjectId:
-		var infos agent_tracker.ConnectedAgentInfoCollector
-		err := s.agentQuerier.GetConnectionsByProjectId(ctx, v.ProjectId, infos.Collect)
-		if err != nil {
-			rpcApi.HandleProcessingError(log, modshared.NoAgentId, "GetConnectionsByProjectId() failed", err)
-			return nil, status.Error(codes.Unavailable, "GetConnectionsByProjectId() failed")
-		}
-		return &rpc2.GetConnectedAgentsResponse{
-			Agents: infos,
-		}, nil
 	default:
 		// Should never happen
 		return nil, status.Errorf(codes.InvalidArgument, "Unexpected field type: %T", req.Request)
