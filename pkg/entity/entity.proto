@@ -6,8 +6,6 @@ package gitlab.agent.entity;
 
 option go_package = "github.com/pluralsh/kuberentes-agent/pkg/entity";
 
-import "validate/validate.proto";
-
 // AgentMeta contains information about agentk.
 message AgentMeta {
   // Version of the binary.

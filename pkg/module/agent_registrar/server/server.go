@@ -33,7 +33,7 @@ func (s *server) Register(ctx context.Context, req *rpc2.RegisterRequest) (*rpc2
 		ConnectedAt:  timestamppb.Now(),
 		ConnectionId: req.PodId,
 		AgentId:      agentInfo.Id,
-		ProjectId:    agentInfo.ProjectId,
+		ClusterId:    agentInfo.ClusterId,
 	}
 
 	// Register agent

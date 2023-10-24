@@ -14,7 +14,8 @@ func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, pluralURL stri
 	}
 
 	return &api.AgentInfo{
-		Id:   0,
+		Id:   123456,
+		ClusterId: cluster.MyCluster.ID,
 		Name: cluster.MyCluster.Name,
 	}, nil
 }

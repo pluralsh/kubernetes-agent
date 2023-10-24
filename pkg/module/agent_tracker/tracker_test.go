@@ -430,7 +430,7 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHash[int
 		refreshPeriod:          time.Minute,
 		gcPeriod:               time.Minute,
 		connectionsByAgentId:   byAgentId,
-		connectionsByProjectId: byProjectId,
+		connectionsByClusterId: byProjectId,
 		connectedAgents:        connectedAgents,
 	}
 	return tr, connectedAgents, byAgentId, byProjectId, rep, connInfo()

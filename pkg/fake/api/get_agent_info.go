@@ -9,9 +9,7 @@ import (
 
 func GetAgentInfo(ctx context.Context, agentToken api.AgentToken, opts ...gitlab.DoOption) (*api.AgentInfo, error) {
 	return &api.AgentInfo{
-		Id:            123456,
-		ProjectId:     0,
-		Name:          "fake-agent",
-		DefaultBranch: "",
+		Id:   123456,
+		Name: "fake-agent",
 	}, nil
 }

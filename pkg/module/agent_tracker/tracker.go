@@ -34,7 +34,6 @@ type Registerer interface {
 
 type Querier interface {
 	GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error
-	GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error
 	GetConnectedAgentsCount(ctx context.Context) (int64, error)
 }
 
@@ -53,19 +52,17 @@ type RedisTracker struct {
 	// mu protects fields below
 	mu                     sync.Mutex
 	connectionsByAgentId   redistool.ExpiringHash[int64, int64] // agentId -> connectionId -> info
-	connectionsByProjectId redistool.ExpiringHash[int64, int64] // projectId -> connectionId -> info
 	connectedAgents        redistool.ExpiringHash[int64, int64] // hash name -> agentId -> ""
 }
 
 func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Client, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
 	return &RedisTracker{
-		log:                    log,
-		errRep:                 errRep,
-		refreshPeriod:          refreshPeriod,
-		gcPeriod:               gcPeriod,
-		connectionsByAgentId:   redistool.NewRedisExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectionsByProjectId: redistool.NewRedisExpiringHash(client, connectionsByProjectIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectedAgents:        redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
+		log:                  log,
+		errRep:               errRep,
+		refreshPeriod:        refreshPeriod,
+		gcPeriod:             gcPeriod,
+		connectionsByAgentId: redistool.NewRedisExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectedAgents: redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 
@@ -99,9 +96,9 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	var wg errgroup.Group
-	wg.Go(func() error {
-		return t.connectionsByProjectId.Set(ctx, info.ProjectId, info.ConnectionId, infoBytes)
-	})
+	//wg.Go(func() error {
+	//	return t.connectionsByClusterId.Set(ctx, info.ProjectId, info.ConnectionId, infoBytes)
+	//})
 	wg.Go(func() error {
 		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoBytes)
 	})
@@ -115,9 +112,9 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	var wg errgroup.Group
-	wg.Go(func() error {
-		return t.connectionsByProjectId.Unset(ctx, info.ProjectId, info.ConnectionId)
-	})
+	//wg.Go(func() error {
+	//	return t.connectionsByClusterId.Unset(ctx, info.ProjectId, info.ConnectionId)
+	//})
 	wg.Go(func() error {
 		return t.connectionsByAgentId.Unset(ctx, info.AgentId, info.ConnectionId)
 	})
@@ -129,10 +126,6 @@ func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int6
 	return t.getConnectionsByKey(ctx, t.connectionsByAgentId, agentId, cb)
 }
 
-func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error {
-	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId, cb)
-}
-
 func (t *RedisTracker) GetConnectedAgentsCount(ctx context.Context) (int64, error) {
 	return t.connectedAgents.Len(ctx, connectedAgentsKey)
 }
@@ -142,7 +135,6 @@ func (t *RedisTracker) refreshRegistrations(ctx context.Context, nextRefresh tim
 	defer t.mu.Unlock()
 	// Run refreshes concurrently to release mu ASAP.
 	var wg wait.Group
-	t.refreshHash(ctx, &wg, t.connectionsByProjectId, nextRefresh)
 	t.refreshHash(ctx, &wg, t.connectionsByAgentId, nextRefresh)
 	t.refreshHash(ctx, &wg, t.connectedAgents, nextRefresh)
 	wg.Wait()
@@ -163,7 +155,6 @@ func (t *RedisTracker) runGC(ctx context.Context) int {
 		t.mu.Lock()
 		defer t.mu.Unlock()
 		gcFuncs = []func(context.Context) (int, error){
-			t.connectionsByProjectId.GC(),
 			t.connectionsByAgentId.GC(),
 			t.connectedAgents.GC(),
 		}
@@ -208,14 +199,6 @@ func connectionsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[
 	prefix := agentKeyPrefix + ":conn_by_agent_id:"
 	return func(agentId int64) string {
 		return redistool.PrefixedInt64Key(prefix, agentId)
-	}
-}
-
-// connectionsByProjectIdHashKey returns a key for projectId -> (agentId ->marshaled ConnectedAgentInfo).
-func connectionsByProjectIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey[int64] {
-	prefix := agentKeyPrefix + ":conn_by_project_id:"
-	return func(projectId int64) string {
-		return redistool.PrefixedInt64Key(prefix, projectId)
 	}
 }
 

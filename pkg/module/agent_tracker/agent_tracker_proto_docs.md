@@ -28,8 +28,8 @@ ConnectedAgentInfo contains information about a connected agentk.
 | agent_meta | [gitlab.agent.entity.AgentMeta](#gitlab-agent-entity-AgentMeta) |  | Information about the agent sent by the agent. |
 | connected_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | When the connection was established. |
 | connection_id | [int64](#int64) |  | Uniquely identifies a particular agentk-&gt;kas connection. Randomly generated when an agent connects. |
-| agent_id | [int64](#int64) |  | GitLab-wide unique id of the agent. |
-| project_id | [int64](#int64) |  | Id of the configuration project. |
+| agent_id | [int64](#int64) |  | Unique id of the agent. |
+| cluster_id | [string](#string) |  | Id of the parent cluster. |
 
 
 
