@@ -50,9 +50,9 @@ type RedisTracker struct {
 	gcPeriod      time.Duration
 
 	// mu protects fields below
-	mu                     sync.Mutex
-	connectionsByAgentId   redistool.ExpiringHash[int64, int64] // agentId -> connectionId -> info
-	connectedAgents        redistool.ExpiringHash[int64, int64] // hash name -> agentId -> ""
+	mu                   sync.Mutex
+	connectionsByAgentId redistool.ExpiringHash[int64, int64] // agentId -> connectionId -> info
+	connectedAgents      redistool.ExpiringHash[int64, int64] // hash name -> agentId -> ""
 }
 
 func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Client, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
@@ -62,7 +62,7 @@ func NewRedisTracker(log *zap.Logger, errRep errz.ErrReporter, client rueidis.Cl
 		refreshPeriod:        refreshPeriod,
 		gcPeriod:             gcPeriod,
 		connectionsByAgentId: redistool.NewRedisExpiringHash(client, connectionsByAgentIdHashKey(agentKeyPrefix), int64ToStr, ttl),
-		connectedAgents: redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
+		connectedAgents:      redistool.NewRedisExpiringHash(client, connectedAgentsHashKey(agentKeyPrefix), int64ToStr, ttl),
 	}
 }
 
