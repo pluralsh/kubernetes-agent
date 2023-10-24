@@ -9,6 +9,7 @@ import (
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
+	pluralapi "github.com/pluralsh/kuberentes-agent/pkg/plural/api"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
 )
 
@@ -53,11 +54,11 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 	if usageData.IsEmpty() {
 		return nil
 	}
-	data := UsagePingData{
+	data := pluralapi.UsagePingData{
 		Counters:       usageData.Counters,
 		UniqueCounters: usageData.UniqueCounters,
 	}
-	err := SendUsagePing(data)
+	err := pluralapi.SendUsagePing(ctx, data)
 	if err != nil {
 		return err // don't wrap
 	}
@@ -68,14 +69,4 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 
 func (m *module) Name() string {
 	return usage_metrics.ModuleName
-}
-
-// TODO: Send usage to console. Move this code to plural package.
-type UsagePingData struct {
-	Counters       map[string]int64   `json:"counters,omitempty"`
-	UniqueCounters map[string][]int64 `json:"unique_counters,omitempty"`
-}
-
-func SendUsagePing(data UsagePingData) error {
-	return nil
 }
