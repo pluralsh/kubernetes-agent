@@ -164,7 +164,6 @@ func restImpersonationConfig(impConfig *rpc2.ImpersonationConfig, restConfig *re
 		restConfig.Impersonate.UserName = impConfig.Username
 		restConfig.Impersonate.UID = impConfig.Uid
 		restConfig.Impersonate.Groups = impConfig.Groups
-		restConfig.Impersonate.Extra = impConfig.GetExtraAsMap()
 	case !restImp && !cfgImp && reqImp:
 		// Impersonation is configured in the HTTP request
 	default:

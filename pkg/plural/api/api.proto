@@ -45,8 +45,9 @@ message Job {
 }
 
 message User {
-  int64 id = 1 [json_name = "id"];
+  string id = 1 [json_name = "id"];
   string username = 2 [json_name = "username", (validate.rules).string.min_bytes = 1];
+  string email = 3 [json_name = "email", (validate.rules).string.min_bytes = 1];
 }
 
 message Environment {
@@ -104,18 +105,8 @@ message AccessAsProxyAuthorization {
 message AccessAsAgentAuthorization {}
 
 message AccessAsUserAuthorization {
-  repeated ProjectAccessCF projects = 1 [json_name = "projects"];
-  repeated GroupAccessCF groups = 2 [json_name = "groups"];
-}
-
-message ProjectAccessCF {
-  int64 id = 1 [json_name = "id"];
-  repeated string roles = 2 [json_name = "roles"];
-}
-
-message GroupAccessCF {
-  int64 id = 1 [json_name = "id"];
-  repeated string roles = 2 [json_name = "roles"];
+  repeated string roles = 1 [json_name = "roles"];
+  repeated string groups = 2 [json_name = "groups"];
 }
 
 message AgentConfigurationRequest {

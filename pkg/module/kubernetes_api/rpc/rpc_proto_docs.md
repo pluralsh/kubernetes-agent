@@ -63,8 +63,8 @@ See https://github.com/kubernetes/client-go/blob/release-1.22/rest/config.go#L20
 | ----- | ---- | ----- | ----------- |
 | username | [string](#string) |  |  |
 | groups | [string](#string) | repeated |  |
+| roles | [string](#string) | repeated |  |
 | uid | [string](#string) |  |  |
-| extra | [ExtraKeyVal](#plural-agent-kubernetes_api-rpc-ExtraKeyVal) | repeated |  |
 
 
 

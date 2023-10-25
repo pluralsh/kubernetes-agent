@@ -19,11 +19,9 @@
     - [GetAgentInfoResponse](#plural-agent-plural-api-GetAgentInfoResponse)
     - [GetProjectInfoResponse](#plural-agent-plural-api-GetProjectInfoResponse)
     - [Group](#plural-agent-plural-api-Group)
-    - [GroupAccessCF](#plural-agent-plural-api-GroupAccessCF)
     - [Job](#plural-agent-plural-api-Job)
     - [Pipeline](#plural-agent-plural-api-Pipeline)
     - [Project](#plural-agent-plural-api-Project)
-    - [ProjectAccessCF](#plural-agent-plural-api-ProjectAccessCF)
     - [User](#plural-agent-plural-api-User)
   
 - [Scalar Value Types](#scalar-value-types)
@@ -71,8 +69,8 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| projects | [ProjectAccessCF](#plural-agent-plural-api-ProjectAccessCF) | repeated |  |
-| groups | [GroupAccessCF](#plural-agent-plural-api-GroupAccessCF) | repeated |  |
+| roles | [string](#string) | repeated |  |
+| groups | [string](#string) | repeated |  |
 
 
 
@@ -281,22 +279,6 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-plural-api-GroupAccessCF"></a>
-
-### GroupAccessCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [int64](#int64) |  |  |
-| roles | [string](#string) | repeated |  |
-
-
-
-
-
-
 <a name="plural-agent-plural-api-Job"></a>
 
 ### Job
@@ -343,22 +325,6 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 
 
-<a name="plural-agent-plural-api-ProjectAccessCF"></a>
-
-### ProjectAccessCF
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [int64](#int64) |  |  |
-| roles | [string](#string) | repeated |  |
-
-
-
-
-
-
 <a name="plural-agent-plural-api-User"></a>
 
 ### User
@@ -367,8 +333,9 @@ See https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [int64](#int64) |  |  |
+| id | [string](#string) |  |  |
 | username | [string](#string) |  |  |
+| email | [string](#string) |  |  |
 
 
 
