@@ -24,8 +24,8 @@ message HeaderExtra {
 message ImpersonationConfig {
   string username = 1;
   repeated string groups = 2;
-  string uid = 3;
-  repeated ExtraKeyVal extra = 4;
+  repeated string roles = 3;
+  string uid = 4;
 }
 
 message ExtraKeyVal {

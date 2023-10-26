@@ -907,6 +907,17 @@ func (m *User) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	if len(m.GetEmail()) < 1 {
+		err := UserValidationError{
+			field:  "Email",
+			reason: "value length must be at least 1 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if len(errors) > 0 {
 		return UserMultiError(errors)
 	}
@@ -2556,74 +2567,6 @@ func (m *AccessAsUserAuthorization) validate(all bool) error {
 
 	var errors []error
 
-	for idx, item := range m.GetProjects() {
-		_, _ = idx, item
-
-		if all {
-			switch v := interface{}(item).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, AccessAsUserAuthorizationValidationError{
-						field:  fmt.Sprintf("Projects[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, AccessAsUserAuthorizationValidationError{
-						field:  fmt.Sprintf("Projects[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AccessAsUserAuthorizationValidationError{
-					field:  fmt.Sprintf("Projects[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
-	for idx, item := range m.GetGroups() {
-		_, _ = idx, item
-
-		if all {
-			switch v := interface{}(item).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, AccessAsUserAuthorizationValidationError{
-						field:  fmt.Sprintf("Groups[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, AccessAsUserAuthorizationValidationError{
-						field:  fmt.Sprintf("Groups[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AccessAsUserAuthorizationValidationError{
-					field:  fmt.Sprintf("Groups[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
 	if len(errors) > 0 {
 		return AccessAsUserAuthorizationMultiError(errors)
 	}
@@ -2703,210 +2646,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = AccessAsUserAuthorizationValidationError{}
-
-// Validate checks the field values on ProjectAccessCF with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *ProjectAccessCF) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on ProjectAccessCF with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ProjectAccessCFMultiError, or nil if none found.
-func (m *ProjectAccessCF) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *ProjectAccessCF) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Id
-
-	if len(errors) > 0 {
-		return ProjectAccessCFMultiError(errors)
-	}
-
-	return nil
-}
-
-// ProjectAccessCFMultiError is an error wrapping multiple validation errors
-// returned by ProjectAccessCF.ValidateAll() if the designated constraints
-// aren't met.
-type ProjectAccessCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ProjectAccessCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ProjectAccessCFMultiError) AllErrors() []error { return m }
-
-// ProjectAccessCFValidationError is the validation error returned by
-// ProjectAccessCF.Validate if the designated constraints aren't met.
-type ProjectAccessCFValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ProjectAccessCFValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ProjectAccessCFValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ProjectAccessCFValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ProjectAccessCFValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ProjectAccessCFValidationError) ErrorName() string { return "ProjectAccessCFValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ProjectAccessCFValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sProjectAccessCF.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ProjectAccessCFValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ProjectAccessCFValidationError{}
-
-// Validate checks the field values on GroupAccessCF with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *GroupAccessCF) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on GroupAccessCF with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in GroupAccessCFMultiError, or
-// nil if none found.
-func (m *GroupAccessCF) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *GroupAccessCF) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Id
-
-	if len(errors) > 0 {
-		return GroupAccessCFMultiError(errors)
-	}
-
-	return nil
-}
-
-// GroupAccessCFMultiError is an error wrapping multiple validation errors
-// returned by GroupAccessCF.ValidateAll() if the designated constraints
-// aren't met.
-type GroupAccessCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GroupAccessCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GroupAccessCFMultiError) AllErrors() []error { return m }
-
-// GroupAccessCFValidationError is the validation error returned by
-// GroupAccessCF.Validate if the designated constraints aren't met.
-type GroupAccessCFValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e GroupAccessCFValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e GroupAccessCFValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e GroupAccessCFValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e GroupAccessCFValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e GroupAccessCFValidationError) ErrorName() string { return "GroupAccessCFValidationError" }
-
-// Error satisfies the builtin error interface
-func (e GroupAccessCFValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sGroupAccessCF.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = GroupAccessCFValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = GroupAccessCFValidationError{}
 
 // Validate checks the field values on AgentConfigurationRequest with the rules
 // defined in the proto definition for this message. If any rules are

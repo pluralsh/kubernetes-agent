@@ -13,7 +13,6 @@ import (
 
 	"github.com/pluralsh/kuberentes-agent/pkg/api"
 	gitlab2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab"
-	gitlabapi "github.com/pluralsh/kuberentes-agent/pkg/gitlab/api"
 	rpc2 "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
@@ -36,8 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
-
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
 )
 
 const (
@@ -188,7 +185,7 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	log, clusterId, userId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
+	log, clusterId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
 	if eResp != nil {
 		// If GitLab doesn't authorize the proxy user to make the call,
 		// we send an extra header to indicate that, so that the client
@@ -201,7 +198,6 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 	}
 
 	p.requestCounter.Inc() // Count only authenticated and authorized requests
-	p.ciTunnelUsersCounter.Add(userId)
 
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(clusterId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md))
@@ -219,12 +215,12 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 	return log, clusterId, nil
 }
 
-func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Context, log *zap.Logger, r *http.Request) (*zap.Logger, int64 /* agentId */, int64 /* userId */, *rpc2.ImpersonationConfig, *grpctool.ErrResp) {
+func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Context, log *zap.Logger, r *http.Request) (*zap.Logger, int64 /* agentId */, *rpc2.ImpersonationConfig, *grpctool.ErrResp) {
 	agentId, creds, err := getAuthorizationInfoFromRequest(r)
 	if err != nil {
 		msg := "Unauthorized"
 		log.Debug(msg, logz.Error(err))
-		return log, modshared.NoAgentId, 0, nil, &grpctool.ErrResp{
+		return log, modshared.NoAgentId, nil, &grpctool.ErrResp{
 			StatusCode: http.StatusUnauthorized,
 			Msg:        msg,
 			Err:        err,
@@ -234,7 +230,6 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 	trace.SpanFromContext(ctx).SetAttributes(api.TraceAgentIdAttr.Int64(agentId))
 
 	var (
-		userId    int64
 		impConfig *rpc2.ImpersonationConfig // can be nil
 	)
 
@@ -242,21 +237,18 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 	case patAuthn:
 		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, c.token, c.clusterId)
 		if eResp != nil {
-			return log, agentId, 0, nil, eResp
+			return log, agentId, nil, eResp
 		}
-		userId = auth.User.Id
-		impConfig, err = constructUserImpersonationConfig(auth, "personal_access_token")
+		impConfig, err = constructUserImpersonationConfig(auth)
 		if err != nil {
 			msg := "Failed to construct user impersonation config"
 			p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-			return log, agentId, userId, nil, &grpctool.ErrResp{
+			return log, agentId, nil, &grpctool.ErrResp{
 				StatusCode: http.StatusInternalServerError,
 				Msg:        msg,
 				Err:        err,
 			}
 		}
-		impConfig = nil
-
 		// update usage metrics for PAT requests using the CI tunnel
 		p.patAccessRequestCounter.Inc()
 		//p.patAccessUsersCounter.Add(userId)
@@ -264,12 +256,12 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 	default: // This should never happen
 		msg := "Invalid authorization type"
 		p.api.HandleProcessingError(ctx, log, agentId, msg, err)
-		return log, agentId, userId, nil, &grpctool.ErrResp{
+		return log, agentId, nil, &grpctool.ErrResp{
 			StatusCode: http.StatusInternalServerError,
 			Msg:        msg,
 		}
 	}
-	return log, agentId, userId, impConfig, nil
+	return log, agentId, impConfig, nil
 }
 
 func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Logger, agentId int64, accessKey, clusterId string) (*pluralapi.AuthorizeProxyUserResponse, *grpctool.ErrResp) {
@@ -433,7 +425,7 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 		switch tokenType {
 		case tokenTypePlural:
 			return agentId, patAuthn{
-				token: token,
+				token:     token,
 				clusterId: clusterId,
 			}, nil
 		}
@@ -472,134 +464,18 @@ func getAgentIdAndTokenFromHeader(header string) (int64, string /* token type */
 	return agentId, tokenType, token, clusterIdStr, nil
 }
 
-func constructUserImpersonationConfig(auth *pluralapi.AuthorizeProxyUserResponse, accessType string) (*rpc2.ImpersonationConfig, error) {
+func constructUserImpersonationConfig(auth *pluralapi.AuthorizeProxyUserResponse) (*rpc2.ImpersonationConfig, error) {
 	switch imp := auth.GetAccessAs().AccessAs.(type) {
 	case *pluralapi.AccessAsProxyAuthorization_Agent:
 		return nil, nil
-	// TODO: This needs API handling to know when to impersonate as user
 	case *pluralapi.AccessAsProxyAuthorization_User:
 		return &rpc2.ImpersonationConfig{
-			Username: fmt.Sprintf("gitlab:user:%s", auth.User.Username),
-			Groups:   impUserGroups(auth),
-			Extra:    impUserExtra(auth, accessType),
+			Username: auth.User.Username,
+			Groups:   auth.AccessAs.GetUser().Groups,
+			Roles:    auth.AccessAs.GetUser().Roles,
 		}, nil
 	default:
 		// Normally this should never happen
 		return nil, fmt.Errorf("unexpected user impersonation mode: %T", imp)
 	}
-}
-
-func impImpersonationExtra(in []*agentcfg.ExtraKeyValCF) []*rpc2.ExtraKeyVal {
-	out := make([]*rpc2.ExtraKeyVal, 0, len(in))
-	for _, kv := range in {
-		out = append(out, &rpc2.ExtraKeyVal{
-			Key: kv.Key,
-			Val: kv.Val,
-		})
-	}
-	return out
-}
-
-func impCiJobGroups(allowedForJob *gitlabapi.AllowedAgentsForJob) []string {
-	// 1. gitlab:ci_job to identify all requests coming from CI jobs.
-	groups := make([]string, 0, 3+len(allowedForJob.Project.Groups))
-	groups = append(groups, "gitlab:ci_job")
-	// 2. The list of ids of groups the project is in.
-	for _, projectGroup := range allowedForJob.Project.Groups {
-		groups = append(groups, fmt.Sprintf("gitlab:group:%d", projectGroup.Id))
-
-		// 3. The tier of the environment this job belongs to, if set.
-		if allowedForJob.Environment != nil {
-			groups = append(groups, fmt.Sprintf("gitlab:group_env_tier:%d:%s", projectGroup.Id, allowedForJob.Environment.Tier))
-		}
-	}
-	// 4. The project id.
-	groups = append(groups, fmt.Sprintf("gitlab:project:%d", allowedForJob.Project.Id))
-	// 5. The slug and tier of the environment this job belongs to, if set.
-	if allowedForJob.Environment != nil {
-		groups = append(groups,
-			fmt.Sprintf("gitlab:project_env:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Slug),
-			fmt.Sprintf("gitlab:project_env_tier:%d:%s", allowedForJob.Project.Id, allowedForJob.Environment.Tier),
-		)
-	}
-	return groups
-}
-
-func impCiJobExtra(allowedForJob *gitlabapi.AllowedAgentsForJob, aa *gitlabapi.AllowedAgent) []*rpc2.ExtraKeyVal {
-	extra := []*rpc2.ExtraKeyVal{
-		{
-			Key: "agent.gitlab.com/id",
-			Val: []string{strconv.FormatInt(aa.Id, 10)}, // agent id
-		},
-		{
-			Key: "agent.gitlab.com/config_project_id",
-			Val: []string{strconv.FormatInt(aa.ConfigProject.Id, 10)}, // agent's configuration project id
-		},
-		{
-			Key: "agent.gitlab.com/project_id",
-			Val: []string{strconv.FormatInt(allowedForJob.Project.Id, 10)}, // CI project id
-		},
-		{
-			Key: "agent.gitlab.com/ci_pipeline_id",
-			Val: []string{strconv.FormatInt(allowedForJob.Pipeline.Id, 10)}, // CI pipeline id
-		},
-		{
-			Key: "agent.gitlab.com/ci_job_id",
-			Val: []string{strconv.FormatInt(allowedForJob.Job.Id, 10)}, // CI job id
-		},
-		{
-			Key: "agent.gitlab.com/username",
-			Val: []string{allowedForJob.User.Username}, // username of the user the CI job is running as
-		},
-	}
-	if allowedForJob.Environment != nil {
-		extra = append(extra,
-			&rpc2.ExtraKeyVal{
-				Key: "agent.gitlab.com/environment_slug",
-				Val: []string{allowedForJob.Environment.Slug}, // slug of the environment, if set
-			},
-			&rpc2.ExtraKeyVal{
-				Key: "agent.gitlab.com/environment_tier",
-				Val: []string{allowedForJob.Environment.Tier}, // tier of the environment, if set
-			},
-		)
-	}
-	return extra
-}
-
-func impUserGroups(auth *pluralapi.AuthorizeProxyUserResponse) []string {
-	groups := []string{"gitlab:user"}
-	for _, accessCF := range auth.AccessAs.GetUser().Projects {
-		for _, role := range accessCF.Roles {
-			groups = append(groups, fmt.Sprintf("gitlab:project_role:%d:%s", accessCF.Id, role))
-		}
-	}
-	for _, accessCF := range auth.AccessAs.GetUser().Groups {
-		for _, role := range accessCF.Roles {
-			groups = append(groups, fmt.Sprintf("gitlab:group_role:%d:%s", accessCF.Id, role))
-		}
-	}
-	return groups
-}
-
-func impUserExtra(auth *pluralapi.AuthorizeProxyUserResponse, accessType string) []*rpc2.ExtraKeyVal {
-	extra := []*rpc2.ExtraKeyVal{
-		{
-			Key: "agent.gitlab.com/id",
-			Val: []string{strconv.FormatInt(auth.Agent.Id, 10)},
-		},
-		{
-			Key: "agent.gitlab.com/username",
-			Val: []string{auth.User.Username},
-		},
-		{
-			Key: "agent.gitlab.com/access_type",
-			Val: []string{accessType},
-		},
-		{
-			Key: "agent.gitlab.com/config_project_id",
-			Val: []string{strconv.FormatInt(auth.Agent.ConfigProject.Id, 10)},
-		},
-	}
-	return extra
 }

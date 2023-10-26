@@ -29,10 +29,10 @@ services:
       context: ../..
       dockerfile: build/docker/agentk.debug.Dockerfile
     environment:
-      APP_FLAGS: --kas-address=ws://kas:8150
-      POD_NAME: test
-      POD_NAMESPACE: test
-      AGENTK_TOKEN: test
+      APP_FLAGS: --kas-address=grpc://kas:8150
+      POD_NAME: agentk
+      POD_NAMESPACE: default
+      AGENTK_TOKEN: ${AGENTK_TOKEN:?}
       KUBECONFIG: /.secret/kubeconfig
     volumes:
       - ${PWD}/.secret/kubeconfig:/.secret/kubeconfig
