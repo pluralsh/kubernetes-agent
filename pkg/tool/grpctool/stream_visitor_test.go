@@ -302,7 +302,7 @@ func TestStreamVisitorReachableMissingCallback(t *testing.T) {
 	require.NoError(t, err)
 
 	err = v.Visit(stream)
-	require.EqualError(t, err, "rpc error: code = Internal desc = no callback defined for field gitlab.agent.grpctool.test.Response.scalar (1)")
+	require.EqualError(t, err, "rpc error: code = Internal desc = no callback defined for field plural.agent.grpctool.test.Response.scalar (1)")
 }
 
 func TestStreamingVisitorUnreachableMissingCallback(t *testing.T) {
@@ -368,27 +368,27 @@ func TestStreamVisitor_WithNotExpectingToGet_HappyPath(t *testing.T) {
 
 func TestStreamVisitorNoOneofs(t *testing.T) {
 	_, err := grpctool2.NewStreamVisitor(&test.NoOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.NoOneofs, 0 defined")
+	require.EqualError(t, err, "one oneof group is expected in plural.agent.grpctool.test.NoOneofs, 0 defined")
 }
 
 func TestStreamVisitorTwoOneofs(t *testing.T) {
 	_, err := grpctool2.NewStreamVisitor(&test.TwoOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.TwoOneofs, 2 defined")
+	require.EqualError(t, err, "one oneof group is expected in plural.agent.grpctool.test.TwoOneofs, 2 defined")
 }
 
 func TestStreamVisitorTwoValidOneofs(t *testing.T) {
 	_, err := grpctool2.NewStreamVisitor(&test.TwoValidOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.TwoValidOneofs, 2 defined")
+	require.EqualError(t, err, "one oneof group is expected in plural.agent.grpctool.test.TwoValidOneofs, 2 defined")
 }
 
 func TestStreamVisitorNumberOutOfOneof(t *testing.T) {
 	_, err := grpctool2.NewStreamVisitor(&test.OutOfOneof{})
-	require.EqualError(t, err, "field number 1 is not part of oneof gitlab.agent.grpctool.test.OutOfOneof.message")
+	require.EqualError(t, err, "field number 1 is not part of oneof plural.agent.grpctool.test.OutOfOneof.message")
 }
 
 func TestStreamVisitorNotAllFieldsReachable(t *testing.T) {
 	_, err := grpctool2.NewStreamVisitor(&test.NotAllReachable{})
-	require.EqualError(t, err, "unreachable fields in oneof gitlab.agent.grpctool.test.NotAllReachable.message: [1 2]")
+	require.EqualError(t, err, "unreachable fields in oneof plural.agent.grpctool.test.NotAllReachable.message: [1 2]")
 }
 
 func TestStreamVisitorInvalidNumber(t *testing.T) {
@@ -406,5 +406,5 @@ func TestStreamVisitorInvalidNumber(t *testing.T) {
 		grpctool2.WithCallback(lastNumber, cb),
 		grpctool2.WithCallback(20, cb),
 	)
-	require.EqualError(t, err, "rpc error: code = Internal desc = oneof gitlab.agent.grpctool.test.Response.message does not have a field 20")
+	require.EqualError(t, err, "rpc error: code = Internal desc = oneof plural.agent.grpctool.test.Response.message does not have a field 20")
 }

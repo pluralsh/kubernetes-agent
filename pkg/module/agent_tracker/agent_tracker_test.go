@@ -23,7 +23,7 @@ func TestConnectedAgentInfoSize(t *testing.T) {
 		ConnectedAt:  timestamppb.Now(),
 		ConnectionId: 1231232,
 		AgentId:      123123,
-		ProjectId:    3232323,
+		ClusterId:    "3232323",
 	})
 	require.NoError(t, err)
 	data, err := proto.Marshal(&redistool.ExpiringValue{

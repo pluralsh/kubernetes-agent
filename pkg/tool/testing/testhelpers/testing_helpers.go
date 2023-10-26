@@ -17,7 +17,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/pluralsh/kuberentes-agent/pkg/api"
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
 )
@@ -34,7 +33,7 @@ const (
 	jwtIssuer         = "gitlab-kas"
 
 	AgentId   int64 = 123
-	ProjectId int64 = 321
+	ClusterId       = "321"
 	UserId    int64 = 456
 )
 
@@ -132,16 +131,8 @@ func InjectSpanContext(t *testing.T, ctx context.Context) (context.Context, trac
 func AgentInfoObj() *api.AgentInfo {
 	return &api.AgentInfo{
 		Id:        AgentId,
-		ProjectId: ProjectId,
 		Name:      "agent1",
-		GitalyInfo: &entity.GitalyInfo{
-			Address: "127.0.0.1:123123",
-			Token:   "abc",
-			Features: map[string]string{
-				"bla": "true",
-			},
-		},
-		DefaultBranch: "main",
+		ClusterId: ClusterId,
 	}
 }
 
