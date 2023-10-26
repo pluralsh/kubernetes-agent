@@ -35,12 +35,6 @@ func TestClientImpersonation(t *testing.T) {
 		Username: "iuser1",
 		Groups:   []string{"ig1", "ig2"},
 		Uid:      "iuid",
-		Extra: []*rpc.ExtraKeyVal{
-			{
-				Key: "ix",
-				Val: []string{"ix1", "ix2"},
-			},
-		},
 	}
 	requestHeader := http.Header{}
 	requestHeader.Set(transport.ImpersonateUserHeader, "huser1")

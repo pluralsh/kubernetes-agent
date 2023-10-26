@@ -27,12 +27,12 @@ func TestRegister(t *testing.T) {
 		Return(zaptest.NewLogger(t))
 	mockRpcApi.EXPECT().
 		AgentInfo(gomock.Any(), gomock.Any()).
-		Return(&api.AgentInfo{Id: 123, ProjectId: 456}, nil)
+		Return(&api.AgentInfo{Id: 123, ClusterId: "456"}, nil)
 	mockAgentTracker.EXPECT().
 		RegisterConnection(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, connectedAgentInfo *agent_tracker.ConnectedAgentInfo) error {
 			assert.EqualValues(t, 123, connectedAgentInfo.AgentId)
-			assert.EqualValues(t, 456, connectedAgentInfo.ProjectId)
+			assert.EqualValues(t, "456", connectedAgentInfo.ClusterId)
 			assert.EqualValues(t, 123456789, connectedAgentInfo.ConnectionId)
 			return nil
 		})
@@ -67,7 +67,7 @@ func TestRegister_registerAgent_Error(t *testing.T) {
 		Return(zaptest.NewLogger(t))
 	mockRpcApi.EXPECT().
 		AgentInfo(gomock.Any(), gomock.Any()).
-		Return(&api.AgentInfo{Id: 1, ProjectId: 1}, nil)
+		Return(&api.AgentInfo{Id: 1, ClusterId: "1"}, nil)
 	mockAgentTracker.EXPECT().
 		RegisterConnection(gomock.Any(), gomock.Any()).
 		Return(expectedErr)
