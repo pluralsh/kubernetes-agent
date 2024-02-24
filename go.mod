@@ -20,7 +20,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
-	github.com/pluralsh/console-client-go v0.0.22
+	github.com/pluralsh/console-client-go v0.0.99
 	github.com/pluralsh/polly v0.1.1
 	github.com/prometheus/client_golang v1.17.0
 	github.com/redis/rueidis v1.0.20
