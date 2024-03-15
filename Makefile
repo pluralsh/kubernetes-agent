@@ -158,3 +158,15 @@ lint: --ensure-tools ## run linters
 .PHONY: fix
 fix: --ensure-tools ## fix issues found by linters
 	golangci-lint run --fix ./...
+
+delete-tag:  ## deletes a tag from git locally and upstream
+	@read -p "Version: " tag; \
+	git tag -d $$tag; \
+	git push origin :$$tag
+
+release-vsn: # tags and pushes a new release
+	@read -p "Version: " tag; \
+	git checkout master; \
+	git pull --rebase; \
+	git tag -a $$tag -m "new release"; \
+	git push origin $$tag
