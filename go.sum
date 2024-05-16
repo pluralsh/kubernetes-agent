@@ -560,6 +560,8 @@ github.com/pluralsh/console-client-go v0.0.22 h1:1qnEMewaStAWge3R5SmNWM8IMIrxQgM
 github.com/pluralsh/console-client-go v0.0.22/go.mod h1:kZjk0pXAWnvyj+miXveCho4kKQaX1Tm3CGAM+iwurWU=
 github.com/pluralsh/polly v0.1.1 h1:VtbS83re2YuDgscvaFgfzEDZs9uXRV84fCdvKCgIRE4=
 github.com/pluralsh/polly v0.1.1/go.mod h1:Yo1/jcW+4xwhWG+ZJikZy4J4HJkMNPZ7sq5auL2c/tY=
+github.com/pluralsh/polly v0.1.10 h1:8Or7SPy7OCbQiAU2Fu7vMUsyZ88WgF66Wwjx9aVus9c=
+github.com/pluralsh/polly v0.1.10/go.mod h1:W9IBX3e3xEjJuRjAQRfFJpH+UkNjddVY5YjMhyisQqQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polyfloyd/go-errorlint v1.4.5 h1:70YWmMy4FgRHehGNOUask3HtSFSOLKgmDn7ryNe7LqI=
