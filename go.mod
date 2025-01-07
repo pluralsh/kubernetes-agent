@@ -21,7 +21,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
-	github.com/pluralsh/console/go/client v1.25.4
+	github.com/pluralsh/console/go/client v1.25.6
 	github.com/pluralsh/polly v0.1.11
 	github.com/prometheus/client_golang v1.20.5
 	github.com/redis/rueidis v1.0.52
