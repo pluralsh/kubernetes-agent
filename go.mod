@@ -1,8 +1,6 @@
 module github.com/pluralsh/kuberentes-agent
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.23.4
 
 // Tools, see also internal/tool/tools.go.
 require (
