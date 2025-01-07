@@ -1,7 +1,7 @@
 # Dockerfile for kas
 
 FROM busybox:uclibc as busybox
-FROM docker.io/golang:1.21 as builder
+FROM docker.io/golang:1.23 as builder
 
 # Build Delve
 RUN go install github.com/go-delve/delve/cmd/dlv@latest

@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   kas:
     depends_on:
@@ -23,8 +22,8 @@ services:
     depends_on:
       kas:
         condition: service_started
-    image: agent:latest
-    container_name: agent
+    image: agentk:latest
+    container_name: agentk
     build:
       context: ../..
       dockerfile: build/docker/agentk.Dockerfile

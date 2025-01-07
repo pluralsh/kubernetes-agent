@@ -63,4 +63,4 @@ jobs:
           check-latest: true
       - uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.54.2
+          version: v1.63.4

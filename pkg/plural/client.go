@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	console "github.com/pluralsh/console-client-go"
+	console "github.com/pluralsh/console/go/client"
 )
 
 type authedTransport struct {
@@ -19,7 +19,7 @@ func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 type Client struct {
 	ctx     context.Context
-	Console *console.Client
+	Console console.ConsoleClient
 }
 
 func New(url, token string) *Client {
@@ -31,14 +31,14 @@ func New(url, token string) *Client {
 	}
 
 	return &Client{
-		Console: console.NewClient(&httpClient, url),
+		Console: console.NewClient(&httpClient, url, nil),
 		ctx:     context.Background(),
 	}
 }
 
 func NewUnauthorized(url string) *Client {
 	return &Client{
-		Console: console.NewClient(http.DefaultClient, url),
+		Console: console.NewClient(http.DefaultClient, url, nil),
 		ctx:     context.Background(),
 	}
 }

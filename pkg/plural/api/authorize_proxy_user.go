@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	console "github.com/pluralsh/console/go/client"
 	"github.com/pluralsh/polly/algorithms"
 
 	"github.com/pluralsh/kuberentes-agent/pkg/plural"
@@ -20,16 +21,10 @@ func AuthorizeProxyUser(ctx context.Context, token, clusterId, pluralURL string)
 		AccessAs: &AccessAsProxyAuthorization{
 			AccessAs: &AccessAsProxyAuthorization_User{
 				User: &AccessAsUserAuthorization{
-					Groups: algorithms.Map(resp.TokenExchange.Groups, func(g *struct {
-						ID   string "json:\"id\" graphql:\"id\""
-						Name string "json:\"name\" graphql:\"name\""
-					}) string {
+					Groups: algorithms.Map(resp.TokenExchange.Groups, func(g *console.TokenExchange_TokenExchange_Groups) string {
 						return g.Name
 					}),
-					Roles: algorithms.Map(resp.TokenExchange.BoundRoles, func(r *struct {
-						ID   string "json:\"id\" graphql:\"id\""
-						Name string "json:\"name\" graphql:\"name\""
-					}) string {
+					Roles: algorithms.Map(resp.TokenExchange.BoundRoles, func(r *console.TokenExchange_TokenExchange_BoundRoles) string {
 						return r.Name
 					}),
 				},

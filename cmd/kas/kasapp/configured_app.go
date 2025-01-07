@@ -15,6 +15,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+
 	usage_metrics_server "github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics/server"
 
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/plural"
@@ -55,7 +56,7 @@ import (
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
