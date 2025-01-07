@@ -1,7 +1,6 @@
 package kasapp
 
 import (
-	"context"
 	"net"
 
 	"github.com/ash2k/stager"
@@ -32,7 +31,7 @@ func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p p
 	listener := grpctool2.NewDialListener()
 
 	// Construct connection to internal gRPC server
-	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
+	conn, err := grpc.NewClient("passthrough:pipe", // nolint: contextcheck
 		grpc.WithStatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(tp),
 			otelgrpc.WithMeterProvider(mp),

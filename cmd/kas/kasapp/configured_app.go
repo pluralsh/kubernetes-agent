@@ -15,6 +15,8 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"go.opentelemetry.io/otel/trace/noop"
+
 	usage_metrics_server "github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics/server"
 
 	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp/plural"
@@ -55,7 +57,7 @@ import (
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -449,7 +451,10 @@ func (a *ConfiguredApp) constructRedisClient(tp trace.TracerProvider, mp otelmet
 	}
 	if a.isTracingEnabled() {
 		// Instrument Redis client with tracing only if it's configured.
-		redisClient = rueidisotel.WithClient(redisClient, rueidisotel.WithTracerProvider(tp), rueidisotel.WithMeterProvider(mp))
+		redisClient, err = rueidisotel.NewClient(opts, rueidisotel.WithTracerProvider(tp), rueidisotel.WithMeterProvider(mp))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return redisClient, nil
 }
@@ -526,7 +531,7 @@ func (a *ConfiguredApp) constructOTELMeterProvider(r *resource.Resource, reg pro
 
 func (a *ConfiguredApp) constructOTELTracingTools(ctx context.Context, r *resource.Resource) (trace.TracerProvider, propagation.TextMapPropagator, func() error, error) {
 	if !a.isTracingEnabled() {
-		return trace.NewNoopTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
+		return noop.NewTracerProvider(), propagation.NewCompositeTextMapPropagator(), func() error { return nil }, nil
 	}
 
 	// Exporter must be constructed right before TracerProvider as it's started implicitly so needs to be stopped,

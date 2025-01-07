@@ -26,8 +26,8 @@ var (
 		ClientStreams: true,
 	}
 
-	// tunnelReadySentinelError is a sentinel error value to make stream visitor exit early.
-	tunnelReadySentinelError = errors.New("")
+	// errTunnelReadySentinel is a sentinel error value to make stream visitor exit early.
+	errTunnelReadySentinel = errors.New("")
 )
 
 type kasConnAttempt struct {
@@ -248,15 +248,15 @@ func (f *tunnelFinder) tryKasAsync(ctx context.Context, cancel context.CancelFun
 			}),
 			grpctool2.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
 				trace.SpanFromContext(kasStream.Context()).AddEvent("Ready")
-				return tunnelReadySentinelError
+				return errTunnelReadySentinel
 			}),
 			grpctool2.WithNotExpectingToGet(codes.Internal, headerFieldNumber, messageFieldNumber, trailerFieldNumber, errorFieldNumber),
 		)
-		switch err { // nolint:errorlint
-		case nil:
+		switch { // nolint:errorlint
+		case err == nil:
 			// Gateway kas closed the connection cleanly, perhaps it's been open for too long
 			return nil, retry.ContinueImmediately
-		case tunnelReadySentinelError:
+		case errors.Is(err, errTunnelReadySentinel):
 			// fallthrough
 		default:
 			f.rpcApi.HandleProcessingError(log, f.agentId, "RecvMsg(GatewayKasResponse)", err)

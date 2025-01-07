@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 func Dial(ctx context.Context, u string, opts *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {

@@ -71,4 +71,4 @@ api:
     # key_file: /server-key.pem
     max_connection_age: "7200s"
     listen_grace_period: "5s"
-plural_url: "https://console.cd-demo.onplural.sh/gql"
+plural_url: "https://console.plrl-dev-aws.onplural.sh/gql"

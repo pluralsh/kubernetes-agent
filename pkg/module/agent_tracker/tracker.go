@@ -96,9 +96,9 @@ func (t *RedisTracker) RegisterConnection(ctx context.Context, info *ConnectedAg
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	var wg errgroup.Group
-	//wg.Go(func() error {
+	// wg.Go(func() error {
 	//	return t.connectionsByClusterId.Set(ctx, info.ProjectId, info.ConnectionId, infoBytes)
-	//})
+	// })
 	wg.Go(func() error {
 		return t.connectionsByAgentId.Set(ctx, info.AgentId, info.ConnectionId, infoBytes)
 	})
@@ -112,9 +112,9 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	var wg errgroup.Group
-	//wg.Go(func() error {
+	// wg.Go(func() error {
 	//	return t.connectionsByClusterId.Unset(ctx, info.ProjectId, info.ConnectionId)
-	//})
+	// })
 	wg.Go(func() error {
 		return t.connectionsByAgentId.Unset(ctx, info.AgentId, info.ConnectionId)
 	})

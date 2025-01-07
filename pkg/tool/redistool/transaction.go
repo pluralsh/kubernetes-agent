@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	attemptsExceeded = errors.New("failed to execute Redis transaction too many times")
+	errAttemptsExceeded = errors.New("failed to execute Redis transaction too many times")
 )
 
 // Optimistic locking pattern.
 // See https://redis.io/docs/interact/transactions/
 // See https://github.com/redis/rueidis#cas-pattern
-// Returns attemptsExceeded if maxAttempts attempts ware made but all failed.
+// Returns errAttemptsExceeded if maxAttempts attempts ware made but all failed.
 func transaction(ctx context.Context, maxAttempts int, c rueidis.DedicatedClient, cb func(context.Context) ([]rueidis.Completed, error), keys ...string) (retErr error) {
 	execCalled := false
 	defer func() {
@@ -54,13 +54,13 @@ func transaction(ctx context.Context, maxAttempts int, c rueidis.DedicatedClient
 			return errors.Join(errs...)
 		}
 		// EXEC error
-		switch resp[len(resp)-1].Error() { // nolint: errorlint
-		case nil: // Success!
+		switch err := resp[len(resp)-1].Error(); { // nolint: errorlint
+		case err == nil: // Success!
 			return nil
-		case rueidis.Nil: // EXEC detected a conflict, retry.
+		case errors.Is(err, rueidis.Nil): // EXEC detected a conflict, retry.
 		default: // EXEC failed in a bad way, abort
 			return err
 		}
 	}
-	return attemptsExceeded
+	return errAttemptsExceeded
 }

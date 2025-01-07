@@ -42,11 +42,11 @@ func ErrorIs(expectedError error) gomock.Matcher {
 	}
 }
 
-//func K8sObjectEq(t *testing.T, obj interface{}, opts ...cmp.Option) gomock.Matcher {
+// func K8sObjectEq(t *testing.T, obj interface{}, opts ...cmp.Option) gomock.Matcher {
 //	o := []cmp.Option{kube_testing.TransformToUnstructured(), cmpopts.EquateEmpty()}
 //	o = append(o, opts...)
 //	return Cmp(t, obj, o...)
-//}
+// }
 
 func Cmp(t *testing.T, expected interface{}, opts ...cmp.Option) gomock.Matcher {
 	return &cmpMatcher{
