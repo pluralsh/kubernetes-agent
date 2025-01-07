@@ -149,8 +149,8 @@ func (h *RedisExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDelet
 		for _, key := range keys {
 			deleted, err := gcHash(ctx, h.key1ToRedisKey(key), client)
 			deletedKeys += deleted
-			switch err { // nolint:errorlint
-			case nil, attemptsExceeded:
+			switch {
+			case err == nil, errors.Is(err, errAttemptsExceeded):
 				// Try to GC next key on conflicts
 			default:
 				return deletedKeys, err
@@ -162,7 +162,7 @@ func (h *RedisExpiringHash[K1, K2]) GC() func(context.Context) (int /* keysDelet
 
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
-// Returns attemptsExceeded if maxAttempts attempts ware made but all failed.
+// Returns errAttemptsExceeded if maxAttempts attempts ware made but all failed.
 func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (int /* keysDeleted */, error) {
 	var errs []error
 	keysDeleted := 0
@@ -197,7 +197,7 @@ func gcHash(ctx context.Context, redisKey string, c rueidis.DedicatedClient) (in
 		}, nil
 	}, redisKey)
 	if err != nil {
-		// Propagate attemptsExceeded error and any other errors as is.
+		// Propagate errAttemptsExceeded error and any other errors as is.
 		return 0, err
 	}
 	return keysDeleted, errors.Join(errs...)

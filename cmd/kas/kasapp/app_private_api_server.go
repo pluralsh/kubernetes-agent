@@ -240,7 +240,7 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 	}
 
 	// Construct in-memory connection to private API gRPC server
-	inMemConn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
+	inMemConn, err := grpc.NewClient("passthrough:pipe", // nolint: contextcheck
 		append([]grpc.DialOption{
 			grpc.WithContextDialer(dialer),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -350,7 +350,7 @@ func detectUrlByCIDR(interfaceAddrs func() ([]net.Addr, error),
 				return "", fmt.Errorf("listener address: %w", err)
 			}
 			portStr = listenPort
-		//case "unix": We don't handle unix scheme here because we got OWN_PRIVATE_API_CIDR and hence presumably
+		// case "unix": We don't handle unix scheme here because we got OWN_PRIVATE_API_CIDR and hence presumably
 		// user wants to use network, not unix socket.
 		default:
 			return "", fmt.Errorf("cannot determine port for own URL. Specify %s", envVarOwnPrivateApiPort)

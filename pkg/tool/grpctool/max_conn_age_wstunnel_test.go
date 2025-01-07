@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/stats"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 
 	test2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/test"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"

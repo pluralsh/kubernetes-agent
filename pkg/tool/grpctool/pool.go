@@ -84,7 +84,7 @@ func (p *Pool) Dial(ctx context.Context, targetUrl string) (PoolConn, error) {
 		opts := make([]grpc.DialOption, 0, len(p.dialOpts)+1)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 		opts = append(opts, p.dialOpts...)
-		grpcConn, err := grpc.DialContext(ctx, target, opts...)
+		grpcConn, err := grpc.NewClient(target, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("pool gRPC dial: %w", err)
 		}

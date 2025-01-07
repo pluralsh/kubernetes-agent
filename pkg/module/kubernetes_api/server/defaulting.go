@@ -30,7 +30,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	prototool.Duration(&o.Listen.ListenGracePeriod, defaultListenGracePeriod)
 	prototool.Duration(&o.Listen.ShutdownGracePeriod, defaultShutdownGracePeriod)
 	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
-		o.UrlPathPrefix = o.UrlPathPrefix + "/"
+		o.UrlPathPrefix += "/"
 	}
 	prototool.Duration(&o.AllowedAgentCacheTtl, defaultAllowedAgentInfoCacheTTL)
 	prototool.Duration(&o.AllowedAgentCacheErrorTtl, defaultAllowedAgentInfoCacheErrorTTL)

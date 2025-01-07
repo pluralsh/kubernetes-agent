@@ -14,6 +14,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/pluralsh/kuberentes-agent/cmd"
 	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
@@ -36,6 +37,7 @@ import (
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/wstunnel"
 
+	"github.com/coder/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/spf13/cobra"
@@ -61,7 +63,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
-	"nhooyr.io/websocket"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -129,7 +130,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	unaryClientProm := clientProm.UnaryClientInterceptor()
 
 	// TODO Tracing
-	tp := trace.NewNoopTracerProvider()
+	tp := noop.NewTracerProvider()
 	p := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 
 	// TODO metrics via OTEL
@@ -416,7 +417,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 	opts = append(opts, grpc.WithPerRPCCredentials(grpctool2.NewTokenCredentials(a.AgentToken, !secure)))
-	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
+	conn, err := grpc.NewClient(addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %w", err)
 	}

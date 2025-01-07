@@ -373,7 +373,7 @@ func TestTransactionConflict_AttemptsExceeded(t *testing.T) {
 			client.B().Hset().Key(key).FieldValue().FieldValue("1", "123").Build(),
 		}, nil
 	}, key)
-	require.Same(t, attemptsExceeded, err)
+	require.Same(t, errAttemptsExceeded, err)
 	v1, err := client.Do(context.Background(), client.B().Hget().Key(key).Field("1").Build()).ToString()
 	require.NoError(t, err)
 	assert.Equal(t, "xxxxxx", v1)

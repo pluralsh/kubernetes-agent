@@ -26,13 +26,11 @@ type ClientRequestsInFlightStatsHandler struct {
 func (h *ClientRequestsInFlightStatsHandler) HandleRPC(ctx context.Context, stat stats.RPCStats) {
 	switch stat.(type) {
 	case *stats.OutHeader:
-		switch {
-		case stat.IsClient():
+		if stat.IsClient() {
 			h.vec.WithLabelValues(labels(ctx, stat)...).Inc()
 		}
 	case *stats.End:
-		switch {
-		case stat.IsClient():
+		if stat.IsClient() {
 			h.vec.WithLabelValues(labels(ctx, stat)...).Dec()
 		}
 	}

@@ -14,6 +14,7 @@ require (
 require (
 	github.com/alicebob/miniredis/v2 v2.34.0
 	github.com/ash2k/stager v0.4.0
+	github.com/coder/websocket v1.8.12
 	github.com/getsentry/sentry-go v0.31.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -52,7 +53,6 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.32.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	nhooyr.io/websocket v1.8.17
 	sigs.k8s.io/controller-runtime v0.19.3
 	sigs.k8s.io/yaml v1.4.0
 )

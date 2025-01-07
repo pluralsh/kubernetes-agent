@@ -49,7 +49,7 @@ func addrType(t reflect.Type) reflect.Type {
 	if k := t.Kind(); k == reflect.Interface || k == reflect.Ptr {
 		return t
 	}
-	return reflect.PtrTo(t)
+	return reflect.PointerTo(t)
 }
 
 func isRuntimeObjectType(t reflect.Type) bool {

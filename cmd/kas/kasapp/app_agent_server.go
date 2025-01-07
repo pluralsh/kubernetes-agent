@@ -21,6 +21,7 @@ import (
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
 	"github.com/pluralsh/kuberentes-agent/pkg/tool/wstunnel"
 
+	"github.com/coder/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/rueidis"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -32,7 +33,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
-	"nhooyr.io/websocket"
 )
 
 const (

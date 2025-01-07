@@ -32,7 +32,7 @@ func newInternalServer(log *zap.Logger, tp trace.TracerProvider, mp otelmetric.M
 	listener := grpctool2.NewDialListener()
 
 	// Construct connection to internal gRPC server
-	conn, err := grpc.DialContext(context.Background(), "passthrough:pipe", // nolint: contextcheck
+	conn, err := grpc.NewClient("passthrough:pipe", // nolint: contextcheck
 		grpc.WithSharedWriteBuffer(true),
 		grpc.WithContextDialer(listener.DialContext),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

@@ -26,3 +26,9 @@ linters:
     - goconst
     - gocritic
     - misspell
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-files:
+    # Exclude some linters from running on tests files.
+    - .*_test\.go

@@ -12,6 +12,7 @@ const (
 	labelService = "grpc_service"
 	labelMethod  = "grpc_method"
 	namespace    = "grpc"
+	unknown      = "unknown"
 )
 
 type metricsCtxKey struct{}
@@ -56,13 +57,13 @@ func (h *baseStatsHandler) Collect(in chan<- prometheus.Metric) {
 
 func parseMethod(name string) (string, string) {
 	if !strings.HasPrefix(name, "/") {
-		return "unknown", "unknown"
+		return unknown, unknown
 	}
 	name = name[1:]
 
 	pos := strings.LastIndex(name, "/")
 	if pos < 0 {
-		return "unknown", "unknown"
+		return unknown, unknown
 	}
 	return name[:pos], name[pos+1:]
 }

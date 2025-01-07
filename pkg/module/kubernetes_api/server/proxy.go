@@ -79,7 +79,6 @@ type kubernetesApiProxy struct {
 	log                      *zap.Logger
 	api                      modserver.Api
 	kubernetesApiClient      rpc2.KubernetesApiClient
-	gitLabClient             gitlab2.ClientInterface
 	pluralUrl                string
 	allowedOriginUrls        []string
 	allowedAgentsCache       *cache.CacheWithErr[string, *pluralapi.AllowedAgentsForJob]
@@ -251,7 +250,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 		}
 		// update usage metrics for PAT requests using the CI tunnel
 		p.patAccessRequestCounter.Inc()
-		//p.patAccessUsersCounter.Add(userId)
+		// p.patAccessUsersCounter.Add(userId)
 		p.patAccessAgentsCounter.Add(agentId)
 	default: // This should never happen
 		msg := "Invalid authorization type"
@@ -348,7 +347,7 @@ func (p *kubernetesApiProxy) mergeProxiedResponseHeaders(outbound, inbound http.
 	}
 	// explicitly merge Vary header with the headers from proxies requests.
 	// We always set the Vary header to `Origin` for CORS
-	if v := append(inbound[httpz2.VaryHeader], outbound[httpz2.VaryHeader]...); len(v) > 0 {
+	if v := append(inbound[httpz2.VaryHeader], outbound[httpz2.VaryHeader]...); len(v) > 0 { //nolint:gocritic
 		inbound[httpz2.VaryHeader] = v
 	}
 	inbound[httpz2.ViaHeader] = append(inbound[httpz2.ViaHeader], p.serverVia)
@@ -422,8 +421,7 @@ func getAuthorizationInfoFromRequest(r *http.Request) (int64 /* agentId */, any,
 		if err != nil {
 			return 0, nil, err
 		}
-		switch tokenType {
-		case tokenTypePlural:
+		if tokenType == tokenTypePlural {
 			return agentId, patAuthn{
 				token:     token,
 				clusterId: clusterId,

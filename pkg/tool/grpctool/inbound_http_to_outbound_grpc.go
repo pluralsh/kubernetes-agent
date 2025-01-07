@@ -39,8 +39,8 @@ var (
 		httpz2.UpgradeHeader,
 	}
 
-	// earlyExitError is a sentinel error value to make stream visitor exit early.
-	earlyExitError = errors.New("")
+	// errEarlyExit is a sentinel error value to make stream visitor exit early.
+	errEarlyExit = errors.New("")
 )
 
 type HttpRequestClient interface {
@@ -162,7 +162,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 		WithCallback(HttpResponseTrailerFieldNumber, func(trailer *HttpResponse_Trailer) error {
 			if isUpgrade && responseStatusCode == http.StatusSwitchingProtocols {
 				// Successful upgrade.
-				return earlyExitError
+				return errEarlyExit
 			}
 			return nil
 		}),
@@ -170,7 +170,7 @@ func (x *InboundHttpToOutboundGrpc) pipeOutboundToInbound(outboundClient HttpReq
 		// otherwise, (unsuccessful upgrade or not an upgrade) the remote must not send this field.
 		WithNotExpectingToGet(codes.Internal, HttpResponseUpgradeDataFieldNumber),
 	)
-	if err != nil && err != earlyExitError { // nolint: errorlint
+	if err != nil && err != errEarlyExit { // nolint: errorlint
 		if writeFailed {
 			// there is likely a connection problem so the client will likely not receive this
 			return headerWritten, responseStatusCode, x.handleIoError("failed to write HTTP response", err)

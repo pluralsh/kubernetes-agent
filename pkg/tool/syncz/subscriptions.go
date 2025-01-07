@@ -29,8 +29,8 @@ func (s *Subscriptions[E]) remove(sb sub[E]) {
 	for i, c := range s.subs {
 		if c == sb {
 			l := len(s.subs)
-			newChs := append(s.subs[:i], s.subs[i+1:]...)
-			s.subs[l-1] = sub[E]{} // help GC
+			newChs := append(s.subs[:i], s.subs[i+1:]...) //nolint:all
+			s.subs[l-1] = sub[E]{}                        // help GC
 			s.subs = newChs
 			break
 		}

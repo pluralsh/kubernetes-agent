@@ -1,6 +1,5 @@
 package rpc
 
-
 func (x *ImpersonationConfig) IsEmpty() bool {
 	if x == nil {
 		return true
