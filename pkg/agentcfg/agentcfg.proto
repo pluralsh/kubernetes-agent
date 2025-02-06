@@ -246,7 +246,7 @@ message AgentConfiguration {
   GitopsCF gitops = 1;
   ObservabilityCF observability = 2;
   reserved 3;
-  // Plural-wide unique id of the agent.
+  // GitLab-wide unique id of the agent.
   int64 agent_id = 4;
   // Id of the configuration project.
   int64 project_id = 5;
@@ -259,8 +259,8 @@ message AgentConfiguration {
   string gitlab_external_url = 11;
 }
 
-// PluralWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
-message PluralWorkspacesProxy {
+// GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
+message GitLabWorkspacesProxy {
   string namespace = 1 [json_name = "namespace"];
 }
 
@@ -274,7 +274,7 @@ message RemoteDevelopmentCF {
   string dns_zone = 2 [json_name = "dns_zone"];
   google.protobuf.Duration partial_sync_interval = 3 [json_name = "partial_sync_interval", (validate.rules).duration = {gt: {}}];
   google.protobuf.Duration full_sync_interval = 4 [json_name = "full_sync_interval", (validate.rules).duration = {gt: {}}];
-  PluralWorkspacesProxy gitlab_workspaces_proxy = 5 [json_name = "gitlab_workspaces_proxy"];
+  GitLabWorkspacesProxy gitlab_workspaces_proxy = 5 [json_name = "gitlab_workspaces_proxy"];
   WorkspaceNetworkPolicy network_policy = 6 [json_name = "network_policy"];
 }
 

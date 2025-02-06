@@ -1844,7 +1844,7 @@ type AgentConfiguration struct {
 
 	Gitops        *GitopsCF        `protobuf:"bytes,1,opt,name=gitops,proto3" json:"gitops,omitempty"`
 	Observability *ObservabilityCF `protobuf:"bytes,2,opt,name=observability,proto3" json:"observability,omitempty"`
-	// Plural-wide unique id of the agent.
+	// GitLab-wide unique id of the agent.
 	AgentId int64 `protobuf:"varint,4,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Id of the configuration project.
 	ProjectId         int64                `protobuf:"varint,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
@@ -1959,8 +1959,8 @@ func (x *AgentConfiguration) GetGitlabExternalUrl() string {
 	return ""
 }
 
-// PluralWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
-type PluralWorkspacesProxy struct {
+// GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
+type GitLabWorkspacesProxy struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -1968,8 +1968,8 @@ type PluralWorkspacesProxy struct {
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 }
 
-func (x *PluralWorkspacesProxy) Reset() {
-	*x = PluralWorkspacesProxy{}
+func (x *GitLabWorkspacesProxy) Reset() {
+	*x = GitLabWorkspacesProxy{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1977,13 +1977,13 @@ func (x *PluralWorkspacesProxy) Reset() {
 	}
 }
 
-func (x *PluralWorkspacesProxy) String() string {
+func (x *GitLabWorkspacesProxy) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PluralWorkspacesProxy) ProtoMessage() {}
+func (*GitLabWorkspacesProxy) ProtoMessage() {}
 
-func (x *PluralWorkspacesProxy) ProtoReflect() protoreflect.Message {
+func (x *GitLabWorkspacesProxy) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1995,12 +1995,12 @@ func (x *PluralWorkspacesProxy) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PluralWorkspacesProxy.ProtoReflect.Descriptor instead.
-func (*PluralWorkspacesProxy) Descriptor() ([]byte, []int) {
+// Deprecated: Use GitLabWorkspacesProxy.ProtoReflect.Descriptor instead.
+func (*GitLabWorkspacesProxy) Descriptor() ([]byte, []int) {
 	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{28}
 }
 
-func (x *PluralWorkspacesProxy) GetNamespace() string {
+func (x *GitLabWorkspacesProxy) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
 	}
@@ -2064,7 +2064,7 @@ type RemoteDevelopmentCF struct {
 	DnsZone               string                  `protobuf:"bytes,2,opt,name=dns_zone,proto3" json:"dns_zone,omitempty"`
 	PartialSyncInterval   *durationpb.Duration    `protobuf:"bytes,3,opt,name=partial_sync_interval,proto3" json:"partial_sync_interval,omitempty"`
 	FullSyncInterval      *durationpb.Duration    `protobuf:"bytes,4,opt,name=full_sync_interval,proto3" json:"full_sync_interval,omitempty"`
-	GitlabWorkspacesProxy *PluralWorkspacesProxy  `protobuf:"bytes,5,opt,name=gitlab_workspaces_proxy,proto3" json:"gitlab_workspaces_proxy,omitempty"`
+	GitlabWorkspacesProxy *GitLabWorkspacesProxy  `protobuf:"bytes,5,opt,name=gitlab_workspaces_proxy,proto3" json:"gitlab_workspaces_proxy,omitempty"`
 	NetworkPolicy         *WorkspaceNetworkPolicy `protobuf:"bytes,6,opt,name=network_policy,proto3" json:"network_policy,omitempty"`
 }
 
@@ -2128,7 +2128,7 @@ func (x *RemoteDevelopmentCF) GetFullSyncInterval() *durationpb.Duration {
 	return nil
 }
 
-func (x *RemoteDevelopmentCF) GetGitlabWorkspacesProxy() *PluralWorkspacesProxy {
+func (x *RemoteDevelopmentCF) GetGitlabWorkspacesProxy() *GitLabWorkspacesProxy {
 	if x != nil {
 		return x.GitlabWorkspacesProxy
 	}
@@ -2604,7 +2604,7 @@ var file_pkg_agentcfg_agentcfg_proto_goTypes = []interface{}{
 	(*Resource)(nil),                // 26: plural.agent.agentcfg.Resource
 	(*ConfigurationFile)(nil),       // 27: plural.agent.agentcfg.ConfigurationFile
 	(*AgentConfiguration)(nil),      // 28: plural.agent.agentcfg.AgentConfiguration
-	(*PluralWorkspacesProxy)(nil),   // 29: plural.agent.agentcfg.PluralWorkspacesProxy
+	(*GitLabWorkspacesProxy)(nil),   // 29: plural.agent.agentcfg.GitLabWorkspacesProxy
 	(*WorkspaceNetworkPolicy)(nil),  // 30: plural.agent.agentcfg.WorkspaceNetworkPolicy
 	(*RemoteDevelopmentCF)(nil),     // 31: plural.agent.agentcfg.RemoteDevelopmentCF
 	(*FluxCF)(nil),                  // 32: plural.agent.agentcfg.FluxCF
@@ -2653,7 +2653,7 @@ var file_pkg_agentcfg_agentcfg_proto_depIdxs = []int32{
 	32, // 39: plural.agent.agentcfg.AgentConfiguration.flux:type_name -> plural.agent.agentcfg.FluxCF
 	33, // 40: plural.agent.agentcfg.RemoteDevelopmentCF.partial_sync_interval:type_name -> google.protobuf.Duration
 	33, // 41: plural.agent.agentcfg.RemoteDevelopmentCF.full_sync_interval:type_name -> google.protobuf.Duration
-	29, // 42: plural.agent.agentcfg.RemoteDevelopmentCF.gitlab_workspaces_proxy:type_name -> plural.agent.agentcfg.PluralWorkspacesProxy
+	29, // 42: plural.agent.agentcfg.RemoteDevelopmentCF.gitlab_workspaces_proxy:type_name -> plural.agent.agentcfg.GitLabWorkspacesProxy
 	30, // 43: plural.agent.agentcfg.RemoteDevelopmentCF.network_policy:type_name -> plural.agent.agentcfg.WorkspaceNetworkPolicy
 	44, // [44:44] is the sub-list for method output_type
 	44, // [44:44] is the sub-list for method input_type
@@ -3005,7 +3005,7 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			}
 		}
 		file_pkg_agentcfg_agentcfg_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PluralWorkspacesProxy); i {
+			switch v := v.(*GitLabWorkspacesProxy); i {
 			case 0:
 				return &v.state
 			case 1:

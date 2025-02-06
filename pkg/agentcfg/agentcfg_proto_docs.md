@@ -17,7 +17,7 @@
     - [ContainerScanningFilter](#plural-agent-agentcfg-ContainerScanningFilter)
     - [ExtraKeyValCF](#plural-agent-agentcfg-ExtraKeyValCF)
     - [FluxCF](#plural-agent-agentcfg-FluxCF)
-    - [PluralWorkspacesProxy](#plural-agent-agentcfg-PluralWorkspacesProxy)
+    - [GitLabWorkspacesProxy](#plural-agent-agentcfg-GitLabWorkspacesProxy)
     - [GitRefCF](#plural-agent-agentcfg-GitRefCF)
     - [GitopsCF](#plural-agent-agentcfg-GitopsCF)
     - [GoogleProfilerCF](#plural-agent-agentcfg-GoogleProfilerCF)
@@ -63,7 +63,7 @@ additional config for kas.
 | ----- | ---- | ----- | ----------- |
 | gitops | [GitopsCF](#plural-agent-agentcfg-GitopsCF) |  |  |
 | observability | [ObservabilityCF](#plural-agent-agentcfg-ObservabilityCF) |  |  |
-| agent_id | [int64](#int64) |  | Plural-wide unique id of the agent. |
+| agent_id | [int64](#int64) |  | GitLab-wide unique id of the agent. |
 | project_id | [int64](#int64) |  | Id of the configuration project. |
 | ci_access | [CiAccessCF](#plural-agent-agentcfg-CiAccessCF) |  |  |
 | container_scanning | [ContainerScanningCF](#plural-agent-agentcfg-ContainerScanningCF) |  |  |
@@ -271,10 +271,10 @@ ConfigurationFile represents user-facing configuration file.
 
 
 
-<a name="plural-agent-agentcfg-PluralWorkspacesProxy"></a>
+<a name="plural-agent-agentcfg-GitLabWorkspacesProxy"></a>
 
-### PluralWorkspacesProxy
-PluralWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
+### GitLabWorkspacesProxy
+GitLabWorkspacesProxy represents the gitlab workspaces proxy configuration for the remote development module
 
 
 | Field | Type | Label | Description |
@@ -419,7 +419,7 @@ Project with Kubernetes object manifests.
 | dns_zone | [string](#string) |  |  |
 | partial_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
 | full_sync_interval | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
-| gitlab_workspaces_proxy | [PluralWorkspacesProxy](#plural-agent-agentcfg-PluralWorkspacesProxy) |  |  |
+| gitlab_workspaces_proxy | [GitLabWorkspacesProxy](#plural-agent-agentcfg-GitLabWorkspacesProxy) |  |  |
 | network_policy | [WorkspaceNetworkPolicy](#plural-agent-agentcfg-WorkspaceNetworkPolicy) |  |  |
 
 

@@ -4521,22 +4521,22 @@ var _ interface {
 	ErrorName() string
 } = AgentConfigurationValidationError{}
 
-// Validate checks the field values on PluralWorkspacesProxy with the rules
+// Validate checks the field values on GitLabWorkspacesProxy with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *PluralWorkspacesProxy) Validate() error {
+func (m *GitLabWorkspacesProxy) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on PluralWorkspacesProxy with the rules
+// ValidateAll checks the field values on GitLabWorkspacesProxy with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// PluralWorkspacesProxyMultiError, or nil if none found.
-func (m *PluralWorkspacesProxy) ValidateAll() error {
+// GitLabWorkspacesProxyMultiError, or nil if none found.
+func (m *GitLabWorkspacesProxy) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *PluralWorkspacesProxy) validate(all bool) error {
+func (m *GitLabWorkspacesProxy) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -4546,19 +4546,19 @@ func (m *PluralWorkspacesProxy) validate(all bool) error {
 	// no validation rules for Namespace
 
 	if len(errors) > 0 {
-		return PluralWorkspacesProxyMultiError(errors)
+		return GitLabWorkspacesProxyMultiError(errors)
 	}
 
 	return nil
 }
 
-// PluralWorkspacesProxyMultiError is an error wrapping multiple validation
-// errors returned by PluralWorkspacesProxy.ValidateAll() if the designated
+// GitLabWorkspacesProxyMultiError is an error wrapping multiple validation
+// errors returned by GitLabWorkspacesProxy.ValidateAll() if the designated
 // constraints aren't met.
-type PluralWorkspacesProxyMultiError []error
+type GitLabWorkspacesProxyMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m PluralWorkspacesProxyMultiError) Error() string {
+func (m GitLabWorkspacesProxyMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -4567,11 +4567,11 @@ func (m PluralWorkspacesProxyMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m PluralWorkspacesProxyMultiError) AllErrors() []error { return m }
+func (m GitLabWorkspacesProxyMultiError) AllErrors() []error { return m }
 
-// PluralWorkspacesProxyValidationError is the validation error returned by
-// PluralWorkspacesProxy.Validate if the designated constraints aren't met.
-type PluralWorkspacesProxyValidationError struct {
+// GitLabWorkspacesProxyValidationError is the validation error returned by
+// GitLabWorkspacesProxy.Validate if the designated constraints aren't met.
+type GitLabWorkspacesProxyValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -4579,24 +4579,24 @@ type PluralWorkspacesProxyValidationError struct {
 }
 
 // Field function returns field value.
-func (e PluralWorkspacesProxyValidationError) Field() string { return e.field }
+func (e GitLabWorkspacesProxyValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e PluralWorkspacesProxyValidationError) Reason() string { return e.reason }
+func (e GitLabWorkspacesProxyValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e PluralWorkspacesProxyValidationError) Cause() error { return e.cause }
+func (e GitLabWorkspacesProxyValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e PluralWorkspacesProxyValidationError) Key() bool { return e.key }
+func (e GitLabWorkspacesProxyValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e PluralWorkspacesProxyValidationError) ErrorName() string {
-	return "PluralWorkspacesProxyValidationError"
+func (e GitLabWorkspacesProxyValidationError) ErrorName() string {
+	return "GitLabWorkspacesProxyValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e PluralWorkspacesProxyValidationError) Error() string {
+func (e GitLabWorkspacesProxyValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -4608,14 +4608,14 @@ func (e PluralWorkspacesProxyValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sPluralWorkspacesProxy.%s: %s%s",
+		"invalid %sGitLabWorkspacesProxy.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = PluralWorkspacesProxyValidationError{}
+var _ error = GitLabWorkspacesProxyValidationError{}
 
 var _ interface {
 	Field() string
@@ -4623,7 +4623,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = PluralWorkspacesProxyValidationError{}
+} = GitLabWorkspacesProxyValidationError{}
 
 // Validate checks the field values on WorkspaceNetworkPolicy with the rules
 // defined in the proto definition for this message. If any rules are

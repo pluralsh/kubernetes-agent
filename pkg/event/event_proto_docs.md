@@ -41,8 +41,8 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [int64](#int64) |  | The numeric Plural project id |
-| full_path | [string](#string) |  | The full path to the Plural project |
+| id | [int64](#int64) |  | The numeric GitLab project id |
+| full_path | [string](#string) |  | The full path to the GitLab project |
 
 
 

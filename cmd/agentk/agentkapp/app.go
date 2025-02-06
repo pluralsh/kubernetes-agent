@@ -93,7 +93,7 @@ type App struct {
 	GrpcLogLevel      zap.AtomicLevel
 	AgentMeta         *entity.AgentMeta
 	AgentId           *ValueHolder[int64]
-	PluralExternalUrl *ValueHolder[url.URL]
+	GitLabExternalUrl *ValueHolder[url.URL]
 	// KasAddress specifies the address of kas.
 	KasAddress                 string
 	KasCACertFile              string
@@ -243,9 +243,9 @@ func (a *App) newModuleRunner(kasConn *grpc.ClientConn) *moduleRunner {
 				}
 				u, err := url.Parse(data.Config.GitlabExternalUrl)
 				if err != nil {
-					return fmt.Errorf("unable to parse configured Plural External URL %q: %w", data.Config.GitlabExternalUrl, err)
+					return fmt.Errorf("unable to parse configured GitLab External URL %q: %w", data.Config.GitlabExternalUrl, err)
 				}
-				return a.PluralExternalUrl.set(*u)
+				return a.GitLabExternalUrl.set(*u)
 			},
 		},
 	}
@@ -282,7 +282,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			Api: &agentAPI{
 				moduleName:        moduleName,
 				agentId:           a.AgentId,
-				gitLabExternalUrl: a.PluralExternalUrl,
+				gitLabExternalUrl: a.GitLabExternalUrl,
 			},
 			K8sUtilFactory:     k8sFactory,
 			KasConn:            kasConn,
@@ -411,7 +411,7 @@ func (a *App) constructKasConnection(ctx context.Context, tp trace.TracerProvide
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
 		)
 	default:
-		return nil, fmt.Errorf("unsupported scheme in Plural Kubernetes Agent Server address: %q", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
 	if !secure {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -433,13 +433,13 @@ func NewCommand() *cobra.Command {
 			KubernetesVersion: &entity.KubernetesVersion{},
 		},
 		AgentId:            NewValueHolder[int64](),
-		PluralExternalUrl:  NewValueHolder[url.URL](),
+		GitLabExternalUrl:  NewValueHolder[url.URL](),
 		ServiceAccountName: os.Getenv(envVarServiceAccountName),
 		K8sClientGetter:    kubeConfigFlags,
 	}
 	c := &cobra.Command{
 		Use:   "agentk",
-		Short: "Plural Agent for Kubernetes",
+		Short: "GitLab Agent for Kubernetes",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) (retErr error) {
 			podNs := os.Getenv(envVarPodNamespace)
@@ -503,7 +503,7 @@ func NewCommand() *cobra.Command {
 		SilenceUsage:  true,
 	}
 	f := c.Flags()
-	f.StringVar(&a.KasAddress, "kas-address", "", "Plural Kubernetes Agent Server address")
+	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
 
 	f.StringVar(&a.KasCACertFile, "ca-cert-file", "", "File with X.509 certificate authority certificate in PEM format. Used for verifying cert of agent server")

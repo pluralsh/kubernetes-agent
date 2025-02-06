@@ -82,41 +82,41 @@ func (c *ApiGetAgentIdCall) DoAndReturn(f func(context.Context) (int64, error)) 
 	return c
 }
 
-// GetPluralExternalUrl mocks base method.
-func (m *MockApi) GetPluralExternalUrl(arg0 context.Context) (url.URL, error) {
+// GetGitLabExternalUrl mocks base method.
+func (m *MockApi) GetGitLabExternalUrl(arg0 context.Context) (url.URL, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPluralExternalUrl", arg0)
+	ret := m.ctrl.Call(m, "GetGitLabExternalUrl", arg0)
 	ret0, _ := ret[0].(url.URL)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPluralExternalUrl indicates an expected call of GetPluralExternalUrl.
-func (mr *MockApiMockRecorder) GetPluralExternalUrl(arg0 any) *ApiGetPluralExternalUrlCall {
+// GetGitLabExternalUrl indicates an expected call of GetGitLabExternalUrl.
+func (mr *MockApiMockRecorder) GetGitLabExternalUrl(arg0 any) *ApiGetGitLabExternalUrlCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluralExternalUrl", reflect.TypeOf((*MockApi)(nil).GetPluralExternalUrl), arg0)
-	return &ApiGetPluralExternalUrlCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGitLabExternalUrl", reflect.TypeOf((*MockApi)(nil).GetGitLabExternalUrl), arg0)
+	return &ApiGetGitLabExternalUrlCall{Call: call}
 }
 
-// ApiGetPluralExternalUrlCall wrap *gomock.Call
-type ApiGetPluralExternalUrlCall struct {
+// ApiGetGitLabExternalUrlCall wrap *gomock.Call
+type ApiGetGitLabExternalUrlCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *ApiGetPluralExternalUrlCall) Return(arg0 url.URL, arg1 error) *ApiGetPluralExternalUrlCall {
+func (c *ApiGetGitLabExternalUrlCall) Return(arg0 url.URL, arg1 error) *ApiGetGitLabExternalUrlCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *ApiGetPluralExternalUrlCall) Do(f func(context.Context) (url.URL, error)) *ApiGetPluralExternalUrlCall {
+func (c *ApiGetGitLabExternalUrlCall) Do(f func(context.Context) (url.URL, error)) *ApiGetGitLabExternalUrlCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *ApiGetPluralExternalUrlCall) DoAndReturn(f func(context.Context) (url.URL, error)) *ApiGetPluralExternalUrlCall {
+func (c *ApiGetGitLabExternalUrlCall) DoAndReturn(f func(context.Context) (url.URL, error)) *ApiGetGitLabExternalUrlCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
