@@ -6,7 +6,7 @@
 - [pkg/event/event.proto](#pkg_event_event-proto)
     - [GitPushEvent](#plural-agent-event-GitPushEvent)
     - [Project](#plural-agent-event-Project)
-  
+
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -41,20 +41,20 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [int64](#int64) |  | The numeric GitLab project id |
-| full_path | [string](#string) |  | The full path to the GitLab project |
+| id | [int64](#int64) |  | The numeric Plural project id |
+| full_path | [string](#string) |  | The full path to the Plural project |
 
 
 
 
 
- 
 
- 
 
- 
 
- 
+
+
+
+
 
 
 

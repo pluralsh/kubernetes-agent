@@ -22,7 +22,7 @@ import (
 type serverAgentRpcApi struct {
 	modserver2.RpcApi
 	Token           api.AgentToken
-	GitLabClient    gitlab2.ClientInterface
+	PluralClient    gitlab2.ClientInterface
 	AgentInfoCache  *cache.CacheWithErr[api.AgentToken, *api.AgentInfo]
 	agentIdAttrOnce sync.Once
 }
@@ -76,7 +76,7 @@ func (f *serverAgentRpcApiFactory) New(ctx context.Context, fullMethodName strin
 	return &serverAgentRpcApi{
 		RpcApi:         f.rpcApiFactory(ctx, fullMethodName),
 		Token:          api.AgentToken(token),
-		GitLabClient:   f.gitLabClient,
+		PluralClient:   f.gitLabClient,
 		AgentInfoCache: f.agentInfoCache,
 	}, nil
 }

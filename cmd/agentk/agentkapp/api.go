@@ -23,7 +23,7 @@ func (a *agentAPI) GetAgentId(ctx context.Context) (int64, error) {
 	return a.agentId.get(ctx)
 }
 
-func (a *agentAPI) GetGitLabExternalUrl(ctx context.Context) (url.URL, error) {
+func (a *agentAPI) GetPluralExternalUrl(ctx context.Context) (url.URL, error) {
 	return a.gitLabExternalUrl.get(ctx)
 }
 

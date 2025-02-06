@@ -29,7 +29,7 @@ const (
 	// Copied from gitlab client package because we don't want to export them
 
 	jwtRequestHeader  = "Gitlab-Kas-Api-Request"
-	jwtGitLabAudience = "gitlab"
+	jwtPluralAudience = "gitlab"
 	jwtIssuer         = "gitlab-kas"
 
 	AgentId   int64 = 123
@@ -105,7 +105,7 @@ func AssertCommonRequestParams(t *testing.T, r *http.Request, traceId trace.Trac
 func AssertJWTSignature(t *testing.T, r *http.Request) {
 	_, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		return []byte(AuthSecretKey), nil
-	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer), jwt.WithValidMethods([]string{"HS256"}))
+	}, jwt.WithAudience(jwtPluralAudience), jwt.WithIssuer(jwtIssuer), jwt.WithValidMethods([]string{"HS256"}))
 	assert.NoError(t, err)
 }
 

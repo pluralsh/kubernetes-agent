@@ -38,7 +38,7 @@ type Config struct {
 	K8sUtilFactory util.Factory
 	// KasConn is the gRPC connection to gitlab-kas.
 	KasConn grpc.ClientConnInterface
-	// Server is a gRPC server that can be used to expose API endpoints to gitlab-kas and/or GitLab.
+	// Server is a gRPC server that can be used to expose API endpoints to gitlab-kas and/or Plural.
 	// This can be used to add endpoints in Factory.New.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	Server *grpc.Server
@@ -48,7 +48,7 @@ type Config struct {
 	ServiceAccountName string
 }
 
-type GitLabResponse struct {
+type PluralResponse struct {
 	Status     string // e.g. "200 OK"
 	StatusCode int32  // e.g. 200
 	Header     http.Header
@@ -60,7 +60,7 @@ type Api interface {
 	modshared.Api
 	GetAgentId(ctx context.Context) (int64, error)
 	TryGetAgentId() (int64, bool)
-	GetGitLabExternalUrl(ctx context.Context) (url.URL, error)
+	GetPluralExternalUrl(ctx context.Context) (url.URL, error)
 }
 
 // RpcApi provides the API for the module's gRPC handlers to use.
@@ -96,22 +96,22 @@ type Module interface {
 	Name() string
 }
 
-type GitLabRequestConfig struct {
+type PluralRequestConfig struct {
 	Method string
 	Header http.Header
 	Query  url.Values
 	Body   io.ReadCloser
 }
 
-func defaultRequestConfig() *GitLabRequestConfig {
-	return &GitLabRequestConfig{
+func defaultRequestConfig() *PluralRequestConfig {
+	return &PluralRequestConfig{
 		Method: http.MethodGet,
 		Header: make(http.Header),
 		Query:  make(url.Values),
 	}
 }
 
-func ApplyRequestOptions(opts []GitLabRequestOption) (*GitLabRequestConfig, error) {
+func ApplyRequestOptions(opts []PluralRequestOption) (*PluralRequestConfig, error) {
 	c := defaultRequestConfig()
 	var errs []error
 	for _, o := range opts {
@@ -132,17 +132,17 @@ func ApplyRequestOptions(opts []GitLabRequestOption) (*GitLabRequestConfig, erro
 	return c, nil
 }
 
-type GitLabRequestOption func(*GitLabRequestConfig) error
+type PluralRequestOption func(*PluralRequestConfig) error
 
-func WithRequestHeader(header string, values ...string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) error {
+func WithRequestHeader(header string, values ...string) PluralRequestOption {
+	return func(c *PluralRequestConfig) error {
 		c.Header[textproto.CanonicalMIMEHeaderKey(header)] = values
 		return nil
 	}
 }
 
-func WithRequestQueryParam(key string, values ...string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) error {
+func WithRequestQueryParam(key string, values ...string) PluralRequestOption {
+	return func(c *PluralRequestConfig) error {
 		c.Query[key] = values
 		return nil
 	}
@@ -151,8 +151,8 @@ func WithRequestQueryParam(key string, values ...string) GitLabRequestOption {
 // WithRequestBody specifies request body to send and HTTP Content-Type header if contentType is not empty.
 // If body implements io.ReadCloser, its Close() method will be called once the data has been sent.
 // If body is nil, no body or Content-Type header is sent.
-func WithRequestBody(body io.Reader, contentType string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) error {
+func WithRequestBody(body io.Reader, contentType string) PluralRequestOption {
+	return func(c *PluralRequestConfig) error {
 		if body == nil {
 			return nil
 		}
@@ -168,8 +168,8 @@ func WithRequestBody(body io.Reader, contentType string) GitLabRequestOption {
 	}
 }
 
-func WithJsonRequestBody(body interface{}) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) error {
+func WithJsonRequestBody(body interface{}) PluralRequestOption {
+	return func(c *PluralRequestConfig) error {
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("WithJsonRequestBody: %w", err)
@@ -179,8 +179,8 @@ func WithJsonRequestBody(body interface{}) GitLabRequestOption {
 }
 
 // WithRequestMethod specifies request HTTP method.
-func WithRequestMethod(method string) GitLabRequestOption {
-	return func(c *GitLabRequestConfig) error {
+func WithRequestMethod(method string) PluralRequestOption {
+	return func(c *PluralRequestConfig) error {
 		c.Method = method
 		return nil
 	}

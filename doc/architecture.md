@@ -2,8 +2,8 @@
 
 ## Issues the agent is trying to address
 
-- Integrate a cluster, located behind a firewall or NAT, with GitLab. To
-  learn more, read [issue #212810, Invert the model GitLab.com uses for Kubernetes integration by leveraging long lived reverse tunnels](https://gitlab.com/gitlab-org/gitlab/-/issues/212810).
+- Integrate a cluster, located behind a firewall or NAT, with Plural. To
+  learn more, read [issue #212810, Invert the model Plural.com uses for Kubernetes integration by leveraging long lived reverse tunnels](https://gitlab.com/gitlab-org/gitlab/-/issues/212810).
 - Access API endpoints in a cluster in real time. For an example use case, read
   [issue #218220, Allow Prometheus in K8s cluster to be installed manually](https://gitlab.com/gitlab-org/gitlab/-/issues/218220#note_348729266).
 - Enable real-time features by pushing information about events happening in a cluster.
@@ -22,26 +22,26 @@
 
 ## High-level architecture
 
-The GitLab Agent and the GitLab Agent Server use
+The Plural Agent and the Plural Agent Server use
 [bidirectional streaming](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
-to allow the connection acceptor (the gRPC server, GitLab Agent Server) to
+to allow the connection acceptor (the gRPC server, Plural Agent Server) to
 act as a client. The connection acceptor sends requests as gRPC replies. The client-server
 relationship is inverted because the connection must be initiated from inside the
 Kubernetes cluster to bypass any firewall or NAT the cluster may be located behind.
 To learn more about this inversion, read
 [issue #212810](https://gitlab.com/gitlab-org/gitlab/-/issues/212810).
 
-This diagram describes how GitLab (`GitLab RoR`), the GitLab Agent (`agentk`), and the GitLab Agent Server (`kas`) work together.
+This diagram describes how Plural (`Plural RoR`), the Plural Agent (`agentk`), and the Plural Agent Server (`kas`) work together.
 
 ```mermaid
 graph TB
   agentk -- gRPC bidirectional streaming --> kas
 
-  subgraph "GitLab"
+  subgraph "Plural"
   kas[kas]
-  GitLabRoR[GitLab RoR] -- gRPC --> kas
+  PluralRoR[Plural RoR] -- gRPC --> kas
   kas -- gRPC --> Gitaly[Gitaly]
-  kas -- REST API --> GitLabRoR
+  kas -- REST API --> PluralRoR
   end
 
   subgraph "Kubernetes cluster"
@@ -49,28 +49,28 @@ graph TB
   end
 ```
 
-- `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kas`.
-- `agentk` is the GitLab Agent. It keeps a connection established to a
+- `Plural RoR` is the main Plural application. It uses gRPC to talk to `kas`.
+- `agentk` is the Plural Agent. It keeps a connection established to a
   `kas` instance, waiting for requests to process. It may also actively send information
   about things happening in the cluster.
-- `kas` is the GitLab Agent Server, and is responsible for:
+- `kas` is the Plural Agent Server, and is responsible for:
   - Accepting requests from `agentk`.
-  - [Authentication of requests](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md) from `agentk` by querying `GitLab RoR`.
+  - [Authentication of requests](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md) from `agentk` by querying `Plural RoR`.
   - Fetching agent's configuration from a corresponding Git repository by querying Gitaly.
-  - Matching incoming requests from `GitLab RoR` with existing connections from
+  - Matching incoming requests from `Plural RoR` with existing connections from
     the right `agentk`, forwarding requests to it and forwarding responses back.
   - (Optional) Sending notifications through ActionCable for events received from `agentk`.
   - Polling manifest repositories for [GitOps support](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/gitops.md) by communicating with Gitaly.
 
 <i class="fa fa-youtube-play youtube" aria-hidden="true"></i>
 To learn more about how the repository is structured, see
-[GitLab Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
+[Plural Agent repository overview](https://www.youtube.com/watch?v=j8CyaCWroUY).
 
 ## Guiding principles
 
-GitLab prefers to add logic into `kas` rather than `agentk`. `agentk` should be kept
-streamlined and small to minimize the need for upgrades. On GitLab.com, `kas` is
-managed by GitLab, so upgrades and features can be added without requiring you
+Plural prefers to add logic into `kas` rather than `agentk`. `agentk` should be kept
+streamlined and small to minimize the need for upgrades. On Plural.com, `kas` is
+managed by Plural, so upgrades and features can be added without requiring you
 to upgrade `agentk` in your clusters.
 
 `agentk` can't be viewed as a dumb reverse proxy because features are planned to be built
@@ -80,11 +80,11 @@ to upgrade `agentk` in your clusters.
 
 - **Q**: Why do we need long-running connections? Cannot we just ask users to punch a hole in their firewall?
 
-  **A**: Even if it was always possible, having an agent running in the cluster enables us to build more features, not just connecting such clusters to GitLab.
+  **A**: Even if it was always possible, having an agent running in the cluster enables us to build more features, not just connecting such clusters to Plural.
 
 - **Q**: Why do we need long-running connections? Can we use polling instead?
 
-  **A**: Polling will not allow for real-time access to the in-cluster APIs. For example, our metrics integration queries Prometheus API to get the data for dashboards. I.e. the request comes from GitLab, not from the Kubernetes side.
+  **A**: Polling will not allow for real-time access to the in-cluster APIs. For example, our metrics integration queries Prometheus API to get the data for dashboards. I.e. the request comes from Plural, not from the Kubernetes side.
 
 - **Q**: Can we push data about things happening in the cluster using REST API instead of using streaming?
 
@@ -100,7 +100,7 @@ to upgrade `agentk` in your clusters.
 
   **A**: There are several reasons:
 
-  - Allows the GitLab instance operator to configure polling frequency and any other relevant parameters. Makes it harder for the user to misuse/abuse the system.
+  - Allows the Plural instance operator to configure polling frequency and any other relevant parameters. Makes it harder for the user to misuse/abuse the system.
 
   - Fewer knobs for the user to tweak means more straightforward configuration experience.
 

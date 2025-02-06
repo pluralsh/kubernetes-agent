@@ -3,11 +3,14 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	console "github.com/pluralsh/console/go/client"
 	"github.com/pluralsh/polly/algorithms"
+	"go.uber.org/zap"
 
 	"github.com/pluralsh/kuberentes-agent/pkg/plural"
+	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
 )
 
 func AuthorizeProxyUser(ctx context.Context, token, clusterId, pluralURL string) (*AuthorizeProxyUserResponse, error) {
@@ -36,4 +39,19 @@ func AuthorizeProxyUser(ctx context.Context, token, clusterId, pluralURL string)
 			Email:    resp.TokenExchange.Email,
 		},
 	}, nil
+}
+
+func CreateAuditLogInBackground(ctx context.Context, log *zap.Logger, agentId int64, r *http.Request, token, clusterId, pluralURL string) {
+	go func() {
+		log = log.With(logz.AgentId(agentId))
+
+		client := plural.New(pluralURL, token)
+		_, err := client.Console.AddClusterAuditLog(ctx, console.ClusterAuditAttributes{
+			ClusterID: clusterId,
+			Method:    r.Method,
+			Path:      r.URL.Path,
+		})
+
+		log.Warn("failed to create audit log", logz.Error(err))
+	}()
 }

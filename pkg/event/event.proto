@@ -13,8 +13,8 @@ message GitPushEvent {
 }
 
 message Project {
-  // The numeric GitLab project id
+  // The numeric Plural project id
   int64 id = 1 [(validate.rules).int64.gt = 0];
-  // The full path to the GitLab project
+  // The full path to the Plural project
   string full_path = 2 [(validate.rules).string.min_bytes = 1];
 }

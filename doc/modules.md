@@ -33,13 +33,13 @@ API for module's agent part is defined in [`internal/module/modagent`](/pkg/modu
 - Optionally registers gRPC services on the gRPC server that `gitlab-kas` talks to. See [`kas` request routing](kas_request_routing.md).
 - Implements the required functionality.
 
-### Making requests to GitLab
+### Making requests to Plural
 
-To make requests to GitLab an agent module may use `MakeGitLabRequest()` method on the `modagent.API` object. Using a dedicated method rather than making a REST request directly is beneficial for the following reasons:
+To make requests to Plural an agent module may use `MakePluralRequest()` method on the `modagent.API` object. Using a dedicated method rather than making a REST request directly is beneficial for the following reasons:
 
 - Adds an indirection point that allows `agentk` to inject any necessary interceptors for tracing, monitoring, rate limiting, etc. In general this ensures all requests are made in a uniform manner.
 - Modules don't have to deal with authentication and agent token handling, which is a secret. Reducing the exposure of the token within the program improves security because the chance of token leaking is reduced.
 - All traffic originating from all agents uses a single entrypoint - `gitlab-kas`. Benefits:
 
-  - It makes it possible to expose only `gitlab-kas` domain and not the rest of GitLab in a case where GitLab is deployed as a self-managed instance with the Kubernetes cluster being in a cloud.
-  - `gitlab-kas` performs rate-limiting, monitoring, etc across the board for all GitLab access originating from all the agents.
+  - It makes it possible to expose only `gitlab-kas` domain and not the rest of Plural in a case where Plural is deployed as a self-managed instance with the Kubernetes cluster being in a cloud.
+  - `gitlab-kas` performs rate-limiting, monitoring, etc across the board for all Plural access originating from all the agents.

@@ -426,8 +426,8 @@ github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/pluralsh/console/go/client v1.25.4 h1:Uf5lP6r9XWO4wZJCPf7fn0Jn52Cd2uP+Lt2zWa53xqw=
-github.com/pluralsh/console/go/client v1.25.4/go.mod h1:lpoWASYsM9keNePS3dpFiEisUHEfObIVlSL3tzpKn8k=
+github.com/pluralsh/console/go/client v1.28.3 h1:KyHpOoVHhMRMAZp99k7LqZqX6+FrOwy9sGVXaDSi9FA=
+github.com/pluralsh/console/go/client v1.28.3/go.mod h1:lpoWASYsM9keNePS3dpFiEisUHEfObIVlSL3tzpKn8k=
 github.com/pluralsh/polly v0.1.11 h1:xSpgVr+VY4GLHUM9BeWSXTbCHX/s4xWOqJOkVMbiDgM=
 github.com/pluralsh/polly v0.1.11/go.mod h1:o+oi+FXNThipKNyZsqCemqwY0JdkvhEjQqi8aTw8l4M=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

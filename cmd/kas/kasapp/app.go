@@ -81,7 +81,7 @@ func NewCommand() *cobra.Command {
 	a := App{}
 	c := &cobra.Command{
 		Use:   "kas",
-		Short: "GitLab Kubernetes Agent Server",
+		Short: "Plural Kubernetes Agent Server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return a.Run(cmd.Context())

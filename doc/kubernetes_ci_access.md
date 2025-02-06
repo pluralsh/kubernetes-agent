@@ -3,7 +3,7 @@
 ## Problem to solve
 
 As an Application Operator, I would like certain CI jobs to be able to access my Kubernetes cluster, connected
-via GitLab Agent. That way I don't have to open up my cluster to access it from CI.
+via Plural Agent. That way I don't have to open up my cluster to access it from CI.
 
 ## Intended users
 
@@ -12,7 +12,7 @@ via GitLab Agent. That way I don't have to open up my cluster to access it from 
 
 ## User experience goal
 
-The user can allow certain CI jobs to access Kubernetes clusters connected via the GitLab Agent.
+The user can allow certain CI jobs to access Kubernetes clusters connected via the Plural Agent.
 
 A single CI job can access multiple clusters, that is to access multiple Agents.
 This is often required in production environments, where the production environment is composed of multiple clusters
@@ -57,13 +57,13 @@ ci_access:
       access_as: ...
 ```
 
-When a CI job, that has access to one or more agents, runs, GitLab injects a
+When a CI job, that has access to one or more agents, runs, Plural injects a
 [`kubectl`-compatible configuration file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig)
 (using a [variable of type `File`](https://docs.gitlab.com/ee/ci/variables/#custom-cicd-variables)) and sets
 [`KUBECONFIG` environment variable](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#the-kubeconfig-environment-variable)
 to its location on disk. The file contains a
 [context](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#context)
-per GitLab Agent that this CI job is allowed to access.
+per Plural Agent that this CI job is allowed to access.
 
 The `ci_access.projects[].default_namespace` specifies the namespace for the context used in the CI/CD tunnel. Omitting `default_namespace` does not set a namespace in the context.
 
@@ -212,7 +212,7 @@ the `access_as` config section. For any option other than `agent` to work, `agen
 
   - `Groups` is set to:
 
-    - `gitlab:user` to identify all requests coming from GitLab users.
+    - `gitlab:user` to identify all requests coming from Plural users.
 
     - The list of roles the user has in the project where the CI job is running.
 
@@ -261,7 +261,7 @@ ci_access:
         agent: {}
 ```
 
-### Notifying GitLab of agent's configuration
+### Notifying Plural of agent's configuration
 
 According to the [proposal](#proposal), user maintains the list of groups and/or projects
 in the agent's configuration file. This can be thought of as `agent id` -> `allowed project id` and

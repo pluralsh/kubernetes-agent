@@ -75,9 +75,9 @@ type Project struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The numeric GitLab project id
+	// The numeric Plural project id
 	Id int64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	// The full path to the GitLab project
+	// The full path to the Plural project
 	FullPath string `protobuf:"bytes,2,opt,name=full_path,json=fullPath,proto3" json:"full_path,omitempty"`
 }
 

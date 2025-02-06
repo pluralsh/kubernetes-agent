@@ -186,9 +186,9 @@ func (p *kubernetesApiProxy) proxyInternal(w http.ResponseWriter, r *http.Reques
 
 	log, clusterId, impConfig, eResp := p.authenticateAndImpersonateRequest(ctx, log, r)
 	if eResp != nil {
-		// If GitLab doesn't authorize the proxy user to make the call,
+		// If Plural doesn't authorize the proxy user to make the call,
 		// we send an extra header to indicate that, so that the client
-		// can differentiate from an *unauthorized* response from GitLab
+		// can differentiate from an *unauthorized* response from Plural
 		// and from an *authorized* response from the proxied K8s cluster.
 		if eResp.StatusCode == http.StatusUnauthorized {
 			w.Header()[httpz2.GitlabUnauthorizedHeader] = []string{"true"}
@@ -234,6 +234,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 
 	switch c := creds.(type) {
 	case patAuthn:
+		pluralapi.CreateAuditLogInBackground(ctx, log, agentId, r, c.token, c.clusterId, p.pluralUrl)
 		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, c.token, c.clusterId)
 		if eResp != nil {
 			return log, agentId, nil, eResp
@@ -300,12 +301,12 @@ func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
 
-	// remove GitLab authorization headers (job token, session cookie etc)
+	// remove Plural authorization headers (job token, session cookie etc)
 	delete(r.Header, httpz2.AuthorizationHeader)
 	delete(r.Header, httpz2.CookieHeader)
 	delete(r.Header, httpz2.GitlabAgentIdHeader)
 	delete(r.Header, httpz2.CsrfTokenHeader)
-	// remove GitLab authorization query parameters
+	// remove Plural authorization query parameters
 	query := r.URL.Query()
 	delete(query, httpz2.GitlabAgentIdQueryParam)
 	delete(query, httpz2.CsrfTokenQueryParam)
@@ -393,7 +394,7 @@ func (p *kubernetesApiProxy) writeErrorResponse(log *zap.Logger, agentId int64) 
 // err can be nil.
 func formatStatusMessage(ctx context.Context, msg string, err error) string {
 	var b strings.Builder
-	b.WriteString("GitLab Agent Server: ")
+	b.WriteString("Plural Agent Server: ")
 	b.WriteString(msg)
 	if err != nil {
 		b.WriteString(": ")

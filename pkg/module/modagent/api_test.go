@@ -15,7 +15,7 @@ import (
 func TestApplyRequestOptions(t *testing.T) {
 	tests := []struct {
 		name           string
-		opts           []GitLabRequestOption
+		opts           []PluralRequestOption
 		expectedMethod string
 		expectedHeader http.Header
 		expectedQuery  url.Values
@@ -30,7 +30,7 @@ func TestApplyRequestOptions(t *testing.T) {
 		},
 		{
 			name: "typical usage",
-			opts: []GitLabRequestOption{
+			opts: []PluralRequestOption{
 				WithRequestMethod(http.MethodGet),
 				WithRequestHeader("xx1", "x1", "x2"),
 				WithRequestHeader("xx2", "x3", "x4"),
@@ -52,7 +52,7 @@ func TestApplyRequestOptions(t *testing.T) {
 		},
 		{
 			name: "nil body",
-			opts: []GitLabRequestOption{
+			opts: []PluralRequestOption{
 				WithRequestBody(nil, "bla"),
 			},
 			expectedMethod: http.MethodGet,
@@ -61,7 +61,7 @@ func TestApplyRequestOptions(t *testing.T) {
 		},
 		{
 			name: "json body",
-			opts: []GitLabRequestOption{
+			opts: []PluralRequestOption{
 				WithJsonRequestBody(struct {
 					A int
 				}{
@@ -77,7 +77,7 @@ func TestApplyRequestOptions(t *testing.T) {
 		},
 		{
 			name: "json marshaling error",
-			opts: []GitLabRequestOption{
+			opts: []PluralRequestOption{
 				WithJsonRequestBody(&invalidJson{}),
 			},
 			expectedErr: "WithJsonRequestBody: json: error calling MarshalJSON for type *modagent.invalidJson: boom",
@@ -107,7 +107,7 @@ func TestApplyRequestOptions(t *testing.T) {
 
 func TestApplyRequestOptions_BodyClosedOnError(t *testing.T) {
 	c := &closeableReader{}
-	_, err := ApplyRequestOptions([]GitLabRequestOption{
+	_, err := ApplyRequestOptions([]PluralRequestOption{
 		WithRequestBody(c, ""),
 		WithJsonRequestBody(&invalidJson{}),
 	})
