@@ -234,7 +234,7 @@ func (p *kubernetesApiProxy) authenticateAndImpersonateRequest(ctx context.Conte
 
 	switch c := creds.(type) {
 	case patAuthn:
-		pluralapi.CreateAuditLogInBackground(ctx, log, agentId, r, c.token, c.clusterId, p.pluralUrl)
+		pluralapi.CreateAuditLogInBackground(log, agentId, r, c.token, c.clusterId, p.pluralUrl)
 		auth, eResp := p.authorizeProxyUser(ctx, log, agentId, c.token, c.clusterId)
 		if eResp != nil {
 			return log, agentId, nil, eResp

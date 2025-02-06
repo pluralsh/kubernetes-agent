@@ -41,17 +41,19 @@ func AuthorizeProxyUser(ctx context.Context, token, clusterId, pluralURL string)
 	}, nil
 }
 
-func CreateAuditLogInBackground(ctx context.Context, log *zap.Logger, agentId int64, r *http.Request, token, clusterId, pluralURL string) {
+func CreateAuditLogInBackground(log *zap.Logger, agentId int64, r *http.Request, token, clusterId, pluralURL string) {
 	go func() {
 		log = log.With(logz.AgentId(agentId))
 
 		client := plural.New(pluralURL, token)
-		_, err := client.Console.AddClusterAuditLog(ctx, console.ClusterAuditAttributes{
+		_, err := client.Console.AddClusterAuditLog(context.Background(), console.ClusterAuditAttributes{
 			ClusterID: clusterId,
 			Method:    r.Method,
 			Path:      r.URL.Path,
 		})
 
-		log.Warn("failed to create audit log", logz.Error(err))
+		if err != nil {
+			log.Error("failed to create audit log", logz.Error(err))
+		}
 	}()
 }
