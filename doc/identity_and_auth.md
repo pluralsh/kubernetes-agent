@@ -1,14 +1,14 @@
 # Identity and authentication
 
 This page uses the word `agent` to describe the concept of the
-GitLab Agent for Kubernetes. The program that implements the concept is called `agentk`.
+Plural Agent for Kubernetes. The program that implements the concept is called `agentk`.
 Read the
 [architecture page](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/architecture.md)
 for more information.
 
 ## Agent identity and name
 
-In a GitLab installation, each agent must have a unique, immutable name. This
+In a Plural installation, each agent must have a unique, immutable name. This
 name must be unique in the project the agent is attached to, and this name must
 follow the [DNS label standard from RFC 1123](https://tools.ietf.org/html/rfc1123).
 The name must:
@@ -45,12 +45,12 @@ and minimize the permissions each particular agent needs.
 
 ## Agent authentication
 
-When adding a new agent, GitLab provides the user with a bearer access token. The
-agent uses this token to authenticate with GitLab. This token is a random string
+When adding a new agent, Plural provides the user with a bearer access token. The
+agent uses this token to authenticate with Plural. This token is a random string
 and does not encode any information in it, but it is secret and must
 be treated with care. Store it as a `Secret` in Kubernetes.
 
-Each agent can have 0 or more tokens in a GitLab database. Having several valid
+Each agent can have 0 or more tokens in a Plural database. Having several valid
 tokens helps you rotate tokens without needing to re-register an agent. Each token
 record in the database has the following fields:
 
@@ -72,8 +72,8 @@ Tokens are immutable, and only the following fields can be updated:
 - Revocation time. Set to the current time when revocation flag is set, but immutable after that.
 - Comments field. Can be updated any number of times, including after the token has been revoked.
 
-The agent sends its token, along with each request, to GitLab to authenticate itself.
-For each request, GitLab checks the token's validity:
+The agent sends its token, along with each request, to Plural to authenticate itself.
+For each request, Plural checks the token's validity:
 
 - Does the token exist in the database?
 - Has the token been revoked?
@@ -82,7 +82,7 @@ This information may be cached for some time to reduce load on the database.
 
 ## Agent authorization
 
-GitLab provides the following information in its response for a given Agent access token:
+Plural provides the following information in its response for a given Agent access token:
 
 - Agent configuration Git repository. (The agent doesn't support per-folder authorization.)
 - Agent name.

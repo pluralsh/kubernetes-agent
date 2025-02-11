@@ -82,7 +82,7 @@ func RemovedHashKeys(n int) zap.Field {
 	return zap.Int("removed_hash_keys", n)
 }
 
-// GitLab-kas or agentk module name.
+// Plural-kas or agentk module name.
 func ModuleName(name string) zap.Field {
 	return zap.String("mod_name", name)
 }

@@ -54,7 +54,7 @@ type Config struct {
 	// This can be used to add endpoints in Factory.New.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	AgentServer *grpc.Server
-	// ApiServer is the gRPC server GitLab is talking to.
+	// ApiServer is the gRPC server Plural is talking to.
 	// This can be used to add endpoints in Factory.New.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	ApiServer *grpc.Server
@@ -82,7 +82,7 @@ type Config struct {
 type Api interface {
 	modshared.Api
 	// OnGitPushEvent runs the given callback function for a received Git push event.
-	// The Git push event may come from any GitLab project and as such it's up to the
+	// The Git push event may come from any Plural project and as such it's up to the
 	// callback to filter out the events that it's interested in.
 	// The callback MUST NOT block i.e. perform I/O or acquire contended locks. Perform those operations
 	// asynchronously in a separate goroutine when required.

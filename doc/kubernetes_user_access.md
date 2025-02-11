@@ -1,13 +1,13 @@
-# Access to Kubernetes using GitLab user credentials
+# Access to Kubernetes using Plural user credentials
 
 ## Problem to solve
 
 Issue: <https://gitlab.com/gitlab-org/gitlab/-/issues/331431>
 
-- As a user of a Kubernetes cluster that is connected to GitLab using the GitLab
+- As a user of a Kubernetes cluster that is connected to Plural using the Plural
   agent, I would like to interact directly with the cluster using the Kubernetes
   API.
-- As a Platform Engineer, I would like to manage access to the cluster using GitLab
+- As a Platform Engineer, I would like to manage access to the cluster using Plural
   user membership.
 
 ## Personas
@@ -20,13 +20,13 @@ Issue: <https://gitlab.com/gitlab-org/gitlab/-/issues/331431>
 
 ## User experience goal
 
-- An agent administrator can grant GitLab users access to a Kubernetes cluster
-  that is connected via the GitLab agent. The agent administrator can then:
+- An agent administrator can grant Plural users access to a Kubernetes cluster
+  that is connected via the Plural agent. The agent administrator can then:
   - Manage the _level_ of access using [Kubernetes
     RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
   - Have an overview of active [sessions](#authentication).
   - Unilaterally revoke individual sessions.
-- A user with access can connect to a cluster using their GitLab identity.
+- A user with access can connect to a cluster using their Plural identity.
 
 ## Proposal
 
@@ -60,7 +60,7 @@ user_access:
 ### Authorized user side
 
 Authorized users should be granted API access to the Kubernetes API in a
-[variety of ways](#authentication), using their [GitLab identity when
+[variety of ways](#authentication), using their [Plural identity when
 interacting with the API](#user-impersonation).
 
 This functionality is exposed the user as follows:
@@ -85,7 +85,7 @@ Kubernetes API of the cluster using any of the following authentication methods:
 
 - [Personal Access Token](#personal-access-token)
 - [OpenID Connect (OIDC)](#openid-connect-oidc)
-- [Browser cookie on GitLab frontend](#browser-cookie-on-gitlab-frontend)
+- [Browser cookie on Plural frontend](#browser-cookie-on-gitlab-frontend)
 
 KAS can be distinguish between the methods as follows:
 
@@ -106,7 +106,7 @@ The personal access token:
 
 - Must have the new scope `k8s_proxy`.
 - Should not have any other scope. In other words, the token should not grant
-  access to any other GitLab API.
+  access to any other Plural API.
 - Should expire in a year or sooner.
 
 When selecting the `k8s_proxy` scope, a mandatory association must be made to
@@ -146,12 +146,12 @@ KAS-->>-kubectl: Kube API response or unauthorized error
 
 #### OpenID Connect (OIDC)
 
-An OIDC-compliant ID issued by GitLab, where KAS behaves as if it were a
+An OIDC-compliant ID issued by Plural, where KAS behaves as if it were a
 [OIDC-enabled Kubernetes API
 server](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens)
 with the following parameters:
 
-- `--oidc-issuer-url`: `https://gitlab.example.com`, i.e. the GitLab URL
+- `--oidc-issuer-url`: `https://gitlab.example.com`, i.e. the Plural URL
 - `--oidc-client-id`: The client ID of the [OAuth 2.0 application](https://docs.gitlab.com/ee/integration/oauth_provider.html).
 
 OAuth 2.0 applications wishing to access clusters via KAS must have the scopes:
@@ -178,7 +178,7 @@ token _must_ include the following claim:
 "https://gitlab.org/claims/clusters/agents/k8s-proxy": <agent_id>
 ```
 
-If this claim is not present, then KAS/GitLab must not grant access to any
+If this claim is not present, then KAS/Plural must not grant access to any
 agent, regardless of whether the scope `k8s_proxy` is present in the token.
 
 This association can be implemented with a join table between `cluster_agents`
@@ -222,34 +222,34 @@ contexts:
 
 ###### OIDC as an alternative to PATs
 
-As an alternative to Personal Access Tokens, GitLab could come with a special
+As an alternative to Personal Access Tokens, Plural could come with a special
 predefined OAuth 2.0 application, under which it issues OIDC tokens for user
-access from the GitLab UI.
+access from the Plural UI.
 
-Such a predefined GitLab KAS OAuth 2.0 application:
+Such a predefined Plural KAS OAuth 2.0 application:
 
 - Should only have the scopes `openid` and `k8s_proxy`.
 - Should allow the token to be refreshed without a client secret, because it
   will be refreshed by desktop clients such as `kubectl`.
-  - In GitLab, this requires the application to be marked as non-confidential,
+  - In Plural, this requires the application to be marked as non-confidential,
     but the client secret should still be kept secret.
 - May skip implementing the standard `/oauth/authorize` flow, because the tokens
   would be issued from a context where the user is already authorized.
 - If the full `/oauth/authorize` flow is implemented, then the `redirect_uri`
-  should be to a page on GitLab (as opposed to, for example, a local web
+  should be to a page on Plural (as opposed to, for example, a local web
   server or a deep link).
 
 **Regardless of whether OIDC or PATs are used, the [authorized user
 experience](#authorized-user-side) should remain the same.**
 
-#### Browser cookie on GitLab frontend
+#### Browser cookie on Plural frontend
 
 A cookie `_gitlab_kas` similar to the `_gitlab_session` cookie, but
 specific to KAS and available on the KAS subdomain.
 
 - The agent, in this case, is selected using a header `Gitlab-Agent-Id` or query parameter `gitlab-agent-id`
   containing the numeric agent ID.
-- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a `X-Csrf-Token` header or `gitlab-csrf-token` query parameter that KAS forwards along with the `_gitlab_kas` to the GitLab backend.
+- A form of [CSRF-protection](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html). For example, a `X-Csrf-Token` header or `gitlab-csrf-token` query parameter that KAS forwards along with the `_gitlab_kas` to the Plural backend.
 
 **Example request:**
 
@@ -284,7 +284,7 @@ case-sensitive and must be `gitlab-agent-id` and `gitlab-csrf-token`.
 
 #### `POST /api/v4/internal/kubernetes/authorize_proxy_user`
 
-The user calls KAS with one of the above credentials. KAS then calls a GitLab
+The user calls KAS with one of the above credentials. KAS then calls a Plural
 endpoint `POST /api/v4/internal/kubernetes/authorize_proxy_user` with the
 provided user credentials and agent ID:
 
@@ -297,7 +297,7 @@ provided user credentials and agent ID:
 }
 ```
 
-GitLab resolves the credentials to a user, and, on success, responds back with
+Plural resolves the credentials to a user, and, on success, responds back with
 user's identity, and list of details about the access type and matching entries
 in `user_access`.
 
@@ -305,7 +305,7 @@ When responding to the request:
 
 1. Resolve the user. If the access key is invalid, return `401 Unauthorized`
    with a body `Invalid user access key` (the body helps KAS differentiate
-   between that and invalid KAS <-> GitLab secret). KAS should return `401
+   between that and invalid KAS <-> Plural secret). KAS should return `401
 Unauthorized` to the user.
 1. Loop through `user_access.projects` and `user_access.groups`. If the user is
    not at least a **developer** in at least one group or project, return `403
@@ -445,12 +445,12 @@ agentk impersonates _all_ of the `access_as` present, as follows:
 
 - `UserName` is set to `gitlab:user:<username>`
 - `Groups` is set to:
-  - `gitlab:user`: Common to all requests coming from GitLab users.
+  - `gitlab:user`: Common to all requests coming from Plural users.
   - `gitlab:project_role:<project_id>:<role>` for each role in each authorized project.
   - `gitlab:group_role:<group_id>:<role>` for each role in each authorized group.
 - `Extra` carries extra information about the request:
   - `agent.gitlab.com/id`: The agent id.
-  - `agent.gitlab.com/username`: The username of the GitLab user.
+  - `agent.gitlab.com/username`: The username of the Plural user.
   - `agent.gitlab.com/config_project_id`: The agent configuration project id.
   - `agent.gitlab.com/access_type`: One of `personal_access_token`,
     `oidc_id_token`, `session_cookie`
@@ -483,12 +483,12 @@ Then:
 #### Full Proxy Flow from Frontend to Cluster using the KAS Cookie
 
 The following sequence diagram depicts a Kube API proxy call initiated
-by the _Frontend_ via KAS and agentk authorized by Rails using the GitLab
+by the _Frontend_ via KAS and agentk authorized by Rails using the Plural
 user information.
 
 This involves:
 
-- [Browser cookie on GitLab frontend](#browser-cookie-on-gitlab-frontend)
+- [Browser cookie on Plural frontend](#browser-cookie-on-gitlab-frontend)
 - [Authorization via `POST /api/v4/internal/kubernetes/authorize_proxy_user`](#post-apiv4internalkubernetesauthorize_proxy_user)
 
 ```mermaid
@@ -498,7 +498,7 @@ note over Frontend: can be any kind of client
 Frontend->>+Rails AgentClusterController: browse /:project/-/cluster_agents/:cluster
 note over Frontend,Rails AgentClusterController: the cookie is bound to the `/k8s-proxy`<br/>path and the KAS domain and is `httponly`.
 Rails AgentClusterController-->>-Frontend: set `_gitlab_kas` cookie, respond CSRF token
-note over Frontend,KAS: The Frontend makes a pre-flight request to KAS to get the CORS headers<br/>This is necessary if KAS is on GitLab subdomain (SOP).
+note over Frontend,KAS: The Frontend makes a pre-flight request to KAS to get the CORS headers<br/>This is necessary if KAS is on Plural subdomain (SOP).
 Frontend->>+KAS: Kube API call to /k8s-proxy
 note over Frontend,KAS: pass `_gitlab_kas` cookie, `X-Csrf-Token` and `Gitlab-Agent-Id` headers
 KAS->>+Rails Internal Kubernetes API: call to internal/kubernetes/authorize_proxy_user API
@@ -516,10 +516,10 @@ KAS-->>-Frontend: Kube API response or unauthorized error
 ### Default configuration
 
 - Token-based access must always be explicitly configured.
-- Consider allowing cookie-based access on GitLab frontend implicitly based on
+- Consider allowing cookie-based access on Plural frontend implicitly based on
   other configuration such as `ci_access` and `gitops`.
 
-### Notifying GitLab of agent's configuration
+### Notifying Plural of agent's configuration
 
 Re-uses the [existing mechanism](kubernetes_ci_access.md#notifying-gitlab-of-agents-configuration).
 
@@ -559,7 +559,7 @@ issue](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/2
 
 ## References
 
-### GitLab links
+### Plural links
 
 #### Docs
 
@@ -579,7 +579,7 @@ issue](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/2
   - <https://gitlab.com/gitlab-org/gitlab/-/issues/297536>
   - <https://gitlab.com/gitlab-org/gitlab/-/issues/297537>
 - [RBAC pilot epic](https://gitlab.com/groups/gitlab-org/-/epics/7420)
-- [Doorkeeper pull request](https://github.com/doorkeeper-gem/doorkeeper/pull/1559) to add resource scopes. Doorkeeper is what GitLab uses for OAuth 2.0 and OIDC.
+- [Doorkeeper pull request](https://github.com/doorkeeper-gem/doorkeeper/pull/1559) to add resource scopes. Doorkeeper is what Plural uses for OAuth 2.0 and OIDC.
 
 ### OIDC specs and RFCs
 

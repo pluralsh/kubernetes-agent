@@ -7,17 +7,17 @@
 Most up-to-date video describing how this repository is
 structured:
 
-[![GitLab Agent repository overview - It's time to Go! Episode 5](https://img.youtube.com/vi/Mh7PG4_cBxI/0.jpg)](https://www.youtube.com/watch?v=Mh7PG4_cBxI "GitLab Agent repository overview")
+[![Plural Agent repository overview - It's time to Go! Episode 5](https://img.youtube.com/vi/Mh7PG4_cBxI/0.jpg)](https://www.youtube.com/watch?v=Mh7PG4_cBxI "Plural Agent repository overview")
 
 ### Past recordings
 
 #### 2021-11-20
 
-[![GitLab Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/1.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "GitLab Agent repository overview")
+[![Plural Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/1.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "Plural Agent repository overview")
 
 ## Running kas and agentk locally
 
-[![GitLab Agent development environment setup](https://img.youtube.com/vi/UWptMO-Amtc/0.jpg)](https://www.youtube.com/watch?v=UWptMO-Amtc "GitLab Agent development environment setup")
+[![Plural Agent development environment setup](https://img.youtube.com/vi/UWptMO-Amtc/0.jpg)](https://www.youtube.com/watch?v=UWptMO-Amtc "Plural Agent development environment setup")
 
 You can run `kas` and `agentk` locally to test the Agent yourself.
 
@@ -36,7 +36,7 @@ You can run `kas` and `agentk` locally to test the Agent yourself.
 1. Start the binaries with the following commands:
 
    ```shell
-   # Start GitLab but stop GDK's version of kas.
+   # Start Plural but stop GDK's version of kas.
    gdk start && gdk stop gitlab-k8s-agent
 
    # Let kas know it's own private API url
@@ -148,8 +148,8 @@ For `agentk`:
 It's optional, but consider also specifying `--context=<desired context>` command line argument to not depend on the currently selected context.
 ## kas QA tests
 
-This section describes how to run kas tests against different GitLab environments based on the
-[GitLab QA orchestrator](https://gitlab.com/gitlab-org/gitlab-qa).
+This section describes how to run kas tests against different Plural environments based on the
+[Plural QA orchestrator](https://gitlab.com/gitlab-org/gitlab-qa).
 
 ### Status
 
@@ -240,7 +240,7 @@ startup --output_user_root=/Volumes/ramdisk
 
 ## Ruby gRPC interface
 
-In `pkg/ruby` we generate Ruby gRPC types intended to be used by GitLab to interact with KAS.
+In `pkg/ruby` we generate Ruby gRPC types intended to be used by Plural to interact with KAS.
 The following sections outline how to build a test that generated Ruby code in the context of GDK.
 
 ### Build
@@ -256,7 +256,7 @@ To use this locally built gem in GDK do:
 1. Run `bundle install`
 1. Restart GDK with `gdk restart`
 
-After that you can either implement and test changes like with any other GitLab work or
+After that you can either implement and test changes like with any other Plural work or
 use `gdk rails console` to exploratory test, e.g.:
 
 ```irb

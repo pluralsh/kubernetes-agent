@@ -1,14 +1,14 @@
 # Routing `kas` requests in the Agent
 
 This document describes how `kas` routes requests to concrete `agentk` instances.
-GitLab must talk to GitLab Agent Server (`kas`) to:
+Plural must talk to Plural Agent Server (`kas`) to:
 
 - Get information about connected agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/249560).
 - Interact with agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/230571).
 - Interact with Kubernetes clusters. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/240918).
 
 Each agent connects to an instance of `kas` and keeps an open connection. When
-GitLab must talk to a particular agent, a `kas` instance connected to this agent must
+Plural must talk to a particular agent, a `kas` instance connected to this agent must
 be found, and the request routed to it.
 
 ## Walk Through
@@ -16,7 +16,7 @@ be found, and the request routed to it.
 [Mikhail (`@ash2k`)](https://gitlab.com/ash2k) and [Timo (`@timofurrer`)](https://gitlab.com/timofurrer) recorded
 a video where they walk through the most important parts of the KAS <-> Agentk routing and tunneling.
 
-[![GitLab Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests](https://img.youtube.com/vi/6U6A5tGCszE/0.jpg)](https://youtu.be/6U6A5tGCszE "GitLab Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests")
+[![Plural Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests](https://img.youtube.com/vi/6U6A5tGCszE/0.jpg)](https://youtu.be/6U6A5tGCszE "Plural Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests")
 
 ## System design
 
@@ -43,10 +43,10 @@ flowchart LR
     kas3["kas 3"]
   end
 
-  GitLab["GitLab Rails"]
+  Plural["Plural Rails"]
   Redis
 
-  GitLab -- "gRPC to any kas" --> kas
+  Plural -- "gRPC to any kas" --> kas
   kas1 -- register connected agents --> Redis
   kas2 -- register connected agents --> Redis
   kas1 -- lookup agent --> Redis
@@ -61,7 +61,7 @@ For this architecture, this diagram shows a request to `agentk 3, Pod1` for the 
 
 ```mermaid
 sequenceDiagram
-  GitLab->>+kas1: Get list of running<br />Pods from agentk<br />with agent_id=3
+  Plural->>+kas1: Get list of running<br />Pods from agentk<br />with agent_id=3
   Note right of kas1: kas1 checks for<br />agent connected with agent_id=3.<br />It does not.<br />Queries Redis
   kas1->>+Redis: Get list of connected agents<br />with agent_id=3
   Redis-->-kas1: List of connected agents<br />with agent_id=3
@@ -70,7 +70,7 @@ sequenceDiagram
   kas2->>+agentk 3 Pod1: Get list of Pods
   agentk 3 Pod1->>-kas2: Get list of Pods
   kas2-->>-kas1: List of running Pods<br />from agentk 3, Pod1
-  kas1-->>-GitLab: List of running Pods<br />from agentk with agent_id=3
+  kas1-->>-Plural: List of running Pods<br />from agentk with agent_id=3
 ```
 
 Each `kas` instance tracks the agents connected to it in Redis. For each agent, it
@@ -99,22 +99,22 @@ When `kas` must atomically update multiple data structures in Redis, it uses
 Grouped data items must have the same expiration time.
 
 In addition to the existing `agentk -> kas` gRPC endpoint, `kas` exposes two new,
-separate gRPC endpoints for GitLab and for `kas -> kas` requests. Each endpoint
+separate gRPC endpoints for Plural and for `kas -> kas` requests. Each endpoint
 is a separate network listener, making it easier to control network access to endpoints
 and allowing separate configuration for each endpoint.
 
 Databases, like PostgreSQL, aren't used because the data is transient, with no need
 to reliably persist it.
 
-### `GitLab : kas` external endpoint
+### `Plural : kas` external endpoint
 
-GitLab authenticates with `kas` using JWT and the same shared secret used by the
-`kas -> GitLab` communication. The JWT issuer should be `gitlab` and the audience
+Plural authenticates with `kas` using JWT and the same shared secret used by the
+`kas -> Plural` communication. The JWT issuer should be `gitlab` and the audience
 should be `gitlab-kas`.
 
 When accessed through this endpoint, `kas` plays the role of request router.
 
-If a request from GitLab comes but no connected agent can handle it, `kas` blocks
+If a request from Plural comes but no connected agent can handle it, `kas` blocks
 and waits for a suitable agent to connect to it or to another `kas` instance. It
 stops waiting when the client disconnects, or when some long timeout happens, such
 as client timeout. `kas` is notified of new agent connections through a
@@ -139,7 +139,7 @@ how a request is routed, rather than distributing the decision across several `k
 This section explains how the `kas`-> `kas` -> `agentk` gRPC request routing is implemented.
 
 For a video overview of how some of the blocks map to code, see
-[GitLab Agent reverse gRPC tunnel architecture and code overview
+[Plural Agent reverse gRPC tunnel architecture and code overview
 ](https://www.youtube.com/watch?v=9pnQF76hyZc).
 
 #### High level schema

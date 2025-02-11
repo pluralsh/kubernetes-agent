@@ -126,82 +126,82 @@ func TestProxy_AuthorizationErrors(t *testing.T) {
 	}{
 		{
 			name:    "missing credentials",
-			message: "GitLab Agent Server: Unauthorized: no valid credentials provided",
+			message: "Plural Agent Server: Unauthorized: no valid credentials provided",
 		},
 		{
 			name:    "job token: multiple headers",
 			auth:    []string{"a", "b"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting a single header, got 2",
+			message: "Plural Agent Server: Unauthorized: Authorization header: expecting a single header, got 2",
 		},
 		{
 			name:    "job token: invalid format1",
 			auth:    []string{"Token asdfadsf"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: expecting Bearer token",
+			message: "Plural Agent Server: Unauthorized: Authorization header: expecting Bearer token",
 		},
 		{
 			name:    "job token: invalid format2",
 			auth:    []string{"Bearer asdfadsf"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: invalid value",
+			message: "Plural Agent Server: Unauthorized: Authorization header: invalid value",
 		},
 		{
 			name:    "job token: invalid agent id",
 			auth:    []string{"Bearer ci:asdf:as"},
-			message: `GitLab Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
+			message: `Plural Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
 		},
 		{
 			name:    "job token: empty token",
 			auth:    []string{"Bearer ci:1:"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: empty token",
+			message: "Plural Agent Server: Unauthorized: Authorization header: empty token",
 		},
 		{
 			name:    "job token: unknown token type",
 			auth:    []string{"Bearer blabla:1:asd"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: unknown token type",
+			message: "Plural Agent Server: Unauthorized: Authorization header: unknown token type",
 		},
 		{
 			name:    "cookie: empty string",
 			cookie:  new(string),
-			message: "GitLab Agent Server: Unauthorized: _gitlab_kas cookie value must not be empty",
+			message: "Plural Agent Server: Unauthorized: _gitlab_kas cookie value must not be empty",
 		},
 		{
 			name:    "cookie: missing agent ID header",
 			cookie:  strptr("the cookie"),
-			message: "GitLab Agent Server: Unauthorized: exactly one agent id must be provided either in the \"Gitlab-Agent-Id\" header or \"gitlab-agent-id\" query parameter",
+			message: "Plural Agent Server: Unauthorized: exactly one agent id must be provided either in the \"Gitlab-Agent-Id\" header or \"gitlab-agent-id\" query parameter",
 		},
 		{
 			name:          "cookie: multiple agent ID header values",
 			cookie:        strptr("the cookie"),
 			agentIdHeader: []string{"a", "b"},
-			message:       "GitLab Agent Server: Unauthorized: Gitlab-Agent-Id header must have exactly one value",
+			message:       "Plural Agent Server: Unauthorized: Gitlab-Agent-Id header must have exactly one value",
 		},
 		{
 			name:          "cookie: invalid agent ID value",
 			cookie:        strptr("the cookie"),
 			agentIdHeader: []string{"abcd"},
-			message:       "GitLab Agent Server: Unauthorized: agent id in request: invalid value: \"abcd\"",
+			message:       "Plural Agent Server: Unauthorized: agent id in request: invalid value: \"abcd\"",
 		},
 		{
 			name:          "cookie: missing CSRF token header",
 			cookie:        strptr("the cookie"),
 			agentIdHeader: []string{"1234"},
-			message:       "GitLab Agent Server: Unauthorized: exactly one CSRF token must be provided either in the \"X-Csrf-Token\" header or \"gitlab-csrf-token\" query parameter",
+			message:       "Plural Agent Server: Unauthorized: exactly one CSRF token must be provided either in the \"X-Csrf-Token\" header or \"gitlab-csrf-token\" query parameter",
 		},
 		{
 			name:            "cookie: multiple CSRF token header values",
 			cookie:          strptr("the cookie"),
 			agentIdHeader:   []string{"1234"},
 			csrfTokenHeader: []string{"x", "y"},
-			message:         "GitLab Agent Server: Unauthorized: X-Csrf-Token header must have exactly one value",
+			message:         "Plural Agent Server: Unauthorized: X-Csrf-Token header must have exactly one value",
 		},
 		{
 			name:    "personal access token: invalid agent id",
 			auth:    []string{"Bearer pat:asdf:as"},
-			message: `GitLab Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
+			message: `Plural Agent Server: Unauthorized: Authorization header: failed to parse: strconv.ParseInt: parsing "asdf": invalid syntax`,
 		},
 		{
 			name:    "personal access token token: empty token",
 			auth:    []string{"Bearer pat:1:"},
-			message: "GitLab Agent Server: Unauthorized: Authorization header: empty token",
+			message: "Plural Agent Server: Unauthorized: Authorization header: empty token",
 		},
 	}
 	for _, tc := range tests {
@@ -251,22 +251,22 @@ func TestProxy_AllowedAgentsError(t *testing.T) {
 		{
 			allowedAgentsHttpStatus: http.StatusUnauthorized, // token is invalid
 			expectedHttpStatus:      http.StatusUnauthorized,
-			message:                 "GitLab Agent Server: Unauthorized: CI job token: HTTP status code: 401 for path /api/v4/job/allowed_agents",
+			message:                 "Plural Agent Server: Unauthorized: CI job token: HTTP status code: 401 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusForbidden, // token is forbidden
 			expectedHttpStatus:      http.StatusForbidden,
-			message:                 "GitLab Agent Server: Forbidden: CI job token: HTTP status code: 403 for path /api/v4/job/allowed_agents",
+			message:                 "Plural Agent Server: Forbidden: CI job token: HTTP status code: 403 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusNotFound, // agent is not found
 			expectedHttpStatus:      http.StatusNotFound,
-			message:                 "GitLab Agent Server: Not found: agents for CI job token: HTTP status code: 404 for path /api/v4/job/allowed_agents",
+			message:                 "Plural Agent Server: Not found: agents for CI job token: HTTP status code: 404 for path /api/v4/job/allowed_agents",
 		},
 		{
 			allowedAgentsHttpStatus: http.StatusBadGateway, // some weird error
 			expectedHttpStatus:      http.StatusInternalServerError,
-			message:                 "GitLab Agent Server: Failed to get allowed agents for CI job token: HTTP status code: 502 for path /api/v4/job/allowed_agents",
+			message:                 "Plural Agent Server: Failed to get allowed agents for CI job token: HTTP status code: 502 for path /api/v4/job/allowed_agents",
 			captureErr:              true,
 		},
 	}
@@ -318,7 +318,7 @@ func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 			authorizeProxyUserFailureReason: []byte(`{"message": "unauthorized"}`),
 			expectedHttpStatus:              http.StatusUnauthorized,
 			expectedErrReason:               "unauthorized",
-			message:                         "GitLab Agent Server: Unauthorized",
+			message:                         "Plural Agent Server: Unauthorized",
 		},
 		{
 			authorizeProxyUserHttpStatus:    http.StatusForbidden, // user has no access to agent
@@ -326,7 +326,7 @@ func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 			authorizeProxyUserFailureReason: []byte(`{"message": "forbidden"}`),
 			expectedHttpStatus:              http.StatusUnauthorized,
 			expectedErrReason:               "forbidden",
-			message:                         "GitLab Agent Server: Unauthorized",
+			message:                         "Plural Agent Server: Unauthorized",
 		},
 		{
 			authorizeProxyUserHttpStatus:    http.StatusNotFound, // user or agent not found
@@ -334,14 +334,14 @@ func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 			authorizeProxyUserFailureReason: []byte(`{"message": "not found"}`),
 			expectedHttpStatus:              http.StatusUnauthorized,
 			expectedErrReason:               "not found",
-			message:                         "GitLab Agent Server: Unauthorized",
+			message:                         "Plural Agent Server: Unauthorized",
 		},
 		{
 			authorizeProxyUserHttpStatus:  http.StatusBadGateway, // some weird error
 			authorizeProxyUserContentType: "text/plain",
 			expectedHttpStatus:            http.StatusInternalServerError,
 			expectedErrReason:             "<unknown reason: expected application/json content type, but got text/plain>",
-			message:                       "GitLab Agent Server: Failed to authorize user session",
+			message:                       "Plural Agent Server: Failed to authorize user session",
 			captureErr:                    true,
 		},
 	}
@@ -380,7 +380,7 @@ func TestProxy_AuthorizeProxyUserError(t *testing.T) {
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req := setupProxyWithHandler(t, "/bla/", configCiAccessGitLabHandler(t, nil, nil))
+	_, _, client, req := setupProxyWithHandler(t, "/bla/", configCiAccessPluralHandler(t, nil, nil))
 	req.URL.Path = requestPath
 	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 	resp, err := client.Do(req)
@@ -398,7 +398,7 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 		Code:    http.StatusBadRequest,
 	}
 	actualStatus := readStatus(t, resp)
-	assert.True(t, strings.HasPrefix(actualStatus.Message, "GitLab Agent Server: Bad request: URL does not start with expected prefix. Trace ID: "))
+	assert.True(t, strings.HasPrefix(actualStatus.Message, "Plural Agent Server: Bad request: URL does not start with expected prefix. Trace ID: "))
 	assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 }
 
@@ -419,7 +419,7 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 		Code:   http.StatusForbidden,
 	}
 	actualStatus := readStatus(t, resp)
-	assert.True(t, strings.HasPrefix(actualStatus.Message, "GitLab Agent Server: Forbidden: agentId is not allowed. Trace ID: "))
+	assert.True(t, strings.HasPrefix(actualStatus.Message, "Plural Agent Server: Forbidden: agentId is not allowed. Trace ID: "))
 	assert.Empty(t, cmp.Diff(expected, actualStatus, cmpopts.IgnoreFields(metav1.Status{}, "Message")))
 }
 
@@ -585,7 +585,7 @@ func TestProxy_CiAccessHappyPath(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configCiAccessGitLabHandler(t, tc.config, tc.env))
+			_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configCiAccessPluralHandler(t, tc.config, tc.env))
 			testProxyHappyPath(t, setExpectedJobToken, tc.expectedExtra, k8sClient, client, req)
 		})
 	}
@@ -602,7 +602,7 @@ func TestProxy_PreferAuthorizationHeaderOverSessionCookie(t *testing.T) {
 		setExpectedSessionCookieParamsInHeader(req)
 	}
 
-	_, k8sClient, client, req := setupProxyWithHandler(t, "/", configCiAccessGitLabHandler(t, nil, nil))
+	_, k8sClient, client, req := setupProxyWithHandler(t, "/", configCiAccessPluralHandler(t, nil, nil))
 	testProxyHappyPath(t, setJobTokenAndCookie, expectedExtra, k8sClient, client, req)
 }
 
@@ -689,14 +689,14 @@ func TestProxy_UserAccessHappyPath(t *testing.T) {
 					Id:       testhelpers.UserId,
 					Username: "testuser",
 				}
-				_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configUserAccessGitLabHandler(t, tc.auth))
+				_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configUserAccessPluralHandler(t, tc.auth))
 				testProxyHappyPath(t, atc.setParamsFunc, tc.expectedExtra, k8sClient, client, req)
 			})
 		}
 	}
 }
 
-func configUserAccessGitLabHandler(t *testing.T, auth *gapi.AuthorizeProxyUserResponse) func(http.ResponseWriter, *http.Request) {
+func configUserAccessPluralHandler(t *testing.T, auth *gapi.AuthorizeProxyUserResponse) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if !assertUserAccessCredentials(t, req) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -817,7 +817,7 @@ func TestProxy_PersonalAccessTokenAccessHappyPath(t *testing.T) {
 				Id:       testhelpers.UserId,
 				Username: "testuser",
 			}
-			_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configPersonalAccessTokenAccessGitLabHandler(t, tc.auth))
+			_, k8sClient, client, req := setupProxyWithHandler(t, tc.urlPathPrefix, configPersonalAccessTokenAccessPluralHandler(t, tc.auth))
 			testProxyHappyPath(t, setExpectedPersonalAccessToken, tc.expectedExtra, k8sClient, client, req)
 		})
 	}
@@ -827,7 +827,7 @@ func setExpectedPersonalAccessToken(req *http.Request) {
 	req.Header.Set(httpz.AuthorizationHeader, fmt.Sprintf("Bearer %s:%d:%s", tokenTypePat, testhelpers.AgentId, personalAccessToken))
 }
 
-func configPersonalAccessTokenAccessGitLabHandler(t *testing.T, auth *gapi.AuthorizeProxyUserResponse) func(http.ResponseWriter, *http.Request) {
+func configPersonalAccessTokenAccessPluralHandler(t *testing.T, auth *gapi.AuthorizeProxyUserResponse) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if !assertPersonalAccessTokenAccessCredentials(t, req) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -993,24 +993,24 @@ func TestFormatStatusMessage(t *testing.T) {
 		{
 			name:            "no err, no trace",
 			ctx:             context.Background(),
-			expectedMessage: "GitLab Agent Server: msg",
+			expectedMessage: "Plural Agent Server: msg",
 		},
 		{
 			name:            "no err, trace",
 			ctx:             ctx,
-			expectedMessage: "GitLab Agent Server: msg. Trace ID: " + traceId.String(),
+			expectedMessage: "Plural Agent Server: msg. Trace ID: " + traceId.String(),
 		},
 		{
 			name:            "err, no trace",
 			ctx:             context.Background(),
 			err:             errors.New("boom"),
-			expectedMessage: "GitLab Agent Server: msg: boom",
+			expectedMessage: "Plural Agent Server: msg: boom",
 		},
 		{
 			name:            "err, trace",
 			ctx:             ctx,
 			err:             errors.New("boom"),
-			expectedMessage: "GitLab Agent Server: msg: boom. Trace ID: " + traceId.String(),
+			expectedMessage: "Plural Agent Server: msg: boom. Trace ID: " + traceId.String(),
 		},
 	}
 	for _, test := range tests {
@@ -1036,10 +1036,10 @@ func assertToken(t *testing.T, r *http.Request) bool {
 
 func setupProxy(t *testing.T) (
 	*mock_modserver.MockApi, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request) {
-	return setupProxyWithHandler(t, "/", configCiAccessGitLabHandler(t, nil, nil))
+	return setupProxyWithHandler(t, "/", configCiAccessPluralHandler(t, nil, nil))
 }
 
-func configCiAccessGitLabHandler(t *testing.T, config *gapi.Configuration, env *gapi.Environment) func(w http.ResponseWriter, r *http.Request) {
+func configCiAccessPluralHandler(t *testing.T, config *gapi.Configuration, env *gapi.Environment) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !assertToken(t, r) {
 			w.WriteHeader(http.StatusUnauthorized)

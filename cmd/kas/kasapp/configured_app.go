@@ -177,7 +177,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
-	// Server for handling external requests e.g. from GitLab
+	// Server for handling external requests e.g. from Plural
 	apiSrv, err := newApiServer(a.Log, a.Configuration, tp, mp, p, ssh, rpcApiFactory, probeRegistry, // nolint: contextcheck
 		streamProm, unaryProm, grpcServerErrorReporter)
 	if err != nil {
@@ -597,7 +597,7 @@ func gitlabBuildInfoGauge(m otelmetric.Meter) error {
 	// Only allocate the option once
 	attributes := otelmetric.WithAttributeSet(attribute.NewSet(kasVersionAttr.String(cmd.Version), kasBuiltAttr.String(cmd.BuildTime)))
 	_, err := m.Int64ObservableGauge(gitlabBuildInfoGaugeMetricName,
-		otelmetric.WithDescription("Current build info for this GitLab Service"),
+		otelmetric.WithDescription("Current build info for this Plural Service"),
 		otelmetric.WithInt64Callback(func(ctx context.Context, observer otelmetric.Int64Observer) error {
 			observer.Observe(1, attributes)
 			return nil

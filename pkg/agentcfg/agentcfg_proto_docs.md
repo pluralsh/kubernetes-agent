@@ -36,9 +36,9 @@
     - [UserAccessProjectCF](#plural-agent-agentcfg-UserAccessProjectCF)
     - [VulnerabilityReport](#plural-agent-agentcfg-VulnerabilityReport)
     - [WorkspaceNetworkPolicy](#plural-agent-agentcfg-WorkspaceNetworkPolicy)
-  
+
     - [log_level_enum](#plural-agent-agentcfg-log_level_enum)
-  
+
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -572,7 +572,7 @@ WorkspaceNetworkPolicy represents the firewall configuration for the remote deve
 
 
 
- 
+
 
 
 <a name="plural-agent-agentcfg-log_level_enum"></a>
@@ -588,11 +588,11 @@ WorkspaceNetworkPolicy represents the firewall configuration for the remote deve
 | error | 3 |  |
 
 
- 
 
- 
 
- 
+
+
+
 
 
 
