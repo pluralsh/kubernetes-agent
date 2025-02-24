@@ -67,14 +67,13 @@ jobs:
   publish-debug-docker:
     name: Build and push debug kas containers
     runs-on: ubuntu-20.04
-    needs: [test]
     permissions:
       contents: 'read'
       id-token: 'write'
       packages: 'write'
     strategy:
       matrix:
-        image: [kas, agentk]
+        image: [kas-debug, agentk-debug]
         include:
           - image: kas-debug
             dockerfile: ./build/docker/kas.debug.Dockerfile
@@ -91,12 +90,10 @@ jobs:
         with:
           images: |
             ghcr.io/pluralsh/${{ matrix.image }}
-            docker.io/pluralsh/${{ matrix.image }}
           tags: |
             type=sha
             type=ref,event=pr
             type=ref,event=branch
-            type=semver,pattern={{version}}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
