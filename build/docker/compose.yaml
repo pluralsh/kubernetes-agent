@@ -39,7 +39,7 @@ services:
     tmpfs:
       - /tmp
   redis:
-    image: redis:7.2.2
+    image: redis:7.2.10
     container_name: redis
     ports:
       - "6379:6379"
