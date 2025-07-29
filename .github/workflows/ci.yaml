@@ -64,21 +64,21 @@ jobs:
       - uses: golangci/golangci-lint-action@v7.0.0
         with:
           version: v2.1.2
-  publish-debug-docker:
-    name: Build and push debug kas containers
-    runs-on: ubuntu-20.04
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-      packages: 'write'
-    strategy:
-      matrix:
-        image: [kas-debug, agentk-debug]
-        include:
-          - image: kas-debug
-            dockerfile: ./build/docker/kas.debug.Dockerfile
-          - image: agentk-debug
-            dockerfile: ./build/docker/agentk.debug.Dockerfile
+#  publish-debug-docker:
+#    name: Build and push debug kas containers
+#    runs-on: ubuntu-20.04
+#    permissions:
+#      contents: 'read'
+#      id-token: 'write'
+#      packages: 'write'
+#    strategy:
+#      matrix:
+#        image: [kas-debug, agentk-debug]
+#        include:
+#          - image: kas-debug
+#            dockerfile: ./build/docker/kas.debug.Dockerfile
+#          - image: agentk-debug
+#            dockerfile: ./build/docker/agentk.debug.Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v4
