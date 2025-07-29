@@ -26,7 +26,6 @@ type internalServer struct {
 func newInternalServer(tp trace.TracerProvider, mp otelmetric.MeterProvider, p propagation.TextMapPropagator,
 	factory modserver.RpcApiFactory, probeRegistry *observability.ProbeRegistry,
 	grpcServerErrorReporter grpctool2.ServerErrorReporter) (*internalServer, error) {
-
 	// In-memory gRPC client->listener pipe
 	listener := grpctool2.NewDialListener()
 

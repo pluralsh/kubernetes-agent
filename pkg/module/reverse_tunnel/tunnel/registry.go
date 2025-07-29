@@ -136,7 +136,6 @@ func (r *Registry) stopInternal(ctx context.Context) (int /*stoppedTun*/, int /*
 	var stoppedTun, abortedFtr atomic.Int32
 
 	for s := range r.stripes.Stripes { // use index var to avoid copying embedded mutex
-		s := s
 		wg.Start(func() {
 			stopCtx, stopSpan := r.tracer.Start(ctx, "registryStripe.Stop", trace.WithSpanKind(trace.SpanKindInternal))
 			defer stopSpan.End()

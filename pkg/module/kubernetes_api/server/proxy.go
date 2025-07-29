@@ -289,14 +289,12 @@ func (p *kubernetesApiProxy) authorizeProxyUser(ctx context.Context, log *zap.Lo
 				Msg:        msg,
 			}
 		}
-
 	}
 	return auth, nil
 }
 
 func (p *kubernetesApiProxy) pipeStreams(log *zap.Logger, agentId int64, w http.ResponseWriter, r *http.Request,
 	client rpc2.KubernetesApi_MakeRequestClient, impConfig *rpc2.ImpersonationConfig) {
-
 	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
 	// Put it back by -1 on length.
 	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]

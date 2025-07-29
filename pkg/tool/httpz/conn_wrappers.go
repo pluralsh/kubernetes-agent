@@ -42,7 +42,7 @@ type WriteTimeoutConn struct {
 }
 
 func (c *WriteTimeoutConn) Write(b []byte) (int, error) {
-	err := c.Conn.SetWriteDeadline(time.Now().Add(c.Timeout))
+	err := c.SetWriteDeadline(time.Now().Add(c.Timeout))
 	if err != nil {
 		return 0, err
 	}

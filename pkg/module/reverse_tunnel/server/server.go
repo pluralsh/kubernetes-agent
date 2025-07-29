@@ -22,7 +22,7 @@ func (s *server) Connect(server rpc.ReverseTunnel_ConnectServer) error {
 	ageCtx := grpctool.MaxConnectionAgeContextFromStreamContext(ctx)
 	rpcApi := modserver.AgentRpcApiFromContext(ctx)
 	log := rpcApi.Log()
-	return rpcApi.PollWithBackoff(s.getAgentInfoPollConfig(), func() (error, retry.AttemptResult) {
+	return rpcApi.PollWithBackoff(s.getAgentInfoPollConfig(), func() (error, retry.AttemptResult) { // nolint:staticcheck
 		agentInfo, err := rpcApi.AgentInfo(ctx, log)
 		if err != nil {
 			if status.Code(err) == codes.Unavailable {

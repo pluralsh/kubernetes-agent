@@ -204,8 +204,8 @@ func (q *AggregatingQuerier) unregisterConsumerLocked(pc *pollingContext, h *pol
 }
 
 func (q *AggregatingQuerier) poll(ctx context.Context, agentId int64, pc *pollingContext) {
-	var consumers []pollConsumer // reuse slice between polls
-	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+	var consumers []pollConsumer                                                                            // reuse slice between polls
+	_ = retry.PollWithBackoff(ctx, q.pollConfig(), func(ctx context.Context) (error, retry.AttemptResult) { // nolint:staticcheck
 		kasUrls, err := q.delegate.KasUrlsByAgentId(ctx, agentId)
 		if err != nil {
 			q.api.HandleProcessingError(ctx, q.log, agentId, "KasUrlsByAgentId() failed", err)

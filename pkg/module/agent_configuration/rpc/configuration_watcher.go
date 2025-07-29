@@ -36,7 +36,7 @@ type ConfigurationWatcher struct {
 
 func (w *ConfigurationWatcher) Watch(ctx context.Context, callback ConfigurationCallback) {
 	var lastProcessedCommitId string
-	_ = retry.PollWithBackoff(ctx, w.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, w.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) { // nolint:staticcheck
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
 		res, err := w.Client.GetConfiguration(ctx, &ConfigurationRequest{

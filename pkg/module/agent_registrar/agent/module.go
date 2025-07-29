@@ -29,7 +29,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	// Create a deep copy of agentMeta to prevent unexpected mutations
 	agentMeta := proto.Clone(m.AgentMeta).(*entity.AgentMeta)
 
-	_ = retry.PollWithBackoff(ctx, m.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, m.PollConfig(), func(ctx context.Context) (error, retry.AttemptResult) { // nolint:staticcheck
 		// Retrieve and set the Kubernetes version
 		version, err := m.KubeVersion.ServerVersion()
 		if err == nil {

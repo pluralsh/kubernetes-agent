@@ -48,7 +48,7 @@ type connection struct {
 }
 
 func (c *connection) Run(attemptCtx, pollCtx context.Context) {
-	_ = retry.PollWithBackoff(pollCtx, c.pollConfig(), func(_ context.Context) (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(pollCtx, c.pollConfig(), func(_ context.Context) (error, retry.AttemptResult) { // nolint:staticcheck
 		err := c.attempt(attemptCtx)
 		if err != nil {
 			if grpctool2.RequestCanceledOrTimedOut(err) {
