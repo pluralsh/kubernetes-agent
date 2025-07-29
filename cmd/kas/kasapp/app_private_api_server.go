@@ -201,7 +201,6 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 	p propagation.TextMapPropagator, csh stats.Handler, jwtSecret []byte, ownPrivateApiUrl, ownPrivateApiHost, caCertificateFile string,
 	dialer func(context.Context, string) (net.Conn, error),
 	streamClientProm grpc.StreamClientInterceptor, unaryClientProm grpc.UnaryClientInterceptor) (grpctool2.PoolInterface, error) {
-
 	sharedPoolOpts := []grpc.DialOption{
 		grpc.WithSharedWriteBuffer(true),
 		// Default gRPC parameters are good, no need to change them at the moment.
@@ -260,7 +259,6 @@ func newKasPool(log *zap.Logger, errRep errz.ErrReporter, tp trace.TracerProvide
 
 func constructOwnUrl(interfaceAddrs func() ([]net.Addr, error),
 	ownUrl, ownCidr, ownScheme, ownPort, listenNetwork, listenAddress string) (string, error) {
-
 	if ownUrl != "" {
 		if ownCidr != "" {
 			return "", fmt.Errorf("either %s or %s should be specified, not both", envVarOwnPrivateApiUrl, envVarOwnPrivateApiCidr)

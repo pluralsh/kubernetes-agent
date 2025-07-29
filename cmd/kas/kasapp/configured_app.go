@@ -560,7 +560,7 @@ func (a *ConfiguredApp) isTracingEnabled() bool {
 
 func startModules(stage stager.Stage, modules []modserver2.Module) {
 	for _, module := range modules {
-		module := module // closure captures the right variable
+		// closure captures the right variable
 		stage.Go(func(ctx context.Context) error {
 			err := module.Run(ctx)
 			if err != nil {

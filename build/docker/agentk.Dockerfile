@@ -1,6 +1,6 @@
 # Dockerfile for agentk
 
-FROM docker.io/golang:1.23 as builder
+FROM docker.io/golang:1.24 as builder
 
 WORKDIR /src
 COPY . .
