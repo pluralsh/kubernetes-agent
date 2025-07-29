@@ -1,34 +1,45 @@
+version: "2"
 run:
   modules-download-mode: readonly
   allow-parallel-runners: true
-  timeout: 5m
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    # default linters
+    - copyloopvar
     - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-
-    # additional linters
-    - errorlint
     - errname
-    - gocyclo
-    - goimports
-    - misspell
-    - gofmt
-    - importas
+    - errorlint
     - goconst
     - gocritic
+    - gocyclo
+    - govet
+    - importas
+    - ineffassign
     - misspell
-
-issues:
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-files:
-    # Exclude some linters from running on tests files.
-    - .*_test\.go
+    - prealloc
+    - staticcheck
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
