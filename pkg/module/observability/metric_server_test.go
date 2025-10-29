@@ -13,9 +13,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/observability"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modserver"
 )
 
 func TestMetricServer(t *testing.T) {

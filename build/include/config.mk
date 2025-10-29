@@ -21,9 +21,9 @@ ifeq ($(GIT_TAG), )
 	GIT_TAG = v0.0.0
 endif
 
-LDFLAGS := -X "github.com/pluralsh/kuberentes-agent/cmd.Version=$(GIT_TAG)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.Commit=$(GIT_COMMIT)"
-LDFLAGS += -X "github.com/pluralsh/kuberentes-agent/cmd.BuildTime=$(BUILD_TIME)"
+LDFLAGS := -X "github.com/pluralsh/kubernetes-agent/cmd.Version=$(GIT_TAG)"
+LDFLAGS += -X "github.com/pluralsh/kubernetes-agent/cmd.Commit=$(GIT_COMMIT)"
+LDFLAGS += -X "github.com/pluralsh/kubernetes-agent/cmd.BuildTime=$(BUILD_TIME)"
 
 .PHONY: --certificate
 --certificate: --secrets --kubeconfig

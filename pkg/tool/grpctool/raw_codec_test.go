@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/test"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/test"
 )
 
 var (

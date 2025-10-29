@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel"
 )
 
 type module struct {

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
+	"github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/observability"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/tlstool"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"

@@ -4,11 +4,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
 )
 
 type server struct {

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modagent"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

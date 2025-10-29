@@ -15,8 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	httpz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	httpz2 "github.com/pluralsh/kubernetes-agent/pkg/tool/httpz"
 )
 
 const (

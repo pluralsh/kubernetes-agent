@@ -10,7 +10,7 @@ package rpc
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	agent_tracker "github.com/pluralsh/kuberentes-agent/pkg/module/agent_tracker"
+	agent_tracker "github.com/pluralsh/kubernetes-agent/pkg/module/agent_tracker"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

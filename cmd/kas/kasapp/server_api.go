@@ -12,14 +12,14 @@ import (
 
 	"github.com/getsentry/sentry-go"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/event"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/syncz"
+	"github.com/pluralsh/kubernetes-agent/pkg/event"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/syncz"
 
 	"github.com/redis/rueidis"
 	"go.opentelemetry.io/otel/trace"

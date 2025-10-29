@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/pluralsh/kuberentes-agent/cmd"
-	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp"
+	"github.com/pluralsh/kubernetes-agent/cmd"
+	"github.com/pluralsh/kubernetes-agent/cmd/kas/kasapp"
 )
 
 func main() {

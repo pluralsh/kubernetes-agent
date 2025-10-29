@@ -9,7 +9,7 @@
 package agent_tracker
 
 import (
-	entity "github.com/pluralsh/kuberentes-agent/pkg/entity"
+	entity "github.com/pluralsh/kubernetes-agent/pkg/entity"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"

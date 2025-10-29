@@ -9,7 +9,7 @@
 package rpc
 
 import (
-	entity "github.com/pluralsh/kuberentes-agent/pkg/entity"
+	entity "github.com/pluralsh/kubernetes-agent/pkg/entity"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

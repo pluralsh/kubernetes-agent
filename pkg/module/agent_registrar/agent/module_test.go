@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/mathz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_registrar"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/entity"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_registrar/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/mathz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_agent_registrar"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"

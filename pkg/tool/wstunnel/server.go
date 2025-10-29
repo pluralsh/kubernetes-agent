@@ -15,7 +15,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/httpz"
 )
 
 // ListenerWrapper does two things:

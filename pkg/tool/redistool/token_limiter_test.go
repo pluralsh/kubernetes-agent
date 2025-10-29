@@ -16,9 +16,9 @@ import (
 	"go.uber.org/zap/zaptest"
 	clock_testing "k8s.io/utils/clock/testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/api"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/matcher"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/api"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/matcher"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 const (

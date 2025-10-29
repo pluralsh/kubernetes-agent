@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	mock_rpc2 "github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	mock_rpc2 "github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_rpc"
 )
 
 var (

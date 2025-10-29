@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp"
-	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
+	"github.com/pluralsh/kubernetes-agent/cmd/kas/kasapp"
+	"github.com/pluralsh/kubernetes-agent/pkg/kascfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"

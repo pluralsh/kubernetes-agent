@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 )
 
 func HandleIoError(msg string, err error) error {

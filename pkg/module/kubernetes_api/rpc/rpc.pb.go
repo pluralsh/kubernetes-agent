@@ -9,7 +9,7 @@
 package rpc
 
 import (
-	grpctool "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
+	grpctool "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

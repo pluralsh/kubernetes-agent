@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/api"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/api"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
 )
 
 type agentRpcApiKeyType int

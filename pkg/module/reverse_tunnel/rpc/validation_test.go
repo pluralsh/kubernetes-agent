@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/genproto/googleapis/rpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 func TestValidation_Valid(t *testing.T) {

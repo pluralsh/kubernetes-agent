@@ -10,9 +10,9 @@ package rpc
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	info "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/info"
-	_ "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/automata"
-	prototool "github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	info "github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/info"
+	_ "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/automata"
+	prototool "github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

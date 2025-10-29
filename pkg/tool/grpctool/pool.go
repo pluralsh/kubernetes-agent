@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/utils/clock"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
 )
 
 const (

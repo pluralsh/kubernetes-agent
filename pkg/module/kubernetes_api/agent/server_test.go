@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/transport"
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/kubernetes_api/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
 )
 
 var (

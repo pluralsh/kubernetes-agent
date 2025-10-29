@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -18,13 +19,12 @@ import (
 	"google.golang.org/grpc/stats"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"github.com/coder/websocket"
 
-	test2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/test"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
-	wstunnel2 "github.com/pluralsh/kuberentes-agent/pkg/tool/wstunnel"
+	test2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/test"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/tlstool"
+	wstunnel2 "github.com/pluralsh/kubernetes-agent/pkg/tool/wstunnel"
 )
 
 var (

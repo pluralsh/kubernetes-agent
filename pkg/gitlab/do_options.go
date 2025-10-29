@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/httpz"
 )
 
 type ResponseHandler interface {

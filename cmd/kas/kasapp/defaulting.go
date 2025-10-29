@@ -3,13 +3,13 @@ package kasapp
 import (
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
-	agent_configuration_server "github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/server"
-	kubernetes_api_server "github.com/pluralsh/kuberentes-agent/pkg/module/kubernetes_api/server"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	observability_server "github.com/pluralsh/kuberentes-agent/pkg/module/observability/server"
-	usage_metrics_server "github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics/server"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	"github.com/pluralsh/kubernetes-agent/pkg/kascfg"
+	agent_configuration_server "github.com/pluralsh/kubernetes-agent/pkg/module/agent_configuration/server"
+	kubernetes_api_server "github.com/pluralsh/kubernetes-agent/pkg/module/kubernetes_api/server"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	observability_server "github.com/pluralsh/kubernetes-agent/pkg/module/observability/server"
+	usage_metrics_server "github.com/pluralsh/kubernetes-agent/pkg/module/usage_metrics/server"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 )
 
 const (

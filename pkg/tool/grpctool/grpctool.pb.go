@@ -10,8 +10,8 @@ package grpctool
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	_ "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/automata"
-	prototool "github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	_ "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/automata"
+	prototool "github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"

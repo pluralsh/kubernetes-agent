@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/entity"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 
 	"go.uber.org/zap/zaptest"
 )
