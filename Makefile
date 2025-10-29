@@ -124,32 +124,43 @@ codegen-delete: ## delete generated files
 .PHONY: --mocks
 --mocks:
 	@PATH="${PATH}:$(shell pwd)/build" go generate -x -v \
-		"github.com/pluralsh/kuberentes-agent/cmd/agentk/agentkapp" \
-		"github.com/pluralsh/kuberentes-agent/cmd/kas/kasapp" \
-		"github.com/pluralsh/kuberentes-agent/pkg/module/modagent" \
-		"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/redistool" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_registrar" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_tracker" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_cache" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_k8s" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_kubernetes_api" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modshared" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_redis" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_reverse_tunnel_rpc" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_reverse_tunnel_tunnel" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_stdlib" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_tool" \
-		"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_usage_metrics"
+		"github.com/pluralsh/kubernetes-agent/cmd/agentk/agentkapp" \
+		"github.com/pluralsh/kubernetes-agent/cmd/kas/kasapp" \
+		"github.com/pluralsh/kubernetes-agent/pkg/module/modagent" \
+		"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/redistool" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_agent_registrar" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_agent_tracker" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_cache" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_k8s" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_kubernetes_api" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modagent" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modserver" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modshared" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_redis" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_reverse_tunnel_rpc" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_reverse_tunnel_tunnel" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_rpc" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_stdlib" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_tool" \
+		"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_usage_metrics"
 
 ##@ Tests
 
 .PHONY: test
-test: ## run tests
-	go test ./... -v
+test: tools ## run tests
+	gotestsum --format pkgname -- ./... -v \
+		-race -v -tags="cache"
+
+.PHONY: tools
+tools: ## install required tools
+tools: --tool
+
+.PHONY: --tool
+%--tool: TOOL = .*
+--tool: # INTERNAL: installs tool with name provided via $(TOOL) variable or all tools.
+	@cat tools.go | grep _ | awk -F'"' '$$2 ~ /$(TOOL)/ {print $$2}' | xargs -I {} go install {}
+
 
 .PHONY: lint
 lint: --ensure-tools ## run linters

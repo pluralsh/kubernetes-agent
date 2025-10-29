@@ -3,10 +3,10 @@ package plural
 import (
 	"context"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/api"
-	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/plural"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/cache"
+	"github.com/pluralsh/kubernetes-agent/pkg/api"
+	modserver2 "github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/plural"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/cache"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"go.uber.org/zap"

@@ -8,8 +8,8 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/httpz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/httpz"
 )
 
 type ResponseHandlerStruct struct {

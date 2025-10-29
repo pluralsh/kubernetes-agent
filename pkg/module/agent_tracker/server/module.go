@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_tracker"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_tracker"
 )
 
 type module struct{}

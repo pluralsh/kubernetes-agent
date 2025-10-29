@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	gitlab2 "github.com/pluralsh/kuberentes-agent/pkg/gitlab"
+	gitlab2 "github.com/pluralsh/kubernetes-agent/pkg/gitlab"
 )
 
 const (

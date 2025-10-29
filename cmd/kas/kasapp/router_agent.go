@@ -10,10 +10,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	modserver2 "github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	modserver2 "github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 )
 
 func (r *router) RouteToAgentStreamHandler(srv interface{}, stream grpc.ServerStream) error {

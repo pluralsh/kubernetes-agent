@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	redistool "github.com/pluralsh/kuberentes-agent/pkg/tool/redistool"
+	redistool "github.com/pluralsh/kubernetes-agent/pkg/tool/redistool"
 	gomock "go.uber.org/mock/gomock"
 )
 

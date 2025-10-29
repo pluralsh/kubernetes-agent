@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	clocktesting "k8s.io/utils/clock/testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_tool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/tlstool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_tool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/tlstool"
 )
 
 const (

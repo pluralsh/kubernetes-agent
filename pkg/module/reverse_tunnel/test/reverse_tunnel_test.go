@@ -18,13 +18,13 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	tunnel2 "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
-	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	test2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/test"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	tunnel2 "github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel"
+	grpctool2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	test2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/test"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 const (

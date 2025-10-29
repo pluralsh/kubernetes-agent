@@ -11,12 +11,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/api"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_tracker"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_agent_tracker"
-	mock_modserver2 "github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/api"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_registrar/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_tracker"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_agent_tracker"
+	mock_modserver2 "github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_modserver"
 )
 
 func TestRegister(t *testing.T) {

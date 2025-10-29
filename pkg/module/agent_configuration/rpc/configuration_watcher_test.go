@@ -11,11 +11,11 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
-	rpc2 "github.com/pluralsh/kuberentes-agent/pkg/module/agent_configuration/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/matcher"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
+	rpc2 "github.com/pluralsh/kubernetes-agent/pkg/module/agent_configuration/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/matcher"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 const (

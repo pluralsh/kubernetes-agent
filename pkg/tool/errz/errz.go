@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/ioz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/ioz"
 )
 
 // ErrReporter provides a way to report errors.

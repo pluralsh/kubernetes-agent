@@ -8,8 +8,8 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/mock_rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/mock_rpc"
 )
 
 type testServerLimiter struct {

@@ -10,7 +10,7 @@ package api
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	agentcfg "github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
+	agentcfg "github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

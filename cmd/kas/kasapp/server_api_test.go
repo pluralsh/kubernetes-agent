@@ -17,11 +17,11 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 var (

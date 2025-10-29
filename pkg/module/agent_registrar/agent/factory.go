@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/agent_registrar/rpc"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_registrar"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/agent_registrar/rpc"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
 )
 
 const (

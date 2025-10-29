@@ -4,11 +4,11 @@ import (
 	"context"
 	"io"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
-	"github.com/pluralsh/kuberentes-agent/pkg/entity"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kubernetes-agent/pkg/entity"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

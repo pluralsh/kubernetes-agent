@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/info"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/info"
 )
 
 var (

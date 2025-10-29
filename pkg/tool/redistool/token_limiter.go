@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/utils/clock"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
 )
 
 type RpcApi interface {

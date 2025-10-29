@@ -11,12 +11,12 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/event"
-	"github.com/pluralsh/kuberentes-agent/pkg/kascfg"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/observability"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/usage_metrics"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/syncz"
+	"github.com/pluralsh/kubernetes-agent/pkg/event"
+	"github.com/pluralsh/kubernetes-agent/pkg/kascfg"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/observability"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/usage_metrics"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/syncz"
 )
 
 const (

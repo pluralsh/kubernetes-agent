@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modserver"
-	tunnel2 "github.com/pluralsh/kuberentes-agent/pkg/module/reverse_tunnel/tunnel"
-	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/metric"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	tunnel2 "github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel"
+	grpctool2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/metric"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
 )
 
 const (

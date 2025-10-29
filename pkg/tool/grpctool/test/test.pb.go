@@ -10,7 +10,7 @@ package test
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	_ "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool/automata"
+	_ "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/automata"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

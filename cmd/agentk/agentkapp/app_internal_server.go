@@ -14,10 +14,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	modagent2 "github.com/pluralsh/kuberentes-agent/pkg/module/modagent"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	grpctool2 "github.com/pluralsh/kuberentes-agent/pkg/tool/grpctool"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
+	modagent2 "github.com/pluralsh/kubernetes-agent/pkg/module/modagent"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	grpctool2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
 )
 
 type internalServer struct {

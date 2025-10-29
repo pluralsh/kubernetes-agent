@@ -7,11 +7,11 @@ import (
 
 	"github.com/ash2k/stager"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/agentcfg"
-	"github.com/pluralsh/kuberentes-agent/pkg/module/modshared"
-	observability2 "github.com/pluralsh/kuberentes-agent/pkg/module/observability"
-	logz2 "github.com/pluralsh/kuberentes-agent/pkg/tool/logz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/prototool"
+	"github.com/pluralsh/kubernetes-agent/pkg/agentcfg"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	observability2 "github.com/pluralsh/kubernetes-agent/pkg/module/observability"
+	logz2 "github.com/pluralsh/kubernetes-agent/pkg/tool/logz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/prototool"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"

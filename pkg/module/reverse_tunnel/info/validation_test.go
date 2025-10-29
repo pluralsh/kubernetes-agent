@@ -3,7 +3,7 @@ package info
 import (
 	"testing"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/testing/testhelpers"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/testing/testhelpers"
 )
 
 func TestValidation_Invalid(t *testing.T) {

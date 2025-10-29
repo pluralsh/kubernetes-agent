@@ -5,8 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/errz"
-	"github.com/pluralsh/kuberentes-agent/pkg/tool/retry"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/errz"
+	"github.com/pluralsh/kubernetes-agent/pkg/tool/retry"
 )
 
 type ModuleStartStopPhase byte
