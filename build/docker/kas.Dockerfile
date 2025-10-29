@@ -1,6 +1,6 @@
 # Dockerfile for kas
 
-FROM docker.io/golang:1.25 as builder
+FROM docker.io/golang:1.24.6 as builder
 
 WORKDIR /src
 COPY . .
