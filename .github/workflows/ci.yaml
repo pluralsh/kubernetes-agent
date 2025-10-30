@@ -2,12 +2,125 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 env:
   GOPATH: /home/runner/go/
+  GO_VERSION: 1.25
+
+jobs:
+  build-kas:
+    name: Build kas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-kas
+  build-agentk:
+    name: Build agentk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-agentk
+  image-kas:
+    name: Build kas image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-kas
+  image-agentk:
+    name: Build agentk image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-agentk
+  test:
+    name: Unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+      - run: PATH=$PATH:$GOPATH/bin make test
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.25
+      - uses: golangci/golangci-lint-action@v7.0.0
+        with:
+          version: v2.4.0
+  publish-debug-docker:
+    name: Build and push debug kas containers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      packages: 'write'
+    strategy:
+      matrix:
+        image: [kas-debug, agentk-debug]
+        include:
+          - image: kas-debug
+            dockerfile: ./build/docker/kas.debug.Dockerfile
+          - image: agentk-debug
+            dockerfile: ./build/docker/agentk.debug.Dockerfile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/pluralsh/${{ matrix.image }}
+          tags: |
+            type=sha
+            type=ref,event=pr
+            type=ref,event=branch
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Docker
+        uses: docker/login-action@v3
+        with:
+          username: mjgpluralsh
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: "."
+          file: "${{ matrix.dockerfile }}"
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+
+
   GOPROXY: "https://proxy.golang.org"
 jobs:
   build-kas:
@@ -16,6 +129,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+
         with:
           go-version-file: go.mod
           check-latest: true
@@ -26,6 +142,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+
         with:
           go-version-file: go.mod
           check-latest: true
@@ -48,6 +167,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version: 1.25
+
         with:
           go-version-file: go.mod
           check-latest: true
