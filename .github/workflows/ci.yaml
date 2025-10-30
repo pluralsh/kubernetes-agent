@@ -2,7 +2,10 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
+  pull_request:
+    branches:
+      - main
   pull_request:
     branches:
       - master
@@ -15,21 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-kas
+    - uses: actions/setup-go@v4
+      with:
+        go-version: 1.25
+        check-latest: true
+    - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-kas
   build-agentk:
     name: Build agentk
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-agentk
+    - uses: actions/setup-go@v4
+      with:
+        go-version: 1.25
+        check-latest: true
+    - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-agentk
   image-kas:
     name: Build kas image
     runs-on: ubuntu-latest
