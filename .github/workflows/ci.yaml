@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version-file: go.mod
+          go-version-file: modules/go.work
           check-latest: true
       - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-kas
   build-agentk:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version-file: go.mod
+          go-version-file: modules/go.work
           check-latest: true
       - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make build-agentk
   image-kas:
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version-file: go.mod
+          go-version-file: modules/go.work
           check-latest: true
       - run: PATH=$PATH:$GOPATH/bin make test
   lint:
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: modules/go.work
           check-latest: true
       - uses: golangci/golangci-lint-action@v7.0.0
         with:
