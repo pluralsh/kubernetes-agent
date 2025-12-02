@@ -1,4 +1,4 @@
-name: CI
+name: KAS / CI
 on:
   push:
     branches:
@@ -63,6 +63,7 @@ jobs:
           check-latest: true
       - uses: golangci/golangci-lint-action@v7.0.0
         with:
+          working-directory: modules/kas
           version: v2.4.0
   publish-debug-docker:
     name: Build and push debug kas containers
