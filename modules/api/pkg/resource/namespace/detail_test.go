@@ -21,7 +21,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func TestGetNamespaceDetail(t *testing.T) {

@@ -1,4 +1,19 @@
 services:
+  api:
+    image: api:latest
+    container_name: api
+    build:
+      context: ../../modules
+      dockerfile: api/Dockerfile
+      args:
+        VERSION: ${VERSION:?}
+    command:
+      --kubeconfig=/kubeconfig
+      --metrics-provider=none
+    volumes:
+      - ${PWD}/modules/kas/.secret/kubeconfig:/kubeconfig
+    tmpfs:
+      - /tmp
   kas:
     depends_on:
       redis:
@@ -6,13 +21,13 @@ services:
     image: kas:latest
     container_name: kas
     build:
-      context: ../../../..
+      context: ../..
       dockerfile: modules/kas/build/docker/kas.Dockerfile
     command:
       - --configuration-file=/config.yaml
     volumes:
-      - ${PWD}/.secret:/.secret
-      - ${PWD}/build/docker/config.yaml:/config.yaml
+      - ${PWD}/modules/kas/.secret:/.secret
+      - ${PWD}/modules/kas/build/docker/config.yaml:/config.yaml
     tmpfs:
       - /tmp
     ports:
@@ -25,7 +40,7 @@ services:
     image: agentk:latest
     container_name: agentk
     build:
-      context: ../../../..
+      context: ../..
       dockerfile: modules/kas/build/docker/agentk.Dockerfile
     command:
       - --kas-address=grpc://kas:8150
@@ -33,7 +48,7 @@ services:
       POD_NAME: agentk
       POD_NAMESPACE: default
       AGENTK_TOKEN: ${AGENTK_TOKEN:?}
-      KUBECONFIG: modules/kas/.secret/kubeconfig
+      KUBECONFIG: /.secret/kubeconfig
     volumes:
       - ${PWD}/modules/kas/.secret/kubeconfig:/.secret/kubeconfig
     tmpfs:

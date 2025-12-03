@@ -18,7 +18,7 @@ import (
 	"github.com/samber/lo"
 	discoveryv1 "k8s.io/api/discovery/v1"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 type EndpointList struct {

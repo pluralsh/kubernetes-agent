@@ -27,7 +27,7 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/event"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/pod"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // GetReplicationControllerPods return list of pods targeting replication controller associated

@@ -22,8 +22,8 @@ import (
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	"github.com/pluralsh/kubernetes-agent/client/cache/client/common"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache/client/common"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 type pods struct {

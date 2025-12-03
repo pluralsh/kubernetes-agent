@@ -27,9 +27,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 
-	"github.com/pluralsh/kubernetes-agent/client/args"
-	cacheclient "github.com/pluralsh/kubernetes-agent/client/cache/client"
-	"github.com/pluralsh/kubernetes-agent/client/cache/client/common"
+	"github.com/pluralsh/kubernetes-agent/common/client/args"
+	cacheclient "github.com/pluralsh/kubernetes-agent/common/client/cache/client"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache/client/common"
 )
 
 func InClusterClient() client.Interface {

@@ -19,8 +19,8 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/pluralsh/kubernetes-agent/client/cache/client/common"
-	"github.com/pluralsh/kubernetes-agent/client/cache/client/core"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache/client/common"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache/client/core"
 )
 
 // CachedInterface is a custom wrapper around the [client.Interface].

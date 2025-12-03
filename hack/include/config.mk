@@ -10,7 +10,7 @@ API_DIR := $(MODULES_DIR)/api
 KAS_DIR := $(MODULES_DIR)/kas
 # Docker files (TODO)
 DOCKER_DIRECTORY := $(ROOT_DIRECTORY)/hack/docker
-DOCKER_COMPOSE_PATH := $(DOCKER_DIRECTORY)/docker.compose.yaml
+DOCKER_COMPOSE_PATH := $(DOCKER_DIRECTORY)/compose.yaml
 DOCKER_COMPOSE_DEV_PATH := $(DOCKER_DIRECTORY)/dev.compose.yml
 # Build
 TMP_DIR := $(ROOT_DIRECTORY)/.tmp

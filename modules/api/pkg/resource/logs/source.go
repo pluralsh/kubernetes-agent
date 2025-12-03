@@ -22,7 +22,7 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/controller"
-	"github.com/pluralsh/kubernetes-agent/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
 )
 
 // GetLogSources returns all log sources for a given resource. A log source identifies a log file through the combination of pod & container

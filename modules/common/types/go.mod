@@ -1,4 +1,4 @@
-module github.com/pluralsh/kubernetes-agent/types
+module github.com/pluralsh/kubernetes-agent/common/types
 
 go 1.25.1
 

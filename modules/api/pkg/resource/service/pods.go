@@ -27,7 +27,7 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/event"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/pod"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // GetServicePods gets list of pods targeted by given label selector in given namespace.

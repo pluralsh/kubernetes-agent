@@ -17,7 +17,7 @@ package ingress
 import (
 	networkingv1 "k8s.io/api/networking/v1"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func FilterIngressByService(ingresses []networkingv1.Ingress, serviceName string) []networkingv1.Ingress {

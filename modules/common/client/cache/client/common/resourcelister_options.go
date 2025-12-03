@@ -19,7 +19,7 @@ import (
 
 	"github.com/gobuffalo/flect"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 type Option[T any] func(*CachedResourceLister[T])

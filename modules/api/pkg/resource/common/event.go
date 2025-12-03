@@ -17,7 +17,7 @@ package common
 import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // EventList is an events response structure.

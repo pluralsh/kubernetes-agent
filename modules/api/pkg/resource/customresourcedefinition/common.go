@@ -25,7 +25,7 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/customresourcedefinition/types"
 	crdv1 "github.com/pluralsh/kubernetes-agent/api/pkg/resource/customresourcedefinition/v1"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 var (

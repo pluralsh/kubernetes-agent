@@ -25,7 +25,7 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/customresourcedefinition/types"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // GetCustomResourceDefinitionDetail returns detailed information about a custom resource definition.

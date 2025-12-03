@@ -19,7 +19,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 func handleDownload(response *restful.Response, result io.ReadCloser) {

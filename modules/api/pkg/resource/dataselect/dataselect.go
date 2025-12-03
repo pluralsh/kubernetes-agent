@@ -21,7 +21,7 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/args"
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // GenericDataCell describes the interface of the data cell that contains all the necessary methods needed to perform

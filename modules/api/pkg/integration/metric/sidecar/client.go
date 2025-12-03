@@ -29,7 +29,7 @@ import (
 	integrationapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/api"
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/common"
-	"github.com/pluralsh/kubernetes-agent/client"
+	"github.com/pluralsh/kubernetes-agent/common/client"
 )
 
 // Sidecar client implements MetricClient and Integration interfaces.

@@ -22,9 +22,9 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/errors"
-	"github.com/pluralsh/kubernetes-agent/helpers"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // Ingress - a single ingress returned to the frontend.

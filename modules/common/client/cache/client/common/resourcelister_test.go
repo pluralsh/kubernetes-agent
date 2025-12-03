@@ -28,8 +28,8 @@ import (
 	authorizationv1fake "k8s.io/client-go/kubernetes/typed/authorization/v1/fake"
 	k8stesting "k8s.io/client-go/testing"
 
-	"github.com/pluralsh/kubernetes-agent/client/cache"
-	"github.com/pluralsh/kubernetes-agent/client/cache/client/common"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache/client/common"
 )
 
 // TestResource is a mock resource type for testing

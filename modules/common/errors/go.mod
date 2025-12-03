@@ -1,4 +1,4 @@
-module github.com/pluralsh/kubernetes-agent/errors
+module github.com/pluralsh/kubernetes-agent/common/errors
 
 go 1.25.1
 

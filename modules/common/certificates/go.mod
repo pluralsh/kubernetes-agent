@@ -1,4 +1,4 @@
-module github.com/pluralsh/kubernetes-agent/api/certificates
+module github.com/pluralsh/kubernetes-agent/common/certificates
 
 go 1.25.1
 

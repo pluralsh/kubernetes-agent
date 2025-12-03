@@ -19,7 +19,7 @@ import (
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/pluralsh/kubernetes-agent/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
 )
 
 func TestIsSelectorMatching(t *testing.T) {

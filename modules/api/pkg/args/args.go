@@ -24,9 +24,9 @@ import (
 	"k8s.io/klog/v2"
 
 	// Load client args
-	_ "github.com/pluralsh/kubernetes-agent/client/args"
-	"github.com/pluralsh/kubernetes-agent/csrf"
-	"github.com/pluralsh/kubernetes-agent/helpers"
+	_ "github.com/pluralsh/kubernetes-agent/common/client/args"
+	"github.com/pluralsh/kubernetes-agent/common/csrf"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
 )
 
 const (

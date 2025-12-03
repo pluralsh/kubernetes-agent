@@ -72,19 +72,12 @@ serve: clean --ensure-kind-cluster --ensure-metrics-server ## Starts development
 #
 # Note: Make sure that the ports 8443 (Gateway HTTPS) and 8080 (Gateway HTTP) are free on your localhost
 .PHONY: run
-run: clean --ensure-kind-cluster --ensure-metrics-server ## Starts production version of the application on https://localhost:8443 and https://localhost:8000
+run: clean ## Starts production version of the application on https://localhost:8443 and https://localhost:8000
 	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
-	SYSTEM_BANNER=$(SYSTEM_BANNER) \
-	SYSTEM_BANNER_SEVERITY=$(SYSTEM_BANNER_SEVERITY) \
-	SIDECAR_HOST=$(SIDECAR_HOST) \
 	VERSION="v0.0.0-prod" \
-	WEB_BUILDER_ARCH=$(ARCH) \
 	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) up \
 		--build \
-		--remove-orphans \
-		--no-attach gateway \
-		--no-attach scraper \
-		--no-attach metrics-server
+		--remove-orphans
 
 .PHONY: image
 image:

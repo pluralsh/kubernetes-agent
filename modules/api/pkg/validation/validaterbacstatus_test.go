@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	test "k8s.io/client-go/testing"
 
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 func areErrorsEqual(err1, err2 error) bool {

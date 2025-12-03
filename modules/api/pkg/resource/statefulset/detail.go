@@ -24,7 +24,7 @@ import (
 
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // StatefulSetDetail is a presentation layer view of Kubernetes Stateful Set resource. This means it is Stateful

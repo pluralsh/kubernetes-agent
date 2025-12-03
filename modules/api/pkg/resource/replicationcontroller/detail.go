@@ -24,7 +24,7 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/args"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // ReplicationControllerDetail represents detailed information about a Replication Controller.

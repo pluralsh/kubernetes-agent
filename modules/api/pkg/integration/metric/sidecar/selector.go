@@ -22,8 +22,8 @@ import (
 	"k8s.io/klog/v2"
 
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
-	"github.com/pluralsh/kubernetes-agent/helpers"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 type sidecarSelector struct {

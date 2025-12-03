@@ -35,8 +35,8 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/controller"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/persistentvolumeclaim"
-	"github.com/pluralsh/kubernetes-agent/errors"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // PodDetail is a presentation layer view of Kubernetes Pod resource.

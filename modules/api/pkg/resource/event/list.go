@@ -20,7 +20,7 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 func GetEventList(client k8sClient.Interface, nsQuery *common.NamespaceQuery,

@@ -31,9 +31,7 @@ LDFLAGS += -X "github.com/pluralsh/kubernetes-agent/cmd.BuildTime=$(BUILD_TIME)"
 
 .PHONY: --kubeconfig
 --kubeconfig:
-	@kind export kubeconfig --kubeconfig $(SECRET_DIRECTORY)/kubeconfig
-	@sed -i 's/127.0.0.1/host.docker.internal/' $(SECRET_DIRECTORY)/kubeconfig
-	@sed -i 's/.*certificate-authority-data.*/    insecure-skip-tls-verify: true/' $(SECRET_DIRECTORY)/kubeconfig
+	@kind get kubeconfig --name kind --internal > $(SECRET_DIRECTORY)/kubeconfig
 
 .PHONY: --secrets
 --secrets:

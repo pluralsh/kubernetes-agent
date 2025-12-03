@@ -20,7 +20,7 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/integration"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/integration/api"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 func areErrorsEqual(err1, err2 error) bool {

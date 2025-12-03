@@ -21,7 +21,7 @@ import (
 	apimachinery "k8s.io/apimachinery/pkg/types"
 
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func getMetricPromises(metrics []metricapi.Metric) metricapi.MetricPromises {

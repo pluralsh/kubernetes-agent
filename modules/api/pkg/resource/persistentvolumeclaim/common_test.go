@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func TestGetPodPersistentVolumeClaims(t *testing.T) {

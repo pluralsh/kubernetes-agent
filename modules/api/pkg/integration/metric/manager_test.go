@@ -20,7 +20,7 @@ import (
 
 	integrationapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/api"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 const fakeMetricClientID integrationapi.IntegrationID = "test-id"

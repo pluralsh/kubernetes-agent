@@ -17,7 +17,7 @@ package common
 import (
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/pluralsh/kubernetes-agent/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
 )
 
 // FilterNamespacedServicesBySelector returns services targeted by given resource selector in

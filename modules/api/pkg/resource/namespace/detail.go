@@ -24,9 +24,9 @@ import (
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/limitrange"
 	rq "github.com/pluralsh/kubernetes-agent/api/pkg/resource/resourcequota"
-	"github.com/pluralsh/kubernetes-agent/errors"
-	"github.com/pluralsh/kubernetes-agent/helpers"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // NamespaceDetail is a presentation layer view of Kubernetes Namespace resource. This means it is Namespace plus

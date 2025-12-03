@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pluralsh/kubernetes-agent/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
 )
 
 func TestGetResourceFromPath(t *testing.T) {

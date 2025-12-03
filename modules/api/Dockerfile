@@ -27,7 +27,7 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
-FROM golang:1.23-alpine3.21 AS builder
+FROM golang:1.25-alpine3.22 AS builder
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -54,7 +54,6 @@ RUN go mod download
 COPY api/pkg ./pkg
 COPY api/main.go ./
 
-RUN echo ${VERSION}
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w -X github.com/pluralsh/kubernetes-agent/api/pkg/environment.Version=${VERSION}" -o dashboard-api .
 
 # Scratch can be used as the base image because the binary is compiled to include all dependencies.

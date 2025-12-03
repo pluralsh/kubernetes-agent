@@ -32,7 +32,7 @@ import (
 
 	integrationapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/api"
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func areErrorsEqual(err1, err2 error) bool {

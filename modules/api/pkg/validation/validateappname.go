@@ -22,7 +22,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/args"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // AppNameValiditySpec is a specification for application name validation request.

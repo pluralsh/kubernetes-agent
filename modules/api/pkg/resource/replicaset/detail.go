@@ -25,7 +25,7 @@ import (
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	hpa "github.com/pluralsh/kubernetes-agent/api/pkg/resource/horizontalpodautoscaler"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // ReplicaSetDetail is a presentation layer view of Kubernetes Replica Set resource. This means

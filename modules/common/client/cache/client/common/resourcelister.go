@@ -23,10 +23,10 @@ import (
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/klog/v2"
 
-	"github.com/pluralsh/kubernetes-agent/client/cache"
+	"github.com/pluralsh/kubernetes-agent/common/client/cache"
 
-	"github.com/pluralsh/kubernetes-agent/errors"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 type ResourceListerInterface[T any] interface {

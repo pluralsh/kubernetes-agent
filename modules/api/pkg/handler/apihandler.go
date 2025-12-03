@@ -66,9 +66,9 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/storageclass"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/scaling"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/validation"
-	"github.com/pluralsh/kubernetes-agent/client"
-	"github.com/pluralsh/kubernetes-agent/csrf"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/client"
+	"github.com/pluralsh/kubernetes-agent/common/csrf"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 const (

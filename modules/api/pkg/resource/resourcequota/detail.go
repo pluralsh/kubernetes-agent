@@ -17,7 +17,7 @@ package resourcequota
 import (
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // ResourceStatus provides the status of the resource defined by a resource quota.

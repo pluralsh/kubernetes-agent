@@ -6,13 +6,13 @@ services:
     image: kas:debug
     container_name: kas
     build:
-      context: ../..
-      dockerfile: build/docker/kas.debug.Dockerfile
+      context: ../../../..
+      dockerfile: modules/kas/build/docker/kas.debug.Dockerfile
     environment:
       APP_FLAGS: --configuration-file=/config.yaml
     volumes:
-      - ${PWD}/.secret:/.secret
-      - ${PWD}/build/docker/config.yaml:/config.yaml
+      - ${PWD}/modules/kas/.secret:/.secret
+      - ${PWD}/modules/kas/build/docker/config.yaml:/config.yaml
     tmpfs:
       - /tmp
     ports:
@@ -25,16 +25,16 @@ services:
     image: agent:debug
     container_name: agent
     build:
-      context: ../..
-      dockerfile: build/docker/agentk.debug.Dockerfile
+      context: ../../../..
+      dockerfile: modules/kas/build/docker/agentk.debug.Dockerfile
     environment:
       APP_FLAGS: --kas-address=grpc://kas:8150
       POD_NAME: agentk
       POD_NAMESPACE: default
       AGENTK_TOKEN: ${AGENTK_TOKEN:?}
-      KUBECONFIG: /.secret/kubeconfig
+      KUBECONFIG: modules/kas/.secret/kubeconfig
     volumes:
-      - ${PWD}/.secret/kubeconfig:/.secret/kubeconfig
+      - ${PWD}/modules/kas/.secret/kubeconfig:/.secret/kubeconfig
     tmpfs:
       - /tmp
     ports:

@@ -23,7 +23,7 @@ import (
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/service"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 // GetDaemonSetServices returns list of services that are related to daemon set targeted by given

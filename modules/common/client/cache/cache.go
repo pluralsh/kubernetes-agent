@@ -21,7 +21,7 @@ import (
 	"github.com/Yiling-J/theine-go"
 	"k8s.io/klog/v2"
 
-	"github.com/pluralsh/kubernetes-agent/client/args"
+	"github.com/pluralsh/kubernetes-agent/common/client/args"
 )
 
 var (

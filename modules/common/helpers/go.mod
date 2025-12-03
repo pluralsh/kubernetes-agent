@@ -1,4 +1,4 @@
-module github.com/pluralsh/kubernetes-agent/helpers
+module github.com/pluralsh/kubernetes-agent/common/helpers
 
 go 1.25.1
 

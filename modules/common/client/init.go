@@ -25,8 +25,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
 
-	"github.com/pluralsh/kubernetes-agent/client/args"
-	"github.com/pluralsh/kubernetes-agent/errors"
+	"github.com/pluralsh/kubernetes-agent/common/client/args"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
 )
 
 var (
@@ -225,7 +225,7 @@ func Init(options ...Option) {
 
 func isInitialized() bool {
 	if baseConfig == nil {
-		klog.Errorf(`github.com/pluralsh/kubernetes-agent/client' package has not been initialized properly. Run 'client.Init(...)' to initialize it. `)
+		klog.Errorf(`github.com/pluralsh/kubernetes-agent/common/client' package has not been initialized properly. Run 'client.Init(...)' to initialize it. `)
 		return false
 	}
 

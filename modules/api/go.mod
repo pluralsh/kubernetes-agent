@@ -7,15 +7,16 @@ require (
 	github.com/emicklei/go-restful-openapi/v2 v2.11.0
 	github.com/emicklei/go-restful/v3 v3.12.2
 	github.com/go-openapi/spec v0.21.0
-	github.com/pluralsh/kubernetes-agent/certificates v0.0.0-00010101000000-000000000000
-	github.com/pluralsh/kubernetes-agent/client v0.0.0-00010101000000-000000000000
-	github.com/pluralsh/kubernetes-agent/csrf v0.0.0-00010101000000-000000000000
-	github.com/pluralsh/kubernetes-agent/errors v0.0.0-00010101000000-000000000000
-	github.com/pluralsh/kubernetes-agent/helpers v0.0.0-00010101000000-000000000000
-	github.com/pluralsh/kubernetes-agent/types v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/certificates v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/client v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/csrf v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/errors v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/helpers v0.0.0-00010101000000-000000000000
+	github.com/pluralsh/kubernetes-agent/common/types v0.0.0-00010101000000-000000000000
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.51.0
 	github.com/spf13/pflag v1.0.10
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.47.0
 	gopkg.in/igm/sockjs-go.v2 v2.1.0
 	k8s.io/api v0.34.2
@@ -83,6 +84,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
@@ -121,10 +123,10 @@ require (
 )
 
 replace (
-	github.com/pluralsh/kubernetes-agent/certificates => ../common/certificates
-	github.com/pluralsh/kubernetes-agent/client => ../common/client
-	github.com/pluralsh/kubernetes-agent/csrf => ../common/csrf
-	github.com/pluralsh/kubernetes-agent/errors => ../common/errors
-	github.com/pluralsh/kubernetes-agent/helpers => ../common/helpers
-	github.com/pluralsh/kubernetes-agent/types => ../common/types
+	github.com/pluralsh/kubernetes-agent/common/certificates => ../common/certificates
+	github.com/pluralsh/kubernetes-agent/common/client => ../common/client
+	github.com/pluralsh/kubernetes-agent/common/csrf => ../common/csrf
+	github.com/pluralsh/kubernetes-agent/common/errors => ../common/errors
+	github.com/pluralsh/kubernetes-agent/common/helpers => ../common/helpers
+	github.com/pluralsh/kubernetes-agent/common/types => ../common/types
 )

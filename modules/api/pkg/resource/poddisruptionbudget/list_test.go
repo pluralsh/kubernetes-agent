@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/dataselect"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 func TestToList(t *testing.T) {

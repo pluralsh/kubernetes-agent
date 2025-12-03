@@ -18,7 +18,7 @@ import (
 	"crypto/elliptic"
 	"testing"
 
-	"github.com/pluralsh/kubernetes-agent/certificates/ecdsa"
+	"github.com/pluralsh/kubernetes-agent/common/certificates/ecdsa"
 )
 
 func TestNewECDSACreator(t *testing.T) {

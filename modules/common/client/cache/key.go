@@ -24,10 +24,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
-	"github.com/pluralsh/kubernetes-agent/client/args"
-	"github.com/pluralsh/kubernetes-agent/errors"
-	"github.com/pluralsh/kubernetes-agent/helpers"
-	"github.com/pluralsh/kubernetes-agent/types"
+	"github.com/pluralsh/kubernetes-agent/common/client/args"
+	"github.com/pluralsh/kubernetes-agent/common/errors"
+	"github.com/pluralsh/kubernetes-agent/common/helpers"
+	"github.com/pluralsh/kubernetes-agent/common/types"
 )
 
 // contextCache is used in multi-cluster setup to map tokens to context (cluster) identifiers.
