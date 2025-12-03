@@ -9,7 +9,7 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 WORKDIR /src
 COPY . .
 
-RUN GCFLAGS="all=-N -l" make TARGET_DIRECTORY=/agentk build-agentk
+RUN GCFLAGS="all=-N -l" make TARGET_DIRECTORY=/agentk -C modules/kas build-agentk
 
 FROM gcr.io/distroless/base-debian12:nonroot
 LABEL source="https://github.com/pluralsh/kubernetes-agent" \
@@ -26,6 +26,6 @@ COPY --from=busybox /bin/sh /bin/sh
 
 COPY --from=builder /go/bin/dlv /
 COPY --from=builder /agentk /app
-COPY --from=builder /src/build/docker/entrypoint.debug.sh /entrypoint.sh
+COPY --from=builder /src/modules/kas/build/docker/entrypoint.debug.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
