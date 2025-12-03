@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
-	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -19,6 +18,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/rpc"
 	tunnel2 "github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel"
 	grpctool2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
 	test2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/test"
@@ -371,6 +371,10 @@ func (c streamingCallback) Trailer(md map[string]*prototool.Values) error {
 	return nil
 }
 
-func (c streamingCallback) Error(stat *statuspb.Status) error {
-	return status.ErrorProto(stat)
+func (c streamingCallback) Error(err *rpc.Error) error {
+	// rpc.Error wraps a google.rpc.Status; forward as a gRPC status error
+	if err == nil || err.Status == nil {
+		return nil
+	}
+	return status.ErrorProto(err.Status)
 }

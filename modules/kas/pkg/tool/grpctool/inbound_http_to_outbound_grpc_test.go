@@ -442,9 +442,9 @@ func TestHttp2Grpc_ErrorAfterBodyWritten(t *testing.T) {
 	})
 }
 
-func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, *mock_stdlib2.MockResponseWriterFlusher, *http.Request, grpctool2.InboundHttpToOutboundGrpc) {
+func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKubernetesApi_MakeRequestClient[grpctool2.HttpRequest, grpctool2.HttpResponse], *mock_stdlib2.MockResponseWriterFlusher, *http.Request, grpctool2.InboundHttpToOutboundGrpc) {
 	ctrl := gomock.NewController(t)
-	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(ctrl)
+	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient[grpctool2.HttpRequest, grpctool2.HttpResponse](ctrl)
 	w := mock_stdlib2.NewMockResponseWriterFlusher(ctrl)
 	r := &http.Request{
 		Method: http.MethodGet,
@@ -482,7 +482,7 @@ func setupHttp2grpc(t *testing.T, isUpgrade bool) (*mock_kubernetes_api.MockKube
 	return mrClient, w, r, x
 }
 
-func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, headerExtra proto.Message, isUpgrade bool) []any {
+func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient[grpctool2.HttpRequest, grpctool2.HttpResponse], headerExtra proto.Message, isUpgrade bool) []any {
 	extra, err := anypb.New(headerExtra)
 	require.NoError(t, err)
 	header := map[string]*prototool.Values{
@@ -533,7 +533,7 @@ func mockSendHappy(t *testing.T, mrClient *mock_kubernetes_api.MockKubernetesApi
 	)
 }
 
-func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, close bool, msgs ...*grpctool2.HttpRequest) []any {
+func mockSendHttp2grpcStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient[grpctool2.HttpRequest, grpctool2.HttpResponse], close bool, msgs ...*grpctool2.HttpRequest) []any {
 	res := make([]any, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().

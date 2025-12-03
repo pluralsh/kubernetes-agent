@@ -1,4 +1,4 @@
-name: CD
+name: KAS / CD
 on:
   push:
     tags:

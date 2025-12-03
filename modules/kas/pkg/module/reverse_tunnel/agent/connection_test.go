@@ -544,11 +544,11 @@ func TestAttemptIsUnblockedOnTunnelHeaderSendError(t *testing.T) {
 	require.EqualError(t, err, "expected recv error")
 }
 
-func setupConnection(t *testing.T) (*mock_reverse_tunnel_rpc.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectClient, *connection) {
+func setupConnection(t *testing.T) (*mock_reverse_tunnel_rpc.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectClient[rpc2.ConnectRequest, rpc2.ConnectResponse], *connection) {
 	ctrl := gomock.NewController(t)
 	client := mock_reverse_tunnel_rpc.NewMockReverseTunnelClient(ctrl)
 	conn := mock_rpc.NewMockClientConnInterface(ctrl)
-	tunnel := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectClient(ctrl)
+	tunnel := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectClient[rpc2.ConnectRequest, rpc2.ConnectResponse](ctrl)
 	sv, err := grpctool.NewStreamVisitor(&rpc2.ConnectResponse{})
 	require.NoError(t, err)
 	c := &connection{

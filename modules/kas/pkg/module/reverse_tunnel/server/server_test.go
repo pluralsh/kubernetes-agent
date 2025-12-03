@@ -41,7 +41,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := grpctool.AddMaxConnectionAgeContext(context.Background(), context.Background())
 	ctx = modserver.InjectAgentRpcApi(ctx, mockRpcApi)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(ctx).
@@ -71,7 +71,7 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	}
 	ctx := grpctool.AddMaxConnectionAgeContext(context.Background(), context.Background())
 	ctx = modserver.InjectAgentRpcApi(ctx, mockRpcApi)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(ctx).
@@ -97,7 +97,7 @@ func TestConnectRetriesFailedAgentInfo(t *testing.T) {
 	}
 	ctx := grpctool.AddMaxConnectionAgeContext(context.Background(), context.Background())
 	ctx = modserver.InjectAgentRpcApi(ctx, mockRpcApi)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(ctx).

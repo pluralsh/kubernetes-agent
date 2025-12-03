@@ -46,7 +46,7 @@ func TestStopUnregistersAllConnections(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -92,7 +92,7 @@ func TestTunnelDoneRegistersUnusedTunnel(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -151,7 +151,7 @@ func TestTunnelDoneDonePanics(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -206,7 +206,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer.EXPECT().
 		Context().
@@ -241,8 +241,8 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
-	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer1 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
+	connectServer2 := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
 	connectServer1.EXPECT().
 		Context().
@@ -321,7 +321,7 @@ func TestHandleTunnelIsUnblockedByContext_WithTwoTunnels(t *testing.T) {
 func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(context.Background()).
@@ -339,7 +339,7 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(context.Background()).
@@ -388,7 +388,7 @@ func TestHandleTunnelIsNotMatchedToIncomingConnectionForMissingMethod(t *testing
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(context.Background()).
@@ -459,7 +459,7 @@ func TestForwardStreamIsNotMatchedToHandleTunnelForMissingMethod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver2.NewMockApi(ctrl)
 	tunnelTracker := NewMockTracker(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(context.Background()).
@@ -530,7 +530,7 @@ func TestRefreshRegistrations(t *testing.T) {
 	r.refreshRegistrations(context.Background())
 }
 
-func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver2.MockAgentRpcApi, *MockDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *Registry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_modserver2.MockAgentRpcApi, *MockDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse], *Registry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
@@ -549,7 +549,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 		MinTimes(1)
 
 	tunnelTracker := NewMockTracker(ctrl)
-	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer[rpc.ConnectRequest, rpc.ConnectResponse](ctrl)
 	connectServer.EXPECT().
 		Context().
 		Return(context.Background()).

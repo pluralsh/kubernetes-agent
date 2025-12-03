@@ -29,6 +29,7 @@ import (
 
 	modserver2 "github.com/pluralsh/kubernetes-agent/pkg/module/modserver"
 	"github.com/pluralsh/kubernetes-agent/pkg/module/modshared"
+	"github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/rpc"
 	tunnel2 "github.com/pluralsh/kubernetes-agent/pkg/module/reverse_tunnel/tunnel"
 	grpctool2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool"
 	test2 "github.com/pluralsh/kubernetes-agent/pkg/tool/grpctool/test"
@@ -219,7 +220,8 @@ func TestRouter_StreamVisitorErrorAfterErrorMessage(t *testing.T) {
 			verifyMeta(t, incomingStream, routingMeta, payloadMD)
 			assert.NoError(t, cb.Header(grpctool2.MetaToValuesMap(responseMD)))
 			assert.NoError(t, cb.Trailer(grpctool2.MetaToValuesMap(trailersMD)))
-			assert.NoError(t, cb.Error(statusWithDetails.Proto()))
+			// adapt to tunnel.DataCallback which expects *rpc.Error, not *status.Status
+			assert.NoError(t, cb.Error(&rpc.Error{Status: statusWithDetails.Proto()}))
 			return status.Error(codes.Unavailable, "expected return error")
 		})
 	runRouterTest(t, tun, func(client test2.TestingClient) {

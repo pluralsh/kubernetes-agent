@@ -34,7 +34,7 @@ func TestConfigurationWatcher(t *testing.T) {
 	defer cancel()
 	ctrl := gomock.NewController(t)
 	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
-	configStream := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
+	configStream := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient[rpc2.ConfigurationResponse](ctrl)
 	cfg1 := &agentcfg.AgentConfiguration{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
@@ -96,8 +96,8 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 	defer cancel()
 	ctrl := gomock.NewController(t)
 	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
-	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
-	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
+	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient[rpc2.ConfigurationResponse](ctrl)
+	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient[rpc2.ConfigurationResponse](ctrl)
 	gomock.InOrder(
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc2.ConfigurationRequest{
@@ -142,8 +142,8 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 	defer cancel()
 	ctrl := gomock.NewController(t)
 	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
-	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
-	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
+	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient[rpc2.ConfigurationResponse](ctrl)
+	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient[rpc2.ConfigurationResponse](ctrl)
 	cfg1 := &agentcfg.AgentConfiguration{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
