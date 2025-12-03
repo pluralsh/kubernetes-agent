@@ -35,13 +35,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make -C modules/kas docker-kas
+      - run: cd modules/kas && PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-kas
   image-agentk:
     name: Build agentk image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make -C modules/kas docker-agentk
+      - run: cd modules/kas && PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make docker-agentk
   test:
     name: Unit test
     runs-on: ubuntu-latest
