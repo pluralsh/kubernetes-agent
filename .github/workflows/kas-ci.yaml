@@ -61,9 +61,9 @@ jobs:
         image: [kas, agentk]
         include:
           - image: kas
-            dockerfile: ./build/docker/kas.Dockerfile
+            dockerfile: ./modules/kas/build/docker/kas.Dockerfile
           - image: agentk
-            dockerfile: ./build/docker/agentk.Dockerfile
+            dockerfile: ./modules/kas/build/docker/agentk.Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -120,9 +120,9 @@ jobs:
         image: [kas-debug, agentk-debug]
         include:
           - image: kas-debug
-            dockerfile: ./build/docker/kas.debug.Dockerfile
+            dockerfile: ./modules/kas/build/docker/kas.debug.Dockerfile
           - image: agentk-debug
-            dockerfile: ./build/docker/agentk.debug.Dockerfile
+            dockerfile: ./modules/kas/build/docker/agentk.debug.Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v4
