@@ -8,12 +8,15 @@ services:
       args:
         VERSION: ${VERSION:?}
     command:
-      --kubeconfig=/kubeconfig
       --metrics-provider=none
-    volumes:
-      - ${PWD}/modules/kas/.secret/kubeconfig:/kubeconfig
+      --act-as-proxy
+      --apiserver-host=https://kas:8154
+      --apiserver-skip-tls-verify
+      --disable-csrf-protection
     tmpfs:
       - /tmp
+    ports:
+      - "8000:8000"
   kas:
     depends_on:
       redis:
@@ -43,14 +46,14 @@ services:
       context: ../..
       dockerfile: modules/kas/build/docker/agentk.Dockerfile
     command:
-      - --kas-address=grpc://kas:8150
+      - --kas-address=ws://kas:8150
     environment:
       POD_NAME: agentk
       POD_NAMESPACE: default
       AGENTK_TOKEN: ${AGENTK_TOKEN:?}
       KUBECONFIG: /.secret/kubeconfig
     volumes:
-      - ${PWD}/modules/kas/.secret/kubeconfig:/.secret/kubeconfig
+      - ${PWD}/.tmp/kubeconfig:/.secret/kubeconfig
     tmpfs:
       - /tmp
   redis:

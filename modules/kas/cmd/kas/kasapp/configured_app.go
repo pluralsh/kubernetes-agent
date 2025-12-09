@@ -298,6 +298,11 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// Start other gRPC servers.
 		func(stage stager.Stage) {
 			agentSrv.Start(stage)
+			err = startAgentWebsocketProxyServer(stage, a.Log, a.Configuration)
+			if err != nil {
+				a.Log.Error("could not start agent websocket proxy", zap.Error(err))
+				return
+			}
 			apiSrv.Start(stage)
 			privateApiSrv.Start(stage)
 		},

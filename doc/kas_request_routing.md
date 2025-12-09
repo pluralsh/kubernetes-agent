@@ -1,11 +1,11 @@
 # Routing `kas` requests in the Agent
 
 This document describes how `kas` routes requests to concrete `agentk` instances.
-Plural must talk to Plural Agent Server (`kas`) to:
+Plural backend services must talk to Plural Agent Server (`kas`) to:
 
-- Get information about connected agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/249560).
-- Interact with agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/230571).
-- Interact with Kubernetes clusters. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/240918).
+- Get information about connected agents.
+- Interact with agents.
+- Interact with Kubernetes clusters.
 
 Each agent connects to an instance of `kas` and keeps an open connection. When
 Plural must talk to a particular agent, a `kas` instance connected to this agent must
@@ -13,8 +13,7 @@ be found, and the request routed to it.
 
 ## Walk Through
 
-[Mikhail (`@ash2k`)](https://gitlab.com/ash2k) and [Timo (`@timofurrer`)](https://gitlab.com/timofurrer) recorded
-a video where they walk through the most important parts of the KAS <-> Agentk routing and tunneling.
+Mikhail and Timo recorded a video where they walk through the most important parts of the KAS <-> Agentk routing and tunneling.
 
 [![Plural Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests](https://img.youtube.com/vi/6U6A5tGCszE/0.jpg)](https://youtu.be/6U6A5tGCszE "Plural Agent for K8s: Deep Dive into KAS and Agentk connection handling and tunneling requests")
 
@@ -43,7 +42,7 @@ flowchart LR
     kas3["kas 3"]
   end
 
-  Plural["Plural Rails"]
+  Plural["Plural backend"]
   Redis
 
   Plural -- "gRPC to any kas" --> kas
@@ -99,18 +98,17 @@ When `kas` must atomically update multiple data structures in Redis, it uses
 Grouped data items must have the same expiration time.
 
 In addition to the existing `agentk -> kas` gRPC endpoint, `kas` exposes two new,
-separate gRPC endpoints for Plural and for `kas -> kas` requests. Each endpoint
+separate gRPC endpoints for Plural backend services and for `kas -> kas` requests. Each endpoint
 is a separate network listener, making it easier to control network access to endpoints
 and allowing separate configuration for each endpoint.
 
 Databases, like PostgreSQL, aren't used because the data is transient, with no need
 to reliably persist it.
 
-### `Plural : kas` external endpoint
+### `Plural backend : kas` external endpoint
 
-Plural authenticates with `kas` using JWT and the same shared secret used by the
-`kas -> Plural` communication. The JWT issuer should be `gitlab` and the audience
-should be `gitlab-kas`.
+Plural backend services authenticate with `kas` using JWT and the same shared secret used by the
+`kas -> Plural` communication.
 
 When accessed through this endpoint, `kas` plays the role of request router.
 

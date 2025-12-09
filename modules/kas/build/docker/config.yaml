@@ -1,13 +1,7 @@
 agent:
   listen:
-    network: tcp
     address: 0.0.0.0:8150
-    websocket: false
-    # certificate_file: /server-cert.pem
-    # key_file: /server-key.pem
-    connections_per_token_per_minute: 40000
-    max_connection_age: "7200s"
-    listen_grace_period: "5s"
+    websocket: true
   configuration:
     poll_period: "300s"
     max_configuration_file_size: 131072

@@ -32,7 +32,7 @@ services:
       POD_NAME: agentk
       POD_NAMESPACE: default
       AGENTK_TOKEN: ${AGENTK_TOKEN:?}
-      KUBECONFIG: modules/kas/.secret/kubeconfig
+      KUBECONFIG: .tmp/kubeconfig
     volumes:
       - ${PWD}/modules/kas/.secret/kubeconfig:/.secret/kubeconfig
     tmpfs:

@@ -1,6 +1,7 @@
 ROOT_DIRECTORY := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 include $(ROOT_DIRECTORY)/hack/include/config.mk
+include $(ROOT_DIRECTORY)/hack/include/kind.mk
 include $(TOOLS_MAKEFILE)
 
 .PHONY: help
@@ -47,16 +48,10 @@ schema: clean
 tools: clean ## Installs required tools
 
 # Starts development version of the application.
-#
-# URL: http://localhost:8080
-#
-# Note: Make sure that the port 8080 (Web HTTP) is free on your localhost
 .PHONY: serve
-serve: clean --ensure-kind-cluster --ensure-metrics-server ## Starts development version of the application on http://localhost:8080
+serve: clean --ensure-kind-cluster --ensure-metrics-server ## Starts development version of the application
 	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
-	SYSTEM_BANNER=$(SYSTEM_BANNER) \
-	SYSTEM_BANNER_SEVERITY=$(SYSTEM_BANNER_SEVERITY) \
-	SIDECAR_HOST=$(SIDECAR_HOST) \
+	VERSION="v0.0.0-dev" \
 	docker compose -f $(DOCKER_COMPOSE_DEV_PATH) --project-name=$(PROJECT_NAME) up \
 		--build \
 		--force-recreate \
@@ -66,13 +61,8 @@ serve: clean --ensure-kind-cluster --ensure-metrics-server ## Starts development
 		--no-attach metrics-server
 
 # Starts production version of the application.
-#
-# HTTPS: https://localhost:8443
-# HTTP: http://localhost:8080
-#
-# Note: Make sure that the ports 8443 (Gateway HTTPS) and 8080 (Gateway HTTP) are free on your localhost
 .PHONY: run
-run: clean ## Starts production version of the application on https://localhost:8443 and https://localhost:8000
+run: clean --ensure-kind-cluster ## Starts production version of the application
 	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
 	VERSION="v0.0.0-prod" \
 	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) up \
@@ -82,15 +72,32 @@ run: clean ## Starts production version of the application on https://localhost:
 .PHONY: image
 image:
 ifndef NO_BUILD
-		@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
-		SYSTEM_BANNER=$(SYSTEM_BANNER) \
-		SYSTEM_BANNER_SEVERITY=$(SYSTEM_BANNER_SEVERITY) \
-		SIDECAR_HOST=$(SIDECAR_HOST) \
-		VERSION="v0.0.0-prod" \
-		WEB_BUILDER_ARCH=$(ARCH) \
-		docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) build \
-		--no-cache
+	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
+	VERSION="v0.0.0-prod" \
+	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) build \
+	--no-cache
 endif
+
+# Prepares and installs local dev version of Kubernetes Agent in our dedicated kind cluster.
+#
+# 1. Build all docker images
+# 2. Load images into kind cluster
+# 3. Run helm install using loaded dev images
+#
+# Run "NO_BUILD=true make helm" to skip building images.
+#
+# URL:
+#	- https://localhost/ext/kas - proxied Kubernetes Agent 8180 endpoint via internal reverse proxy
+#
+# Note: Requires kind to set up and run.
+# Note #2: Make sure that the port 443 (HTTPS) is free on your localhost.
+.PHONY: helm
+helm: --ensure-kind-cluster --ensure-kind-ingress-nginx image --kind-load-images ## Install Kubernetes Agent dev helm chart in the dev kind cluster
+	@helm upgrade \
+		--create-namespace \
+		--namespace kas \
+		--install kas \
+		hack/chart/kas
 
 # ============================ Private ============================ #
 
