@@ -33,7 +33,6 @@ COPY modules/api/pkg ./api/pkg
 COPY modules/kas/go.mod modules/kas/go.sum ./kas/
 COPY modules/kas/cmd ./kas/cmd
 COPY modules/kas/pkg ./kas/pkg
-COPY modules/kas/modules ./kas/modules
 
 # Set build time if not provided
 RUN if [ -z "$BUILD_TIME" ]; then BUILD_TIME="$(date -u +%Y%m%d.%H%M%S)"; fi
