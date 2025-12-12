@@ -9,5 +9,4 @@ use (
 	./common/helpers
 	./common/types
 	./kas
-	./tools
 )

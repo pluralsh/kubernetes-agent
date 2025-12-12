@@ -37,6 +37,11 @@ import (
 )
 
 func main() {
+	if args.IsVersionRequested() {
+		klog.InfoS("Kubernetes Dashboard API", "version", environment.Version)
+		return
+	}
+
 	klog.InfoS("Starting Kubernetes Dashboard API", "version", environment.Version)
 
 	client.Init(

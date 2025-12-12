@@ -57,6 +57,7 @@ var (
 	argPrometheusEnabled        = pflag.Bool("prometheus-enabled", false, "Enable prometheus metrics handler. By default it will be exposed on localhost:8080 under '/metrics'")
 	argApiServerSkipTLSVerify   = pflag.Bool("apiserver-skip-tls-verify", false, "enable if connection with remote Kubernetes API server should skip TLS verify")
 	argAutoGenerateCertificates = pflag.Bool("auto-generate-certificates", false, "enables automatic certificates generation used to serve HTTPS")
+	argVersion                  = pflag.Bool("version", false, "print version information and quit")
 
 	argInsecurePort            = pflag.Int("insecure-port", defaultInsecurePort, "port to listen to for incoming HTTP requests")
 	argPort                    = pflag.Int("port", defaultPort, "secure port to listen to for incoming HTTPS requests")
@@ -186,4 +187,8 @@ func IsProxyEnabled() bool {
 
 func IsOpenAPIEnabled() bool {
 	return *argOpenAPIEnabled
+}
+
+func IsVersionRequested() bool {
+	return *argVersion
 }

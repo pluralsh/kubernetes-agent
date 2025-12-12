@@ -69,13 +69,22 @@ run: clean --ensure-kind-cluster ## Starts production version of the application
 		--build \
 		--remove-orphans
 
+.PHONY: run-debug
+run-debug: clean --ensure-kind-cluster ## Starts production version of the application in debug mode
+	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
+	VERSION="v0.0.0-prod" \
+	docker compose -f $(DOCKER_COMPOSE_DEV_PATH) --project-name=$(PROJECT_NAME) up \
+		--build \
+		--remove-orphans
+
 .PHONY: image
 image:
 ifndef NO_BUILD
-	@KUBECONFIG=$(KIND_CLUSTER_INTERNAL_KUBECONFIG_PATH) \
-	VERSION="v0.0.0-prod" \
-	docker compose -f $(DOCKER_COMPOSE_PATH) --project-name=$(PROJECT_NAME) build \
-	--no-cache
+	docker build \
+      --build-arg VERSION=v0.0.0-prod \
+      -f hack/docker/Dockerfile \
+      -t kubernetes-agent:latest \
+      .
 endif
 
 # Prepares and installs local dev version of Kubernetes Agent in our dedicated kind cluster.
