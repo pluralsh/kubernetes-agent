@@ -131,7 +131,9 @@ jobs:
           images: |
             ghcr.io/${{ env.REGISTRY_IMAGE }}
             docker.io/${{ env.REGISTRY_IMAGE }}
-          tags: type=semver,pattern={{version}}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
