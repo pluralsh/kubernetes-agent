@@ -22,8 +22,6 @@ include $(PARTIALS_DIR)/config.mk
 --kind-load-images:
 	@echo Loading redis:$(REDIS_VERSION) into kind cluster
 	@kind load docker-image -n $(KIND_CLUSTER_NAME) redis:$(REDIS_VERSION) >/dev/null
-	@echo Loading api:latest into kind cluster
-	@kind load docker-image -n $(KIND_CLUSTER_NAME) api:latest >/dev/null
-	@echo Loading kas:latest into kind cluster
-	@kind load docker-image -n $(KIND_CLUSTER_NAME) kas:latest >/dev/null
+	@echo Loading kubernetes-agent:latest into kind cluster
+	@kind load docker-image -n $(KIND_CLUSTER_NAME) kubernetes-agent:latest >/dev/null
 

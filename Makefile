@@ -106,6 +106,7 @@ helm: --ensure-kind-cluster --ensure-kind-ingress-nginx image --kind-load-images
 		--create-namespace \
 		--namespace kas \
 		--install kas \
+		--set agent.token=$(AGENT_TOKEN) \
 		hack/chart/kas
 
 # ============================ Private ============================ #

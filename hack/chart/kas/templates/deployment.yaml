@@ -89,32 +89,102 @@ spec:
           {{ if .Values.global.additionalVolumeMounts }}
           {{ toYaml .Values.global.additionalVolumeMounts | nindent 10 }}
           {{ end }}
-          - name: etc-kas
-            mountPath: /etc/kas
-            readOnly: true
+            - name: etc-kas
+              mountPath: /etc/kas
+              readOnly: true
+            - name: ingress-tls
+              mountPath: /etc/kas/ingress-tls
+              readOnly: true
+        {{ if .Values.agent.inCluster }}
+        - name: agentk
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.agent.proxy.podSecurityContext | nindent 12 }}
+          command: ["/agentk"]
+          args:
+            - "--kas-address=ws://localhost:{{ .Values.service.internalPort }}"
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SERVICE_ACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: AGENTK_TOKEN
+              value: {{ .Values.agent.token }}
+          volumeMounts:
+            - name: temp
+              mountPath: /tmp
+            - name: service-account-token-volume
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+        {{ end }}
+        - name: api
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/api"]
+          args:
+            - --metrics-provider=none
+            - --act-as-proxy
+            - --apiserver-host=https://localhost:8154
+            - --apiserver-skip-tls-verify
+            - --disable-csrf-protection
+            - --insecure-bind-address=0.0.0.0
+          ports:
+            - containerPort: 8000
       terminationGracePeriodSeconds: 300
       volumes:
       {{ if .Values.global.additionalVolumes }}
       {{ toYaml .Values.global.additionalVolumes | nindent 6 }}
       {{ end }}
-      - name: etc-kas
-        projected:
-          defaultMode: 0440
-          sources:
-            - configMap:
-                name: {{ template "kas.configMapName" . }}
+        - name: temp
+          emptyDir: {}
+        - name: kube-dir
+          emptyDir: {}
+        - name: service-account-token-volume
+          projected:
+            defaultMode: 0444
+            sources:
+              - configMap:
+                  name: kube-root-ca.crt
+              - downwardAPI:
+                  items:
+                    - fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                      path: namespace
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+        - name: etc-kas
+          projected:
+            defaultMode: 0440
+            sources:
+              - configMap:
+                  name: {{ template "kas.configMapName" . }}
             {{- range $name, $value := (omit .Values.secrets "create") }}
-            - secret:
-                name: {{ $name }}
-                items:
-                  - key: secret
-                    path: .{{ $name }}_secret
+              - secret:
+                  name: {{ $name }}
+                  items:
+                    - key: secret
+                      path: .{{ $name }}_secret
             {{- end }}
-            - secret:
-                name: {{ template "common.names.fullname" (index .Subcharts "redis") }}
-                items:
-                  - key: redis-password
-                    path: redis_server_secret
+              - secret:
+                  name: {{ template "common.names.fullname" (index .Subcharts "redis") }}
+                  items:
+                    - key: redis-password
+                      path: redis_server_secret
+        - name: ingress-tls
+          secret:
+            secretName: {{ .Values.ingress.tlsSecretName }}
+            defaultMode: 0440
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

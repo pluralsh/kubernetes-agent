@@ -4,7 +4,7 @@ global:
 
 image:
   # See: https://github.com/pluralsh/kubernetes-agent/pkgs/container/kas.
-  repository: kas
+  repository: kubernetes-agent
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
@@ -90,23 +90,28 @@ secrets:
   redis: ""
 
 agent:
-  path: /ext/kas
-  backend: localhost:8150
+  inCluster: true
+  token: ""
   proxy:
     port: 8180
     podSecurityContext:
       runAsUser: 65532
 
+api:
+  port: 8000
+
 ingress:
   tlsSecretName: kas-tls
-  kas_dns: kas.local
-  tls:
-    enabled: true
+  dns: kas.local
+  kasPath: /ext/kas
+  apiPath: /api
   annotations:
     cert-manager.io/issuer: selfsigned
 
 redis:
   enabled: true
+  volumePermissions:
+    enabled: true
   architecture: standalone
   global:
     security:
@@ -130,8 +135,7 @@ redis:
     # Enable idle client connection timeout (5 minutes)
     timeout 300
 
-## Optional Nginx Ingress sub-chart configuration
-## Enable this if you don't already have nginx-ingress enabled on your cluster.
+# nginx is needed for test to expose ingress to the local network
 nginx:
   enabled: false
   controller:
@@ -141,10 +145,9 @@ nginx:
       default: false
       controllerValue: k8s.io/internal-ingress-nginx
     service:
-      type: ClusterIP
+      type: NodePort
 
-## Optional Cert Manager sub-chart configuration
-## Enable this if you don't already have cert-manager enabled on your cluster.
+# the nginx requires cert-manager to handle ingress tls
 cert-manager:
   enabled: true
   installCRDs: true

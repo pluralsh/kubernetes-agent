@@ -4,26 +4,31 @@ metadata:
   name: {{ include "kas.fullname" . }}
   labels:
     {{- include "kas.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   ingressClassName: nginx
   rules:
-    - host: {{ .Values.ingress.kas_dns | quote }}
+    - host: {{ .Values.ingress.dns | quote }}
       http:
         paths:
-          - path: /ext/kas
+          - path: {{ .Values.ingress.apiPath }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "kas.serviceName" . }}
+                port:
+                  number: {{ .Values.api.port }}
+          - path: {{ .Values.ingress.kasPath }}
             pathType: Prefix
             backend:
               service:
                 name: {{ include "kas.serviceName" . }}
                 port:
                   number: {{ .Values.agent.proxy.port }}
-  {{ if .Values.ingress.tls.enabled }}
   tls:
     - hosts:
-        - {{ .Values.ingress.kas_dns | quote }}
+        - {{ .Values.ingress.dns | quote }}
       secretName: {{ .Values.ingress.tlsSecretName }}
-  {{ end }}

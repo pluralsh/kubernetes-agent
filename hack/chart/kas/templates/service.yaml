@@ -23,6 +23,10 @@ spec:
       targetPort: {{ .Values.agent.proxy.port }}
       protocol: TCP
       name: tcp-{{ include "kas.name" . }}-nginx
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: tcp-{{ include "kas.name" . }}-api
   {{- if .Values.metrics.enabled }}
     - port: {{ .Values.service.observabilityPort }}
       targetPort: {{ .Values.service.observabilityPort }}
