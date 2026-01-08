@@ -125,6 +125,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("csrftoken/{action}").To(apiHandler.handleGetCsrfToken).
 			// docs
+			Operation("GetCSRFToken").
 			Doc("generates a one-time CSRF token that can be used by POST request").
 			Param(apiV1Ws.PathParameter("action", "action name to generate CSRF token for")).
 			Writes(csrf.Response{}).
@@ -134,6 +135,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/appdeployment").To(apiHandler.handleDeploy).
 			// docs
+			Operation("CreateAppDeployment").
 			Doc("creates an application based on provided deployment.AppDeploymentSpec").
 			Reads(deployment.AppDeploymentSpec{}).
 			Writes(deployment.AppDeploymentSpec{}).
@@ -141,6 +143,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/appdeployment/validate/name").To(apiHandler.handleNameValidity).
 			// docs
+			Operation("ValidateAppName").
 			Doc("checks if provided name is valid").
 			Reads(validation.AppNameValiditySpec{}).
 			Writes(validation.AppNameValidity{}).
@@ -148,6 +151,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/appdeployment/validate/imagereference").To(apiHandler.handleImageReferenceValidity).
 			// docs
+			Operation("ValidateImageReference").
 			Doc("checks if provided image is valid").
 			Reads(validation.ImageReferenceValiditySpec{}).
 			Writes(validation.ImageReferenceValidity{}).
@@ -155,6 +159,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/appdeployment/validate/protocol").To(apiHandler.handleProtocolValidity).
 			// docs
+			Operation("ValidateProtocol").
 			Doc("checks if provided service protocol is valid").
 			Reads(validation.ProtocolValiditySpec{}).
 			Writes(validation.ProtocolValidity{}).
@@ -162,12 +167,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/appdeployment/protocols").To(apiHandler.handleGetAvailableProtocols).
 			// docs
+			Operation("GetAvailableProtocols").
 			Doc("returns a list of available protocols for the service").
 			Writes(deployment.Protocols{}).
 			Returns(http.StatusOK, "OK", deployment.Protocols{}))
 	apiV1Ws.Route(
 		apiV1Ws.POST("/appdeploymentfromfile").To(apiHandler.handleDeployFromFile).
 			// docs
+			Operation("CreateAppDeploymentFromFile").
 			Doc("create an application from file").
 			Reads(deployment.AppDeploymentFromFileSpec{}).
 			Writes(deployment.AppDeploymentFromFileResponse{}).
@@ -177,12 +184,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller").To(apiHandler.handleGetReplicationControllerList).
 			// docs
+			Operation("GetAllReplicationControllers").
 			Doc("returns a list of ReplicationControllers from all namespaces").
 			Writes(replicationcontroller.ReplicationControllerList{}).
 			Returns(http.StatusOK, "OK", replicationcontroller.ReplicationControllerList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller/{namespace}").To(apiHandler.handleGetReplicationControllerList).
 			// docs
+			Operation("GetReplicationControllers").
 			Doc("returns a list of ReplicationController in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace to get a list of ReplicationController from")).
 			Writes(replicationcontroller.ReplicationControllerList{}).
@@ -190,6 +199,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller/{namespace}/{replicationController}").To(apiHandler.handleGetReplicationControllerDetail).
 			// docs
+			Operation("GetReplicationController").
 			Doc("returns detailed information about ReplicationController").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicationController")).
 			Param(apiV1Ws.PathParameter("replicationController", "name of the ReplicationController")).
@@ -198,6 +208,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/replicationcontroller/{namespace}/{replicationController}/update/pod").To(apiHandler.handleUpdateReplicasCount).
 			// docs
+			Operation("UpdateReplicationControllerReplicas").
 			Doc("scales ReplicationController to a number of replicas").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicationController")).
 			Param(apiV1Ws.PathParameter("replicationController", "name of the ReplicationController")).
@@ -205,6 +216,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller/{namespace}/{replicationController}/pod").To(apiHandler.handleGetReplicationControllerPods).
 			// docs
+			Operation("GetReplicationControllerPods").
 			Doc("returns a list of Pods for ReplicationController").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicationController")).
 			Param(apiV1Ws.PathParameter("replicationController", "name of the ReplicationController")).
@@ -213,6 +225,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller/{namespace}/{replicationController}/event").To(apiHandler.handleGetReplicationControllerEvents).
 			// docs
+			Operation("GetReplicationControllerEvents").
 			Doc("returns a list of Events for ReplicationController").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicationController")).
 			Param(apiV1Ws.PathParameter("replicationController", "name of the ReplicationController")).
@@ -221,6 +234,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicationcontroller/{namespace}/{replicationController}/service").To(apiHandler.handleGetReplicationControllerServices).
 			// docs
+			Operation("GetReplicationControllerServices").
 			Doc("returns a list of Services for ReplicationController").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicationController")).
 			Param(apiV1Ws.PathParameter("replicationController", "name of the ReplicationController")).
@@ -231,12 +245,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset").To(apiHandler.handleGetReplicaSets).
 			// docs
+			Operation("GetAllReplicaSets").
 			Doc("returns a list of ReplicaSets from all namespaces").
 			Writes(replicaset.ReplicaSetList{}).
 			Returns(http.StatusOK, "OK", replicaset.ReplicaSetList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset/{namespace}").To(apiHandler.handleGetReplicaSets).
 			// docs
+			Operation("GetReplicaSets").
 			Doc("returns a list of ReplicaSets in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicaSets")).
 			Writes(replicaset.ReplicaSetList{}).
@@ -244,6 +260,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset/{namespace}/{replicaSet}").To(apiHandler.handleGetReplicaSetDetail).
 			// docs
+			Operation("GetReplicaSet").
 			Doc("returns detailed information about ReplicaSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicaSet")).
 			Param(apiV1Ws.PathParameter("replicaSet", "name of the ReplicaSets")).
@@ -252,6 +269,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset/{namespace}/{replicaSet}/pod").To(apiHandler.handleGetReplicaSetPods).
 			// docs
+			Operation("GetReplicaSetPods").
 			Doc("returns a list of Pods for ReplicaSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicaSet")).
 			Param(apiV1Ws.PathParameter("replicaSet", "name of the ReplicaSets")).
@@ -260,6 +278,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset/{namespace}/{replicaSet}/service").To(apiHandler.handleGetReplicaSetServices).
 			// docs
+			Operation("GetReplicaSetServices").
 			Doc("returns a list of Services for ReplicaSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicaSet")).
 			Param(apiV1Ws.PathParameter("replicaSet", "name of the ReplicaSets")).
@@ -268,6 +287,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/replicaset/{namespace}/{replicaSet}/event").To(apiHandler.handleGetReplicaSetEvents).
 			// docs
+			Operation("GetReplicaSetEvents").
 			Doc("returns a list of Events for ReplicaSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ReplicaSet")).
 			Param(apiV1Ws.PathParameter("replicaSet", "name of the ReplicaSets")).
@@ -278,12 +298,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod").To(apiHandler.handleGetPods).
 			// docs
+			Operation("GetAllPods").
 			Doc("returns a list of Pods from all namespaces").
 			Writes(pod.PodList{}).
 			Returns(http.StatusOK, "OK", pod.PodList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}").To(apiHandler.handleGetPods).
 			// docs
+			Operation("GetPods").
 			Doc("returns a list of Pods in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Writes(pod.PodList{}).
@@ -291,6 +313,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}/{pod}").To(apiHandler.handleGetPodDetail).
 			// docs
+			Operation("GetPod").
 			Doc("returns detailed information about Pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -299,6 +322,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}/{pod}/container").To(apiHandler.handleGetPodContainers).
 			// docs
+			Operation("GetPodContainers").
 			Doc("returns a list of containers for Pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -307,6 +331,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}/{pod}/event").To(apiHandler.handleGetPodEvents).
 			// docs
+			Operation("GetPodEvents").
 			Doc("returns a list of Events for Pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -315,6 +340,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}/{pod}/shell/{container}").To(apiHandler.handleExecShell).
 			// docs
+			Operation("ExecShell").
 			Doc("handles exec into pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -324,6 +350,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/pod/{namespace}/{pod}/persistentvolumeclaim").To(apiHandler.handleGetPodPersistentVolumeClaims).
 			// docs
+			Operation("GetPodPersistentVolumeClaims").
 			Doc("returns a list of containers for Pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -334,12 +361,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment").To(apiHandler.handleGetDeployments).
 			// docs
+			Operation("GetAllDeployments").
 			Doc("returns a list of Deployments from all namespaces").
 			Writes(deployment.DeploymentList{}).
 			Returns(http.StatusOK, "OK", deployment.DeploymentList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment/{namespace}").To(apiHandler.handleGetDeployments).
 			// docs
+			Operation("GetDeployments").
 			Doc("returns a list of Deployments in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Writes(deployment.DeploymentList{}).
@@ -347,6 +376,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment/{namespace}/{deployment}").To(apiHandler.handleGetDeploymentDetail).
 			// docs
+			Operation("GetDeployment").
 			Doc("returns detailed information about Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -355,6 +385,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment/{namespace}/{deployment}/event").To(apiHandler.handleGetDeploymentEvents).
 			// docs
+			Operation("GetDeploymentEvents").
 			Doc("returns a list of Events for Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -363,6 +394,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment/{namespace}/{deployment}/oldreplicaset").To(apiHandler.handleGetDeploymentOldReplicaSets).
 			// docs
+			Operation("GetDeploymentOldReplicaSets").
 			Doc("returns a list of old ReplicaSets for Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -371,6 +403,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/deployment/{namespace}/{deployment}/newreplicaset").To(apiHandler.handleGetDeploymentNewReplicaSet).
 			// docs
+			Operation("GetDeploymentNewReplicaSet").
 			Doc("returns a list of new ReplicaSets for Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -379,6 +412,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/deployment/{namespace}/{deployment}/pause").To(apiHandler.handleDeploymentPause).
 			// docs
+			Operation("PauseDeployment").
 			Doc("pauses the Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -387,6 +421,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/deployment/{namespace}/{deployment}/rollback").To(apiHandler.handleDeploymentRollback).
 			// docs
+			Operation("RollbackDeployment").
 			Doc("rolls back the Deployment to the target revision").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -396,6 +431,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/deployment/{namespace}/{deployment}/restart").To(apiHandler.handleDeploymentRestart).
 			// docs
+			Operation("RestartDeployment").
 			Doc("rollout restart of the Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -404,6 +440,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/deployment/{namespace}/{deployment}/resume").To(apiHandler.handleDeploymentResume).
 			// docs
+			Operation("ResumeDeployment").
 			Doc("resumes the Deployment").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Deployment")).
 			Param(apiV1Ws.PathParameter("deployment", "name of the Deployment")).
@@ -414,12 +451,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset").To(apiHandler.handleGetDaemonSetList).
 			// docs
+			Operation("GetAllDaemonSets").
 			Doc("returns a list of DaemonSets from all namespaces").
 			Writes(daemonset.DaemonSetList{}).
 			Returns(http.StatusOK, "OK", daemonset.DaemonSetList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset/{namespace}").To(apiHandler.handleGetDaemonSetList).
 			// docs
+			Operation("GetDaemonSets").
 			Doc("returns a list of DaemonSets in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the DaemonSet")).
 			Writes(daemonset.DaemonSetList{}).
@@ -427,6 +466,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset/{namespace}/{daemonSet}").To(apiHandler.handleGetDaemonSetDetail).
 			// docs
+			Operation("GetDaemonSet").
 			Doc("returns detailed information about DaemonSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the DaemonSet")).
 			Param(apiV1Ws.PathParameter("daemonSet", "name of the DaemonSet")).
@@ -435,6 +475,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset/{namespace}/{daemonSet}/pod").To(apiHandler.handleGetDaemonSetPods).
 			// docs
+			Operation("GetDaemonSetPods").
 			Doc("returns a list of Pods for DaemonSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the DaemonSet")).
 			Param(apiV1Ws.PathParameter("daemonSet", "name of the DaemonSet")).
@@ -443,6 +484,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset/{namespace}/{daemonSet}/service").To(apiHandler.handleGetDaemonSetServices).
 			// docs
+			Operation("GetDaemonSetServices").
 			Doc("returns a list of Services for DaemonSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the DaemonSet")).
 			Param(apiV1Ws.PathParameter("daemonSet", "name of the DaemonSet")).
@@ -451,6 +493,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/daemonset/{namespace}/{daemonSet}/event").To(apiHandler.handleGetDaemonSetEvents).
 			// docs
+			Operation("GetDaemonSetEvents").
 			Doc("returns a list of Events for DaemonSet").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the DaemonSet")).
 			Param(apiV1Ws.PathParameter("daemonSet", "name of the DaemonSet")).
@@ -459,6 +502,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/daemonset/{namespace}/{daemonSet}/restart").To(apiHandler.handleDaemonSetRestart).
 			// docs
+			Operation("RestartDaemonSet").
 			Doc("rollout restart of the Daemon Set").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Daemon Set")).
 			Param(apiV1Ws.PathParameter("daemonSet", "name of the Daemon Set")).
@@ -470,12 +514,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/horizontalpodautoscaler").To(apiHandler.handleGetHorizontalPodAutoscalerList).
 			// docs
+			Operation("GetAllHorizontalPodAutoscalers").
 			Doc("returns a list of HorizontalPodAutoscalers from all namespaces").
 			Writes(horizontalpodautoscaler.HorizontalPodAutoscalerList{}).
 			Returns(http.StatusOK, "OK", horizontalpodautoscaler.HorizontalPodAutoscalerList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/horizontalpodautoscaler/{namespace}").To(apiHandler.handleGetHorizontalPodAutoscalerList).
 			// docs
+			Operation("GetHorizontalPodAutoscalers").
 			Doc("returns a list of HorizontalPodAutoscalers in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the HorizontalPodAutoscaler")).
 			Writes(horizontalpodautoscaler.HorizontalPodAutoscalerList{}).
@@ -483,6 +529,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/{kind}/{namespace}/{name}/horizontalpodautoscaler").To(apiHandler.handleGetHorizontalPodAutoscalerListForResource).
 			// docs
+			Operation("GetHorizontalPodAutoscalersForResource").
 			Doc("returns a list of HorizontalPodAutoscalers for resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource to get HorizontalPodAutoscalers for")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource to get HorizontalPodAutoscalers for")).
@@ -492,6 +539,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/horizontalpodautoscaler/{namespace}/{horizontalpodautoscaler}").To(apiHandler.handleGetHorizontalPodAutoscalerDetail).
 			// docs
+			Operation("GetHorizontalPodAutoscaler").
 			Doc("returns detailed information about HorizontalPodAutoscaler").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the HorizontalPodAutoscaler")).
 			Param(apiV1Ws.PathParameter("horizontalpodautoscaler", "name of the HorizontalPodAutoscaler")).
@@ -502,12 +550,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/job").To(apiHandler.handleGetJobList).
 			// docs
+			Operation("GetAllJobs").
 			Doc("returns a list of Jobs from all namespaces").
 			Writes(job.JobList{}).
 			Returns(http.StatusOK, "OK", job.JobList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/job/{namespace}").To(apiHandler.handleGetJobList).
 			// docs
+			Operation("GetJobs").
 			Doc("returns a list of Jobs in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Job")).
 			Writes(job.JobList{}).
@@ -515,6 +565,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/job/{namespace}/{name}").To(apiHandler.handleGetJobDetail).
 			// docs
+			Operation("GetJob").
 			Doc("returns detailed information about Job").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Job")).
 			Param(apiV1Ws.PathParameter("name", "name of the Job")).
@@ -523,6 +574,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/job/{namespace}/{name}/pod").To(apiHandler.handleGetJobPods).
 			// docs
+			Operation("GetJobPods").
 			Doc("returns a list of Pods for Job").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Job")).
 			Param(apiV1Ws.PathParameter("name", "name of the Job")).
@@ -531,6 +583,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/job/{namespace}/{name}/event").To(apiHandler.handleGetJobEvents).
 			// docs
+			Operation("GetJobEvents").
 			Doc("returns a list of Events for Job").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Job")).
 			Param(apiV1Ws.PathParameter("name", "name of the Job")).
@@ -541,12 +594,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/cronjob").To(apiHandler.handleGetCronJobList).
 			// docs
+			Operation("GetAllCronJobs").
 			Doc("returns a list of CronJobs from all namespaces").
 			Writes(cronjob.CronJobList{}).
 			Returns(http.StatusOK, "OK", cronjob.CronJobList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/cronjob/{namespace}").To(apiHandler.handleGetCronJobList).
 			// docs
+			Operation("GetCronJobs").
 			Doc("returns a list of CronJobs in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the CronJob")).
 			Writes(cronjob.CronJobList{}).
@@ -554,6 +609,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/cronjob/{namespace}/{name}").To(apiHandler.handleGetCronJobDetail).
 			// docs
+			Operation("GetCronJob").
 			Doc("returns detailed information about CronJob").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the CronJob")).
 			Param(apiV1Ws.PathParameter("name", "name of the CronJob")).
@@ -562,6 +618,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/cronjob/{namespace}/{name}/job").To(apiHandler.handleGetCronJobJobs).
 			// docs
+			Operation("GetCronJobJobs").
 			Doc("returns a list of Jobs for CronJob").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the CronJob")).
 			Param(apiV1Ws.PathParameter("name", "name of the CronJob")).
@@ -571,6 +628,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/cronjob/{namespace}/{name}/event").To(apiHandler.handleGetCronJobEvents).
 			// docs
+			Operation("GetCronJobEvents").
 			Doc("returns a list of Events for CronJob").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the CronJob")).
 			Param(apiV1Ws.PathParameter("name", "name of the CronJob")).
@@ -579,6 +637,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/cronjob/{namespace}/{name}/trigger").To(apiHandler.handleTriggerCronJob).
 			// docs
+			Operation("TriggerCronJob").
 			Doc("triggers a Job based on CronJob").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the CronJob")).
 			Param(apiV1Ws.PathParameter("name", "name of the CronJob")).
@@ -588,6 +647,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/namespace").To(apiHandler.handleCreateNamespace).
 			// docs
+			Operation("CreateNamespace").
 			Doc("create a Namespace").
 			Reads(ns.NamespaceSpec{}).
 			Writes(ns.NamespaceSpec{}).
@@ -595,12 +655,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/namespace").To(apiHandler.handleGetNamespaces).
 			// docs
+			Operation("GetNamespaces").
 			Doc("returns a list of Namespaces").
 			Writes(ns.NamespaceList{}).
 			Returns(http.StatusOK, "OK", ns.NamespaceList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/namespace/{name}").To(apiHandler.handleGetNamespaceDetail).
 			// docs
+			Operation("GetNamespace").
 			Doc("returns detailed information about Namespace").
 			Param(apiV1Ws.PathParameter("name", "name of the Namespace")).
 			Writes(ns.NamespaceDetail{}).
@@ -608,6 +670,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/namespace/{name}/event").To(apiHandler.handleGetNamespaceEvents).
 			// docs
+			Operation("GetNamespaceEvents").
 			Doc("returns a list of Events for Namespace").
 			Param(apiV1Ws.PathParameter("name", "name of the Namespace")).
 			Writes(common.EventList{}).
@@ -617,12 +680,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/event").To(apiHandler.handleGetEventList).
 			// docs
+			Operation("GetAllEvents").
 			Doc("returns a list of Events from all namespaces").
 			Writes(common.EventList{}).
 			Returns(http.StatusOK, "OK", common.EventList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/event/{namespace}").To(apiHandler.handleGetEventList).
 			// docs
+			Operation("GetEvents").
 			Doc("returns a list of Events in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace to get Events from")).
 			Writes(common.EventList{}).
@@ -632,12 +697,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/secret").To(apiHandler.handleGetSecretList).
 			// docs
+			Operation("GetAllSecrets").
 			Doc("returns a list of Secrets from all namespaces").
 			Writes(secret.SecretList{}).
 			Returns(http.StatusOK, "OK", secret.SecretList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/secret/{namespace}").To(apiHandler.handleGetSecretList).
 			// docs
+			Operation("GetSecrets").
 			Doc("returns a list of Secrets in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Secret")).
 			Writes(secret.SecretList{}).
@@ -645,6 +712,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/secret/{namespace}/{name}").To(apiHandler.handleGetSecretDetail).
 			// docs
+			Operation("GetSecret").
 			Doc("returns detailed information about Secret").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Secret")).
 			Param(apiV1Ws.PathParameter("name", "name of the Secret")).
@@ -653,6 +721,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.POST("/secret").To(apiHandler.handleCreateImagePullSecret).
 			// docs
+			Operation("CreateImagePullSecret").
 			Doc("stores ImagePullSecret in a Kubernetes Secret").
 			Reads(secret.ImagePullSecretSpec{}).
 			Writes(secret.Secret{}).
@@ -662,12 +731,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/configmap").To(apiHandler.handleGetConfigMapList).
 			// docs
+			Operation("GetAllConfigMaps").
 			Doc("returns a list of ConfigMaps from all namespaces").
 			Writes(configmap.ConfigMapList{}).
 			Returns(http.StatusOK, "OK", configmap.ConfigMapList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/configmap/{namespace}").To(apiHandler.handleGetConfigMapList).
 			// docs
+			Operation("GetConfigMaps").
 			Doc("returns a list of ConfigMaps in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ConfigMap")).
 			Writes(configmap.ConfigMapList{}).
@@ -675,6 +746,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/configmap/{namespace}/{configmap}").To(apiHandler.handleGetConfigMapDetail).
 			// docs
+			Operation("GetConfigMap").
 			Doc("returns detailed information about ConfigMap").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ConfigMap")).
 			Param(apiV1Ws.PathParameter("configmap", "name of the ConfigMap")).
@@ -685,12 +757,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service").To(apiHandler.handleGetServiceList).
 			// docs
+			Operation("GetAllServices").
 			Doc("returns a list of Services from all namespaces").
 			Writes(service.ServiceList{}).
 			Returns(http.StatusOK, "OK", service.ServiceList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service/{namespace}").To(apiHandler.handleGetServiceList).
 			// docs
+			Operation("GetServices").
 			Doc("returns a list of Services in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Service")).
 			Writes(service.ServiceList{}).
@@ -698,6 +772,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service/{namespace}/{service}").To(apiHandler.handleGetServiceDetail).
 			// docs
+			Operation("GetService").
 			Doc("returns detailed information about Service").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Service")).
 			Param(apiV1Ws.PathParameter("service", "name of the Service")).
@@ -706,6 +781,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service/{namespace}/{service}/event").To(apiHandler.handleGetServiceEvent).
 			// docs
+			Operation("GetServiceEvents").
 			Doc("returns a list of Events for Service").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Service")).
 			Param(apiV1Ws.PathParameter("service", "name of the Service")).
@@ -714,6 +790,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service/{namespace}/{service}/pod").To(apiHandler.handleGetServicePods).
 			// docs
+			Operation("GetServicePods").
 			Doc("returns a list of Pods for Service").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Service")).
 			Param(apiV1Ws.PathParameter("service", "name of the Service")).
@@ -722,6 +799,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/service/{namespace}/{service}/ingress").To(apiHandler.handleGetServiceIngressList).
 			// docs
+			Operation("GetServiceIngresses").
 			Doc("returns a list of Ingresses for Service").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Service")).
 			Param(apiV1Ws.PathParameter("service", "name of the Service")).
@@ -732,12 +810,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/serviceaccount").To(apiHandler.handleGetServiceAccountList).
 			// docs
+			Operation("GetAllServiceAccounts").
 			Doc("returns a list of ServiceAccounts from all namespaces").
 			Writes(serviceaccount.ServiceAccountList{}).
 			Returns(http.StatusOK, "OK", serviceaccount.ServiceAccountList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/serviceaccount/{namespace}").To(apiHandler.handleGetServiceAccountList).
 			// docs
+			Operation("GetServiceAccounts").
 			Doc("returns a list of ServiceAccounts in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ServiceAccount")).
 			Writes(serviceaccount.ServiceAccountList{}).
@@ -745,6 +825,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/serviceaccount/{namespace}/{serviceaccount}").To(apiHandler.handleGetServiceAccountDetail).
 			// docs
+			Operation("GetServiceAccount").
 			Doc("returns detailed information about ServiceAccount").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ServiceAccount")).
 			Param(apiV1Ws.PathParameter("serviceaccount", "name of the ServiceAccount")).
@@ -753,6 +834,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/serviceaccount/{namespace}/{serviceaccount}/secret").To(apiHandler.handleGetServiceAccountSecrets).
 			// docs
+			Operation("GetServiceAccountSecrets").
 			Doc("returns a list of Secrets for ServiceAccount").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ServiceAccount")).
 			Param(apiV1Ws.PathParameter("serviceaccount", "name of the ServiceAccount")).
@@ -761,6 +843,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/serviceaccount/{namespace}/{serviceaccount}/imagepullsecret").To(apiHandler.handleGetServiceAccountImagePullSecrets).
 			// docs
+			Operation("GetServiceAccountImagePullSecrets").
 			Doc("returns a list of ImagePullSecret Secrets for ServiceAccount").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the ServiceAccount")).
 			Param(apiV1Ws.PathParameter("serviceaccount", "name of the ServiceAccount")).
@@ -770,11 +853,13 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	// Ingress
 	apiV1Ws.Route(apiV1Ws.GET("/ingress").To(apiHandler.handleGetIngressList).
 		// docs
+		Operation("GetAllIngresses").
 		Doc("returns a list of Ingresses from all namespaces").
 		Writes(ingress.IngressList{}).
 		Returns(http.StatusOK, "OK", ingress.IngressList{}))
 	apiV1Ws.Route(apiV1Ws.GET("/ingress/{namespace}").To(apiHandler.handleGetIngressList).
 		// docs
+		Operation("GetIngresses").
 		Doc("returns a list of Ingresses in a namespaces").
 		Param(apiV1Ws.PathParameter("namespace", "namespace of the Ingress")).
 		Writes(ingress.IngressList{}).
@@ -782,6 +867,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/ingress/{namespace}/{name}").To(apiHandler.handleGetIngressDetail).
 			// docs
+			Operation("GetIngress").
 			Doc("returns detailed information about Ingress").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Ingress")).
 			Param(apiV1Ws.PathParameter("name", "name of the Ingress")).
@@ -790,6 +876,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/ingress/{namespace}/{ingress}/event").To(apiHandler.handleGetIngressEvent).
 			// docs
+			Operation("GetIngressEvents").
 			Doc("returns a list of Events for Ingress").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Ingress")).
 			Param(apiV1Ws.PathParameter("ingress", "name of the Ingress")).
@@ -800,12 +887,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/networkpolicy").To(apiHandler.handleGetNetworkPolicyList).
 			// docs
+			Operation("GetAllNetworkPolicies").
 			Doc("returns a list of NetworkPolicies from all namespaces").
 			Writes(networkpolicy.NetworkPolicyList{}).
 			Returns(http.StatusOK, "OK", networkpolicy.NetworkPolicyList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/networkpolicy/{namespace}").To(apiHandler.handleGetNetworkPolicyList).
 			// docs
+			Operation("GetNetworkPolicies").
 			Doc("returns a list of NetworkPolicies in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the NetworkPolicy")).
 			Writes(networkpolicy.NetworkPolicyList{}).
@@ -813,6 +902,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/networkpolicy/{namespace}/{networkpolicy}").To(apiHandler.handleGetNetworkPolicyDetail).
 			// docs
+			Operation("GetNetworkPolicy").
 			Doc("returns detailed information about NetworkPolicy").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the NetworkPolicy")).
 			Param(apiV1Ws.PathParameter("networkpolicy", "name of the NetworkPolicy")).
@@ -823,12 +913,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/statefulset").To(apiHandler.handleGetStatefulSetList).
 			// docs
+			Operation("GetAllStatefulSets").
 			Doc("returns a list of StatefulSets from all namespaces").
 			Writes(statefulset.StatefulSetList{}).
 			Returns(http.StatusOK, "OK", statefulset.StatefulSetList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/statefulset/{namespace}").To(apiHandler.handleGetStatefulSetList).
 			// docs
+			Operation("GetStatefulSets").
 			Doc("returns a list of StatefulSets in a namespaces").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the StatefulSet")).
 			Writes(statefulset.StatefulSetList{}).
@@ -836,6 +928,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/statefulset/{namespace}/{statefulset}").To(apiHandler.handleGetStatefulSetDetail).
 			// docs
+			Operation("GetStatefulSet").
 			Doc("returns detailed information about StatefulSets").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the StatefulSet")).
 			Param(apiV1Ws.PathParameter("statefulset", "name of the StatefulSet")).
@@ -844,6 +937,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/statefulset/{namespace}/{statefulset}/pod").To(apiHandler.handleGetStatefulSetPods).
 			// docs
+			Operation("GetStatefulSetPods").
 			Doc("returns  a list of Pods for StatefulSets").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the StatefulSet")).
 			Param(apiV1Ws.PathParameter("statefulset", "name of the StatefulSet")).
@@ -852,6 +946,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/statefulset/{namespace}/{statefulset}/event").To(apiHandler.handleGetStatefulSetEvents).
 			// docs
+			Operation("GetStatefulSetEvents").
 			Doc("returns a list of Events for StatefulSets").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the StatefulSet")).
 			Param(apiV1Ws.PathParameter("statefulset", "name of the StatefulSet")).
@@ -860,6 +955,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/statefulset/{namespace}/{statefulset}/restart").To(apiHandler.handleStatefulSetRestart).
 			// docs
+			Operation("RestartStatefulSet").
 			Doc("rollout restart of the Daemon Set").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the StatefulSet")).
 			Param(apiV1Ws.PathParameter("statefulset", "name of the StatefulSet")).
@@ -871,12 +967,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/node").To(apiHandler.handleGetNodeList).
 			// docs
+			Operation("GetNodes").
 			Doc("returns a list of Nodes").
 			Writes(node.NodeList{}).
 			Returns(http.StatusOK, "OK", node.NodeList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/node/{name}").To(apiHandler.handleGetNodeDetail).
 			// docs
+			Operation("GetNode").
 			Doc("returns detailed information about Node").
 			Param(apiV1Ws.PathParameter("name", "name of the Node")).
 			Writes(node.NodeDetail{}).
@@ -884,6 +982,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/node/{name}/event").To(apiHandler.handleGetNodeEvents).
 			// docs
+			Operation("GetNodeEvents").
 			Doc("returns a list of Events for Node").
 			Param(apiV1Ws.PathParameter("name", "name of the Node")).
 			Writes(common.EventList{}).
@@ -891,6 +990,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/node/{name}/pod").To(apiHandler.handleGetNodePods).
 			// docs
+			Operation("GetNodePods").
 			Doc("returns a list of Pods for Node").
 			Param(apiV1Ws.PathParameter("name", "name of the Node")).
 			Writes(pod.PodList{}).
@@ -898,6 +998,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/node/{name}/drain").To(apiHandler.handleNodeDrain).
 			// docs
+			Operation("DrainNode").
 			Doc("drains Node").
 			Param(apiV1Ws.PathParameter("name", "name of the Node")).
 			Reads(node.NodeDrainSpec{}).
@@ -907,6 +1008,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.DELETE("/_raw/{kind}/namespace/{namespace}/name/{name}").To(apiHandler.handleDeleteResource).
 			// docs
+			Operation("DeleteNamespacedResource").
 			Doc("deletes a resource from a namespace").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
@@ -917,6 +1019,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/_raw/{kind}/namespace/{namespace}/name/{name}").To(apiHandler.handleGetResource).
 			// docs
+			Operation("GetNamespacedResource").
 			Doc("returns unstructured resource from a namespace").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
@@ -926,6 +1029,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/_raw/{kind}/namespace/{namespace}/name/{name}").To(apiHandler.handlePutResource).
 			// docs
+			Operation("UpdateNamespacedResource").
 			Doc("creates or updates a resource in a namespace").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
@@ -937,6 +1041,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.DELETE("/_raw/{kind}/name/{name}").To(apiHandler.handleDeleteResource).
 			// docs
+			Operation("DeleteResource").
 			Doc("deletes a non-namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("name", "name of the resource")).
@@ -946,6 +1051,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/_raw/{kind}/name/{name}").To(apiHandler.handleGetResource).
 			// docs
+			Operation("GetResource").
 			Doc("returns a non-namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("name", "name of the resource")).
@@ -954,6 +1060,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/_raw/{kind}/name/{name}").To(apiHandler.handlePutResource).
 			// docs
+			Operation("UpdateResource").
 			Doc("creates or updates a non-namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("name", "name of the resource")).
@@ -964,6 +1071,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/scale/{kind}/{namespace}/{name}").To(apiHandler.handleScaleResource).
 			// docs
+			Operation("ScaleNamespacedResource").
 			Doc("scales a namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
@@ -974,6 +1082,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.PUT("/scale/{kind}/{name}").To(apiHandler.handleScaleResource).
 			// docs
+			Operation("ScaleResource").
 			Doc("scales a non-namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("name", "name of the resource")).
@@ -983,6 +1092,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/scale/{kind}/{namespace}/{name}").To(apiHandler.handleGetReplicaCount).
 			// docs
+			Operation("GetNamespacedResourceReplicas").
 			Doc("returns a number of replicas of namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
@@ -992,6 +1102,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/scale/{kind}/{name}").To(apiHandler.handleGetReplicaCount).
 			// docs
+			Operation("GetResourceReplicas").
 			Doc("returns a number of replicas of non-namespaced resource").
 			Param(apiV1Ws.PathParameter("kind", "kind of the resource")).
 			Param(apiV1Ws.PathParameter("name", "name of the resource")).
@@ -1002,12 +1113,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/clusterrole").To(apiHandler.handleGetClusterRoleList).
 			// docs
+			Operation("GetClusterRoles").
 			Doc("returns a list of ClusterRoles").
 			Writes(clusterrole.ClusterRoleList{}).
 			Returns(http.StatusOK, "OK", clusterrole.ClusterRoleList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/clusterrole/{name}").To(apiHandler.handleGetClusterRoleDetail).
 			// docs
+			Operation("GetClusterRole").
 			Doc("returns detailed information about ClusterRole").
 			Param(apiV1Ws.PathParameter("name", "name of the ClusterRole")).
 			Writes(clusterrole.ClusterRoleDetail{}).
@@ -1017,12 +1130,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/clusterrolebinding").To(apiHandler.handleGetClusterRoleBindingList).
 			// docs
+			Operation("GetClusterRoleBindings").
 			Doc("returns a list of ClusterRoleBindings").
 			Writes(clusterrolebinding.ClusterRoleBindingList{}).
 			Returns(http.StatusOK, "OK", clusterrolebinding.ClusterRoleBindingList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/clusterrolebinding/{name}").To(apiHandler.handleGetClusterRoleBindingDetail).
 			// docs
+			Operation("GetClusterRoleBinding").
 			Doc("returns detailed information about ClusterRoleBinding").
 			Param(apiV1Ws.PathParameter("name", "name of the ClusterRoleBinding")).
 			Writes(clusterrolebinding.ClusterRoleBindingDetail{}).
@@ -1032,12 +1147,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/role").To(apiHandler.handleGetRoleList).
 			// docs
+			Operation("GetAllRoles").
 			Doc("returns a list of Roles from all namespace").
 			Writes(role.RoleList{}).
 			Returns(http.StatusOK, "OK", role.RoleList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/role/{namespace}").To(apiHandler.handleGetRoleList).
 			// docs
+			Operation("GetRoles").
 			Doc("returns a list of Roles in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Role")).
 			Writes(role.RoleList{}).
@@ -1045,6 +1162,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/role/{namespace}/{name}").To(apiHandler.handleGetRoleDetail).
 			// docs
+			Operation("GetRole").
 			Doc("returns detailed information about Role").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Role")).
 			Param(apiV1Ws.PathParameter("name", "name of the Role")).
@@ -1055,12 +1173,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/rolebinding").To(apiHandler.handleGetRoleBindingList).
 			// docs
+			Operation("GetAllRoleBindings").
 			Doc("returns a list of RoleBindings from all namespace").
 			Writes(rolebinding.RoleBindingList{}).
 			Returns(http.StatusOK, "OK", rolebinding.RoleBindingList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/rolebinding/{namespace}").To(apiHandler.handleGetRoleBindingList).
 			// docs
+			Operation("GetRoleBindings").
 			Doc("returns a list of RoleBindings in a namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the RoleBinding")).
 			Writes(rolebinding.RoleBindingList{}).
@@ -1068,6 +1188,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/rolebinding/{namespace}/{name}").To(apiHandler.handleGetRoleBindingDetail).
 			// docs
+			Operation("GetRoleBinding").
 			Doc("returns detailed information about RoleBinding").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the RoleBinding")).
 			Param(apiV1Ws.PathParameter("name", "name of the RoleBinding")).
@@ -1078,12 +1199,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/persistentvolume").To(apiHandler.handleGetPersistentVolumeList).
 			// docs
+			Operation("GetPersistentVolumes").
 			Doc("returns a list of PersistentVolumes from all namespaces").
 			Writes(persistentvolume.PersistentVolumeList{}).
 			Returns(http.StatusOK, "OK", persistentvolume.PersistentVolumeList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/persistentvolume/{persistentvolume}").To(apiHandler.handleGetPersistentVolumeDetail).
 			// docs
+			Operation("GetPersistentVolume").
 			Doc("returns detailed information about PersistentVolume").
 			Param(apiV1Ws.PathParameter("persistentvolume", "name of the PersistentVolume")).
 			Writes(persistentvolume.PersistentVolumeDetail{}).
@@ -1091,6 +1214,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 	apiV1Ws.Route(
 		apiV1Ws.GET("/persistentvolume/namespace/{namespace}/name/{persistentvolume}").To(apiHandler.handleGetPersistentVolumeDetail).
 			// docs
+			Operation("GetPersistentVolumeWithNamespace").
 			Doc("returns detailed information about PersistentVolume").
 			Param(apiV1Ws.PathParameter("persistentvolume", "name of the PersistentVolume")).
 			Writes(persistentvolume.PersistentVolumeDetail{}).
@@ -1101,6 +1225,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/persistentvolumeclaim/").
 			To(apiHandler.handleGetPersistentVolumeClaimList).
 			// docs
+			Operation("GetAllPersistentVolumeClaims").
 			Doc("returns a list of PersistentVolumeClaim").
 			Writes(persistentvolumeclaim.PersistentVolumeClaimList{}).
 			Returns(http.StatusOK, "OK", persistentvolumeclaim.PersistentVolumeClaimList{}))
@@ -1108,6 +1233,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/persistentvolumeclaim/{namespace}").
 			To(apiHandler.handleGetPersistentVolumeClaimList).
 			// docs
+			Operation("GetPersistentVolumeClaims").
 			Doc("returns a list of PersistentVolumeClaim from specified namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the PersistentVolumeClaim")).
 			Writes(persistentvolumeclaim.PersistentVolumeClaimList{}).
@@ -1116,6 +1242,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/persistentvolumeclaim/{namespace}/{name}").
 			To(apiHandler.handleGetPersistentVolumeClaimDetail).
 			// docs
+			Operation("GetPersistentVolumeClaim").
 			Doc("returns detailed information about PersistentVolumeClaim").
 			Param(apiV1Ws.PathParameter("name", "name of the PersistentVolumeClaim")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the PersistentVolumeClaim")).
@@ -1127,6 +1254,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/poddisruptionbudget/").
 			To(apiHandler.handleGetPodDisruptionBudgetList).
 			// docs
+			Operation("GetAllPodDisruptionBudgets").
 			Doc("returns a list of PodDisruptionBudget").
 			Writes(poddisruptionbudget.PodDisruptionBudgetList{}).
 			Returns(http.StatusOK, "OK", poddisruptionbudget.PodDisruptionBudgetList{}))
@@ -1134,6 +1262,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/poddisruptionbudget/{namespace}").
 			To(apiHandler.handleGetPodDisruptionBudgetList).
 			// docs
+			Operation("GetPodDisruptionBudgets").
 			Doc("returns a list of PodDisruptionBudget from specified namespace").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the PodDisruptionBudget")).
 			Writes(poddisruptionbudget.PodDisruptionBudgetList{}).
@@ -1142,6 +1271,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/poddisruptionbudget/{namespace}/{name}").
 			To(apiHandler.handleGetPodDisruptionBudgetDetail).
 			// docs
+			Operation("GetPodDisruptionBudget").
 			Doc("returns detailed information about PodDisruptionBudget").
 			Param(apiV1Ws.PathParameter("name", "name of the PodDisruptionBudget")).
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the PodDisruptionBudget")).
@@ -1153,6 +1283,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/crd").
 			To(apiHandler.handleGetCustomResourceDefinitionList).
 			// docs
+			Operation("GetCustomResourceDefinitions").
 			Doc("returns a list of CustomResourceDefinition").
 			Writes(types.CustomResourceDefinitionList{}).
 			Returns(http.StatusOK, "OK", types.CustomResourceDefinitionList{}))
@@ -1160,6 +1291,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/crd/{crd}").
 			To(apiHandler.handleGetCustomResourceDefinitionDetail).
 			// docs
+			Operation("GetCustomResourceDefinition").
 			Doc("returns detailed information about CustomResourceDefinition").
 			Param(apiV1Ws.PathParameter("crd", "name of the CustomResourceDefinition")).
 			Writes(types.CustomResourceDefinitionDetail{}).
@@ -1168,6 +1300,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/crd/{namespace}/{crd}/object").
 			To(apiHandler.handleGetCustomResourceObjectList).
 			// docs
+			Operation("GetCustomResourceObjects").
 			Doc("returns a list of objects of CustomResourceDefinition").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the custom resource")).
 			Param(apiV1Ws.PathParameter("crd", "name of the CustomResourceDefinition")).
@@ -1177,6 +1310,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/crd/{namespace}/{crd}/{object}").
 			To(apiHandler.handleGetCustomResourceObjectDetail).
 			// docs
+			Operation("GetCustomResourceObject").
 			Doc("returns detailed information about custom resource object").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the custom resource")).
 			Param(apiV1Ws.PathParameter("crd", "name of the CustomResourceDefinition")).
@@ -1187,6 +1321,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/crd/{namespace}/{crd}/{object}/event").
 			To(apiHandler.handleGetCustomResourceObjectEvents).
 			// docs
+			Operation("GetCustomResourceObjectEvents").
 			Doc("returns Events for custom resource object").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the custom resource")).
 			Param(apiV1Ws.PathParameter("crd", "name of the CustomResourceDefinition")).
@@ -1199,12 +1334,14 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/storageclass").
 			To(apiHandler.handleGetStorageClassList).
 			// docs
+			Operation("GetStorageClasses").
 			Doc("returns a list of StorageClasses").
 			Writes(storageclass.StorageClassList{}).
 			Returns(http.StatusOK, "OK", storageclass.StorageClassList{}))
 	apiV1Ws.Route(
 		apiV1Ws.GET("/storageclass/{storageclass}").
 			// docs
+			Operation("GetStorageClass").
 			Doc("returns detailed information about StorageClass").
 			Param(apiV1Ws.PathParameter("storageclass", "name of the StorageClass")).
 			To(apiHandler.handleGetStorageClass).
@@ -1214,6 +1351,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/storageclass/{storageclass}/persistentvolume").
 			To(apiHandler.handleGetStorageClassPersistentVolumes).
 			// docs
+			Operation("GetStorageClassPersistentVolumes").
 			Doc("returns a list of PersistentVolumes assigned to StorageClass").
 			Param(apiV1Ws.PathParameter("storageclass", "name of the StorageClass")).
 			Writes(persistentvolume.PersistentVolumeList{}).
@@ -1224,6 +1362,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/ingressclass").
 			To(apiHandler.handleGetIngressClassList).
 			// docs
+			Operation("GetIngressClasses").
 			Doc("returns a list of IngressClasses").
 			Writes(ingressclass.IngressClassList{}).
 			Returns(http.StatusOK, "OK", ingressclass.IngressClassList{}))
@@ -1231,6 +1370,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/ingressclass/{ingressclass}").
 			To(apiHandler.handleGetIngressClass).
 			// docs
+			Operation("GetIngressClass").
 			Doc("returns detailed information about IngressClass").
 			Param(apiV1Ws.PathParameter("ingressclass", "name of the IngressClass")).
 			Writes(ingressclass.IngressClass{}).
@@ -1241,6 +1381,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/log/source/{namespace}/{resourceName}/{resourceType}").
 			To(apiHandler.handleLogSource).
 			// docs
+			Operation("GetLogSource").
 			Doc("returns log sources for a resource").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the resource")).
 			Param(apiV1Ws.PathParameter("resourceName", "name of the resource")).
@@ -1251,6 +1392,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/log/{namespace}/{pod}").
 			To(apiHandler.handleLogs).
 			// docs
+			Operation("GetPodLogs").
 			Doc("returns logs from a Pod").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -1260,6 +1402,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/log/{namespace}/{pod}/{container}").
 			To(apiHandler.handleLogs).
 			// docs
+			Operation("GetContainerLogs").
 			Doc("returns logs from a Container").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
@@ -1270,6 +1413,7 @@ func CreateHTTPAPIHandler(iManager integration.Manager) (*restful.Container, err
 		apiV1Ws.GET("/log/file/{namespace}/{pod}/{container}").
 			To(apiHandler.handleLogFile).
 			// docs
+			Operation("GetLogFile").
 			Doc("returns a text file with logs from a Container").
 			Param(apiV1Ws.PathParameter("namespace", "namespace of the Pod")).
 			Param(apiV1Ws.PathParameter("pod", "name of the Pod")).
