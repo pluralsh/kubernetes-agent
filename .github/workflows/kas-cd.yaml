@@ -26,7 +26,6 @@ jobs:
     needs: [test]
     permissions:
       contents: 'read'
-      id-token: 'read'
       packages: 'write'
     strategy:
       fail-fast: false
@@ -102,7 +101,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
-      id-token: 'read'
       packages: 'write'
     steps:
       - name: Download digests
