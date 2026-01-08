@@ -15,65 +15,146 @@ structured:
 
 [![Plural Agent repository overview](http://img.youtube.com/vi/j8CyaCWroUY/1.jpg)](http://www.youtube.com/watch?v=j8CyaCWroUY "Plural Agent repository overview")
 
-## Running kas and agentk locally
+For a high-level architecture description, see [architecture.md](architecture.md).
+
+## Running kas, agentk and the API locally
 
 [![Plural Agent development environment setup](https://img.youtube.com/vi/UWptMO-Amtc/0.jpg)](https://www.youtube.com/watch?v=UWptMO-Amtc "Plural Agent development environment setup")
 
-You can run `kas` and `agentk` locally to test the Agent yourself.
+You can run `kas`, `agentk` and the Plural Kubernetes API (`modules/api`) locally to test the agent end-to-end.
 
-1. Create a `token.txt`. This is the token for
-   [the agent you created](https://docs.gitlab.com/ee/user/clusters/agent/index.html#create-an-agent-record-in-gitlab).
-   This file must not contain a newline character. You can create the file with this command:
+There are two main workflows:
 
-   ```shell
-   echo -n "<TOKEN>" > token.txt
-   ```
+- **Helm + kind** (recommended): deploy `kas` (and its proxy) into a local kind cluster using the dev Helm chart.
+- **Docker Compose (modules/kas)**: run `kas` and `agentk` via docker compose against an existing cluster.
 
-1. [Setup GDK](https://gitlab.com/gitlab-org/gitlab-development-kit#installation).
+### Prerequisites
 
-1. [Setup kas in GDK](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/main/doc/howto/kubernetes_agent.md).
+- Docker (or compatible runtime) installed and running.
+- `kind`, `kubectl`, `helm` installed.
+- Go installed (for building binaries and running `make` targets).
+- On Linux/macOS, ensure port `443` is free (used by ingress in the dev kind cluster).
 
-1. Start the binaries with the following commands:
+### Helm + kind dev environment
 
-   ```shell
-   # Start Plural but stop GDK's version of kas.
-   gdk start && gdk stop gitlab-k8s-agent
+From the repository root, you can prepare a full dev environment with a single command:
 
-   # Let kas know it's own private API url
-   # This is needed for CI tunnel and any other reverse tunnel-based features.
-   export OWN_PRIVATE_API_URL=grpc://127.0.0.1:8155
-   # Start kas
-   bazel run //cmd/kas -- --configuration-file="gdk/dir/gitlab-k8s-agent-config.yml"
-   ```
+```bash
+make helm
+```
 
-1. In a new terminal window, run this command to start `agentk`:
+This command:
 
-   ```shell
-   # These are used for leader election, etc. Make sure the namespace exists in the cluster.
-   export POD_NAMESPACE=ns
-   export POD_NAME=agent1
-   kubectl create ns "$POD_NAMESPACE"
+1. Creates or reuses a dedicated kind cluster.
+2. Installs ingress-nginx into the cluster.
+3. Builds the required Docker images.
+4. Loads those images into kind.
+5. Installs or upgrades the dev `kas` Helm chart from `hack/chart/kas` into the `kas` namespace.
 
-   # Set --kas-address correctly, depending on how kas is setup.
-   # Set --context to a kubectl context to use. Can be omitted to use the current context, but that is risky
-   # as the behavior is not deterministic in that case.
-   # Get the list of contexts with kubectl config get-contexts
-   bazel run //cmd/agentk -- --kas-address=grpc://127.0.0.1:8150 --token-file="$(pwd)/token.txt" --context=minikube
-   ```
+After this step, you should see the `kas` components running:
 
-You can also inspect the [Makefile](../Makefile) for more targets. You can run `kas` and/or `agentk` from your
-editor too. Just make sure to setup
+```bash
+kubectl -n kas get pods
+```
 
-### Additional resources
+The dev ingress exposes the following endpoints on your host:
 
-- Bazel documentation about [specifying targets to build](https://docs.bazel.build/versions/master/guide.html#specifying-targets-to-build).
-- [The Bazel query](https://docs.bazel.build/versions/master/query.html)
-- [Bazel query how to](https://docs.bazel.build/versions/master/query-how-to.html)
+- `https://localhost/ext/kas` – proxied Kubernetes Agent endpoint through the internal reverse proxy.
 
+This environment is what the Plural UI and the `modules/api` service are expected to talk to.
+
+### Running kas + agentk via Docker Compose (modules/kas)
+
+For focused work on `kas` and `agentk`, you can use the `modules/kas` `Makefile` which runs both components via docker compose.
+
+From the repository root:
+
+```bash
+cd modules/kas
+make run          # kas + agentk + dependencies via docker compose
+# or
+make run-debug    # debug images with Delve exposed on ports 40000 (kas) and 40001 (agentk)
+```
+
+Notes:
+
+- These targets expect a default kind cluster to be available (you can create it via the root `make helm` target).
+- The `run` targets prepare certificates and secrets under the directory configured by `SECRET_DIRECTORY`.
+- Use `make stop` / `make stop-debug` in `modules/kas` to stop the stack and clean up local images.
+
+### Running agentk outside the cluster
+
+For some scenarios (for example, testing the new kas proxy), you may want to run `agentk` **outside** the cluster, connecting to a kas proxy endpoint exposed on your host.
+
+Assuming:
+
+- You have created the dev kind cluster and deployed `kas` and its proxy via `make helm`.
+- You have an external kubeconfig that can reach the dev kind cluster.
+- You have a valid Plural deploy token for the agent.
+
+You can run `agentk` directly as a local binary. A typical pattern looks like this:
+
+```bash
+cd modules/kas
+make build-agentk
+
+KUBECONFIG=<PATH_TO_EXT_KIND_KUBECONFIG> \
+AGENTK_TOKEN=<PLRL_DEPLOY_TOKEN> \
+POD_NAMESPACE=default \
+POD_NAME=agentk \
+./.bin/agentk \
+  --kas-insecure-skip-tls-verify \
+  --kas-address=wss://kas.local/ext/kas
+```
+
+- `POD_NAMESPACE` and `POD_NAME` are used for leader election; ensure the namespace exists:
+
+  ```bash
+  kubectl --kubeconfig "$KUBECONFIG" create namespace "$POD_NAMESPACE" || true
+  ```
+
+- `--kas-insecure-skip-tls-verify` is usually required for local development because the ingress uses self-signed certificates.
+- `--kas-address` must match the hostname and path configured by the Helm chart and kind ingress.
+
+For direct (non-proxy) development setups you can run `agentk` against a raw `kas` endpoint instead, for example:
+
+```bash
+export POD_NAMESPACE=ns
+export POD_NAME=agent1
+kubectl create ns "$POD_NAMESPACE" || true
+
+./.bin/agentk \
+  --kas-address=grpc://127.0.0.1:8150 \
+  --token-file="$(pwd)/token.txt" \
+  --context=<your-context>
+```
+
+See the repository root [README](../README.md) for more details on the recommended commands.
+
+### Running the Plural Kubernetes API (`modules/api`)
+
+The `modules/api` module implements the Plural-facing backend-for-frontend API on top of `kas`.
+
+Common flows:
+
+- **Run tests for the API module**:
+
+  ```bash
+  cd modules/api
+  make test
+  ```
+
+- **Run tests for all modules (including `kas` and `api`)** from the repository root:
+
+  ```bash
+  make test
+  ```
+
+- **Manual/local runs**: see `modules/api/Makefile` and the `modules/api/pkg` packages for concrete entry points and configuration flags depending on your deployment.
 
 ## Debugging locally
 
-For local debugging we don't use Bazel and instead build agent "from source".
+For local debugging you can run `kas` and `agentk` from source and attach a debugger.
 
 ### dlv
 
@@ -83,6 +164,8 @@ Debug `agentk` with the following command:
 export POD_NAMESPACE=default
 export POD_NAME=agentk
 
+# assume kas is already running and reachable at ${kas_address}
+
 dlv cmd/agentk/main.go -- \
     --kas-address "${kas_address}" \
     --token-file "${token_file}"
@@ -91,179 +174,85 @@ dlv cmd/agentk/main.go -- \
 Debug `kas` with the following command:
 
 ```sh
-export OWN_PRIVATE_API_URL="$(gdk config get gitlab_k8s_agent.__private_api_url)"
-dlv cmd/kas/main.go -- --configuration-file "$(gdk config get gitlab_k8s_agent.__config_file)"
+export OWN_PRIVATE_API_URL="grpc://127.0.0.1:8155"  # adjust to your local config
+
+dlv cmd/kas/main.go -- \
+  --configuration-file "${kas_config_file}"
 ```
 
 ### VS Code
 
-To debug in VS Code, use the following [Launch Configuration](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `<path-to-your-gdk>` with the full path to your GDK (you can find that with `gdk config get gitlab_k8s_agent.__config_file`).
+To debug in VS Code, use the following [Launch Configuration](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Adjust paths and arguments to match your local environment.
 
 ```json
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch agentk",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/cmd/agentk/",
-            "args": ["--kas-address","grpc://172.16.123.1:8150", "--token-file", "${workspaceFolder}/token.txt"],
-            "env": {
-                "POD_NAMESPACE": "default",
-                "POD_NAME": "agentk"
-            }
-        },
-        {
-            "name": "Launch kas",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/cmd/kas/",
-            "args": ["--configuration-file", "<path-to-your-gdk>/gitlab-k8s-agent-config.yml"],
-            "env": {
-                "OWN_PRIVATE_API_URL": "grpc://172.16.123.1:8155",
-            }
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch agentk",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/agentk/",
+      "args": [
+        "--kas-address",
+        "grpc://127.0.0.1:8150",
+        "--token-file",
+        "${workspaceFolder}/token.txt"
+      ],
+      "env": {
+        "POD_NAMESPACE": "default",
+        "POD_NAME": "agentk"
+      }
+    },
+    {
+      "name": "Launch kas",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/kas/",
+      "args": [
+        "--configuration-file",
+        "${workspaceFolder}/kas-config.yml"
+      ],
+      "env": {
+        "OWN_PRIVATE_API_URL": "grpc://127.0.0.1:8155"
+      }
+    }
+  ]
 }
 ```
 
 ### JetBrains GoLand
 
-Add the following run/debug configurations:
+Add run/debug configurations similar to the VS Code ones:
 
-For `kas`:
+- For `kas`: run `cmd/kas`, passing `--configuration-file` and any required environment variables (such as `OWN_PRIVATE_API_URL`).
+- For `agentk`: run `cmd/agentk`, passing `--kas-address`, `--token-file` and environment variables `POD_NAMESPACE` and `POD_NAME`.
 
-![kas run configuration](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/uploads/12c3ad3f7c92a6d5ce2b5380ef4be5a2/Screen_Shot_2023-01-10_at_9.19.36_AM.png)
-
-For `agentk`:
-
-![agentk run configuration](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/uploads/5aadad03c98c4136f94bfa7c702c4725/Screen_Shot_2023-01-10_at_9.19.46_AM.png)
-
-It's optional, but consider also specifying `--context=<desired context>` command line argument to not depend on the currently selected context.
-## kas QA tests
-
-This section describes how to run kas tests against different Plural environments based on the
-[Plural QA orchestrator](https://gitlab.com/gitlab-org/gitlab-qa).
-
-### Status
-
-The `kas` QA tests currently have some limitations. You can run them manually on GDK, but they don't
-run automatically with the nightly jobs against the live environment. See the section below
-to learn how to run them against different environments.
-
-### Prepare
-
-Before performing any of these tests, if you have a `k3s` instance running, make sure to
-stop it manually before running them. Otherwise, the tests might fail with the message
-`failed to remove k3s cluster`.
-
-You might need to specify the correct Agent image version that matches the `kas` image version. You can use the `GITLAB_AGENTK_VERSION` local environment for this.
-
-### Against `staging`
-
-1. Go to your local `qa/qa/service/cluster_provider/k3s.rb` and comment out
-   [this line](https://gitlab.com/gitlab-org/gitlab/-/blob/5b15540ea78298a106150c3a1d6ed26416109b9d/qa/qa/service/cluster_provider/k3s.rb#L8) and
-   [this line](https://gitlab.com/gitlab-org/gitlab/-/blob/5b15540ea78298a106150c3a1d6ed26416109b9d/qa/qa/service/cluster_provider/k3s.rb#L36).
-   We don't allow local connections on `staging` as they require an admin user.
-1. Ensure you don't have an `EE_LICENSE` environment variable set as this would force an admin login.
-1. Go to your GDK root folder and `cd gitlab/qa`.
-1. Login with your user in staging and create a group to be used as sandbox.
-   Something like: `username-qa-sandbox`.
-1. Create an access token for your user with the `api` permission.
-1. Replace the values given below with your own and run:
-
-   ```shell
-   GITLAB_SANDBOX_NAME="<THE GROUP ID YOU CREATED ON STEP 2>" \
-   GITLAB_QA_ACCESS_TOKEN="<THE ACCESS TOKEN YOU CREATED ON STEP 3>" \
-   GITLAB_USERNAME="<YOUR STAGING USERNAME>" \
-   GITLAB_PASSWORD="<YOUR STAGING PASSWORD>" \
-   bundle exec bin/qa Test::Instance::All https://staging.gitlab.com -- --tag quarantine qa/specs/features/ee/api/7_configure/kubernetes/kubernetes_agent_spec.rb
-   ```
-
-### Against GDK
-
-1. Go to your `qa/qa/fixtures/kubernetes_agent/agentk-manifest.yaml.erb` and comment out [this line](https://gitlab.com/gitlab-org/gitlab/-/blob/a55b78532cfd29426cf4e5b4edda81407da9d449/qa/qa/fixtures/kubernetes_agent/agentk-manifest.yaml.erb#L27) and uncomment [this line](https://gitlab.com/gitlab-org/gitlab/-/blob/a55b78532cfd29426cf4e5b4edda81407da9d449/qa/qa/fixtures/kubernetes_agent/agentk-manifest.yaml.erb#L28).
-   GDK's `kas` listens on `grpc`, not on `wss`.
-1. Go to the GDK's root folder and `cd gitlab/qa`.
-1. On the contrary to staging, run the QA test in GDK as admin, which is the default choice. To do so, use the default sandbox group and run the command below. Make sure to adjust your credentials if necessary, otherwise, the test might fail:
-
-   ```shell
-   GITLAB_USERNAME=root \
-   GITLAB_PASSWORD="5iveL\!fe" \
-   GITLAB_ADMIN_USERNAME=root \
-   GITLAB_ADMIN_PASSWORD="5iveL\!fe" \
-   bundle exec bin/qa Test::Instance::All http://gdk.test:3000 -- --tag quarantine qa/specs/features/ee/api/7_configure/kubernetes/kubernetes_agent_spec.rb
-   ```
+It's optional, but consider specifying `--context=<desired context>` command line argument to not depend on the currently selected context.
 
 ## Optimizing build performance
 
-Bazel creates a lot of files during the build:
-- For [sandboxing](https://docs.bazel.build/versions/main/sandboxing.html)
-  purposes. These are temporary files, not taking up disk space permanently.
-- Cache of completed actions such as compiled packages, ready for linking.
+Go builds and tests can generate a lot of files. If you are iterating quickly, consider:
 
-To speed up Bazel builds on your machine, you can put all those files onto a RAM disk. On Linux, you can use
-`/dev/shm` (where it's mounted depends on your distribution). On macOS you can create a 10 GiB RAM disk and
-mount it under `/Volumes/ramdisk` using the following command:
+- Using a fast local disk (SSD) for your Go module cache and build cache.
+- Adjusting `GOMODCACHE` and `GOCACHE` to point to a faster filesystem.
 
-```shell
-diskutil partitionDisk $(hdiutil attach -nomount ram://20971520) 1 GPTFormat APFS 'ramdisk' '100%'
-```
-
-10 GiB should be enough, although more space may be required by this project in the future. This disk will be gone once you reboot your Mac. Just recreate it.
-
-To use the RAM disk, specify the path to it. There are two options:
-
-- **Move sandbox only**. This requires less space i.e. less RAM. Use
-  [`--sandbox_base`](https://docs.bazel.build/versions/main/command-line-reference.html#flag--sandbox_base)
-  option.
-
-- **Move all temporary files**, including sandbox and cache. Use
-  [`--output_user_root`](https://docs.bazel.build/versions/main/command-line-reference.html#flag--output_user_root)
-  option. See
-  [Choosing the output base](https://docs.bazel.build/versions/main/guide.html#choosing-the-output-base).
-
-Put the option you chose into your `~/.bazelrc` like that:
+For large multi-module builds you can also experiment with `GOMAXPROCS` and Go build flags to balance speed and resource usage.
 
 ```plaintext
-#build --sandbox_base=/Volumes/ramdisk
-startup --output_user_root=/Volumes/ramdisk
+# Example: put Go cache on a fast disk
+export GOCACHE=/mnt/fastdisk/gocache
+export GOMODCACHE=/mnt/fastdisk/gomodcache
 ```
-
-[Docs about the `.bazelrc` file](https://docs.bazel.build/versions/main/guide.html#bazelrc-the-bazel-configuration-file).
 
 ## Ruby gRPC interface
 
-In `pkg/ruby` we generate Ruby gRPC types intended to be used by Plural to interact with KAS.
-The following sections outline how to build a test that generated Ruby code in the context of GDK.
+In the original GitLab-based version of this project, a Ruby gRPC gem was generated for integration with a Ruby on Rails backend. In Plural environments, the primary integration surface is the Go-based `api` module and other backend services rather than a Rails application.
 
-### Build
+If you need a language-specific client for `kas` (Ruby or otherwise), the recommended approach is to:
 
-The ruby gem can be built using `make build-gem`. The gem file will be located in `pkg/ruby`.
-
-### Use kas-grpc gem in GDK
-
-To use this locally built gem in GDK do:
-
-1. Add the path to the directory where the gem is located to the `gem 'kas-grpc'` line in the `Gemfile` of the `gitlab` project.
-   It'll look something like this: `gem 'kas-grpc', path: '/path/to/gitlab-agent/pkg/ruby'`
-1. Run `bundle install`
-1. Restart GDK with `gdk restart`
-
-After that you can either implement and test changes like with any other Plural work or
-use `gdk rails console` to exploratory test, e.g.:
-
-```irb
-[1] pry(main)> client = Gitlab::Kas::Client.new()
-=> #<Gitlab::Kas::Client:0x000000012c9584b8>
-[2] pry(main)> client.send_git_push_event(project: Project.find(1))
-  Project Load (2.4ms)  SELECT "projects".* FROM "projects" WHERE "projects"."id" = 1 LIMIT 1 /*application:console,db_config_name:main,console_hostname:tuxmac.local,console_username:timo,line:(pry):2:in `__pry__'*/
-  Route Load (0.6ms)  SELECT "routes".* FROM "routes" WHERE "routes"."source_id" = 1 AND "routes"."source_type" = 'Project' LIMIT 1 /*application:console,db_config_name:main,console_hostname:tuxmac.local,console_username:timo,line:/app/models/concerns/routable.rb:141:in `block in full_attribute'*/
-=> <Gitlab::Agent::Notifications::Rpc::GitPushEventResponse: >
-```
+1. Use the `.proto` definitions under `pkg/`.
+2. Generate client code using your language's protobuf/gRPC tooling.
+3. Integrate that client into your service following your stack's conventions.

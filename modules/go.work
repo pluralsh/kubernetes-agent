@@ -1,0 +1,12 @@
+go 1.25.1
+
+use (
+	./api
+	./common/certificates
+	./common/client
+	./common/csrf
+	./common/errors
+	./common/helpers
+	./common/types
+	./kas
+)
