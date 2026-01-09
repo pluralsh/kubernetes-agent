@@ -43,6 +43,7 @@ func TestToPodPodStatusFailed(t *testing.T) {
 		TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 		Status:            string(v1.PodFailed),
 		Warnings:          []common.Event{},
+		ContainerImages:   make([]string, 0),
 		ContainerStatuses: make([]ContainerStatus, 0),
 		AllocatedResources: PodAllocatedResources{
 			GPURequests: []GPUAllocation{},
@@ -75,6 +76,7 @@ func TestToPodPodStatusSucceeded(t *testing.T) {
 		TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 		Status:            string(v1.PodSucceeded),
 		Warnings:          []common.Event{},
+		ContainerImages:   make([]string, 0),
 		ContainerStatuses: make([]ContainerStatus, 0),
 		AllocatedResources: PodAllocatedResources{
 			GPURequests: []GPUAllocation{},
@@ -111,6 +113,7 @@ func TestToPodPodStatusRunning(t *testing.T) {
 		TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 		Status:            string(v1.PodRunning),
 		Warnings:          []common.Event{},
+		ContainerImages:   make([]string, 0),
 		ContainerStatuses: make([]ContainerStatus, 0),
 		AllocatedResources: PodAllocatedResources{
 			GPURequests: []GPUAllocation{},
@@ -143,6 +146,7 @@ func TestToPodPodStatusPending(t *testing.T) {
 		TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 		Status:            string(v1.PodPending),
 		Warnings:          []common.Event{},
+		ContainerImages:   make([]string, 0),
 		ContainerStatuses: make([]ContainerStatus, 0),
 		AllocatedResources: PodAllocatedResources{
 			GPURequests: []GPUAllocation{},
@@ -182,9 +186,10 @@ func TestToPodContainerStates(t *testing.T) {
 	}
 
 	expected := Pod{
-		TypeMeta: types.TypeMeta{Kind: types.ResourceKindPod},
-		Status:   "Terminated",
-		Warnings: []common.Event{},
+		TypeMeta:        types.TypeMeta{Kind: types.ResourceKindPod},
+		Status:          "Terminated",
+		Warnings:        []common.Event{},
+		ContainerImages: make([]string, 0),
 		ContainerStatuses: []ContainerStatus{
 			{
 				State: Terminated,
@@ -218,6 +223,7 @@ func TestToPod(t *testing.T) {
 			expected: Pod{
 				TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 				Warnings:          []common.Event{},
+				ContainerImages:   make([]string, 0),
 				ContainerStatuses: make([]ContainerStatus, 0),
 				AllocatedResources: PodAllocatedResources{
 					GPURequests: []GPUAllocation{},
@@ -237,6 +243,7 @@ func TestToPod(t *testing.T) {
 					Namespace: "test-namespace",
 				},
 				Warnings:          []common.Event{},
+				ContainerImages:   make([]string, 0),
 				ContainerStatuses: make([]ContainerStatus, 0),
 				AllocatedResources: PodAllocatedResources{
 					GPURequests: []GPUAllocation{},

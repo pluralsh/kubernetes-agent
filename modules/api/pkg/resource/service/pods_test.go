@@ -61,6 +61,7 @@ func TestGetServicePods(t *testing.T) {
 						TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 						Warnings:          []common.Event{},
 						ContainerStatuses: make([]pod.ContainerStatus, 0),
+						ContainerImages:   make([]string, 0),
 						AllocatedResources: pod.PodAllocatedResources{
 							GPURequests: []pod.GPUAllocation{},
 							GPULimits:   []pod.GPUAllocation{},

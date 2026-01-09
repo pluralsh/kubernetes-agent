@@ -104,6 +104,7 @@ func TestGetPodListFromChannels(t *testing.T) {
 					},
 					TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 					Warnings:          []common.Event{},
+					ContainerImages:   make([]string, 0),
 					ContainerStatuses: make([]pod.ContainerStatus, 0),
 					AllocatedResources: pod.PodAllocatedResources{
 						GPURequests: []pod.GPUAllocation{},
