@@ -12,7 +12,7 @@ env:
   REGISTRY_IMAGE: pluralsh/kubernetes-agent
 jobs:
   build-api:
-    name: Build
+    name: Build API
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -25,7 +25,7 @@ jobs:
       - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make -C modules/api build
 
   build-kas:
-    name: Build
+    name: Build KAS
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
