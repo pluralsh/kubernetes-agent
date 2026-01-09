@@ -11,6 +11,19 @@ env:
   GOPROXY: "https://proxy.golang.org"
   REGISTRY_IMAGE: pluralsh/kubernetes-agent
 jobs:
+  build-api:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: modules/go.work
+          check-latest: true
+      - run: PATH=$PATH:$GOPATH/bin TARGET_DIRECTORY=. make -C modules/api build
+
   build-kas:
     name: Build
     runs-on: ubuntu-latest
@@ -48,7 +61,7 @@ jobs:
         with:
           go-version-file: modules/go.work
           check-latest: true
-      - run: PATH=$PATH:$GOPATH/bin make -C modules/kas test
+      - run: PATH=$PATH:$GOPATH/bin make test
 
   lint:
     name: Lint
