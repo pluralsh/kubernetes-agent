@@ -44,7 +44,10 @@ func TestToPodPodStatusFailed(t *testing.T) {
 		Status:            string(v1.PodFailed),
 		Warnings:          []common.Event{},
 		ContainerStatuses: make([]ContainerStatus, 0),
-		ContainerImages:   []string{},
+		AllocatedResources: PodAllocatedResources{
+			GPURequests: []GPUAllocation{},
+			GPULimits:   []GPUAllocation{},
+		},
 	}
 
 	actual := toPod(pod, &MetricsByPod{}, []common.Event{})
@@ -73,7 +76,10 @@ func TestToPodPodStatusSucceeded(t *testing.T) {
 		Status:            string(v1.PodSucceeded),
 		Warnings:          []common.Event{},
 		ContainerStatuses: make([]ContainerStatus, 0),
-		ContainerImages:   []string{},
+		AllocatedResources: PodAllocatedResources{
+			GPURequests: []GPUAllocation{},
+			GPULimits:   []GPUAllocation{},
+		},
 	}
 
 	actual := toPod(pod, &MetricsByPod{}, []common.Event{})
@@ -106,7 +112,10 @@ func TestToPodPodStatusRunning(t *testing.T) {
 		Status:            string(v1.PodRunning),
 		Warnings:          []common.Event{},
 		ContainerStatuses: make([]ContainerStatus, 0),
-		ContainerImages:   []string{},
+		AllocatedResources: PodAllocatedResources{
+			GPURequests: []GPUAllocation{},
+			GPULimits:   []GPUAllocation{},
+		},
 	}
 
 	actual := toPod(pod, &MetricsByPod{}, []common.Event{})
@@ -135,7 +144,10 @@ func TestToPodPodStatusPending(t *testing.T) {
 		Status:            string(v1.PodPending),
 		Warnings:          []common.Event{},
 		ContainerStatuses: make([]ContainerStatus, 0),
-		ContainerImages:   []string{},
+		AllocatedResources: PodAllocatedResources{
+			GPURequests: []GPUAllocation{},
+			GPULimits:   []GPUAllocation{},
+		},
 	}
 
 	actual := toPod(pod, &MetricsByPod{}, []common.Event{})
@@ -170,10 +182,9 @@ func TestToPodContainerStates(t *testing.T) {
 	}
 
 	expected := Pod{
-		TypeMeta:        types.TypeMeta{Kind: types.ResourceKindPod},
-		Status:          "Terminated",
-		Warnings:        []common.Event{},
-		ContainerImages: []string{},
+		TypeMeta: types.TypeMeta{Kind: types.ResourceKindPod},
+		Status:   "Terminated",
+		Warnings: []common.Event{},
 		ContainerStatuses: []ContainerStatus{
 			{
 				State: Terminated,
@@ -181,6 +192,10 @@ func TestToPodContainerStates(t *testing.T) {
 			{
 				State: Waiting,
 			},
+		},
+		AllocatedResources: PodAllocatedResources{
+			GPURequests: []GPUAllocation{},
+			GPULimits:   []GPUAllocation{},
 		},
 	}
 
@@ -204,7 +219,10 @@ func TestToPod(t *testing.T) {
 				TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 				Warnings:          []common.Event{},
 				ContainerStatuses: make([]ContainerStatus, 0),
-				ContainerImages:   []string{},
+				AllocatedResources: PodAllocatedResources{
+					GPURequests: []GPUAllocation{},
+					GPULimits:   []GPUAllocation{},
+				},
 			},
 		}, {
 			pod: &v1.Pod{
@@ -220,7 +238,10 @@ func TestToPod(t *testing.T) {
 				},
 				Warnings:          []common.Event{},
 				ContainerStatuses: make([]ContainerStatus, 0),
-				ContainerImages:   []string{},
+				AllocatedResources: PodAllocatedResources{
+					GPURequests: []GPUAllocation{},
+					GPULimits:   []GPUAllocation{},
+				},
 			},
 		},
 	}

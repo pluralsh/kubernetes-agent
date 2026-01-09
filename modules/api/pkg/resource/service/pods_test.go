@@ -15,9 +15,9 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -54,7 +54,6 @@ func TestGetServicePods(t *testing.T) {
 				CumulativeMetrics: make([]metricapi.Metric, 0),
 				Pods: []pod.Pod{
 					{
-						ContainerImages: make([]string, 0),
 						ObjectMeta: types.ObjectMeta{
 							Name:      "pod-1",
 							UID:       "test-uid",
@@ -62,6 +61,10 @@ func TestGetServicePods(t *testing.T) {
 						TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 						Warnings:          []common.Event{},
 						ContainerStatuses: make([]pod.ContainerStatus, 0),
+						AllocatedResources: pod.PodAllocatedResources{
+							GPURequests: []pod.GPUAllocation{},
+							GPULimits:   []pod.GPUAllocation{},
+						},
 					},
 				},
 				Errors: []error{},
@@ -70,8 +73,11 @@ func TestGetServicePods(t *testing.T) {
 	}
 	for _, c := range cases {
 		fakeClient := fake.NewClientset(c.service, c.podList)
+
 		actual, _ := GetServicePods(fakeClient, nil, c.namespace, c.name, dataselect.NoDataSelect)
-		require.Equal(t, c.expected, actual)
+		if !reflect.DeepEqual(actual, c.expected) {
+			t.Errorf("GetServicePods == \ngot %#v, \nexpected %#v", actual, c.expected)
+		}
 
 	}
 }
