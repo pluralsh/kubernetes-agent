@@ -15,13 +15,12 @@
 package pod_test
 
 import (
+	"reflect"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/stretchr/testify/require"
 
 	metricapi "github.com/pluralsh/kubernetes-agent/api/pkg/integration/metric/api"
 	"github.com/pluralsh/kubernetes-agent/api/pkg/resource/common"
@@ -97,7 +96,6 @@ func TestGetPodListFromChannels(t *testing.T) {
 				CumulativeMetrics: make([]metricapi.Metric, 0),
 				Status:            common.ResourceStatus{},
 				Pods: []pod.Pod{{
-					ContainerImages: make([]string, 0),
 					ObjectMeta: types.ObjectMeta{
 						Name:              "pod-name",
 						Namespace:         "pod-namespace",
@@ -106,7 +104,12 @@ func TestGetPodListFromChannels(t *testing.T) {
 					},
 					TypeMeta:          types.TypeMeta{Kind: types.ResourceKindPod},
 					Warnings:          []common.Event{},
+					ContainerImages:   make([]string, 0),
 					ContainerStatuses: make([]pod.ContainerStatus, 0),
+					AllocatedResources: pod.PodAllocatedResources{
+						GPURequests: []pod.GPUAllocation{},
+						GPULimits:   []pod.GPUAllocation{},
+					},
 				}},
 				Errors: []error{},
 			},
@@ -133,7 +136,31 @@ func TestGetPodListFromChannels(t *testing.T) {
 		channels.EventList.Error <- nil
 
 		actual, err := pod.GetPodListFromChannels(channels, dataselect.NoDataSelect, nil)
-		require.Equal(t, c.expected, actual)
-		require.Equal(t, c.expectedError, err)
+		if !reflect.DeepEqual(actual, c.expected) {
+			t.Errorf("GetPodListFromChannels() ==\n          %#v\nExpected: %#v", actual, c.expected)
+		}
+		if !reflect.DeepEqual(err, c.expectedError) {
+			t.Errorf("GetPodListFromChannels() ==\n          %#v\nExpected: %#v", err, c.expectedError)
+		}
+	}
+}
+
+func TestToGPU(t *testing.T) {
+	cases := []struct {
+		in  string
+		out pod.GPU
+	}{
+		{"nvidia.com/gpu", pod.NvidiaGPU},
+		{"amd.com/gpu", pod.AMDGPU},
+		{"gpu.intel.com/xe", pod.IntelGPU},
+		{"gpu.intel.com/iris", pod.IntelGPU},
+		{"unknown.gpu.type", pod.UnknownGPU},
+		{"", pod.NoGPU},
+	}
+
+	for _, c := range cases {
+		if gpuType := pod.ToGPU(c.in); gpuType != c.out {
+			t.Errorf("ToGPU(%q) == %q, expected %q", c.in, gpuType, c.out)
+		}
 	}
 }
