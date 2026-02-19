@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent/common/certificates
 
-go 1.25.1
+go 1.25.6
 
 require (
 	k8s.io/api v0.34.2
