@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent/common/helpers
 
-go 1.25.1
+go 1.25.7
 
 require k8s.io/apimachinery v0.34.2
 

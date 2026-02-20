@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent/common/client
 
-go 1.25.1
+go 1.25.7
 
 require (
 	github.com/Yiling-J/theine-go v0.6.0

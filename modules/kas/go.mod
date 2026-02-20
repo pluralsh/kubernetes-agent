@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent
 
-go 1.25.1
+go 1.25.7
 
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0

@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent/tools
 
-go 1.25
+go 1.25.7
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1

@@ -1,6 +1,6 @@
 module github.com/pluralsh/kubernetes-agent/common/errors
 
-go 1.25.1
+go 1.25.7
 
 require (
 	github.com/emicklei/go-restful/v3 v3.12.2
